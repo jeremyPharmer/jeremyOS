@@ -187,7 +187,7 @@ export function DailyCrosswordCard() {
             ? "Solved"
             : started
               ? "Tap a square, then type"
-              : "5×5 mini · start when ready"}
+              : "5×5 interlocking · sharper clues"}
         </p>
       </div>
 

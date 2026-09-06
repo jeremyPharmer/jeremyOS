@@ -244,8 +244,7 @@ h2 {
   color: var(--muted);
 }
 
-.weather-strip-precip,
-.weather-strip-wind {
+.weather-strip-precip {
   font-size: 0.68rem;
   font-weight: 500;
   color: var(--muted);

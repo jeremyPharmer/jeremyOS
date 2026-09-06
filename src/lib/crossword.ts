@@ -35,181 +35,209 @@ export type DailyCrosswordState = {
 };
 
 /**
- * Hand-authored pack — pattern:
- *   XXXX#
- *   X##X#
- *   XXXX#
- *   X##X#
- *   #####
- * Across on rows 0 & 2; down on cols 0 & 3. Rotate by day-of-year.
+ * Hand-authored pack — denser interlocking pattern:
+ *   XXXXX
+ *   X#X#X
+ *   XXXXX
+ *   X#X#X
+ *   XXXXX
+ * Across 1/4/5 (rows 0,2,4); down 1/2/3 (cols 0,2,4). Rotate by day-of-year.
  */
 export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
   {
-    id: "star-sail",
-    rows: ["STAR#", "A##O#", "IDEA#", "L##D#", "#####"],
+    id: "vivid-spoil",
+    rows: ["VIVID", "I#I#E", "SPOIL", "I#L#T", "TIARA"],
     across: [
-      { num: 1, clue: "Night-sky light" },
-      { num: 3, clue: "A notion" },
+      { num: 1, clue: "Technicolor, as a dream" },
+      { num: 4, clue: "Ruin by overindulgence" },
+      { num: 5, clue: "Diadem for a pageant" },
     ],
     down: [
-      { num: 1, clue: "Navigate by water" },
-      { num: 2, clue: "Path or highway" },
+      { num: 1, clue: "Drop by, briefly" },
+      { num: 2, clue: "Violin’s deeper cousin" },
+      { num: 3, clue: "River mouth landform" },
     ],
   },
   {
-    id: "soap-sail",
-    rows: ["SOAP#", "A##L#", "IDEA#", "L##Y#", "#####"],
+    id: "spree-manor",
+    rows: ["SPREE", "U#I#G", "MANOR", "A#S#E", "CLEAT"],
     across: [
-      { num: 1, clue: "Bar in the shower" },
-      { num: 3, clue: "A notion" },
+      { num: 1, clue: "Bender with a credit card" },
+      { num: 4, clue: "Downton-style digs" },
+      { num: 5, clue: "Deck-shoe gripper" },
     ],
     down: [
-      { num: 1, clue: "Navigate by water" },
-      { num: 2, clue: "Have fun" },
+      { num: 1, clue: "Spice from a sumac tree" },
+      { num: 2, clue: "Lather, ___, repeat" },
+      { num: 3, clue: "Heron of marsh fame" },
     ],
   },
   {
-    id: "calm-card",
-    rows: ["CALM#", "A##A#", "RAID#", "D##E#", "#####"],
+    id: "spunk-ardor",
+    rows: ["SPUNK", "T#N#A", "ARDOR", "S#U#M", "HYENA"],
     across: [
-      { num: 1, clue: "Peaceful state" },
-      { num: 3, clue: "Sudden attack" },
+      { num: 1, clue: "Moxie, informally" },
+      { num: 4, clue: "Heat of passion" },
+      { num: 5, clue: "Laughing scavenger" },
     ],
     down: [
-      { num: 1, clue: "Greeting note" },
-      { num: 2, clue: "Created or built" },
+      { num: 1, clue: "Emergency cash cache" },
+      { num: 2, clue: "Excessive, as pressure" },
+      { num: 3, clue: "What goes around…" },
     ],
   },
   {
-    id: "nose-nest",
-    rows: ["NOSE#", "E##A#", "SEAS#", "T##T#", "#####"],
+    id: "boost-logic",
+    rows: ["BOOST", "E#U#A", "LOGIC", "L#H#K", "ENTRY"],
     across: [
-      { num: 1, clue: "Smell organ" },
-      { num: 3, clue: "Oceans" },
+      { num: 1, clue: "Give a leg up" },
+      { num: 4, clue: "Spock’s strong suit" },
+      { num: 5, clue: "Doorway or ledger line" },
     ],
     down: [
-      { num: 1, clue: "Bird’s home" },
-      { num: 2, clue: "Compass point" },
+      { num: 1, clue: "Southern belle, e.g." },
+      { num: 2, clue: "Should, biblically" },
+      { num: 3, clue: "Gaudy or sticky, slangily" },
     ],
   },
   {
-    id: "soft-soil",
-    rows: ["SOFT#", "O##A#", "IDOL#", "L##E#", "#####"],
+    id: "weigh-polar",
+    rows: ["WEIGH", "I#S#U", "POLAR", "E#E#R", "DITTY"],
     across: [
-      { num: 1, clue: "Not hard" },
-      { num: 3, clue: "Adored figure" },
+      { num: 1, clue: "Consider carefully" },
+      { num: 4, clue: "Of opposite extremes" },
+      { num: 5, clue: "Little song" },
     ],
     down: [
-      { num: 1, clue: "Dirt for planting" },
-      { num: 2, clue: "Story or legend" },
+      { num: 1, clue: "Erased, as a slate" },
+      { num: 2, clue: "Key in a chain, maybe" },
+      { num: 3, clue: "Move with haste" },
     ],
   },
   {
-    id: "kind-kite",
-    rows: ["KIND#", "I##I#", "TURN#", "E##E#", "#####"],
+    id: "video-whips",
+    rows: ["VIDEO", "O#R#A", "WHIPS", "E#F#I", "LOTUS"],
     across: [
-      { num: 1, clue: "Gentle or nice" },
-      { num: 3, clue: "Change direction" },
+      { num: 1, clue: "TikTok unit, once" },
+      { num: 4, clue: "Beats handily" },
+      { num: 5, clue: "Padma’s namesake bloom" },
     ],
     down: [
-      { num: 1, clue: "Flying toy" },
-      { num: 2, clue: "Eat dinner" },
+      { num: 1, clue: "A, E, I, O, or U" },
+      { num: 2, clue: "Snowbank mover" },
+      { num: 3, clue: "Mirage haven" },
     ],
   },
   {
-    id: "book-bear",
-    rows: ["BOOK#", "E##I#", "ANEW#", "R##I#", "#####"],
+    id: "order-slimy",
+    rows: ["ORDER", "N#R#H", "SLIMY", "E#F#M", "TITLE"],
     across: [
-      { num: 1, clue: "Something to read" },
-      { num: 3, clue: "Afresh" },
+      { num: 1, clue: "Court command" },
+      { num: 4, clue: "Eel-like" },
+      { num: 5, clue: "Champ’s belt, say" },
     ],
     down: [
-      { num: 1, clue: "Forest animal" },
-      { num: 2, clue: "Flightless bird" },
+      { num: 1, clue: "Beginning, as of winter" },
+      { num: 2, clue: "Continental shift" },
+      { num: 3, clue: "Sounds-alike pairing" },
     ],
   },
   {
-    id: "wind-wave",
-    rows: ["WIND#", "A##O#", "VEST#", "E##E#", "#####"],
+    id: "yacht-hoard",
+    rows: ["YACHT", "A#H#O", "HOARD", "O#R#A", "ODDLY"],
     across: [
-      { num: 1, clue: "Moving air" },
-      { num: 3, clue: "Sleeveless garment" },
+      { num: 1, clue: "Monaco dock resident" },
+      { num: 4, clue: "Dragon’s currency" },
+      { num: 5, clue: "In a queer way" },
     ],
     down: [
-      { num: 1, clue: "Ocean swell" },
-      { num: 2, clue: "Be excessively fond" },
+      { num: 1, clue: "Search engine, once a whoop" },
+      { num: 2, clue: "Swiss bunches of green" },
+      { num: 3, clue: "Calendar’s lead story" },
     ],
   },
   {
-    id: "fire-face",
-    rows: ["FIRE#", "A##A#", "CART#", "E##S#", "#####"],
+    id: "clasp-phone",
+    rows: ["CLASP", "A#L#I", "PHONE", "E#O#C", "RIFLE"],
     across: [
-      { num: 1, clue: "Camp blaze" },
-      { num: 3, clue: "Shopping wagon" },
+      { num: 1, clue: "Brooch’s better half" },
+      { num: 4, clue: "Dial or FaceTime" },
+      { num: 5, clue: "Search thoroughly" },
     ],
     down: [
-      { num: 1, clue: "Front of the head" },
-      { num: 2, clue: "Consumes food" },
+      { num: 1, clue: "Prank or frolic" },
+      { num: 2, clue: "Coolly distant" },
+      { num: 3, clue: "Share of the pie" },
     ],
   },
   {
-    id: "gold-game",
-    rows: ["GOLD#", "A##O#", "MOAN#", "E##E#", "#####"],
+    id: "three-inlet",
+    rows: ["THREE", "R#U#N", "INLET", "A#E#R", "DERBY"],
     across: [
-      { num: 1, clue: "Precious metal" },
-      { num: 3, clue: "Sound of complaint" },
+      { num: 1, clue: "Crowd’s a ___" },
+      { num: 4, clue: "Bay’s little sibling" },
+      { num: 5, clue: "Churchill Downs event" },
     ],
     down: [
-      { num: 1, clue: "Sport or contest" },
-      { num: 2, clue: "Finished" },
+      { num: 1, clue: "Chord of three tones" },
+      { num: 2, clue: "Yardstick wielder" },
+      { num: 3, clue: "Admission or debut" },
     ],
   },
   {
-    id: "rain-road",
-    rows: ["RAIN#", "O##E#", "ACRE#", "D##D#", "#####"],
+    id: "visor-scoff",
+    rows: ["VISOR", "I#P#I", "SCOFF", "O#O#L", "RANGE"],
     across: [
-      { num: 1, clue: "Weather from clouds" },
-      { num: 3, clue: "Plot of land" },
+      { num: 1, clue: "Sun-blocking brim" },
+      { num: 4, clue: "Jeer at" },
+      { num: 5, clue: "Stove’s domain" },
     ],
     down: [
-      { num: 1, clue: "Path or highway" },
-      { num: 2, clue: "Require" },
+      { num: 1, clue: "Helmet flap, again" },
+      { num: 2, clue: "Utensil drawer staple" },
+      { num: 3, clue: "Gun or file through" },
     ],
   },
   {
-    id: "leaf-lane",
-    rows: ["LEAF#", "A##L#", "NOVA#", "E##Y#", "#####"],
+    id: "synth-vegan",
+    rows: ["SYNTH", "E#I#O", "VEGAN", "E#H#O", "ROTOR"],
     across: [
-      { num: 1, clue: "Tree foliage" },
-      { num: 3, clue: "Bright star explosion" },
+      { num: 1, clue: "Moog’s domain, briefly" },
+      { num: 4, clue: "No-dairy diner" },
+      { num: 5, clue: "Chopper blade hub" },
     ],
     down: [
-      { num: 1, clue: "Country road" },
-      { num: 2, clue: "Strip the skin from" },
+      { num: 1, clue: "Cut off, as ties" },
+      { num: 2, clue: "Owl’s working hours" },
+      { num: 3, clue: "Medal-worthy esteem" },
     ],
   },
   {
-    id: "moon-more",
-    rows: ["MOON#", "O##O#", "REST#", "E##E#", "#####"],
+    id: "synth-bison",
+    rows: ["SYNTH", "O#A#O", "BISON", "E#A#O", "RULER"],
     across: [
-      { num: 1, clue: "Night light in the sky" },
-      { num: 3, clue: "Take a break" },
+      { num: 1, clue: "Keyboard cousin of a piano" },
+      { num: 4, clue: "Yellowstone heavyweight" },
+      { num: 5, clue: "Desk edge straightener" },
     ],
     down: [
-      { num: 1, clue: "Additional" },
-      { num: 2, clue: "Short memo" },
+      { num: 1, clue: "Straight-faced" },
+      { num: 2, clue: "Twangy, as a voice" },
+      { num: 3, clue: "What a toast confers" },
     ],
   },
   {
-    id: "path-pale",
-    rows: ["PATH#", "A##A#", "LEFT#", "E##E#", "#####"],
+    id: "abyss-ulcer",
+    rows: ["ABYSS", "Z#A#U", "ULCER", "R#H#L", "ENTRY"],
     across: [
-      { num: 1, clue: "Walking trail" },
-      { num: 3, clue: "Opposite of right" },
+      { num: 1, clue: "Bottomless gulf" },
+      { num: 4, clue: "Stomach’s unwelcome guest" },
+      { num: 5, clue: "Password’s counterpart" },
     ],
     down: [
-      { num: 1, clue: "Light in color" },
-      { num: 2, clue: "Loathing" },
+      { num: 1, clue: "Sky-blue, poetically" },
+      { num: 2, clue: "Monaco’s marina darling" },
+      { num: 3, clue: "Ill-tempered" },
     ],
   },
 ];
