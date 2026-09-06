@@ -25,7 +25,7 @@ Home’s former Entertainment / On Air slot is a **5×5 mini crossword** Jeremy 
 
 | Decision | Value |
 | --- | --- |
-| Grid | **5×5** mini crossword; **no clue list** on the card (fill from interlocking letters) |
+| Grid | **5×5** mini crossword with Across/Down clues on the card (~3–5 clues) |
 | Placement | **Replaces** On Air / Today’s Entertainment (`TodaysEntertainmentCard` / `home-layouts` `entertainment`) — not a second card. See [RB-025](./park-home-entertainment.md). |
 | Podcasts on Home | **Hide** — Entertainment / On Air slot fully replaced; RB-005 content **not** on Home for now |
 | Chip-through-day | Persist in-progress grid + answers for the calendar day; mark **Solved** when complete |
@@ -40,7 +40,7 @@ Home’s former Entertainment / On Air slot is a **5×5 mini crossword** Jeremy 
 | Preferred banner string | **`{completed}/{attempts} · {today}%`** — e.g. **`8/15 · 40%`** (very simple; light labels like `8 complete / 15 attempts · 40% today` are optional polish, not required) |
 | In-progress day | Counts toward **attempts**, not **complete**; `%` reflects today’s fill |
 | Tone | Quiet “Solved” — no streaks-as-guilt, no coins, no ads, no casino framing |
-| Content | Curated answer pack for v1 (hand-authored days; rotate) — not a full crossword CMS |
+| Content | Curated clue + answer pack for v1 (hand-authored days; rotate) — not a full crossword CMS |
 | Cadence | One puzzle per calendar day (seeded by date) |
 
 ### Resolved open questions (was A–F)

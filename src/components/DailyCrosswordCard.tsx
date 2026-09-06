@@ -262,6 +262,29 @@ export function DailyCrosswordCard() {
             ))}
           </div>
 
+          <div className="crossword-clues">
+            <div>
+              <p className="crossword-clue-head">Across</p>
+              <ul>
+                {puzzle.across.map((c) => (
+                  <li key={`a-${c.num}`}>
+                    <strong>{c.num}.</strong> {c.clue}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="crossword-clue-head">Down</p>
+              <ul>
+                {puzzle.down.map((c) => (
+                  <li key={`d-${c.num}`}>
+                    <strong>{c.num}.</strong> {c.clue}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
           {!locked ? (
             <button
               type="button"
