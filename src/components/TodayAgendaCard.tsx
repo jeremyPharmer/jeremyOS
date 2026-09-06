@@ -226,8 +226,16 @@ export function TodayAgendaCard() {
   const [googleConnected, setGoogleConnected] = useState(false);
   const hasFeeds = Boolean(personal || work || extrasKey || googleConnected);
   const customSig = JSON.stringify(state.customAgendaEvents ?? []);
-  const overrides = calendarTitleOverrides(state);
-  const hidden = calendarHiddenEventIds(state);
+  // Stabilize object/Set identity — fresh {} / Set each render would re-fire
+  // agenda effects forever and starve Home clicks (Close the day, Open workouts).
+  const overrides = useMemo(
+    () => calendarTitleOverrides(state),
+    [state.calendarTitleOverrides],
+  );
+  const hidden = useMemo(
+    () => calendarHiddenEventIds(state),
+    [state.calendarHiddenEventIds],
+  );
   const stripDays = useMemo(
     () => threeDayWindow(windowStart),
     [windowStart],
@@ -329,10 +337,10 @@ export function TodayAgendaCard() {
         if (cancelled) return;
         cacheRef.current[viewDate] = json;
         setData(json);
-        setStripCounts((prev) => ({
-          ...prev,
-          [viewDate]: visibleCount(json),
-        }));
+        const count = visibleCount(json);
+        setStripCounts((prev) =>
+          prev[viewDate] === count ? prev : { ...prev, [viewDate]: count },
+        );
       } catch {
         if (cancelled) return;
         if (!cacheRef.current[viewDate]) {
@@ -370,7 +378,17 @@ export function TodayAgendaCard() {
         }),
       );
       if (!cancelled) {
-        setStripCounts((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+        setStripCounts((prev) => {
+          let changed = false;
+          const next = { ...prev };
+          for (const [date, count] of entries) {
+            if (next[date] !== count) {
+              next[date] = count;
+              changed = true;
+            }
+          }
+          return changed ? next : prev;
+        });
       }
     }
     void loadStrip();
