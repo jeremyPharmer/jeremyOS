@@ -155,12 +155,9 @@ export function WeatherBanner() {
                   <span className="weather-strip-low">{day.lowF}°</span>
                 </span>
                 <span className="weather-strip-precip">{precipLine(day)}</span>
-                <span className="weather-strip-wind">
-                  {day.windMph > 0 ? `${day.windMph} mph` : "Calm"}
-                </span>
                 <span className="sr-only">
                   {dayLabel(day.date, today)}: {day.label}, high {day.highF},
-                  low {day.lowF}, {precipLine(day)}, wind {day.windMph} mph
+                  low {day.lowF}, {precipLine(day)}
                 </span>
               </div>
             ))}

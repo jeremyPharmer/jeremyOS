@@ -9,8 +9,6 @@ export type DailyForecast = {
   precipChancePct: number;
   /** Total precipitation for the day (inches) */
   precipIn: number;
-  /** Peak wind speed (mph) */
-  windMph: number;
 };
 
 export type WeatherForecast = {
@@ -41,7 +39,6 @@ type OpenMeteoDaily = {
   temperature_2m_min: number[];
   precipitation_probability_max?: number[];
   precipitation_sum?: number[];
-  wind_speed_10m_max?: number[];
 };
 
 export async function fetchForecast(
@@ -59,13 +56,11 @@ export async function fetchForecast(
       "temperature_2m_min",
       "precipitation_probability_max",
       "precipitation_sum",
-      "wind_speed_10m_max",
     ].join(","),
     timezone,
     forecast_days: String(WEATHER_FORECAST_DAYS),
     temperature_unit: "fahrenheit",
     precipitation_unit: "inch",
-    wind_speed_unit: "mph",
   });
 
   const res = await fetch(
@@ -94,7 +89,6 @@ export async function fetchForecast(
         daily.precipitation_probability_max?.[i] ?? 0,
       ),
       precipIn: Math.round(precipInRaw * 100) / 100,
-      windMph: Math.round(daily.wind_speed_10m_max?.[i] ?? 0),
     };
   });
 
