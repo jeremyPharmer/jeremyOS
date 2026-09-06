@@ -25,20 +25,22 @@ Home’s former Entertainment / On Air slot is a **5×5 mini crossword** Jeremy 
 
 | Decision | Value |
 | --- | --- |
-| Grid | **5×5** mini crossword (not ~7×7); about **3–5 clues** |
+| Grid | **5×5** mini crossword; **no clue list** on the card (fill from interlocking letters) |
 | Placement | **Replaces** On Air / Today’s Entertainment (`TodaysEntertainmentCard` / `home-layouts` `entertainment`) — not a second card. See [RB-025](./park-home-entertainment.md). |
 | Podcasts on Home | **Hide** — Entertainment / On Air slot fully replaced; RB-005 content **not** on Home for now |
 | Chip-through-day | Persist in-progress grid + answers for the calendar day; mark **Solved** when complete |
+| Correct-word feedback | When a full across/down entry matches, highlight those cells as correct |
+| Give up | **Solve** button reveals all answers, locks the grid, and does **not** count as a win |
 | Start model (**#1**) | **Start button** → grid unlocks; tap Start = **attempt** for that day |
 | Attempt | Day counts **once** when user taps Start. **One attempt per calendar day max.** |
-| Complete | Puzzle marked **Solved** that day |
+| Complete | Puzzle marked **Solved** that day (player-finished only — not Solve/give-up) |
 | Progress fraction | **`completed / attempts`** — **not** year-365, not packs, not started-only numerator |
 | % finish | **Today’s grid fill % only** (letters filled ÷ fillable cells) |
 | Banner location | **Footer inside** the crossword Home block |
 | Preferred banner string | **`{completed}/{attempts} · {today}%`** — e.g. **`8/15 · 40%`** (very simple; light labels like `8 complete / 15 attempts · 40% today` are optional polish, not required) |
 | In-progress day | Counts toward **attempts**, not **complete**; `%` reflects today’s fill |
 | Tone | Quiet “Solved” — no streaks-as-guilt, no coins, no ads, no casino framing |
-| Content | Curated clue pack for v1 (hand-authored days; rotate) — not a full crossword CMS |
+| Content | Curated answer pack for v1 (hand-authored days; rotate) — not a full crossword CMS |
 | Cadence | One puzzle per calendar day (seeded by date) |
 
 ### Resolved open questions (was A–F)
