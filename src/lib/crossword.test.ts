@@ -68,9 +68,14 @@ describe("applyCrosswordAction", () => {
       bannerText(
         state.dailyCrossword!.completed,
         state.dailyCrossword!.attempts,
-        100,
-        true,
       ),
     ).toBe("1/1 · 100%");
+  });
+
+  it("banner % is lifetime success rate, not today fill", () => {
+    expect(bannerText(2, 3)).toBe("2/3 · 67%");
+    expect(bannerText(0, 0)).toBe("0/0 · —");
+    expect(bannerText(0, 2)).toBe("0/2 · 0%");
+    expect(bannerText(8, 15)).toBe("8/15 · 53%");
   });
 });

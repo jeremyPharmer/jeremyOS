@@ -412,12 +412,13 @@ export function normalizeDailyCrossword(
 export function bannerText(
   completed: number,
   attempts: number,
-  todayPct: number,
-  started: boolean,
 ): string {
-  const frac = `${completed}/${attempts}`;
-  if (!started) return `${frac} · —`;
-  return `${frac} · ${todayPct}%`;
+  const safeCompleted = Math.max(0, Math.floor(completed));
+  const safeAttempts = Math.max(0, Math.floor(attempts));
+  const frac = `${safeCompleted}/${safeAttempts}`;
+  if (safeAttempts <= 0) return `${frac} · —`;
+  const rate = Math.round((safeCompleted / safeAttempts) * 100);
+  return `${frac} · ${rate}%`;
 }
 
 export type CrosswordAction =

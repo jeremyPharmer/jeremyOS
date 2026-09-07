@@ -2,11 +2,11 @@
 
 Index of all product items. Canonical detail lives in `product/items/`.
 
-Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Journey nav label kept; craving stats / Home craving CTA cut (**RB-020**; was briefly RB-017 on the EA branch — remapped after main assigned RB-017–019 to cameras/workout/recipes); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · today%`); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done).
+Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Journey nav label kept; craving stats / Home craving CTA cut (**RB-020**; was briefly RB-017 on the EA branch — remapped after main assigned RB-017–019 to cameras/workout/recipes); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done).
 
 **Ranking rule:** lower rank number = higher priority. Rank is the source of truth.
 
-Last updated: 2026-09-05
+Last updated: 2026-09-07
 
 | Rank | ID | Item | Priority | Status | Effort | Target due | Milestone | File |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |

@@ -17,7 +17,7 @@ Home is checklist / Move / Entertainment-heavy and lacks a small **daily cogniti
 
 ## Outcome
 
-Home’s former Entertainment / On Air slot is a **5×5 mini crossword** Jeremy can **Start**, leave, and resume the same calendar day with **progress saved**. Clear “Solved” when complete. A simple lower-banner inside the crossword block shows **`completed/attempts · today%`** (e.g. `8/15 · 40%`). Podcasts stay off Home. Executive / recovery-safe tone — no casino, no Entertainment hub.
+Home’s former Entertainment / On Air slot is a **5×5 mini crossword** Jeremy can **Start**, leave, and resume the same calendar day with **progress saved**. Clear “Solved” when complete. A simple lower-banner inside the crossword block shows **`completed/attempts · success%`** (e.g. `8/15 · 53%` — lifetime success rate). Podcasts stay off Home. Executive / recovery-safe tone — no casino, no Entertainment hub.
 
 ## Scope (v1) — locked: 5×5 Mini Crossword (replaces On Air)
 
@@ -33,10 +33,11 @@ Home’s former Entertainment / On Air slot is a **5×5 mini crossword** Jeremy 
 | Attempt | Day counts **once** when user taps Start. **One attempt per calendar day max.** |
 | Complete | Puzzle marked **Solved** that day |
 | Progress fraction | **`completed / attempts`** — **not** year-365, not packs, not started-only numerator |
-| % finish | **Today’s grid fill % only** (letters filled ÷ fillable cells) |
+| Banner % | **Lifetime success rate** = `completed / attempts` as nearest-integer percent (e.g. `2/3` → **67%**). **Not** today’s grid fill %. |
 | Banner location | **Footer inside** the crossword Home block |
-| Preferred banner string | **`{completed}/{attempts} · {today}%`** — e.g. **`8/15 · 40%`** (very simple; light labels like `8 complete / 15 attempts · 40% today` are optional polish, not required) |
-| In-progress day | Counts toward **attempts**, not **complete**; `%` reflects today’s fill |
+| Preferred banner string | **`{completed}/{attempts} · {success}%`** — e.g. **`2/3 · 67%`** or **`8/15 · 53%`** (bare form preferred; light labels optional polish) |
+| In-progress day | Counts toward **attempts**, not **complete**; banner `%` is still lifetime success (not fill). Grid itself shows fill. |
+| Not started / zero attempts | If `attempts === 0`: **`0/0 · —`**. If attempts > 0: always show success `%` (does not require Start today). |
 | Tone | Quiet “Solved” — no streaks-as-guilt, no coins, no ads, no casino framing |
 | Content | Curated clue pack for v1 (hand-authored days; rotate) — not a full crossword CMS |
 | Cadence | One puzzle per calendar day (seeded by date) |
@@ -47,7 +48,7 @@ Home’s former Entertainment / On Air slot is a **5×5 mini crossword** Jeremy 
 | --- | --- |
 | A (`XXX`) | **Attempts** (lifetime count of days Started). **Not** 365/366. |
 | B (numerator) | **Completed** (Solved), not “started” as the left number — founder: “(Complete)/attempts” |
-| C (% finish) | **Today’s** grid fill % only |
+| C (% finish) | **Superseded 2026-09-07:** lifetime **success rate** (`completed/attempts`), not today’s fill % |
 | D (banner) | Footer **inside** the crossword Home block |
 | E (Start) | Model **#1**: Start button then grid unlocks; Start = attempt |
 | F (podcasts) | **Hide from Home** for now; RB-005 elsewhere later / not on Home |
@@ -72,15 +73,16 @@ Home’s former Entertainment / On Air slot is a **5×5 mini crossword** Jeremy 
 
 ## Open questions
 
-None blocking scope. Optional later polish only: whether to show light text labels vs the bare `8/15 · 40%` form (preferred default is the bare form).
+None blocking scope. Optional later polish only: whether to show light text labels vs the bare `2/3 · 67%` form (preferred default is the bare form). Fraction + success % are intentionally redundant (exact + glanceable).
 
 ## Notes
 
 - Intake **2026-09-03** founder ask: simple daily brain game/puzzle on Home; demote Entertainment.
 - Follow-up **2026-09-04:** prefers **crossword** for chip-during-the-day; effort **M**; Word Unscramble demoted from default.
 - Follow-up **2026-09-04 (later):** lock **5×5**; replace On Air; open questions A–F posed.
-- Follow-up **2026-09-04 (share #1 / Complete÷attempts):** Start model **#1**; fraction **completed/attempts**; also lock option-#1 answers for % (today), banner (in-block footer), podcasts (hide from Home). A–F resolved.
-- **Locked v1:** 5×5 Mini Crossword replacing Entertainment Home slot; Start → attempt; banner `completed/attempts · today%` — effort **M**.
+- Follow-up **2026-09-04 (share #1 / Complete÷attempts):** Start model **#1**; fraction **completed/attempts**; originally locked % as today’s fill; banner (in-block footer); podcasts (hide from Home). A–F resolved.
+- **Locked v1:** 5×5 Mini Crossword replacing Entertainment Home slot; Start → attempt; banner `completed/attempts · success%` — effort **M**.
+- **2026-09-07 founder feedback (banner %):** screenshot `2/3 · 100%` with answers revealed; founder: “This should be 66% it's 2/3 correct.” **Decision: switch banner `%` from today’s fill progress → lifetime success rate** (`completed/attempts`, nearest-integer %; `2/3` → **67%**). Fill progress stays visible on the grid only — not in the banner. Keeps string shape `{completed}/{attempts} · {n}%`.
 - **Progressive shortlist** (alternatives; crossword remains locked):
 
 | Idea | Mechanic | Why it chips well | Effort | Home fit / risk |

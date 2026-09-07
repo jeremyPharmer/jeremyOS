@@ -61,4 +61,5 @@ Otherwise: **Later** or **Won't Do**, with a note — do not invent justificatio
 - **2026-09-03:** founder asked for a simple daily brain game/puzzle on Home → [RB-024](./daily-puzzle-on-home.md); demote Home Entertainment → [RB-025](./park-home-entertainment.md).
 - **2026-09-04:** RB-024 preferred v1 → **Mini Crossword** (chip-through-the-day); effort **M**.
 - **2026-09-04 (later):** lock **5×5**; crossword **replaces On Air / Today’s Entertainment** Home slot; progress banner + start semantics open questions on RB-024.
-- **2026-09-04 (share #1):** RB-024 locks Start button; banner **`completed/attempts · today%`**; podcasts hide from Home.
+- **2026-09-04 (share #1):** RB-024 locks Start button; banner **`completed/attempts · today%`** (later superseded); podcasts hide from Home.
+- **2026-09-07:** RB-024 banner `%` relocked to **lifetime success rate** (`completed/attempts`), not today’s fill — founder: `2/3` → ~67%, not 100% fill.
