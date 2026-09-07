@@ -10,7 +10,12 @@ export async function POST(req: Request) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return NextResponse.json({ error: "Invalid date" }, { status: 400 });
     }
-    if (action !== "start" && action !== "save" && action !== "complete") {
+    if (
+      action !== "start" &&
+      action !== "save" &&
+      action !== "complete" &&
+      action !== "reveal"
+    ) {
       return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
 
@@ -31,6 +36,13 @@ export async function POST(req: Request) {
       }
       const state = await updateState((prev) =>
         applyCrosswordAction(prev, { action: "save", date, cells }),
+      );
+      return NextResponse.json({ state });
+    }
+
+    if (action === "reveal") {
+      const state = await updateState((prev) =>
+        applyCrosswordAction(prev, { action: "reveal", date }),
       );
       return NextResponse.json({ state });
     }

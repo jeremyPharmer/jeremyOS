@@ -6,8 +6,11 @@ import {
   assertPuzzleValid,
   answerAt,
   bannerText,
+  correctWordCellIndexes,
   isGridSolved,
+  isWordCorrect,
   puzzleForDate,
+  solutionCells,
   todayFillPercent,
   emptyCellsForPuzzle,
 } from "./crossword";
@@ -32,6 +35,27 @@ describe("mini crossword pack", () => {
   });
 });
 
+describe("correct word feedback", () => {
+  it("marks cells when a full across or down entry matches", () => {
+    const puzzle = puzzleForDate("2026-09-06");
+    const cells = emptyCellsForPuzzle(puzzle);
+    const across = puzzle.across[0]!;
+    const answer = answerAt(puzzle, across.num, "across");
+    // Fill only the first across word
+    let col = 0;
+    const startRow = 0;
+    for (let i = 0; i < answer.length; i++) {
+      while (puzzle.rows[startRow]![col] === "#") col += 1;
+      cells[startRow * 5 + col] = answer[i]!;
+      col += 1;
+    }
+    // For this pack, across 1 is always row 0
+    expect(isWordCorrect(puzzle, cells, across.num, "across")).toBe(true);
+    const marked = correctWordCellIndexes(puzzle, cells);
+    expect(marked.size).toBe(answer.length);
+  });
+});
+
 describe("applyCrosswordAction", () => {
   it("Start increments attempts once per day", () => {
     let state = emptyState();
@@ -43,16 +67,11 @@ describe("applyCrosswordAction", () => {
     expect(state.dailyCrossword?.attempts).toBe(1);
   });
 
-  it("save persists cells and complete bumps completed", () => {
+  it("save persists cells and a full solve bumps completed", () => {
     let state = emptyState();
     state = applyCrosswordAction(state, { action: "start", date: "2026-09-04" });
     const puzzle = puzzleForDate("2026-09-04");
-    const cells = emptyCellsForPuzzle(puzzle).map((c, i) => {
-      if (c === "#") return "#";
-      const row = Math.floor(i / 5);
-      const col = i % 5;
-      return puzzle.rows[row]![col]!;
-    });
+    const cells = solutionCells(puzzle);
 
     expect(isGridSolved(puzzle, cells)).toBe(true);
     expect(todayFillPercent(puzzle, cells)).toBe(100);
@@ -64,6 +83,7 @@ describe("applyCrosswordAction", () => {
     });
     expect(state.dailyCrossword?.completed).toBe(1);
     expect(state.dailyCrossword?.current?.solved).toBe(true);
+    expect(state.dailyCrossword?.current?.revealed).toBe(false);
     expect(
       bannerText(
         state.dailyCrossword!.completed,
@@ -77,5 +97,27 @@ describe("applyCrosswordAction", () => {
     expect(bannerText(0, 0)).toBe("0/0 · —");
     expect(bannerText(0, 2)).toBe("0/2 · 0%");
     expect(bannerText(8, 15)).toBe("8/15 · 53%");
+  });
+
+  it("reveal fills answers, locks the day, and does not count as a win", () => {
+    let state = emptyState();
+    state = applyCrosswordAction(state, { action: "start", date: "2026-09-04" });
+    const puzzle = puzzleForDate("2026-09-04");
+
+    state = applyCrosswordAction(state, { action: "reveal", date: "2026-09-04" });
+    expect(state.dailyCrossword?.completed).toBe(0);
+    expect(state.dailyCrossword?.attempts).toBe(1);
+    expect(state.dailyCrossword?.current?.revealed).toBe(true);
+    expect(state.dailyCrossword?.current?.solved).toBe(false);
+    expect(state.dailyCrossword?.current?.cells).toEqual(solutionCells(puzzle));
+
+    // Locked — further saves cannot bump completed
+    state = applyCrosswordAction(state, {
+      action: "save",
+      date: "2026-09-04",
+      cells: solutionCells(puzzle),
+    });
+    expect(state.dailyCrossword?.completed).toBe(0);
+    expect(state.dailyCrossword?.current?.revealed).toBe(true);
   });
 });

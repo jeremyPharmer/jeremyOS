@@ -24,6 +24,8 @@ export type CrosswordDayProgress = {
   date: string;
   started: boolean;
   solved: boolean;
+  /** Gave up via Solve — answers shown; grid locked; not a win */
+  revealed?: boolean;
   /** Length 25; `""` empty, letter, or `"#"` for black */
   cells: string[];
 };
@@ -388,6 +390,83 @@ export function isGridSolved(
   return true;
 }
 
+/** Full solution grid (same shape as playable cells). */
+export function solutionCells(puzzle: MiniCrosswordPuzzle): string[] {
+  const cells: string[] = [];
+  for (const row of puzzle.rows) {
+    for (const ch of row) {
+      cells.push(ch === "#" ? "#" : ch.toUpperCase());
+    }
+  }
+  return cells;
+}
+
+/** Indexes for one across or down entry starting at `num`. */
+export function wordCellIndexes(
+  puzzle: MiniCrosswordPuzzle,
+  num: number,
+  dir: "across" | "down",
+): number[] {
+  const start = clueStartIndex(puzzle, num);
+  if (start == null) return [];
+  const row = Math.floor(start / CROSSWORD_SIZE);
+  const col = start % CROSSWORD_SIZE;
+  const indexes: number[] = [];
+  if (dir === "across") {
+    for (let c = col; c < CROSSWORD_SIZE; c++) {
+      if (puzzle.rows[row]![c] === "#") break;
+      indexes.push(row * CROSSWORD_SIZE + c);
+    }
+  } else {
+    for (let r = row; r < CROSSWORD_SIZE; r++) {
+      if (puzzle.rows[r]![col] === "#") break;
+      indexes.push(r * CROSSWORD_SIZE + col);
+    }
+  }
+  return indexes;
+}
+
+/** True when every letter of that entry is filled and matches the solution. */
+export function isWordCorrect(
+  puzzle: MiniCrosswordPuzzle,
+  cells: string[],
+  num: number,
+  dir: "across" | "down",
+): boolean {
+  const indexes = wordCellIndexes(puzzle, num, dir);
+  if (indexes.length < 2) return false;
+  for (const i of indexes) {
+    const row = Math.floor(i / CROSSWORD_SIZE);
+    const col = i % CROSSWORD_SIZE;
+    const sol = puzzle.rows[row]![col]!;
+    const got = (cells[i] || "").toUpperCase();
+    if (!got || got !== sol.toUpperCase()) return false;
+  }
+  return true;
+}
+
+/**
+ * Cells that belong to at least one fully correct across/down word.
+ * Used to flash “got it” feedback while the puzzle is still open.
+ */
+export function correctWordCellIndexes(
+  puzzle: MiniCrosswordPuzzle,
+  cells: string[],
+): Set<number> {
+  const out = new Set<number>();
+  for (const c of puzzle.across) {
+    if (isWordCorrect(puzzle, cells, c.num, "across")) {
+      for (const i of wordCellIndexes(puzzle, c.num, "across")) out.add(i);
+    }
+  }
+  for (const c of puzzle.down) {
+    if (isWordCorrect(puzzle, cells, c.num, "down")) {
+      for (const i of wordCellIndexes(puzzle, c.num, "down")) out.add(i);
+    }
+  }
+  return out;
+}
+
 export function normalizeDailyCrossword(
   raw: DailyCrosswordState | undefined,
 ): DailyCrosswordState {
@@ -399,6 +478,7 @@ export function normalizeDailyCrossword(
           date: raw.current.date,
           started: Boolean(raw.current.started),
           solved: Boolean(raw.current.solved),
+          revealed: Boolean(raw.current.revealed),
           cells: Array.isArray(raw.current.cells)
             ? raw.current.cells.map((c) =>
                 c === "#" ? "#" : String(c || "").toUpperCase().slice(0, 1),
@@ -424,7 +504,8 @@ export function bannerText(
 export type CrosswordAction =
   | { action: "start"; date: string }
   | { action: "save"; date: string; cells: string[] }
-  | { action: "complete"; date: string; cells?: string[] };
+  | { action: "complete"; date: string; cells?: string[] }
+  | { action: "reveal"; date: string };
 
 export function applyCrosswordAction(
   state: RebuildState,
@@ -445,6 +526,7 @@ export function applyCrosswordAction(
         date: payload.date,
         started: true,
         solved: false,
+        revealed: false,
         cells: emptyCellsForPuzzle(puzzle),
       },
     };
@@ -455,6 +537,26 @@ export function applyCrosswordAction(
     return { ...state, dailyCrossword: dc };
   }
 
+  // Locked after a real solve or a give-up reveal — no further edits.
+  if (sameDay.solved || sameDay.revealed) {
+    return { ...state, dailyCrossword: dc };
+  }
+
+  if (payload.action === "reveal") {
+    const next: DailyCrosswordState = {
+      attempts: dc.attempts,
+      completed: dc.completed,
+      current: {
+        date: payload.date,
+        started: true,
+        solved: false,
+        revealed: true,
+        cells: solutionCells(puzzle),
+      },
+    };
+    return { ...state, dailyCrossword: next };
+  }
+
   const cells = normalizeCells(
     puzzle,
     payload.action === "save"
@@ -463,14 +565,14 @@ export function applyCrosswordAction(
   );
 
   const solved = isGridSolved(puzzle, cells);
-  const wasSolved = sameDay.solved;
   const next: DailyCrosswordState = {
     attempts: dc.attempts,
-    completed: !wasSolved && solved ? dc.completed + 1 : dc.completed,
+    completed: solved ? dc.completed + 1 : dc.completed,
     current: {
       date: payload.date,
       started: true,
-      solved: wasSolved || solved,
+      solved,
+      revealed: false,
       cells,
     },
   };

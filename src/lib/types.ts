@@ -444,6 +444,8 @@ export type RebuildState = {
       date: string;
       started: boolean;
       solved: boolean;
+      /** Gave up — answers revealed; locked, not a win */
+      revealed?: boolean;
       cells: string[];
     };
   };
