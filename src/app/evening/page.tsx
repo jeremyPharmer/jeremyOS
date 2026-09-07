@@ -12,6 +12,7 @@ import {
 } from "@/lib/journey";
 import {
   SUMMARY_SENTENCE_SOFT_LIMIT,
+  bundleJournalsByDate,
   countSentences,
 } from "@/lib/journal";
 
@@ -60,6 +61,23 @@ function EveningPageInner() {
 
   const effectiveDate =
     closeDate && missing.includes(closeDate) ? closeDate : preferredDate;
+
+  // Prefill from a journal entry already written for this day (e.g. from /journal)
+  // so Close the day does not force a blank overwrite.
+  useEffect(() => {
+    if (!effectiveDate) {
+      setOneLine("");
+      setStandOut("");
+      setPhotoDataUrl(null);
+      return;
+    }
+    const bundle = bundleJournalsByDate(state.journals).get(effectiveDate);
+    setOneLine(bundle?.headline ?? "");
+    setStandOut(bundle?.summary ?? "");
+    setPhotoDataUrl(null);
+    // Only re-seed when the close date changes — not on every journals refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
+  }, [effectiveDate]);
 
   const alreadyClosedToday =
     Boolean(today) && state.evenings.some((e) => e.date === today);

@@ -211,4 +211,44 @@ describe("journal edit + star helpers", () => {
       summary: "Hand-entered summary.",
     });
   });
+
+  it("upserts a prior manual journal day instead of stacking duplicate rows", () => {
+    const state = emptyState();
+    state.journals = [
+      entry({ date: "2026-09-06", type: "one_line", text: "Golf with the guys" }),
+      entry({
+        date: "2026-09-06",
+        type: "journal",
+        text: "Great day on the course.",
+      }),
+    ];
+
+    // Simulate evening close after a manual journal write: evening exists,
+    // then prose upsert must update the same rows (not append).
+    state.evenings = [
+      {
+        date: "2026-09-06",
+        mood: 7,
+        stress: 3,
+        alignment: "aligned",
+        oneLine: "Golf with the guys",
+        expandedJournal: "Great day on the course. Kept the same story.",
+        completedAt: "2026-09-06T20:00:00.000Z",
+      },
+    ];
+
+    const next = applyJournalProseEdit(
+      state,
+      "2026-09-06",
+      "Golf with the guys",
+      "Great day on the course. Kept the same story.",
+    );
+
+    expect(next.journals.filter((j) => j.date === "2026-09-06")).toHaveLength(2);
+    expect(bundleJournalsByDate(next.journals).get("2026-09-06")).toEqual({
+      date: "2026-09-06",
+      headline: "Golf with the guys",
+      summary: "Great day on the course. Kept the same story.",
+    });
+  });
 });

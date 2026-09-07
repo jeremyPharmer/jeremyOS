@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import {
   getEvening,
   isValidEveningDate,
-  newId,
   todayInTz,
 } from "@/lib/journey";
 import { pendingCashableMoments } from "@/lib/fund";
+import { applyJournalProseEdit } from "@/lib/journal";
 import { applyEveningSideEffects } from "@/lib/mutations";
 import { savePhotoDataUrl } from "@/lib/photos";
 import { updateState } from "@/lib/store";
-import type { EveningCheckIn, JournalEntry } from "@/lib/types";
+import type { EveningCheckIn } from "@/lib/types";
 
 export async function POST(req: Request) {
   try {
@@ -73,30 +73,15 @@ export async function POST(req: Request) {
         ),
       };
 
-      if (evening.oneLine) {
-        const entry: JournalEntry = {
-          id: newId("journal"),
-          date,
-          type: "one_line",
-          text: evening.oneLine,
-          photoId,
-          createdAt: new Date().toISOString(),
-        };
-        next = { ...next, journals: [...next.journals, entry] };
-      }
-      if (evening.expandedJournal) {
-        const entry: JournalEntry = {
-          id: newId("journal"),
-          date,
-          type: "journal",
-          text: evening.expandedJournal,
-          // Same attach on summary row so day still shows paperclip if
-          // headline is ever missing; bundleJournalsByDate dedupes.
-          photoId,
-          createdAt: new Date().toISOString(),
-        };
-        next = { ...next, journals: [...next.journals, entry] };
-      }
+      // Upsert journal rows so a same-day entry written earlier on /journal
+      // is updated in place instead of duplicated / overwritten in the bundle.
+      next = applyJournalProseEdit(
+        next,
+        date,
+        evening.oneLine,
+        evening.expandedJournal ?? "",
+        photoId !== undefined ? photoId : undefined,
+      );
       return next;
     });
     return NextResponse.json({
