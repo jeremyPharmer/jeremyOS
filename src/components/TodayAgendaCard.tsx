@@ -18,7 +18,11 @@ import { isCustomAgendaId } from "@/lib/custom-agenda-shared";
 import { homeDayPrimary, homeDaySecondary } from "@/lib/home-day-nav";
 import { addDays } from "@/lib/journey";
 import { dayAbbrev } from "@/lib/weather";
-import type { WorkCalendarEvent } from "@/lib/work-calendar";
+import {
+  isAgendaEventPast,
+  orderAgendaUpcomingThenPast,
+  type WorkCalendarEvent,
+} from "@/lib/work-calendar";
 
 const AGENDA_SPAN_KEY = "jeremyos-agenda-span";
 type AgendaSpan = "1" | "3";
@@ -111,11 +115,13 @@ function AgendaTime({ event }: { event: WorkCalendarEvent }) {
 function AgendaEventRow({
   event,
   displayTitle,
+  past = false,
   onSaveTitle,
   onRemove,
 }: {
   event: WorkCalendarEvent;
   displayTitle: string;
+  past?: boolean;
   onSaveTitle: (title: string) => Promise<void>;
   onRemove: () => Promise<void>;
 }) {
@@ -149,7 +155,7 @@ function AgendaEventRow({
     <li
       className={`agenda-item${isCustom ? " agenda-item-custom" : ""}${
         event.url ? " agenda-item-joinable" : ""
-      }`}
+      }${past ? " agenda-item-past" : ""}`}
     >
       <AgendaTime event={event} />
       <div className="agenda-body">
@@ -215,6 +221,7 @@ export function TodayAgendaCard() {
   const [adding, setAdding] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
   const [stripCounts, setStripCounts] = useState<Record<string, number>>({});
+  const [now, setNow] = useState(() => new Date());
   const cacheRef = useRef<Record<string, AgendaResponse>>({});
 
   const personal = state.profile?.personalIcalUrl?.trim();
@@ -226,6 +233,7 @@ export function TodayAgendaCard() {
   const [googleConnected, setGoogleConnected] = useState(false);
   const hasFeeds = Boolean(personal || work || extrasKey || googleConnected);
   const customSig = JSON.stringify(state.customAgendaEvents ?? []);
+  const timezone = state.profile?.timezone || "America/New_York";
   // Stabilize object/Set identity — fresh {} / Set each render would re-fire
   // agenda effects forever and starve Home clicks (Close the day, Open workouts).
   const overrides = useMemo(
@@ -248,6 +256,11 @@ export function TodayAgendaCard() {
     } catch {
       /* ignore */
     }
+  }, []);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -400,9 +413,16 @@ export function TodayAgendaCard() {
 
   const dayReady = data?.date === viewDate;
   const rawEvents = dayReady ? (data?.events ?? []) : [];
-  const events = filterHiddenCalendarEvents(
+  const visibleEvents = filterHiddenCalendarEvents(
     applyCalendarTitleOverrides(rawEvents, overrides),
     hidden,
+  );
+  const events = orderAgendaUpcomingThenPast(
+    visibleEvents,
+    viewDate,
+    today,
+    now,
+    timezone,
   );
   const connected = dayReady ? (data?.connected ?? false) : false;
   const showLoading = loading && !dayReady;
@@ -499,6 +519,7 @@ export function TodayAgendaCard() {
                 const selected = date === viewDate;
                 const count = stripCounts[date] ?? 0;
                 const label = date === today ? "Today" : dayAbbrev(date);
+                const dayNum = String(Number(date.slice(8)));
                 return (
                   <button
                     key={date}
@@ -510,10 +531,11 @@ export function TodayAgendaCard() {
                   >
                     <span className="tasks-day-chip-label">{label}</span>
                     <span className="tasks-day-chip-status" aria-hidden>
-                      {count === 0 ? "—" : String(count)}
+                      {dayNum}
                     </span>
                     <span className="sr-only">
-                      {count === 0 ? "no events" : `${count} events`}
+                      {homeDaySecondary(date)}
+                      {count === 0 ? ", no events" : `, ${count} events`}
                     </span>
                   </button>
                 );
@@ -590,6 +612,7 @@ export function TodayAgendaCard() {
               <AgendaEventRow
                 key={ev.id}
                 event={ev}
+                past={isAgendaEventPast(ev, viewDate, today, now, timezone)}
                 displayTitle={displayCalendarTitle(ev, overrides)}
                 onSaveTitle={(title) => saveTitle(ev.id, title)}
                 onRemove={() => removeEvent(ev.id)}
