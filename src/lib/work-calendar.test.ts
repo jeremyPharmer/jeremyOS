@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   isAgendaEventPast,
-  normalizeIcalUrl,
   orderAgendaUpcomingThenPast,
   parseAgendaDisplayTimeToMinutes,
+} from "./agenda-past";
+import {
+  normalizeIcalUrl,
   parseIcsEventsForDay,
   resolveCalendarFeedUrls,
   type WorkCalendarEvent,

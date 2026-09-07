@@ -21,8 +21,8 @@ import { dayAbbrev } from "@/lib/weather";
 import {
   isAgendaEventPast,
   orderAgendaUpcomingThenPast,
-  type WorkCalendarEvent,
-} from "@/lib/work-calendar";
+} from "@/lib/agenda-past";
+import type { WorkCalendarEvent } from "@/lib/work-calendar";
 
 const AGENDA_SPAN_KEY = "jeremyos-agenda-span";
 type AgendaSpan = "1" | "3";
