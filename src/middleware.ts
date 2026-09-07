@@ -76,7 +76,8 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Sign in required" }, { status: 401 });
     }
-    const url = new URL("/onboarding", req.url);
+    // Returning users should land on login — not the full new-user setup flow.
+    const url = new URL("/login", req.url);
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }

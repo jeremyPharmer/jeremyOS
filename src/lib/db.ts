@@ -7,6 +7,7 @@ import type { GoogleCalendarLink, RebuildState } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 export const DB_PATH = path.join(DATA_DIR, "db.json");
+const DB_TMP_PATH = path.join(DATA_DIR, "db.json.tmp");
 
 export type PasswordReset = {
   tokenHash: string;
@@ -85,28 +86,105 @@ export function normalizeDb(raw: unknown): DbRoot {
   return emptyDb();
 }
 
+/**
+ * If db.json has trailing junk (e.g. an extra `}`), recover the first
+ * complete top-level JSON value. Returns null when recovery is impossible.
+ */
+export function recoverJsonText(raw: string): string | null {
+  const start = raw.search(/[\{\[]/);
+  if (start < 0) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < raw.length; i++) {
+    const ch = raw[i];
+    if (inString) {
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (ch === "\\") {
+        escape = true;
+        continue;
+      }
+      if (ch === "\"") inString = false;
+      continue;
+    }
+    if (ch === "\"") {
+      inString = true;
+      continue;
+    }
+    if (ch === "{" || ch === "[") depth += 1;
+    if (ch === "}" || ch === "]") {
+      depth -= 1;
+      if (depth === 0) return raw.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+function parseDbRaw(raw: string): unknown {
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch (firstError) {
+    const recovered = recoverJsonText(raw);
+    if (!recovered || recovered === raw) throw firstError;
+    try {
+      const parsed = JSON.parse(recovered) as unknown;
+      console.error(
+        "[db] Recovered db.json after JSON parse failure; trailing junk was ignored",
+      );
+      return parsed;
+    } catch {
+      throw firstError;
+    }
+  }
+}
+
 export async function readDb(): Promise<DbRoot> {
   try {
     const raw = await fs.readFile(DB_PATH, "utf8");
-    return normalizeDb(JSON.parse(raw) as unknown);
-  } catch {
-    return emptyDb();
+    return normalizeDb(parseDbRaw(raw));
+  } catch (error) {
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? String((error as { code?: unknown }).code)
+        : "";
+    // Missing file → first boot. Corrupt/unreadable existing file must NOT
+    // silently become an empty DB (that looks like a brand-new install and
+    // the next write would wipe founder data).
+    if (code === "ENOENT") return emptyDb();
+    throw error;
   }
 }
 
 export async function writeDb(db: DbRoot): Promise<void> {
   await ensureDataDir();
   const normalized = normalizeDb(db);
-  await fs.writeFile(DB_PATH, JSON.stringify(normalized, null, 2), "utf8");
+  const payload = JSON.stringify(normalized, null, 2);
+  // Atomic replace avoids torn/corrupt files if the process dies mid-write.
+  await fs.writeFile(DB_TMP_PATH, payload, "utf8");
+  await fs.rename(DB_TMP_PATH, DB_PATH);
 }
+
+let updateChain: Promise<unknown> = Promise.resolve();
 
 export async function updateDb(
   fn: (db: DbRoot) => DbRoot | Promise<DbRoot>,
 ): Promise<DbRoot> {
-  const current = await readDb();
-  const next = await fn(current);
-  await writeDb(next);
-  return normalizeDb(next);
+  const run = updateChain.then(async () => {
+    const current = await readDb();
+    const next = await fn(current);
+    await writeDb(next);
+    return normalizeDb(next);
+  });
+  // Keep the chain alive even when a write fails so later updates still queue.
+  updateChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
 }
 
 export function findUserByEmail(
