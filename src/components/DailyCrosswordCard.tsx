@@ -15,7 +15,6 @@ import {
   buildGrid,
   normalizeDailyCrossword,
   puzzleForDate,
-  todayFillPercent,
   type CrosswordCell,
 } from "@/lib/crossword";
 
@@ -46,8 +45,7 @@ export function DailyCrosswordCard() {
     }
   }, [today, progress?.date, progress?.started, progress?.solved, grid]);
 
-  const pct = todayFillPercent(puzzle, started ? cells : undefined);
-  const banner = bannerText(dc.completed, dc.attempts, pct, started);
+  const banner = bannerText(dc.completed, dc.attempts);
 
   const persist = useEffectEvent(async (nextCells: string[]) => {
     setError("");
