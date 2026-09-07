@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  isAgendaEventPast,
   normalizeIcalUrl,
+  orderAgendaUpcomingThenPast,
+  parseAgendaDisplayTimeToMinutes,
   parseIcsEventsForDay,
   resolveCalendarFeedUrls,
+  type WorkCalendarEvent,
 } from "./work-calendar";
 
 const TZ = "America/Los_Angeles";
@@ -146,5 +150,69 @@ END:VEVENT
 END:VCALENDAR`;
 
     expect(parseIcsEventsForDay(ics, "2026-09-01", TZ, "work")).toHaveLength(0);
+  });
+});
+
+describe("agenda past helpers", () => {
+  const timed = (partial: Partial<WorkCalendarEvent>): WorkCalendarEvent => ({
+    id: partial.id ?? "e1",
+    title: partial.title ?? "Event",
+    startTime: partial.startTime ?? "9:00 AM",
+    endTime: partial.endTime,
+    allDay: partial.allDay,
+    source: partial.source ?? "personal",
+    location: partial.location,
+    url: partial.url,
+  });
+
+  it("parses AM/PM display times", () => {
+    expect(parseAgendaDisplayTimeToMinutes("12:00 AM")).toBe(0);
+    expect(parseAgendaDisplayTimeToMinutes("12:00 PM")).toBe(12 * 60);
+    expect(parseAgendaDisplayTimeToMinutes("1:15 PM")).toBe(13 * 60 + 15);
+    expect(parseAgendaDisplayTimeToMinutes("All day")).toBeNull();
+  });
+
+  it("marks timed events past after end on today", () => {
+    // 18:30 UTC = 11:30 AM America/Los_Angeles on 2026-09-07
+    const now = new Date("2026-09-07T18:30:00Z");
+    expect(
+      isAgendaEventPast(
+        timed({ startTime: "9:00 AM", endTime: "10:00 AM" }),
+        "2026-09-07",
+        "2026-09-07",
+        now,
+        TZ,
+      ),
+    ).toBe(true);
+    expect(
+      isAgendaEventPast(
+        timed({ startTime: "12:00 PM", endTime: "1:15 PM" }),
+        "2026-09-07",
+        "2026-09-07",
+        now,
+        TZ,
+      ),
+    ).toBe(false);
+  });
+
+  it("sinks past events below upcoming in one list", () => {
+    const now = new Date("2026-09-07T18:30:00Z");
+    const ordered = orderAgendaUpcomingThenPast(
+      [
+        timed({ id: "past", startTime: "8:00 AM", endTime: "9:00 AM", title: "Past" }),
+        timed({
+          id: "soon",
+          startTime: "12:00 PM",
+          endTime: "1:15 PM",
+          title: "Soon",
+        }),
+        timed({ id: "mid", startTime: "10:00 AM", endTime: "10:30 AM", title: "Mid" }),
+      ],
+      "2026-09-07",
+      "2026-09-07",
+      now,
+      TZ,
+    );
+    expect(ordered.map((e) => e.id)).toEqual(["soon", "past", "mid"]);
   });
 });

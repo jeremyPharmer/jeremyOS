@@ -2220,6 +2220,23 @@ h2 {
   padding-bottom: 10px;
 }
 
+.agenda-item-past {
+  opacity: 0.62;
+}
+
+.agenda-item-past .agenda-time-start,
+.agenda-item-past .agenda-time-end,
+.agenda-item-past .agenda-title-btn,
+.agenda-item-past .agenda-loc {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--muted) 80%, transparent);
+  color: var(--muted);
+}
+
+.agenda-item-past .agenda-time-join {
+  display: none;
+}
+
 .agenda-time-block {
   display: flex;
   flex-direction: column;
