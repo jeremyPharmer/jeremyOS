@@ -4,6 +4,7 @@ import {
   DAY_START_MINUTES,
   assignOverlapColumns,
   buildDayTimeline,
+  formatCompactRange,
   formatGapLabel,
   formatTimelineHour,
   laneDensity,
@@ -242,15 +243,21 @@ describe("buildDayTimeline", () => {
 });
 
 describe("laneDensity", () => {
-  it("goes blank when a short slot cannot fit labels", () => {
-    expect(laneDensity(36, 3)).toBe("blank");
+  it("keeps time-only when a short narrow slot cannot fit a title", () => {
+    expect(laneDensity(44, 3)).toBe("time");
   });
 
-  it("shows title only in narrow overlap columns", () => {
-    expect(laneDensity(72, 3)).toBe("title");
+  it("adds title when there is room", () => {
+    expect(laneDensity(90, 2)).toBe("time-title");
+  });
+});
+
+describe("formatCompactRange", () => {
+  it("shortens a same-meridiem range", () => {
+    expect(formatCompactRange(15 * 60 + 30, 17 * 60 + 30)).toBe("3:30–5:30p");
   });
 
-  it("keeps full labels when there is room", () => {
-    expect(laneDensity(90, 2)).toBe("full");
+  it("keeps both meridiems when they differ", () => {
+    expect(formatCompactRange(11 * 60 + 30, 12 * 60 + 30)).toBe("11:30a–12:30p");
   });
 });

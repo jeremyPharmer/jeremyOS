@@ -34,16 +34,16 @@ import {
   buildDayTimeline,
   clusterBlockHeightPx,
   eventBlockHeightPx,
+  formatCompactRange,
   formatGapLabel,
   formatTimelineHour,
   laneDensity,
   laneStyle,
   suggestGapEventTimes,
-  type LaneDensity,
 } from "@/lib/agenda-day-timeline";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
 import { TaskGroupPicker } from "@/components/TaskGroupPicker";
-import { SecondaryButton, PrimaryButton } from "@/components/ui";
+import { SecondaryButton, PrimaryButton, Sheet } from "@/components/ui";
 
 function threeDayWindow(start: string): [string, string, string] {
   return [start, addDays(start, 1), addDays(start, 2)];
@@ -131,8 +131,6 @@ function AgendaEventRow({
   past = false,
   group,
   timeline = false,
-  compact = false,
-  density = "full",
   timeLabel,
   onSave,
   onRemove,
@@ -142,10 +140,6 @@ function AgendaEventRow({
   past?: boolean;
   group?: TaskGroup;
   timeline?: boolean;
-  /** Narrow column inside an overlap cluster */
-  compact?: boolean;
-  /** Fit what we can when an overlap lane is too short */
-  density?: LaneDensity;
   timeLabel?: string;
   onSave: (next: { title: string; group: TaskGroup }) => Promise<void>;
   onRemove: () => Promise<void>;
@@ -247,36 +241,18 @@ function AgendaEventRow({
   );
 
   if (timeline) {
-    const showTime = density === "full" && Boolean(timeLabel);
-    const showTitle = density !== "blank";
-    const showJoin = density === "full" && Boolean(event.url);
-    const showRemove = density === "full" && !editing;
     return (
       <div
-        className={`agenda-day-event${compact ? " agenda-day-event-compact" : ""}${
-          density === "blank" ? " agenda-day-event-blank" : ""
-        }${density === "title" ? " agenda-day-event-title-only" : ""}${
-          isCustom ? " agenda-item-custom" : ""
-        }${event.url ? " agenda-item-joinable" : ""}${
-          past ? " agenda-item-past" : ""
-        }${group ? " has-group-bar" : ""}`}
+        className={`agenda-day-event${isCustom ? " agenda-item-custom" : ""}${
+          event.url ? " agenda-item-joinable" : ""
+        }${past ? " agenda-item-past" : ""}${group ? " has-group-bar" : ""}`}
         style={barStyle}
-        title={density === "blank" ? displayTitle : undefined}
       >
-        {density === "blank" && !editing ? (
-          <button
-            type="button"
-            className="agenda-day-event-blank-hit"
-            aria-label={`${displayTitle}${timeLabel ? `, ${timeLabel}` : ""}`}
-            onClick={() => setEditing(true)}
-            disabled={saving}
-          />
-        ) : null}
         <div className="agenda-day-event-main">
-          {showTime ? (
+          {timeLabel ? (
             <p className="agenda-day-event-time">
               {timeLabel}
-              {showJoin ? (
+              {event.url ? (
                 <a
                   className="agenda-day-join"
                   href={event.url}
@@ -288,12 +264,12 @@ function AgendaEventRow({
               ) : null}
             </p>
           ) : null}
-          {showTitle || editing ? titleBlock : null}
-          {!editing && !compact && density === "full" && shouldShowLocation(event) ? (
+          {titleBlock}
+          {!editing && shouldShowLocation(event) ? (
             <p className="agenda-loc">{event.location}</p>
           ) : null}
         </div>
-        {showRemove ? (
+        {!editing ? (
           <button
             type="button"
             className="agenda-hide-btn"
@@ -353,6 +329,7 @@ export function TodayAgendaCard() {
   const [stripCounts, setStripCounts] = useState<Record<string, number>>({});
   const [now, setNow] = useState(() => new Date());
   const [expandedGaps, setExpandedGaps] = useState<Record<string, boolean>>({});
+  const [peekEventId, setPeekEventId] = useState<string | null>(null);
   const cacheRef = useRef<Record<string, AgendaResponse>>({});
 
   const personal = state.profile?.personalIcalUrl?.trim();
@@ -681,6 +658,54 @@ export function TodayAgendaCard() {
         </div>
       </header>
 
+      {peekEventId && (() => {
+        const full = events.find((e) => e.id === peekEventId);
+        if (!full) return null;
+        const group = resolveEventGroup({
+          eventId: full.id,
+          source: full.source,
+          extraIndex: full.extraIndex,
+          customGroup: full.group,
+          overrides: eventGroups,
+          feedGroups,
+        });
+        const timeLabel =
+          full.endTime && full.endTime !== full.startTime
+            ? `${full.startTime} – ${full.endTime}`
+            : full.startTime;
+        const title = displayCalendarTitle(full, overrides);
+        return (
+          <Sheet
+            label={title}
+            onClose={() => setPeekEventId(null)}
+          >
+            <div className="agenda-day-peek">
+              <AgendaEventRow
+                event={full}
+                timeline
+                timeLabel={timeLabel}
+                past={isAgendaEventPast(
+                  full,
+                  viewDate,
+                  today,
+                  now,
+                  timezone,
+                )}
+                displayTitle={title}
+                group={group}
+                onSave={async (next) => {
+                  await saveEvent(full.id, next);
+                }}
+                onRemove={async () => {
+                  await removeEvent(full.id);
+                  setPeekEventId(null);
+                }}
+              />
+            </div>
+          </Sheet>
+        );
+      })()}
+
       {adding && (
         <AgendaEventComposer
           key={
@@ -836,10 +861,6 @@ export function TodayAgendaCard() {
                         overrides: eventGroups,
                         feedGroups,
                       });
-                      const timeLabel =
-                        full.endTime && full.endTime !== full.startTime
-                          ? `${full.startTime} – ${full.endTime}`
-                          : full.startTime;
                       const place = laneStyle(
                         lane,
                         block.startMin,
@@ -847,6 +868,18 @@ export function TodayAgendaCard() {
                         height,
                       );
                       const density = laneDensity(place.height, lane.columns);
+                      const title = displayCalendarTitle(full, overrides);
+                      const compactTime = formatCompactRange(
+                        lane.startMin,
+                        lane.endMin,
+                      );
+                      const past = isAgendaEventPast(
+                        full,
+                        viewDate,
+                        today,
+                        now,
+                        timezone,
+                      );
                       return (
                         <div
                           key={full.id}
@@ -858,27 +891,31 @@ export function TodayAgendaCard() {
                             width: place.width,
                           }}
                         >
-                          <AgendaEventRow
-                            event={full}
-                            timeline
-                            compact={lane.columns > 1}
-                            density={density}
-                            timeLabel={timeLabel}
-                            past={isAgendaEventPast(
-                              full,
-                              viewDate,
-                              today,
-                              now,
-                              timezone,
-                            )}
-                            displayTitle={displayCalendarTitle(
-                              full,
-                              overrides,
-                            )}
-                            group={group}
-                            onSave={(next) => saveEvent(full.id, next)}
-                            onRemove={() => removeEvent(full.id)}
-                          />
+                          <button
+                            type="button"
+                            className={`agenda-day-lane-chip${
+                              group ? " has-group-bar" : ""
+                            }${past ? " agenda-item-past" : ""}`}
+                            style={
+                              group
+                                ? {
+                                    ["--group-color" as string]:
+                                      TASK_GROUP_COLORS[group],
+                                  }
+                                : undefined
+                            }
+                            onClick={() => setPeekEventId(full.id)}
+                            aria-label={`${title}, ${compactTime}`}
+                          >
+                            <span className="agenda-day-lane-chip-time">
+                              {compactTime}
+                            </span>
+                            {density === "time-title" ? (
+                              <span className="agenda-day-lane-chip-title">
+                                {title}
+                              </span>
+                            ) : null}
+                          </button>
                         </div>
                       );
                     })}

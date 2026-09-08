@@ -6,6 +6,7 @@ import {
   buildDayTimeline,
   clusterBlockHeightPx,
   eventBlockHeightPx,
+  formatCompactRange,
   formatGapLabel,
   formatTimelineHour,
   laneDensity,
@@ -144,56 +145,32 @@ const SAMPLES: Sample[] = [
   },
 ];
 
-function SampleEventCard({
-  event,
-  compact = false,
-  density = "full",
-}: {
-  event: WorkCalendarEvent;
-  compact?: boolean;
-  density?: "full" | "title" | "blank";
-}) {
+function SampleEventCard({ event }: { event: WorkCalendarEvent }) {
   const group = event.group as TaskGroup | undefined;
   const timeLabel =
     event.endTime && event.endTime !== event.startTime
       ? `${event.startTime} – ${event.endTime}`
       : event.startTime;
-  const showTime = density === "full";
-  const showTitle = density !== "blank";
   return (
     <div
-      className={`agenda-day-event${compact ? " agenda-day-event-compact" : ""}${
-        density === "blank" ? " agenda-day-event-blank" : ""
-      }${density === "title" ? " agenda-day-event-title-only" : ""}${
-        group ? " has-group-bar" : ""
-      }${event.url ? " agenda-item-joinable" : ""}`}
+      className={`agenda-day-event${group ? " has-group-bar" : ""}${
+        event.url ? " agenda-item-joinable" : ""
+      }`}
       style={
         group
           ? { ["--group-color" as string]: TASK_GROUP_COLORS[group] }
           : undefined
       }
-      title={density === "blank" ? event.title : undefined}
-      aria-label={
-        density === "blank"
-          ? `${event.title}${timeLabel ? `, ${timeLabel}` : ""}`
-          : undefined
-      }
     >
       <div className="agenda-day-event-main">
-        {showTime ? (
-          <p className="agenda-day-event-time">
-            {timeLabel}
-            {event.url ? <span className="agenda-day-join">Join</span> : null}
-          </p>
-        ) : null}
-        {showTitle ? (
-          <button type="button" className="agenda-title-btn">
-            {event.title}
-          </button>
-        ) : null}
-        {density === "full" && !compact && event.location ? (
-          <p className="agenda-loc">{event.location}</p>
-        ) : null}
+        <p className="agenda-day-event-time">
+          {timeLabel}
+          {event.url ? <span className="agenda-day-join">Join</span> : null}
+        </p>
+        <button type="button" className="agenda-title-btn">
+          {event.title}
+        </button>
+        {event.location ? <p className="agenda-loc">{event.location}</p> : null}
       </div>
     </div>
   );
@@ -299,6 +276,7 @@ function SampleDay({ sample }: { sample: Sample }) {
                     const full = sample.events.find(
                       (e) => e.id === lane.event.id,
                     )!;
+                    const group = full.group as TaskGroup | undefined;
                     const place = laneStyle(
                       lane,
                       block.startMin,
@@ -306,6 +284,10 @@ function SampleDay({ sample }: { sample: Sample }) {
                       height,
                     );
                     const density = laneDensity(place.height, lane.columns);
+                    const compactTime = formatCompactRange(
+                      lane.startMin,
+                      lane.endMin,
+                    );
                     return (
                       <div
                         key={full.id}
@@ -317,11 +299,29 @@ function SampleDay({ sample }: { sample: Sample }) {
                           width: place.width,
                         }}
                       >
-                        <SampleEventCard
-                          event={full}
-                          compact={lane.columns > 1}
-                          density={density}
-                        />
+                        <button
+                          type="button"
+                          className={`agenda-day-lane-chip${
+                            group ? " has-group-bar" : ""
+                          }`}
+                          style={
+                            group
+                              ? {
+                                  ["--group-color" as string]:
+                                    TASK_GROUP_COLORS[group],
+                                }
+                              : undefined
+                          }
+                        >
+                          <span className="agenda-day-lane-chip-time">
+                            {compactTime}
+                          </span>
+                          {density === "time-title" ? (
+                            <span className="agenda-day-lane-chip-title">
+                              {full.title}
+                            </span>
+                          ) : null}
+                        </button>
                       </div>
                     );
                   })}

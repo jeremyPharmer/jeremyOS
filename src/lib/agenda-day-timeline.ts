@@ -313,8 +313,8 @@ export function laneStyle(
   const span = Math.max(1, clusterEnd - clusterStart);
   const top = ((lane.startMin - clusterStart) / span) * clusterHeight;
   const rawH = ((lane.endMin - lane.startMin) / span) * clusterHeight;
-  // 2px gutter so abutting cards in a column don't paint into each other
-  const height = Math.max(28, rawH - 2);
+  // Keep enough height for a time label; 2px gutter between abutting cards
+  const height = Math.max(40, rawH - 2);
   const gapPct = lane.columns > 1 ? 1.2 : 0;
   const widthPct = 100 / lane.columns - gapPct;
   const leftPct =
@@ -327,17 +327,35 @@ export function laneStyle(
   };
 }
 
+/** Compact range for narrow overlap chips, e.g. `3:30–5:30p`. */
+export function formatCompactRange(startMin: number, endMin: number): string {
+  const fmt = (minutes: number, withAp: boolean) => {
+    const clamped = Math.max(0, Math.min(24 * 60 - 1, Math.floor(minutes)));
+    const h24 = Math.floor(clamped / 60);
+    const m = clamped % 60;
+    const ap = h24 >= 12 ? "p" : "a";
+    let h = h24 % 12;
+    if (h === 0) h = 12;
+    const core = m === 0 ? `${h}` : `${h}:${String(m).padStart(2, "0")}`;
+    return withAp ? `${core}${ap}` : core;
+  };
+  const startPm = Math.floor(startMin / 60) >= 12;
+  const endPm = Math.floor(endMin / 60) >= 12;
+  if (startPm === endPm) {
+    return `${fmt(startMin, false)}–${fmt(endMin, true)}`;
+  }
+  return `${fmt(startMin, true)}–${fmt(endMin, true)}`;
+}
+
 /**
- * How much label to paint in a cramped overlap lane.
- * Too-tight slots stay blank (color bar only) instead of illegible overflow.
+ * Overlap chip density — always include time; add title when there is room.
  */
-export type LaneDensity = "full" | "title" | "blank";
+export type LaneDensity = "time" | "time-title";
 
 export function laneDensity(
   heightPx: number,
   columns: number,
 ): LaneDensity {
-  if (heightPx < 42 || (columns >= 3 && heightPx < 48)) return "blank";
-  if (heightPx < 64 || columns >= 3) return "title";
-  return "full";
+  if (heightPx < 56 || (columns >= 3 && heightPx < 72)) return "time";
+  return "time-title";
 }
