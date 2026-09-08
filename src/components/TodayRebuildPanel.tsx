@@ -67,7 +67,7 @@ function HomeRoutineRow({
   );
 
   return (
-    <div className="tasks-item">
+    <div className="tasks-item home-routine-item">
       {href ? (
         <Link href={href} className="tasks-main">
           {main}
