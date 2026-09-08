@@ -177,7 +177,7 @@ export function TodayRebuildPanel() {
     showMorningDismissing ||
     showEveningDismissing;
 
-  const openGroups = homeOpenGroups(openTodos, homeRoutinesOpen);
+  const openGroups = homeOpenGroups(openTodos, today, homeRoutinesOpen);
 
   // Weekly supports suppressed on Home (RB-026) — counts are personal + Start/Close only.
   const routineCount =
