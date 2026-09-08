@@ -28,8 +28,14 @@ export default function ItemsPage() {
   }, [state.profile, router]);
 
   const todos = state.dayProvisions ?? [];
-  const openGroups = useMemo(() => groupOpenTodos(todos), [todos]);
-  const completedGroups = useMemo(() => groupCompletedTodos(todos), [todos]);
+  const openGroups = useMemo(
+    () => (today ? groupOpenTodos(todos, today) : []),
+    [todos, today],
+  );
+  const completedGroups = useMemo(
+    () => (today ? groupCompletedTodos(todos, today) : []),
+    [todos, today],
+  );
 
   async function run(id: string | null, body: Record<string, unknown>) {
     if (id) setBusyId(id);

@@ -42,32 +42,88 @@ describe("groupOpenTodos", () => {
       todo({ id: "4", label: "Listing", group: "real_estate", date: "2026-09-08" }),
       todo({ id: "5", label: "Done", group: "family", completed: true }),
     ];
-    const grouped = groupOpenTodos(items);
+    const grouped = groupOpenTodos(items, "2026-09-08");
     expect(grouped.map((g) => g.group)).toEqual(["real_estate", "work"]);
     expect(grouped[1].dated.map((t) => t.id)).toEqual(["2", "1"]);
     expect(grouped[1].undated.map((t) => t.id)).toEqual(["3"]);
   });
 
   it("hides empty groups", () => {
-    const grouped = groupOpenTodos([
-      todo({ id: "1", label: "X", group: "home" }),
-    ]);
+    const grouped = groupOpenTodos(
+      [todo({ id: "1", label: "X", group: "home" })],
+      "2026-09-08",
+    );
     expect(grouped).toHaveLength(1);
     expect(grouped[0].group).toBe("home");
+  });
+
+  it("hides recurring tasks until the next due after completion", () => {
+    const items = [
+      todo({
+        id: "hot",
+        label: "Change Hot Tub Chemicals",
+        group: "home",
+        date: "2026-10-06",
+        lastCompletedOn: "2026-09-01",
+        recurrence: {
+          kind: "repeat",
+          frequency: "month",
+          interval: 1,
+          monthlyOn: "nth_weekday",
+          ends: { type: "never" },
+        },
+      }),
+      todo({
+        id: "gas",
+        label: "Mom Dad gas pipe",
+        group: "home",
+        date: "2026-09-14",
+      }),
+    ];
+    const open = groupOpenTodos(items, "2026-09-08");
+    expect(open).toHaveLength(1);
+    expect(open[0].dated.map((t) => t.id)).toEqual(["gas"]);
+    const done = groupCompletedTodos(items, "2026-09-08");
+    expect(done[0].items.map((t) => t.id)).toEqual(["hot"]);
+  });
+
+  it("returns recurring tasks to open unchecked on the due date", () => {
+    const items = [
+      todo({
+        id: "hot",
+        label: "Change Hot Tub Chemicals",
+        group: "home",
+        date: "2026-10-06",
+        lastCompletedOn: "2026-09-01",
+        recurrence: {
+          kind: "repeat",
+          frequency: "month",
+          interval: 1,
+          monthlyOn: "nth_weekday",
+          ends: { type: "never" },
+        },
+      }),
+    ];
+    const open = groupOpenTodos(items, "2026-10-06");
+    expect(open[0].dated.map((t) => t.id)).toEqual(["hot"]);
+    expect(groupCompletedTodos(items, "2026-10-06")).toHaveLength(0);
   });
 });
 
 describe("groupCompletedTodos", () => {
   it("keeps completed under groups", () => {
-    const grouped = groupCompletedTodos([
-      todo({
-        id: "1",
-        label: "X",
-        group: "family",
-        completed: true,
-        completedAt: "2026-09-08T12:00:00.000Z",
-      }),
-    ]);
+    const grouped = groupCompletedTodos(
+      [
+        todo({
+          id: "1",
+          label: "X",
+          group: "family",
+          completed: true,
+          completedAt: "2026-09-08T12:00:00.000Z",
+        }),
+      ],
+      "2026-09-08",
+    );
     expect(grouped[0].group).toBe("family");
     expect(doneDateLabel(grouped[0].items[0])).toBe("9/8/26");
   });

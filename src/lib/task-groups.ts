@@ -81,6 +81,20 @@ export function isUndatedTodo(item: DayProvision): boolean {
   return Boolean(item.undated);
 }
 
+function isRecurringTodo(item: DayProvision): boolean {
+  return Boolean(item.recurrence && item.recurrence.kind !== "none");
+}
+
+/**
+ * Recurring task already completed this cycle — next due is still in the future.
+ * Hide from open lists until that due date; keep under Completed for undo/history.
+ */
+export function isWaitingForNextDue(item: DayProvision, today: string): boolean {
+  if (item.completed || item.undated) return false;
+  if (!isRecurringTodo(item) || !item.lastCompletedOn) return false;
+  return item.date > today;
+}
+
 export function sortTodosByDueDate(items: DayProvision[]): DayProvision[] {
   return [...items].sort((a, b) => {
     const da = a.date || "";
@@ -117,8 +131,14 @@ function bucketsFor(
 }
 
 /** Open todos bucketed by group. Hides empty groups. Ungrouped listed last as Home until assigned. */
-export function groupOpenTodos(items: DayProvision[]): GroupedOpenTodos[] {
-  const map = bucketsFor(items, (item) => !item.completed);
+export function groupOpenTodos(
+  items: DayProvision[],
+  today: string,
+): GroupedOpenTodos[] {
+  const map = bucketsFor(
+    items,
+    (item) => !item.completed && !isWaitingForNextDue(item, today),
+  );
   const out: GroupedOpenTodos[] = [];
   for (const group of TASK_GROUPS) {
     const inGroup = map.get(group) ?? [];
@@ -153,14 +173,21 @@ export function groupOpenTodos(items: DayProvision[]): GroupedOpenTodos[] {
   return out;
 }
 
-/** Completed todos by group (one-offs forever + recurring with lastCompletedOn). */
+/**
+ * Completed todos by group: finished one-offs, plus recurring still waiting
+ * for the next due (or completed today for undo).
+ */
 export function groupCompletedTodos(
   items: DayProvision[],
+  today: string,
 ): GroupedCompletedTodos[] {
-  const map = bucketsFor(
-    items,
-    (item) => item.completed || Boolean(item.lastCompletedOn),
-  );
+  const map = bucketsFor(items, (item) => {
+    if (item.completed) return true;
+    if (!isRecurringTodo(item) || !item.lastCompletedOn) return false;
+    return (
+      item.lastCompletedOn === today || isWaitingForNextDue(item, today)
+    );
+  });
   const out: GroupedCompletedTodos[] = [];
   for (const group of TASK_GROUPS) {
     const inGroup = (map.get(group) ?? []).sort((a, b) => {

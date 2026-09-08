@@ -38,7 +38,7 @@ function taskMeta(
     !item.undated &&
     item.date !== viewDate &&
     !item.completed &&
-    !item.lastCompletedOn
+    item.lastCompletedOn !== today
   ) {
     parts.push(formatDisplayDate(item.date));
   } else if (
@@ -83,7 +83,13 @@ export function TodoTaskRow({
   const [snoozing, setSnoozing] = useState(false);
   const activeDate = viewDate ?? today;
   const meta = doneMeta ?? taskMeta(item, activeDate, today);
-  const doneToday = Boolean(item.completed || item.lastCompletedOn) || clearing;
+  // Recurring rows keep lastCompletedOn until the next due — only treat as
+  // checked when finished for good, completed today (undo), or animating out.
+  const doneToday =
+    Boolean(item.completed) ||
+    item.lastCompletedOn === today ||
+    Boolean(doneMeta) ||
+    clearing;
   const canSnooze = activeDate >= today && !doneToday && !item.undated;
   const group = item.group as TaskGroup | undefined;
   const barStyle = group
