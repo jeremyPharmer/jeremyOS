@@ -30,7 +30,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 | 1 | RB-012 | Rebrand to JeremyOS (EA + drop trail) | P0 | Ready | M | TBD |
 | 2 | RB-013 | Personal OS north star (cut bloat) | P0 | Ready | S | TBD |
 | 3 | RB-014 | To-do lists (first-class) | P0 | Ready | L | TBD |
-| 4 | RB-026 | Task groups + colors & calendar M/D | P0 | Backlog | M | TBD |
+| 4 | RB-026 | Task groups + colors & calendar M/D | P0 | In Progress | M | TBD |
 | 5 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD |
 | 6 | RB-021 | Journal photos (attach + paperclip) | P1 | Backlog | S | TBD |
 | 7 | RB-022 | Journal edit, star & month calendar | P0 | In Progress | M | TBD |
