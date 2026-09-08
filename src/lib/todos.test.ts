@@ -203,8 +203,10 @@ describe("autoRollTodos", () => {
 describe("snooze", () => {
   it("snooze until tomorrow and a picked date", () => {
     const open = item({ date: "2026-08-31", label: "Email" });
-    expect(snoozeUntil(open, addDays("2026-08-31", 1)).date).toBe("2026-09-01");
-    expect(snoozeUntil(open, "2026-09-10").date).toBe("2026-09-10");
+    expect(snoozeUntil(open, addDays("2026-08-31", 1), "2026-08-31").date).toBe(
+      "2026-09-01",
+    );
+    expect(snoozeUntil(open, "2026-09-10", "2026-08-31").date).toBe("2026-09-10");
   });
 
   it("rejects snoozing a finished one-off", () => {
@@ -212,8 +214,38 @@ describe("snooze", () => {
       snoozeUntil(
         item({ date: "2026-08-31", label: "x", completed: true }),
         "2026-09-01",
+        "2026-08-31",
       ),
     ).toThrow(/finished/);
+  });
+
+  it("skips a recurring occurrence without marking it done or duplicating", () => {
+    const weekly = item({
+      date: "2026-08-31", // Monday
+      label: "Trash",
+      recurrence: { kind: "weekly", weekdays: [1] },
+    });
+    const after = snoozeUntil(weekly, "2026-09-01", "2026-08-31");
+    expect(after.id).toBe(weekly.id);
+    expect(after.completed).toBe(false);
+    expect(after.lastCompletedOn).toBeUndefined();
+    // Next Monday, not Tuesday (tomorrow)
+    expect(after.date).toBe("2026-09-07");
+    expect(isOpenOn(after, "2026-08-31")).toBe(false);
+    expect(isOpenOn(after, "2026-09-01")).toBe(false);
+    expect(isOpenOn(after, "2026-09-07")).toBe(true);
+  });
+
+  it("daily snooze advances one day like next due, still not completed", () => {
+    const daily = item({
+      date: "2026-08-31",
+      label: "Meds",
+      recurrence: { kind: "daily" },
+    });
+    const after = snoozeUntil(daily, "2026-09-01", "2026-08-31");
+    expect(after.date).toBe("2026-09-01");
+    expect(after.completed).toBe(false);
+    expect(after.lastCompletedOn).toBeUndefined();
   });
 });
 

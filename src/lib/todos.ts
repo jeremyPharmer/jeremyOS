@@ -338,12 +338,30 @@ export function ensureTodosRolled(state: RebuildState, today: string): RebuildSt
   return { ...state, dayProvisions: rolled };
 }
 
-export function snoozeUntil(item: DayProvision, until: string): DayProvision {
+/**
+ * Snooze a one-off until `until`.
+ * Recurring: treat as “not done today” — advance to the next natural due
+ * (same schedule as complete), without marking the occurrence completed.
+ */
+export function snoozeUntil(
+  item: DayProvision,
+  until: string,
+  today: string,
+): DayProvision {
   if (item.completed) {
     throw Object.assign(new Error("Can’t snooze a finished item"), { status: 400 });
   }
   if (!isCalendarDate(until)) {
     throw Object.assign(new Error("Pick a date to snooze until"), { status: 400 });
+  }
+  if (isRecurring(item)) {
+    const nextDate = nextDueDate(today, recurrenceOf(item));
+    return {
+      ...item,
+      date: nextDate,
+      undated: false,
+      completed: false,
+    };
   }
   return { ...item, date: until, undated: false, completed: false };
 }
@@ -634,7 +652,7 @@ export function applyTodoAction(
     if (!isCalendarDate(until) || until <= today) {
       throw Object.assign(new Error("Snooze until a future date"), { status: 400 });
     }
-    items[index] = snoozeUntil(current, until);
+    items[index] = snoozeUntil(current, until, today);
     return { ...next, dayProvisions: items };
   }
 
