@@ -141,10 +141,9 @@ function SampleDay({ sample }: { sample: Sample }) {
         )}
 
         <div className="agenda-day-spine">
-          <div className="agenda-day-bounds" aria-hidden>
-            <span>8 AM</span>
-            <span>9 PM</span>
-          </div>
+          <p className="agenda-day-bound agenda-day-bound-start" aria-hidden>
+            8 AM
+          </p>
           {timeline.blocks.map((block) => {
             if (block.kind === "gap") {
               const key = `${block.startMin}-${block.endMin}`;
@@ -159,12 +158,10 @@ function SampleDay({ sample }: { sample: Sample }) {
                     onClick={() =>
                       setExpandedGaps((prev) => ({ ...prev, [key]: true }))
                     }
+                    aria-label={`Expand ${formatGapLabel(block.startMin, block.endMin)}`}
                   >
                     <span className="agenda-day-gap-dots" aria-hidden>
-                      · · ·
-                    </span>
-                    <span className="agenda-day-gap-label">
-                      {formatGapLabel(block.startMin, block.endMin)}
+                      …
                     </span>
                   </button>
                 );
@@ -237,6 +234,9 @@ function SampleDay({ sample }: { sample: Sample }) {
               </div>
             );
           })}
+          <p className="agenda-day-bound agenda-day-bound-end" aria-hidden>
+            9 PM
+          </p>
         </div>
       </div>
     </article>
