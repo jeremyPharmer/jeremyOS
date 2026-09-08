@@ -8,6 +8,10 @@ import {
 import { PrimaryButton, SecondaryButton, Sheet } from "@/components/ui";
 import { addDays, formatDisplayDate } from "@/lib/journey";
 import { formatRecurrence, recurrenceOf } from "@/lib/todos";
+import {
+  TASK_GROUP_COLORS,
+  type TaskGroup,
+} from "@/lib/task-groups";
 import type { DayProvision } from "@/lib/types";
 
 function formatTodoTime(time: string): string {
@@ -26,12 +30,22 @@ function taskMeta(
 ): string | null {
   const rec = recurrenceOf(item);
   const parts: string[] = [];
+  if (item.undated) parts.push("No date");
   if (item.time) parts.push(formatTodoTime(item.time));
   const recLabel = formatRecurrence(rec, item.date);
   if (recLabel) parts.push(recLabel);
-  if (item.date !== viewDate && !item.completed && !item.lastCompletedOn) {
+  if (
+    !item.undated &&
+    item.date !== viewDate &&
+    !item.completed &&
+    !item.lastCompletedOn
+  ) {
     parts.push(formatDisplayDate(item.date));
-  } else if (item.date !== today && viewDate === today) {
+  } else if (
+    !item.undated &&
+    item.date !== today &&
+    viewDate === today
+  ) {
     parts.push(formatDisplayDate(item.date));
   }
   return parts.length > 0 ? parts.join(" · ") : null;
@@ -44,6 +58,7 @@ export function TodoTaskRow({
   home = false,
   busy,
   clearing = false,
+  doneMeta,
   onComplete,
   onSnooze,
   onEdit,
@@ -56,6 +71,8 @@ export function TodoTaskRow({
   home?: boolean;
   busy: boolean;
   clearing?: boolean;
+  /** Extra meta for completed rows (e.g. done date M/D/YY) */
+  doneMeta?: string | null;
   onComplete: () => void | Promise<void>;
   onSnooze: (until: "tomorrow" | string) => void | Promise<void>;
   onEdit: (payload: TodoComposerPayload) => void | Promise<void>;
@@ -65,9 +82,13 @@ export function TodoTaskRow({
   const [editing, setEditing] = useState(false);
   const [snoozing, setSnoozing] = useState(false);
   const activeDate = viewDate ?? today;
-  const meta = taskMeta(item, activeDate, today);
+  const meta = doneMeta ?? taskMeta(item, activeDate, today);
   const doneToday = Boolean(item.completed || item.lastCompletedOn) || clearing;
-  const canSnooze = activeDate >= today && !doneToday;
+  const canSnooze = activeDate >= today && !doneToday && !item.undated;
+  const group = item.group as TaskGroup | undefined;
+  const barStyle = group
+    ? { ["--group-color" as string]: TASK_GROUP_COLORS[group] }
+    : undefined;
 
   const snoozeButton = canSnooze ? (
     <button
@@ -82,7 +103,12 @@ export function TodoTaskRow({
   ) : null;
 
   return (
-    <div className={home ? "todo-task todo-task-home" : "todo-task"}>
+    <div
+      className={`${home ? "todo-task todo-task-home" : "todo-task"}${
+        group ? " has-group-bar" : ""
+      }`}
+      style={barStyle}
+    >
       {home ? (
         <div
           className={`tasks-item${clearing ? " tasks-item-clearing" : ""}`}

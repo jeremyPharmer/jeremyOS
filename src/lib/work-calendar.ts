@@ -4,6 +4,7 @@ import {
   fetchGoogleCalendarEventsForDay,
   googleCalendarStatus,
 } from "./google-calendar";
+import type { TaskGroup } from "./task-groups";
 import type { GoogleCalendarLink } from "./types";
 
 export type CalendarFeedSource = "personal" | "work" | "extra" | "custom";
@@ -19,6 +20,10 @@ export type WorkCalendarEvent = {
   url?: string;
   allDay?: boolean;
   source: CalendarFeedSource;
+  /** Which extra iCal feed (0-based) when source is extra */
+  extraIndex?: number;
+  /** Resolved life-area group for display (RB-026) */
+  group?: TaskGroup;
 };
 
 export type CalendarFeedUrls = {
@@ -159,6 +164,7 @@ export function parseIcsEventsForDay(
   date: string,
   timezone: string,
   source: CalendarFeedSource,
+  extraIndex?: number,
 ): WorkCalendarEvent[] {
   const parsed = ical.sync.parseICS(icsText);
   const from = new Date(`${addDays(date, -1)}T00:00:00Z`);
@@ -222,6 +228,9 @@ export function parseIcsEventsForDay(
         url: eventUrl(inst.event ?? ev),
         allDay,
         source,
+        ...(source === "extra" && extraIndex !== undefined
+          ? { extraIndex }
+          : {}),
       });
     }
   }
@@ -293,13 +302,17 @@ export async function fetchWorkCalendarEvents(
   const errors: string[] = [];
   const collected: WorkCalendarEvent[] = [];
 
-  const jobs: { source: CalendarFeedSource; url: string }[] = [];
+  const jobs: {
+    source: CalendarFeedSource;
+    url: string;
+    extraIndex?: number;
+  }[] = [];
   if (resolved.personal) {
     jobs.push({ source: "personal", url: resolved.personal });
   }
-  for (const url of resolved.extras) {
-    jobs.push({ source: "extra", url });
-  }
+  resolved.extras.forEach((url, extraIndex) => {
+    jobs.push({ source: "extra", url, extraIndex });
+  });
 
   const googleConnected = googleCalendarStatus(feeds.googleCalendar).connected;
   if (googleConnected && feeds.googleCalendar) {
@@ -324,10 +337,12 @@ export async function fetchWorkCalendarEvents(
   }
 
   await Promise.all(
-    jobs.map(async ({ source, url }) => {
+    jobs.map(async ({ source, url, extraIndex }) => {
       try {
         const text = await fetchIcsText(url);
-        collected.push(...parseIcsEventsForDay(text, date, timezone, source));
+        collected.push(
+          ...parseIcsEventsForDay(text, date, timezone, source, extraIndex),
+        );
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Feed error";
         errors.push(`${source}: ${msg}`);

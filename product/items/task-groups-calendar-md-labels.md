@@ -5,7 +5,7 @@
 | ID | RB-026 |
 | Rank | 4 |
 | Priority | P0 |
-| Status | Backlog |
+| Status | In Progress |
 | Effort | M |
 | Target due | TBD |
 | Milestone | v1 |
@@ -58,11 +58,17 @@ Do not split into separate releases.
 
 ### Tasks page (Open Tasks)
 
-- **Open items:** group headers + sorted by due date within group
+- **Open items:** group headers + sorted by due date within group; tasks with **no due date** sit in a **No date** bucket **within** that group
 - **Group order:** Real estate → Family → Home → Work
 - **Hide empty group headers**
 - **Completed:** under each category header, **collapsed chevron**; expand shows items with done date **M/D/YY**; **retain forever**
 - No completed on Home (same rule as Home section)
+
+### Calendar → group (Settings)
+
+- In **Settings**, each connected calendar feed (Apple / Work / Google / extra) can be **assigned a default group**
+- Events from that calendar inherit the group color on the chronological Home agenda
+- Imported events without an override: assign group on **first open/edit** (override), or inherit feed default from Settings
 
 ## Out of scope / later
 
@@ -82,6 +88,7 @@ Do not split into separate releases.
 
 ## Notes
 
-- Intake **2026-09-08** founder lock: calendar M/D + fixed task/event groups/colors + Tasks completed chevrons; ship all together; Status **Backlog** until build starts.
+- Intake **2026-09-08** founder lock: calendar M/D + fixed task/event groups/colors + Tasks completed chevrons; ship all together; Status **In Progress** (build started).
+- Also locked: undated tasks under **No date** within group; Settings calendar→group defaults; assign imported event group on first open/edit.
 - Rank **4** (P0): founder asked for this now; sits immediately after RB-014 todos foundation; ahead of journal/email/puzzle queue for next build slice.
 - Effort **M**: types + Home flat list color bars + Tasks grouped open/completed UX + calendar M/D + create flows mandating group + assign-on-edit for existing — invasive across surfaces but fixed groups (no group CRUD).

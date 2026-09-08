@@ -24,6 +24,7 @@ describe("custom agenda events", () => {
       title: "Pick up Rx",
       startTime: "3:00 PM",
       endTime: "3:15 PM",
+      group: "home",
     });
     const events = customEventsForDay(state, "2026-09-01");
     expect(events).toHaveLength(1);
@@ -35,6 +36,7 @@ describe("custom agenda events", () => {
     let state = addCustomAgendaEvent(emptyState(), {
       date: "2026-09-01",
       title: "Old",
+      group: "work",
     });
     const id = customEventsForDay(state, "2026-09-01")[0]!.id;
     state = updateCustomAgendaEvent(state, id, { title: "New title" });
@@ -45,6 +47,7 @@ describe("custom agenda events", () => {
     let state = addCustomAgendaEvent(emptyState(), {
       date: "2026-09-01",
       title: "Temp",
+      group: "family",
     });
     const id = customEventsForDay(state, "2026-09-01")[0]!.id;
     state = removeCustomAgendaEvent(state, id);

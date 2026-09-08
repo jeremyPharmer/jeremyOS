@@ -296,6 +296,8 @@ export function TodayRebuildPanel() {
         date: payload.date,
         time: payload.time,
         recurrence: payload.recurrence,
+        group: payload.group,
+        undated: payload.undated,
       });
       setAdding(false);
     } finally {

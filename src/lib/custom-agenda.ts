@@ -1,5 +1,6 @@
 import { newId } from "./journey";
 import { CUSTOM_AGENDA_NOTE_MAX, CUSTOM_AGENDA_TITLE_MAX } from "./custom-agenda-shared";
+import { parseTaskGroup, type TaskGroup } from "./task-groups";
 import type { CustomAgendaEvent, RebuildState } from "./types";
 import { sortAgenda, type WorkCalendarEvent } from "./work-calendar";
 
@@ -64,6 +65,7 @@ export function customToWorkCalendarEvent(
     allDay,
     location: ev.note?.trim() || undefined,
     source: "custom",
+    group: ev.group,
   };
 }
 
@@ -86,11 +88,13 @@ export function addCustomAgendaEvent(
     startTime?: string;
     endTime?: string;
     note?: string;
+    group: TaskGroup;
   },
 ): RebuildState {
   const title = input.title.trim().slice(0, CUSTOM_AGENDA_TITLE_MAX);
   if (!title) return state;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return state;
+  const group = parseTaskGroup(input.group);
 
   const allDay = Boolean(input.allDay);
   const startTime = allDay ? undefined : input.startTime?.trim() || undefined;
@@ -105,6 +109,7 @@ export function addCustomAgendaEvent(
     startTime,
     endTime,
     note,
+    group,
     createdAt: new Date().toISOString(),
   };
 
@@ -123,6 +128,7 @@ export function updateCustomAgendaEvent(
     startTime?: string;
     endTime?: string;
     note?: string;
+    group?: TaskGroup;
   },
 ): RebuildState {
   const events = customAgendaEvents(state);
@@ -150,6 +156,8 @@ export function updateCustomAgendaEvent(
     patch.note !== undefined
       ? patch.note.trim().slice(0, CUSTOM_AGENDA_NOTE_MAX) || undefined
       : current.note;
+  const group =
+    patch.group !== undefined ? parseTaskGroup(patch.group) : current.group;
 
   const updated: CustomAgendaEvent = {
     ...current,
@@ -158,6 +166,7 @@ export function updateCustomAgendaEvent(
     startTime: allDay ? undefined : startTime,
     endTime: allDay ? undefined : endTime,
     note,
+    group,
   };
 
   const next = [...events];

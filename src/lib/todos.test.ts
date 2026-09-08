@@ -267,6 +267,7 @@ describe("repeat ends", () => {
       emptyState(),
       {
         action: "add",
+        group: "home",
         label: "Stretch",
         date: "2026-08-31",
         recurrence: {
@@ -292,6 +293,7 @@ describe("repeat ends", () => {
       emptyState(),
       {
         action: "add",
+        group: "home",
         label: "Report",
         date: "2026-08-31",
         recurrence: {
@@ -317,6 +319,7 @@ describe("repeat ends", () => {
       emptyState(),
       {
         action: "add",
+        group: "home",
         label: "Call",
         date: "2026-08-31",
         time: "14:30",
@@ -339,7 +342,7 @@ describe("applyTodoAction", () => {
   it("adds, snoozes tomorrow, and snoozes until a date", () => {
     let s = applyTodoAction(
       stateWith([]),
-      { action: "add", label: "Groceries" },
+      { action: "add", group: "home", label: "Groceries" },
       "2026-08-31",
       "now",
     );
@@ -367,7 +370,7 @@ describe("applyTodoAction", () => {
   it("rejects snooze until today or the past", () => {
     const s = applyTodoAction(
       stateWith([]),
-      { action: "add", label: "x" },
+      { action: "add", group: "home", label: "x" },
       "2026-08-31",
       "now",
     );
@@ -385,7 +388,7 @@ describe("applyTodoAction", () => {
   it("complete + undo round-trips a daily item for the undo panel", () => {
     let s = applyTodoAction(
       stateWith([]),
-      { action: "add", label: "Walk", recurrence: { kind: "daily" } },
+      { action: "add", group: "home", label: "Walk", recurrence: { kind: "daily" } },
       "2026-08-31",
       "now",
     );
@@ -400,7 +403,7 @@ describe("applyTodoAction", () => {
   it("edits label and recurrence, deletes items", () => {
     let s = applyTodoAction(
       stateWith([]),
-      { action: "add", label: "Draft" },
+      { action: "add", group: "home", label: "Draft" },
       "2026-08-31",
       "now",
     );

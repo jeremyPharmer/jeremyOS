@@ -1,4 +1,6 @@
 import type { RebuildState } from "./types";
+import type { TaskGroup } from "./task-groups";
+import { optionalTaskGroup, parseTaskGroup } from "./task-groups";
 import type { WorkCalendarEvent } from "./work-calendar";
 
 const TITLE_MAX = 120;
@@ -8,6 +10,12 @@ export function calendarTitleOverrides(
   state: RebuildState,
 ): Record<string, string> {
   return state.calendarTitleOverrides ?? {};
+}
+
+export function calendarEventGroups(
+  state: RebuildState,
+): Record<string, TaskGroup> {
+  return state.calendarEventGroups ?? {};
 }
 
 export function displayCalendarTitle(
@@ -50,6 +58,25 @@ export function setCalendarTitleOverride(
     ...state,
     calendarTitleOverrides: Object.keys(next).length ? next : undefined,
   };
+}
+
+export function setCalendarEventGroup(
+  state: RebuildState,
+  eventId: string,
+  group: TaskGroup,
+): RebuildState {
+  const id = String(eventId || "").trim();
+  if (!id) return state;
+  const next = { ...(state.calendarEventGroups ?? {}) };
+  next[id] = parseTaskGroup(group);
+  return { ...state, calendarEventGroups: next };
+}
+
+export function eventGroupOverride(
+  state: RebuildState,
+  eventId: string,
+): TaskGroup | undefined {
+  return optionalTaskGroup(calendarEventGroups(state)[eventId]);
 }
 
 /** Event ids hidden on Home (feed can lag after phone deletes). */
