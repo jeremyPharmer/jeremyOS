@@ -689,11 +689,10 @@ export function TodayAgendaCard() {
             </div>
           )}
 
-          <div className="agenda-day-spine">
-            <div className="agenda-day-bounds" aria-hidden>
-              <span>8 AM</span>
-              <span>9 PM</span>
-            </div>
+            <div className="agenda-day-spine">
+            <p className="agenda-day-bound agenda-day-bound-start" aria-hidden>
+              8 AM
+            </p>
             {timeline.blocks.map((block) => {
               if (block.kind === "gap") {
                 const key = `${block.startMin}-${block.endMin}`;
@@ -711,10 +710,7 @@ export function TodayAgendaCard() {
                       aria-label={`Expand ${formatGapLabel(block.startMin, block.endMin)}`}
                     >
                       <span className="agenda-day-gap-dots" aria-hidden>
-                        · · ·
-                      </span>
-                      <span className="agenda-day-gap-label">
-                        {formatGapLabel(block.startMin, block.endMin)}
+                        …
                       </span>
                     </button>
                   );
@@ -790,6 +786,9 @@ export function TodayAgendaCard() {
                 </div>
               );
             })}
+            <p className="agenda-day-bound agenda-day-bound-end" aria-hidden>
+              9 PM
+            </p>
           </div>
         </div>
       )}
