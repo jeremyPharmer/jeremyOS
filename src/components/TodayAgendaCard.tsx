@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
 import {
   AgendaEventComposer,
+  type AgendaEventComposerInitial,
   type AgendaEventPayload,
 } from "@/components/AgendaEventComposer";
 import {
@@ -31,13 +32,18 @@ import {
 } from "@/lib/agenda-past";
 import {
   buildDayTimeline,
+  clusterBlockHeightPx,
   eventBlockHeightPx,
+  formatCompactRange,
   formatGapLabel,
   formatTimelineHour,
+  laneDensity,
+  laneStyle,
+  suggestGapEventTimes,
 } from "@/lib/agenda-day-timeline";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
 import { TaskGroupPicker } from "@/components/TaskGroupPicker";
-import { SecondaryButton, PrimaryButton } from "@/components/ui";
+import { SecondaryButton, PrimaryButton, Sheet } from "@/components/ui";
 
 function threeDayWindow(start: string): [string, string, string] {
   return [start, addDays(start, 1), addDays(start, 2)];
@@ -318,9 +324,12 @@ export function TodayAgendaCard() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
+  const [addInitial, setAddInitial] =
+    useState<AgendaEventComposerInitial | null>(null);
   const [stripCounts, setStripCounts] = useState<Record<string, number>>({});
   const [now, setNow] = useState(() => new Date());
   const [expandedGaps, setExpandedGaps] = useState<Record<string, boolean>>({});
+  const [peekEventId, setPeekEventId] = useState<string | null>(null);
   const cacheRef = useRef<Record<string, AgendaResponse>>({});
 
   const personal = state.profile?.personalIcalUrl?.trim();
@@ -554,9 +563,26 @@ export function TodayAgendaCard() {
         group: payload.group,
       });
       setAdding(false);
+      setAddInitial(null);
     } finally {
       setAddBusy(false);
     }
+  }
+
+  function openAdd(
+    initial: AgendaEventComposerInitial | null = null,
+  ) {
+    setAddInitial(initial);
+    setAdding(true);
+  }
+
+  function closeAdd() {
+    setAdding(false);
+    setAddInitial(null);
+  }
+
+  function openAddInGap(startMin: number, endMin: number) {
+    openAdd(suggestGapEventTimes(startMin, endMin));
   }
 
   return (
@@ -569,7 +595,7 @@ export function TodayAgendaCard() {
               type="button"
               className="icon-btn"
               aria-label="Add reminder or event"
-              onClick={() => setAdding(true)}
+              onClick={() => openAdd(null)}
             >
               +
             </button>
@@ -593,12 +619,7 @@ export function TodayAgendaCard() {
             {stripDays.map((date) => {
               const selected = date === viewDate;
               const count = stripCounts[date] ?? 0;
-              const label =
-                date === today
-                  ? "Today"
-                  : date === addDays(today, 1)
-                    ? "Tomorrow"
-                    : dayAbbrev(date);
+              const label = date === today ? "Today" : dayAbbrev(date);
               const dayStatus = formatMonthDay(date);
               return (
                 <button
@@ -632,11 +653,65 @@ export function TodayAgendaCard() {
         </div>
       </header>
 
+      {peekEventId && (() => {
+        const full = events.find((e) => e.id === peekEventId);
+        if (!full) return null;
+        const group = resolveEventGroup({
+          eventId: full.id,
+          source: full.source,
+          extraIndex: full.extraIndex,
+          customGroup: full.group,
+          overrides: eventGroups,
+          feedGroups,
+        });
+        const timeLabel =
+          full.endTime && full.endTime !== full.startTime
+            ? `${full.startTime} – ${full.endTime}`
+            : full.startTime;
+        const title = displayCalendarTitle(full, overrides);
+        return (
+          <Sheet
+            label={title}
+            onClose={() => setPeekEventId(null)}
+          >
+            <div className="agenda-day-peek">
+              <AgendaEventRow
+                event={full}
+                timeline
+                timeLabel={timeLabel}
+                past={isAgendaEventPast(
+                  full,
+                  viewDate,
+                  today,
+                  now,
+                  timezone,
+                )}
+                displayTitle={title}
+                group={group}
+                onSave={async (next) => {
+                  await saveEvent(full.id, next);
+                }}
+                onRemove={async () => {
+                  await removeEvent(full.id);
+                  setPeekEventId(null);
+                }}
+              />
+            </div>
+          </Sheet>
+        );
+      })()}
+
       {adding && (
         <AgendaEventComposer
+          key={
+            addInitial
+              ? `${addInitial.startTime ?? ""}-${addInitial.endTime ?? ""}`
+              : "blank"
+          }
           busy={addBusy}
+          initial={addInitial}
           onSubmit={addEvent}
-          onCancel={() => setAdding(false)}
+          onCancel={closeAdd}
         />
       )}
 
@@ -723,20 +798,122 @@ export function TodayAgendaCard() {
                       <span className="agenda-day-gap-quiet">open</span>
                       <span>{formatTimelineHour(block.endMin)}</span>
                     </div>
-                    {block.collapsed ? (
+                    <div className="agenda-day-gap-actions">
                       <button
                         type="button"
-                        className="agenda-day-gap-collapse"
+                        className="agenda-day-gap-add"
                         onClick={() =>
-                          setExpandedGaps((prev) => ({
-                            ...prev,
-                            [key]: false,
-                          }))
+                          openAddInGap(block.startMin, block.endMin)
                         }
                       >
-                        Collapse
+                        Add
                       </button>
-                    ) : null}
+                      {block.collapsed ? (
+                        <button
+                          type="button"
+                          className="agenda-day-gap-collapse"
+                          onClick={() =>
+                            setExpandedGaps((prev) => ({
+                              ...prev,
+                              [key]: false,
+                            }))
+                          }
+                        >
+                          Collapse
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              }
+
+              if (block.kind === "cluster") {
+                const height = clusterBlockHeightPx(
+                  block.startMin,
+                  block.endMin,
+                );
+                const showNow =
+                  nowMinutes != null &&
+                  nowMinutes >= block.startMin &&
+                  nowMinutes < block.endMin;
+                return (
+                  <div
+                    key={`cluster-${block.startMin}-${block.endMin}`}
+                    className={`agenda-day-cluster${
+                      showNow ? " agenda-day-cluster-now" : ""
+                    }`}
+                    style={{ height }}
+                    aria-label={`${block.lanes.length} overlapping events`}
+                  >
+                    {block.lanes.map((lane) => {
+                      const full = events.find((e) => e.id === lane.event.id);
+                      if (!full) return null;
+                      const group = resolveEventGroup({
+                        eventId: full.id,
+                        source: full.source,
+                        extraIndex: full.extraIndex,
+                        customGroup: full.group,
+                        overrides: eventGroups,
+                        feedGroups,
+                      });
+                      const place = laneStyle(
+                        lane,
+                        block.startMin,
+                        block.endMin,
+                        height,
+                      );
+                      const density = laneDensity(place.height, lane.columns);
+                      const title = displayCalendarTitle(full, overrides);
+                      const compactTime = formatCompactRange(
+                        lane.startMin,
+                        lane.endMin,
+                      );
+                      const past = isAgendaEventPast(
+                        full,
+                        viewDate,
+                        today,
+                        now,
+                        timezone,
+                      );
+                      return (
+                        <div
+                          key={full.id}
+                          className="agenda-day-lane"
+                          style={{
+                            top: place.top,
+                            height: place.height,
+                            left: place.left,
+                            width: place.width,
+                          }}
+                        >
+                          <button
+                            type="button"
+                            className={`agenda-day-lane-chip${
+                              group ? " has-group-bar" : ""
+                            }${past ? " agenda-item-past" : ""}`}
+                            style={
+                              group
+                                ? {
+                                    ["--group-color" as string]:
+                                      TASK_GROUP_COLORS[group],
+                                  }
+                                : undefined
+                            }
+                            onClick={() => setPeekEventId(full.id)}
+                            aria-label={`${title}, ${compactTime}`}
+                          >
+                            <span className="agenda-day-lane-chip-time">
+                              {compactTime}
+                            </span>
+                            {density === "time-title" ? (
+                              <span className="agenda-day-lane-chip-title">
+                                {title}
+                              </span>
+                            ) : null}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               }

@@ -14,19 +14,28 @@ export type AgendaEventPayload = {
   group: TaskGroup;
 };
 
+export type AgendaEventComposerInitial = {
+  startTime?: string;
+  endTime?: string;
+  allDay?: boolean;
+};
+
 export function AgendaEventComposer({
   busy,
+  initial,
   onSubmit,
   onCancel,
 }: {
   busy: boolean;
+  /** Prefill times when adding from an open day-spine gap. */
+  initial?: AgendaEventComposerInitial | null;
   onSubmit: (payload: AgendaEventPayload) => Promise<void>;
   onCancel: () => void;
 }) {
   const [title, setTitle] = useState("");
-  const [allDay, setAllDay] = useState(false);
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [allDay, setAllDay] = useState(Boolean(initial?.allDay));
+  const [startTime, setStartTime] = useState(initial?.startTime ?? "");
+  const [endTime, setEndTime] = useState(initial?.endTime ?? "");
   const [group, setGroup] = useState<TaskGroup | "">("");
 
   async function handleSubmit(e: React.FormEvent) {

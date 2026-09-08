@@ -2219,6 +2219,95 @@ h2 {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
+.agenda-day-cluster {
+  position: relative;
+  width: 100%;
+  margin: 2px 0;
+}
+
+.agenda-day-cluster-now {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 14px;
+}
+
+.agenda-day-lane {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0 2px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.agenda-day-lane-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  background: color-mix(in srgb, var(--surface) 92%, var(--surface-strong));
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.agenda-day-lane-chip.has-group-bar {
+  border-left: 3px solid var(--group-color, var(--accent));
+}
+
+.agenda-day-lane-chip:hover,
+.agenda-day-lane-chip:focus-visible {
+  background: color-mix(in srgb, var(--surface-strong) 88%, transparent);
+}
+
+.agenda-day-lane-chip-time {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.agenda-day-lane-chip-title {
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.agenda-day-peek {
+  padding: 4px 0 8px;
+}
+
+.agenda-day-peek .agenda-day-event {
+  min-height: 0;
+}
+
+.agenda-day-lane .agenda-day-event {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
 .agenda-day-event {
   position: relative;
   display: flex;
@@ -2334,6 +2423,14 @@ h2 {
   text-transform: lowercase;
 }
 
+.agenda-day-gap-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.agenda-day-gap-add,
 .agenda-day-gap-collapse {
   border: none;
   background: transparent;
@@ -2345,6 +2442,12 @@ h2 {
   padding: 4px 6px;
 }
 
+.agenda-day-gap-add {
+  color: var(--accent);
+}
+
+.agenda-day-gap-add:hover,
+.agenda-day-gap-add:focus-visible,
 .agenda-day-gap-collapse:hover,
 .agenda-day-gap-collapse:focus-visible {
   color: var(--accent);
