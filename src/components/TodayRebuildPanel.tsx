@@ -92,9 +92,10 @@ function HomeRoutineRow({
 /** Open groups for Home; ensure Home appears when Start/Close routines are open. */
 function homeOpenGroups(
   todos: ReturnType<typeof openTodosOn>,
+  today: string,
   includeHomeRoutines: boolean,
 ): GroupedOpenTodos[] {
-  const grouped = groupOpenTodos(todos);
+  const grouped = groupOpenTodos(todos, today);
   if (!includeHomeRoutines || grouped.some((g) => g.group === "home")) {
     return grouped;
   }
