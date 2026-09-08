@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
 import {
   AgendaEventComposer,
+  type AgendaEventComposerInitial,
   type AgendaEventPayload,
 } from "@/components/AgendaEventComposer";
 import {
@@ -34,6 +35,7 @@ import {
   eventBlockHeightPx,
   formatGapLabel,
   formatTimelineHour,
+  suggestGapEventTimes,
 } from "@/lib/agenda-day-timeline";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
 import { TaskGroupPicker } from "@/components/TaskGroupPicker";
@@ -318,6 +320,8 @@ export function TodayAgendaCard() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
+  const [addInitial, setAddInitial] =
+    useState<AgendaEventComposerInitial | null>(null);
   const [stripCounts, setStripCounts] = useState<Record<string, number>>({});
   const [now, setNow] = useState(() => new Date());
   const [expandedGaps, setExpandedGaps] = useState<Record<string, boolean>>({});
@@ -554,9 +558,26 @@ export function TodayAgendaCard() {
         group: payload.group,
       });
       setAdding(false);
+      setAddInitial(null);
     } finally {
       setAddBusy(false);
     }
+  }
+
+  function openAdd(
+    initial: AgendaEventComposerInitial | null = null,
+  ) {
+    setAddInitial(initial);
+    setAdding(true);
+  }
+
+  function closeAdd() {
+    setAdding(false);
+    setAddInitial(null);
+  }
+
+  function openAddInGap(startMin: number, endMin: number) {
+    openAdd(suggestGapEventTimes(startMin, endMin));
   }
 
   return (
@@ -569,7 +590,7 @@ export function TodayAgendaCard() {
               type="button"
               className="icon-btn"
               aria-label="Add reminder or event"
-              onClick={() => setAdding(true)}
+              onClick={() => openAdd(null)}
             >
               +
             </button>
@@ -634,9 +655,15 @@ export function TodayAgendaCard() {
 
       {adding && (
         <AgendaEventComposer
+          key={
+            addInitial
+              ? `${addInitial.startTime ?? ""}-${addInitial.endTime ?? ""}`
+              : "blank"
+          }
           busy={addBusy}
+          initial={addInitial}
           onSubmit={addEvent}
-          onCancel={() => setAdding(false)}
+          onCancel={closeAdd}
         />
       )}
 
@@ -723,20 +750,31 @@ export function TodayAgendaCard() {
                       <span className="agenda-day-gap-quiet">open</span>
                       <span>{formatTimelineHour(block.endMin)}</span>
                     </div>
-                    {block.collapsed ? (
+                    <div className="agenda-day-gap-actions">
                       <button
                         type="button"
-                        className="agenda-day-gap-collapse"
+                        className="agenda-day-gap-add"
                         onClick={() =>
-                          setExpandedGaps((prev) => ({
-                            ...prev,
-                            [key]: false,
-                          }))
+                          openAddInGap(block.startMin, block.endMin)
                         }
                       >
-                        Collapse
+                        Add
                       </button>
-                    ) : null}
+                      {block.collapsed ? (
+                        <button
+                          type="button"
+                          className="agenda-day-gap-collapse"
+                          onClick={() =>
+                            setExpandedGaps((prev) => ({
+                              ...prev,
+                              [key]: false,
+                            }))
+                          }
+                        >
+                          Collapse
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 );
               }

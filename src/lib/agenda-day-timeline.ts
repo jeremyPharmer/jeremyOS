@@ -52,6 +52,32 @@ export function formatGapLabel(startMin: number, endMin: number): string {
   return `${hours}h ${rem}m open`;
 }
 
+/** Minutes from midnight → HTML time input value (`HH:MM`). */
+export function minutesToTimeInput(minutes: number): string {
+  const clamped = Math.max(0, Math.min(24 * 60 - 1, Math.floor(minutes)));
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/**
+ * Prefill for “Add event” in an open gap: start at gap start,
+ * end at +30m (or gap end when the open stretch is shorter).
+ */
+export function suggestGapEventTimes(
+  startMin: number,
+  endMin: number,
+): { startTime: string; endTime: string } {
+  const start = Math.max(0, Math.min(startMin, endMin));
+  const gapEnd = Math.max(start, endMin);
+  const preferredEnd = Math.min(gapEnd, start + 30);
+  const end = preferredEnd > start ? preferredEnd : Math.min(gapEnd, start + 15);
+  return {
+    startTime: minutesToTimeInput(start),
+    endTime: minutesToTimeInput(end),
+  };
+}
+
 export function isAllDayLike(event: TimedAgendaEvent): boolean {
   return (
     Boolean(event.allDay) ||

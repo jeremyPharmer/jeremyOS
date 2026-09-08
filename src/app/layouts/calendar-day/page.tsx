@@ -174,20 +174,25 @@ function SampleDay({ sample }: { sample: Sample }) {
                     <span className="agenda-day-gap-quiet">open</span>
                     <span>{formatTimelineHour(block.endMin)}</span>
                   </div>
-                  {block.collapsed ? (
-                    <button
-                      type="button"
-                      className="agenda-day-gap-collapse"
-                      onClick={() =>
-                        setExpandedGaps((prev) => ({
-                          ...prev,
-                          [key]: false,
-                        }))
-                      }
-                    >
-                      Collapse
+                  <div className="agenda-day-gap-actions">
+                    <button type="button" className="agenda-day-gap-add">
+                      Add
                     </button>
-                  ) : null}
+                    {block.collapsed ? (
+                      <button
+                        type="button"
+                        className="agenda-day-gap-collapse"
+                        onClick={() =>
+                          setExpandedGaps((prev) => ({
+                            ...prev,
+                            [key]: false,
+                          }))
+                        }
+                      >
+                        Collapse
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               );
             }

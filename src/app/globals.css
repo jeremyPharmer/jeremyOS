@@ -2334,6 +2334,14 @@ h2 {
   text-transform: lowercase;
 }
 
+.agenda-day-gap-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.agenda-day-gap-add,
 .agenda-day-gap-collapse {
   border: none;
   background: transparent;
@@ -2345,6 +2353,12 @@ h2 {
   padding: 4px 6px;
 }
 
+.agenda-day-gap-add {
+  color: var(--accent);
+}
+
+.agenda-day-gap-add:hover,
+.agenda-day-gap-add:focus-visible,
 .agenda-day-gap-collapse:hover,
 .agenda-day-gap-collapse:focus-visible {
   color: var(--accent);

@@ -5,6 +5,8 @@ import {
   buildDayTimeline,
   formatGapLabel,
   formatTimelineHour,
+  minutesToTimeInput,
+  suggestGapEventTimes,
 } from "./agenda-day-timeline";
 
 describe("formatTimelineHour", () => {
@@ -21,6 +23,27 @@ describe("formatGapLabel", () => {
     expect(formatGapLabel(0, 30)).toBe("30m open");
     expect(formatGapLabel(0, 60)).toBe("1h open");
     expect(formatGapLabel(0, 150)).toBe("2h 30m open");
+  });
+});
+
+describe("minutesToTimeInput / suggestGapEventTimes", () => {
+  it("formats HH:MM for time inputs", () => {
+    expect(minutesToTimeInput(9 * 60 + 30)).toBe("09:30");
+    expect(minutesToTimeInput(13 * 60)).toBe("13:00");
+  });
+
+  it("prefills a 30m block inside a long open gap", () => {
+    expect(suggestGapEventTimes(9 * 60 + 30, 13 * 60)).toEqual({
+      startTime: "09:30",
+      endTime: "10:00",
+    });
+  });
+
+  it("uses the full gap when shorter than 30m", () => {
+    expect(suggestGapEventTimes(9 * 60 + 30, 9 * 60 + 45)).toEqual({
+      startTime: "09:30",
+      endTime: "09:45",
+    });
   });
 });
 
