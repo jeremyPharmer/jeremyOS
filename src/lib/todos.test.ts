@@ -492,4 +492,38 @@ describe("applyTodoAction", () => {
     expect(s.dayProvisions![0].undated).toBeUndefined();
     expect(s.dayProvisions![0].date).toBe("2026-09-10");
   });
+
+  it("saves and clears optional task notes on add/edit", () => {
+    let s = applyTodoAction(
+      stateWith([]),
+      {
+        action: "add",
+        group: "work",
+        label: "Journey Tickets",
+        date: "2026-09-11",
+        notes: "  Confirm seat map  ",
+      },
+      "2026-09-08",
+      "now",
+    );
+    const id = s.dayProvisions![0].id;
+    expect(s.dayProvisions![0].notes).toBe("Confirm seat map");
+
+    s = applyTodoAction(
+      s,
+      {
+        action: "edit",
+        id,
+        label: "Journey Tickets",
+        group: "work",
+        date: "2026-09-11",
+        undated: false,
+        notes: "",
+        recurrence: { kind: "none" },
+      },
+      "2026-09-08",
+      "now",
+    );
+    expect(s.dayProvisions![0].notes).toBeUndefined();
+  });
 });

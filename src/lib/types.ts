@@ -179,6 +179,8 @@ export type DayProvision = {
   recurrence?: TodoRecurrence;
   /** Optional due time HH:mm (24h). Omit for date-only. */
   time?: string;
+  /** Optional short note on the task. */
+  notes?: string;
   /** Completions so far (for ends.after). */
   repeatCount?: number;
   /** Last occurrence completed (YYYY-MM-DD); undo for recurring. */

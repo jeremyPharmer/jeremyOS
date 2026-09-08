@@ -244,6 +244,7 @@ export function TodayRebuildPanel() {
         recurrence: payload.recurrence,
         group: payload.group,
         undated: payload.undated,
+        notes: payload.notes,
       });
       setAdding(false);
     } finally {

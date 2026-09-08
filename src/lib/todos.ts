@@ -11,6 +11,9 @@ import type { TaskGroup } from "./task-groups";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
 
+/** Max length for optional task notes. */
+export const TODO_NOTE_MAX = 280;
+
 export const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 /** Single-letter labels for custom repeat-on row (Google Calendar style). */
@@ -28,6 +31,13 @@ export function parseTime(raw: unknown): string | undefined {
   const [hh, mm] = s.split(":").map(Number);
   if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return undefined;
   return s;
+}
+
+/** Optional free-text note. Empty → undefined. */
+export function parseTodoNotes(raw: unknown): string | undefined {
+  if (raw == null) return undefined;
+  const trimmed = String(raw).trim().slice(0, TODO_NOTE_MAX);
+  return trimmed || undefined;
 }
 
 export function recurrenceOf(item: DayProvision): TodoRecurrence {
@@ -536,6 +546,7 @@ export type TodoActionInput = {
   label?: string;
   date?: string;
   time?: string | null;
+  notes?: string | null;
   until?: string;
   recurrence?: unknown;
   group?: unknown;
@@ -569,6 +580,7 @@ export function applyTodoAction(
       if (date < today) date = today;
     }
     const time = undated ? undefined : parseTime(body.time);
+    const notes = parseTodoNotes(body.notes);
     const row: DayProvision = {
       id: newId("todo"),
       date,
@@ -578,6 +590,7 @@ export function applyTodoAction(
       group,
       ...(undated ? { undated: true } : {}),
       ...(time ? { time } : {}),
+      ...(notes ? { notes } : {}),
     };
     return { ...next, dayProvisions: [...items, row] };
   }
@@ -621,6 +634,8 @@ export function applyTodoAction(
       : body.time !== undefined
         ? parseTime(body.time)
         : current.time;
+    const notes =
+      body.notes !== undefined ? parseTodoNotes(body.notes) : current.notes;
     const group: TaskGroup =
       body.group !== undefined
         ? parseTaskGroup(body.group)
@@ -634,11 +649,13 @@ export function applyTodoAction(
       recurrence,
       date,
       time,
+      notes,
       group,
       undated: undated || undefined,
       completed: recurrence.kind !== "none" ? false : current.completed,
     };
     if (!undated) delete items[index].undated;
+    if (!notes) delete items[index].notes;
     return { ...next, dayProvisions: items };
   }
 
