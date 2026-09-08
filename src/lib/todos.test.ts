@@ -427,4 +427,37 @@ describe("applyTodoAction", () => {
     s = applyTodoAction(s, { action: "delete", id }, "2026-08-31", "now");
     expect(s.dayProvisions).toEqual([]);
   });
+
+  it("clears No due date when edit sends undated:false and a date", () => {
+    let s = applyTodoAction(
+      stateWith([]),
+      {
+        action: "add",
+        group: "home",
+        label: "Setup BP machine",
+        undated: true,
+      },
+      "2026-09-08",
+      "now",
+    );
+    const id = s.dayProvisions![0].id;
+    expect(s.dayProvisions![0].undated).toBe(true);
+
+    s = applyTodoAction(
+      s,
+      {
+        action: "edit",
+        id,
+        label: "Setup BP machine",
+        group: "home",
+        date: "2026-09-10",
+        undated: false,
+        recurrence: { kind: "none" },
+      },
+      "2026-09-08",
+      "now",
+    );
+    expect(s.dayProvisions![0].undated).toBeUndefined();
+    expect(s.dayProvisions![0].date).toBe("2026-09-10");
+  });
 });

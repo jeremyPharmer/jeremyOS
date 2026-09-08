@@ -24,7 +24,8 @@ export type TodoComposerPayload = {
   time?: string;
   recurrence: TodoRecurrence;
   group: TaskGroup;
-  undated?: boolean;
+  /** Always explicit so edit can clear “No due date”. */
+  undated: boolean;
 };
 
 type EndsMode = "never" | "on" | "after";
@@ -495,7 +496,7 @@ export function TodoComposer({
       time: !undated && hasTime && time ? time : undefined,
       recurrence: undated ? { kind: "none" } : recurrence,
       group,
-      undated: undated || undefined,
+      undated,
     });
   }
 
@@ -534,6 +535,8 @@ export function TodoComposer({
                   setRepeats(false);
                   setHasTime(false);
                   setTime("");
+                } else if (!date) {
+                  setDate(today);
                 }
               }}
             />
