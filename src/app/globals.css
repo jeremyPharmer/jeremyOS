@@ -2201,6 +2201,10 @@ h2 {
   background: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
+.agenda-item-joinable.has-group-bar::before {
+  left: -2px;
+}
+
 .agenda-item:last-child {
   border-bottom: none;
   padding-bottom: 10px;
@@ -5525,6 +5529,116 @@ html.sheet-open .top-nav {
 .todo-task {
   display: grid;
   gap: 6px;
+}
+
+.todo-task.has-group-bar,
+.agenda-item.has-group-bar {
+  border-left: 3px solid var(--group-color, transparent);
+  padding-left: 10px;
+}
+
+.todo-task-home.has-group-bar {
+  padding-left: 0;
+}
+
+.todo-task-home.has-group-bar .tasks-item {
+  border-left: 3px solid var(--group-color, transparent);
+  padding-left: 10px;
+  margin-left: -2px;
+}
+
+.task-group-picker {
+  border: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.task-group-options {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.task-group-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1 1 0;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 4px;
+  font: inherit;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.task-group-option.selected {
+  border-color: var(--group-color);
+  background: color-mix(in srgb, var(--group-color) 16%, var(--surface));
+}
+
+.task-group-swatch,
+.task-group-heading-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--group-color);
+  flex: none;
+}
+
+.task-group-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-group-nodate {
+  margin: 10px 0 4px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.task-group-completed {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.task-group-completed-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 6px 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.task-group-chevron {
+  width: 1rem;
+  display: inline-block;
+}
+
+.agenda-edit-block {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-feed-group {
+  margin-top: -6px;
+  margin-bottom: 12px;
 }
 
 .todo-more-btn {

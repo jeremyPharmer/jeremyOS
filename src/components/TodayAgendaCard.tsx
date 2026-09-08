@@ -9,6 +9,7 @@ import {
 } from "@/components/AgendaEventComposer";
 import {
   applyCalendarTitleOverrides,
+  calendarEventGroups,
   calendarHiddenEventIds,
   calendarTitleOverrides,
   displayCalendarTitle,
@@ -17,12 +18,20 @@ import {
 import { isCustomAgendaId } from "@/lib/custom-agenda-shared";
 import { homeDaySecondary } from "@/lib/home-day-nav";
 import { addDays } from "@/lib/journey";
+import {
+  formatMonthDay,
+  resolveEventGroup,
+  TASK_GROUP_COLORS,
+  type TaskGroup,
+} from "@/lib/task-groups";
 import { dayAbbrev } from "@/lib/weather";
 import {
   isAgendaEventPast,
   orderAgendaUpcomingThenPast,
 } from "@/lib/agenda-past";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
+import { TaskGroupPicker } from "@/components/TaskGroupPicker";
+import { SecondaryButton, PrimaryButton } from "@/components/ui";
 
 function threeDayWindow(start: string): [string, string, string] {
   return [start, addDays(start, 1), addDays(start, 2)];
@@ -108,69 +117,111 @@ function AgendaEventRow({
   event,
   displayTitle,
   past = false,
-  onSaveTitle,
+  group,
+  onSave,
   onRemove,
 }: {
   event: WorkCalendarEvent;
   displayTitle: string;
   past?: boolean;
-  onSaveTitle: (title: string) => Promise<void>;
+  group?: TaskGroup;
+  onSave: (next: { title: string; group: TaskGroup }) => Promise<void>;
   onRemove: () => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(displayTitle);
+  const [draftGroup, setDraftGroup] = useState<TaskGroup | "">(group ?? "");
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const isCustom = isCustomAgendaId(event.id);
 
   useEffect(() => {
-    if (!editing) setDraft(displayTitle);
-  }, [displayTitle, editing]);
+    if (!editing) {
+      setDraft(displayTitle);
+      setDraftGroup(group ?? "");
+    }
+  }, [displayTitle, group, editing]);
 
   useEffect(() => {
     if (editing) inputRef.current?.focus();
   }, [editing]);
 
   async function commit() {
-    const next = draft.trim();
-    setEditing(false);
-    if (next === displayTitle.trim()) return;
+    const nextTitle = draft.trim();
+    if (!nextTitle || !draftGroup) return;
+    if (nextTitle === displayTitle.trim() && draftGroup === (group ?? "")) {
+      setEditing(false);
+      return;
+    }
     setSaving(true);
     try {
-      await onSaveTitle(next);
+      await onSave({ title: nextTitle, group: draftGroup });
+      setEditing(false);
     } finally {
       setSaving(false);
     }
   }
 
+  const barStyle = group
+    ? { ["--group-color" as string]: TASK_GROUP_COLORS[group] }
+    : undefined;
+
   return (
     <li
       className={`agenda-item${isCustom ? " agenda-item-custom" : ""}${
         event.url ? " agenda-item-joinable" : ""
-      }${past ? " agenda-item-past" : ""}`}
+      }${past ? " agenda-item-past" : ""}${group ? " has-group-bar" : ""}`}
+      style={barStyle}
     >
       <AgendaTime event={event} />
       <div className="agenda-body">
         {editing ? (
-          <input
-            ref={inputRef}
-            className="agenda-title-input"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={() => void commit()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                void commit();
-              }
-              if (e.key === "Escape") {
-                setDraft(displayTitle);
-                setEditing(false);
-              }
-            }}
-            maxLength={120}
-            aria-label="Event name"
-          />
+          <div className="agenda-edit-block">
+            <input
+              ref={inputRef}
+              className="agenda-title-input"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void commit();
+                }
+                if (e.key === "Escape") {
+                  setDraft(displayTitle);
+                  setDraftGroup(group ?? "");
+                  setEditing(false);
+                }
+              }}
+              maxLength={120}
+              aria-label="Event name"
+            />
+            <TaskGroupPicker
+              value={draftGroup}
+              onChange={setDraftGroup}
+              id={`agenda-group-${event.id}`}
+            />
+            <div className="agenda-add-actions">
+              <SecondaryButton
+                type="button"
+                disabled={saving}
+                onClick={() => {
+                  setDraft(displayTitle);
+                  setDraftGroup(group ?? "");
+                  setEditing(false);
+                }}
+              >
+                Cancel
+              </SecondaryButton>
+              <PrimaryButton
+                type="button"
+                disabled={saving || !draft.trim() || !draftGroup}
+                onClick={() => void commit()}
+              >
+                {saving ? "Saving…" : "Save"}
+              </PrimaryButton>
+            </div>
+          </div>
         ) : (
           <button
             type="button"
@@ -181,7 +232,7 @@ function AgendaEventRow({
             {displayTitle}
           </button>
         )}
-        {shouldShowLocation(event) ? (
+        {!editing && shouldShowLocation(event) ? (
           <p className="agenda-loc">{event.location}</p>
         ) : null}
       </div>
@@ -231,6 +282,11 @@ export function TodayAgendaCard() {
     () => calendarTitleOverrides(state),
     [state.calendarTitleOverrides],
   );
+  const eventGroups = useMemo(
+    () => calendarEventGroups(state),
+    [state.calendarEventGroups],
+  );
+  const feedGroups = state.profile?.calendarFeedGroups;
   const hidden = useMemo(
     () => calendarHiddenEventIds(state),
     [state.calendarHiddenEventIds],
@@ -395,16 +451,24 @@ export function TodayAgendaCard() {
   const showLoading = loading && !dayReady;
   const showSetup = !showLoading && !connected && !hasFeeds && events.length === 0;
 
-  async function saveTitle(eventId: string, title: string) {
+  async function saveEvent(
+    eventId: string,
+    next: { title: string; group: TaskGroup },
+  ) {
     if (isCustomAgendaId(eventId)) {
       await post("/api/calendar/custom", {
         action: "update",
         id: eventId,
-        title,
+        title: next.title,
+        group: next.group,
       });
       return;
     }
-    await post("/api/calendar/overrides", { eventId, title });
+    await post("/api/calendar/overrides", {
+      eventId,
+      title: next.title,
+      group: next.group,
+    });
   }
 
   async function removeEvent(eventId: string) {
@@ -425,6 +489,7 @@ export function TodayAgendaCard() {
         allDay: payload.allDay,
         startTime: payload.startTime,
         endTime: payload.endTime,
+        group: payload.group,
       });
       setAdding(false);
     } finally {
@@ -466,8 +531,13 @@ export function TodayAgendaCard() {
             {stripDays.map((date) => {
               const selected = date === viewDate;
               const count = stripCounts[date] ?? 0;
-              const label = date === today ? "Today" : dayAbbrev(date);
-              const dayNum = String(Number(date.slice(8)));
+              const label =
+                date === today
+                  ? "Today"
+                  : date === addDays(today, 1)
+                    ? "Tomorrow"
+                    : dayAbbrev(date);
+              const dayStatus = formatMonthDay(date);
               return (
                 <button
                   key={date}
@@ -479,7 +549,7 @@ export function TodayAgendaCard() {
                 >
                   <span className="tasks-day-chip-label">{label}</span>
                   <span className="tasks-day-chip-status" aria-hidden>
-                    {dayNum}
+                    {dayStatus}
                   </span>
                   <span className="sr-only">
                     {homeDaySecondary(date)}
@@ -524,16 +594,27 @@ export function TodayAgendaCard() {
       {!showLoading && events.length > 0 && (
         <div className="agenda-schedule">
           <ul className="agenda-list">
-            {events.map((ev) => (
-              <AgendaEventRow
-                key={ev.id}
-                event={ev}
-                past={isAgendaEventPast(ev, viewDate, today, now, timezone)}
-                displayTitle={displayCalendarTitle(ev, overrides)}
-                onSaveTitle={(title) => saveTitle(ev.id, title)}
-                onRemove={() => removeEvent(ev.id)}
-              />
-            ))}
+            {events.map((ev) => {
+              const group = resolveEventGroup({
+                eventId: ev.id,
+                source: ev.source,
+                extraIndex: ev.extraIndex,
+                customGroup: ev.group,
+                overrides: eventGroups,
+                feedGroups,
+              });
+              return (
+                <AgendaEventRow
+                  key={ev.id}
+                  event={ev}
+                  past={isAgendaEventPast(ev, viewDate, today, now, timezone)}
+                  displayTitle={displayCalendarTitle(ev, overrides)}
+                  group={group}
+                  onSave={(next) => saveEvent(ev.id, next)}
+                  onRemove={() => removeEvent(ev.id)}
+                />
+              );
+            })}
           </ul>
         </div>
       )}

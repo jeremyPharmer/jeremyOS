@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import {
   hideCalendarEvent,
+  setCalendarEventGroup,
   setCalendarTitleOverride,
 } from "@/lib/calendar-overrides";
+import { parseTaskGroup } from "@/lib/task-groups";
 import { updateState } from "@/lib/store";
 
-/** Home agenda overrides: rename or hide an event locally. */
+/** Home agenda overrides: rename, group, or hide an event locally. */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -20,15 +22,22 @@ export async function POST(req: Request) {
         (err as Error & { status: number }).status = 400;
         throw err;
       }
+      let next = prev;
       if (body.hide === true) {
-        return hideCalendarEvent(prev, eventId);
+        return hideCalendarEvent(next, eventId);
       }
       if (body.title !== undefined) {
-        return setCalendarTitleOverride(prev, eventId, String(body.title));
+        next = setCalendarTitleOverride(next, eventId, String(body.title));
       }
-      const err = new Error("title or hide required");
-      (err as Error & { status: number }).status = 400;
-      throw err;
+      if (body.group !== undefined) {
+        next = setCalendarEventGroup(next, eventId, parseTaskGroup(body.group));
+      }
+      if (body.title === undefined && body.group === undefined) {
+        const err = new Error("title, group, or hide required");
+        (err as Error & { status: number }).status = 400;
+        throw err;
+      }
+      return next;
     });
 
     return NextResponse.json({ state });

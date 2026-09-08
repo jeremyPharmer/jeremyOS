@@ -6,9 +6,44 @@ import { useApp } from "@/components/AppProvider";
 import { ThemePicker } from "@/components/ThemePicker";
 import { PrimaryButton, SecondaryButton } from "@/components/ui";
 import { SUPPORT_LABEL_MAX } from "@/lib/auth-constants";
+import {
+  TASK_GROUPS,
+  TASK_GROUP_LABELS,
+  type CalendarFeedGroups,
+  type TaskGroup,
+} from "@/lib/task-groups";
 import { DEFAULT_SUPPORTS, type SupportConfig } from "@/lib/types";
 
 const EXTRA_ICAL_MAX = 5;
+
+function FeedGroupSelect({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: TaskGroup | "";
+  onChange: (group: TaskGroup | "") => void;
+}) {
+  return (
+    <label className="field settings-feed-group">
+      <span className="field-label">{label} group</span>
+      <select
+        value={value}
+        onChange={(e) =>
+          onChange((e.target.value || "") as TaskGroup | "")
+        }
+      >
+        <option value="">Not set</option>
+        {TASK_GROUPS.map((g) => (
+          <option key={g} value={g}>
+            {TASK_GROUP_LABELS[g]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 function slugify(label: string) {
   const base = label
@@ -58,6 +93,9 @@ export default function SettingsPage() {
     state.profile?.extraIcalUrls?.length
       ? [...state.profile.extraIcalUrls]
       : [],
+  );
+  const [feedGroups, setFeedGroups] = useState<CalendarFeedGroups>(
+    state.profile?.calendarFeedGroups ?? {},
   );
   const [newLabel, setNewLabel] = useState("");
   const [newTarget, setNewTarget] = useState("3");
@@ -153,6 +191,7 @@ export default function SettingsPage() {
         personalIcalUrl,
         workIcalUrl,
         extraIcalUrls,
+        calendarFeedGroups: feedGroups,
       });
       setMsg("Saved.");
     } catch (e) {
@@ -297,6 +336,9 @@ export default function SettingsPage() {
 
       <section className="panel settings-calendars">
         <p className="eyebrow">Calendars</p>
+        <p className="tiny muted" style={{ marginTop: 0 }}>
+          Assign each feed a group so events get a color on Home.
+        </p>
 
         <div className="settings-calendar-block">
           {googleCalendar?.connected ? (
@@ -307,6 +349,16 @@ export default function SettingsPage() {
                   {googleCalendar.accountEmail || "Connected"}
                 </span>
               </p>
+              <FeedGroupSelect
+                label="Google"
+                value={feedGroups.google ?? ""}
+                onChange={(group) =>
+                  setFeedGroups((prev) => ({
+                    ...prev,
+                    google: group || undefined,
+                  }))
+                }
+              />
               <SecondaryButton
                 onClick={() => void disconnectGoogleCalendar()}
                 disabled={busy}
@@ -337,6 +389,16 @@ export default function SettingsPage() {
             spellCheck={false}
           />
         </label>
+        <FeedGroupSelect
+          label="Apple"
+          value={feedGroups.personal ?? ""}
+          onChange={(group) =>
+            setFeedGroups((prev) => ({
+              ...prev,
+              personal: group || undefined,
+            }))
+          }
+        />
 
         <label className="field">
           <span className="field-label">Work iCal</span>
@@ -349,38 +411,67 @@ export default function SettingsPage() {
             spellCheck={false}
           />
         </label>
+        <FeedGroupSelect
+          label="Work"
+          value={feedGroups.work ?? ""}
+          onChange={(group) =>
+            setFeedGroups((prev) => ({
+              ...prev,
+              work: group || undefined,
+            }))
+          }
+        />
 
         {extraIcalUrls.map((url, index) => (
-          <label key={`extra-ical-${index}`} className="field">
-            <span className="field-label">
-              iCal
-              <button
-                type="button"
-                className="settings-calendar-remove"
-                disabled={busy}
-                onClick={() =>
+          <div key={`extra-ical-${index}`} className="settings-extra-ical">
+            <label className="field">
+              <span className="field-label">
+                iCal
+                <button
+                  type="button"
+                  className="settings-calendar-remove"
+                  disabled={busy}
+                  onClick={() => {
+                    setExtraIcalUrls((prev) =>
+                      prev.filter((_, i) => i !== index),
+                    );
+                    setFeedGroups((prev) => {
+                      const extra = [...(prev.extra ?? [])];
+                      extra.splice(index, 1);
+                      return { ...prev, extra };
+                    });
+                  }}
+                >
+                  Remove
+                </button>
+              </span>
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => {
+                  const value = e.target.value;
                   setExtraIcalUrls((prev) =>
-                    prev.filter((_, i) => i !== index),
-                  )
-                }
-              >
-                Remove
-              </button>
-            </span>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => {
-                const value = e.target.value;
-                setExtraIcalUrls((prev) =>
-                  prev.map((u, i) => (i === index ? value : u)),
-                );
-              }}
-              placeholder="webcal://… or https://…"
-              autoComplete="off"
-              spellCheck={false}
+                    prev.map((u, i) => (i === index ? value : u)),
+                  );
+                }}
+                placeholder="webcal://… or https://…"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </label>
+            <FeedGroupSelect
+              label={`Extra ${index + 1}`}
+              value={feedGroups.extra?.[index] ?? ""}
+              onChange={(group) =>
+                setFeedGroups((prev) => {
+                  const extra = [...(prev.extra ?? [])];
+                  while (extra.length <= index) extra.push(undefined);
+                  extra[index] = group || undefined;
+                  return { ...prev, extra };
+                })
+              }
             />
-          </label>
+          </div>
         ))}
 
         {extraIcalUrls.length < EXTRA_ICAL_MAX && (

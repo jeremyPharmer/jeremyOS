@@ -54,6 +54,7 @@ export async function POST(req: Request) {
             body.startTime !== undefined ? startTime : undefined,
           endTime: body.endTime !== undefined ? endTime : undefined,
           note: body.note !== undefined ? String(body.note) : undefined,
+          group: body.group !== undefined ? body.group : undefined,
         });
       });
       return NextResponse.json({ state });
@@ -89,6 +90,7 @@ export async function POST(req: Request) {
         startTime,
         endTime,
         note: body.note ? String(body.note) : undefined,
+        group: body.group,
       });
     });
 

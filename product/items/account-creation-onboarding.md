@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-007 |
-| Rank | 22 |
+| Rank | 23 |
 | Priority | P0 |
 | Status | Done |
 | Effort | XL |

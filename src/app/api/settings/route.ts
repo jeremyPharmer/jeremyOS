@@ -2,8 +2,25 @@ import { NextResponse } from "next/server";
 import { normalizeReminders } from "@/lib/reminders";
 import { INTERVENTION_LABEL_MAX } from "@/lib/craving-interventions";
 import { updateState } from "@/lib/store";
+import { optionalTaskGroup, type CalendarFeedGroups } from "@/lib/task-groups";
 import { DEFAULT_SUPPORTS, type SupportConfig } from "@/lib/types";
 import { normalizeExtraIcalUrls } from "@/lib/work-calendar";
+
+function normalizeCalendarFeedGroups(raw: unknown): CalendarFeedGroups | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const obj = raw as Record<string, unknown>;
+  const out: CalendarFeedGroups = {};
+  const personal = optionalTaskGroup(obj.personal);
+  const work = optionalTaskGroup(obj.work);
+  const google = optionalTaskGroup(obj.google);
+  if (personal) out.personal = personal;
+  if (work) out.work = work;
+  if (google) out.google = google;
+  if (Array.isArray(obj.extra)) {
+    out.extra = obj.extra.map((g) => optionalTaskGroup(g));
+  }
+  return Object.keys(out).length ? out : undefined;
+}
 
 export async function POST(req: Request) {
   try {
@@ -48,6 +65,11 @@ export async function POST(req: Request) {
           ? normalizeExtraIcalUrls(body.extraIcalUrls)
           : prev.profile.extraIcalUrls;
 
+      const calendarFeedGroups =
+        body.calendarFeedGroups !== undefined
+          ? normalizeCalendarFeedGroups(body.calendarFeedGroups)
+          : prev.profile.calendarFeedGroups;
+
       const reminders =
         body.reminders !== undefined
           ? normalizeReminders({
@@ -91,6 +113,7 @@ export async function POST(req: Request) {
           personalIcalUrl,
           workIcalUrl,
           extraIcalUrls,
+          calendarFeedGroups,
           reminders,
         },
       };

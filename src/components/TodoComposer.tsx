@@ -6,6 +6,7 @@ import {
   SecondaryButton,
   Sheet,
 } from "@/components/ui";
+import { TaskGroupPicker } from "@/components/TaskGroupPicker";
 import { addDays, parseDate } from "@/lib/journey";
 import {
   WEEKDAY_LABELS,
@@ -14,6 +15,7 @@ import {
   formatRecurrence,
   recurrenceOf,
 } from "@/lib/todos";
+import type { TaskGroup } from "@/lib/task-groups";
 import type { DayProvision, TodoRecurrence } from "@/lib/types";
 
 export type TodoComposerPayload = {
@@ -21,6 +23,9 @@ export type TodoComposerPayload = {
   date: string;
   time?: string;
   recurrence: TodoRecurrence;
+  group: TaskGroup;
+  /** Always explicit so edit can clear “No due date”. */
+  undated: boolean;
 };
 
 type EndsMode = "never" | "on" | "after";
@@ -418,6 +423,8 @@ export function TodoComposer({
 
   const [label, setLabel] = useState(initial?.label ?? "");
   const [date, setDate] = useState(initialDue);
+  const [undated, setUndated] = useState(Boolean(initial?.undated));
+  const [group, setGroup] = useState<TaskGroup | "">(initial?.group ?? "");
   const [time, setTime] = useState(initial?.time ?? "");
   const [hasTime, setHasTime] = useState(Boolean(initial?.time));
   const [repeats, setRepeats] = useState(initialRec.kind !== "none");
@@ -462,9 +469,13 @@ export function TodoComposer({
   async function submit() {
     const trimmed = label.trim();
     if (!trimmed) return;
+    if (!group) {
+      setError("Pick a group");
+      return;
+    }
 
     let recurrence: TodoRecurrence = { kind: "none" };
-    if (repeats) {
+    if (repeats && !undated) {
       const message = validateCustomFields(customFields, date || today);
       if (message) {
         setError(message);
@@ -474,15 +485,18 @@ export function TodoComposer({
       recurrence = buildCustomRecurrence(date || today, today, customFields);
     }
 
-    const due =
-      date ||
-      (initial ? initial.date : firstDueDate(today, recurrence));
+    const due = undated
+      ? today
+      : date ||
+        (initial ? initial.date : firstDueDate(today, recurrence));
     setError("");
     await onSubmit({
       label: trimmed,
       date: due,
-      time: hasTime && time ? time : undefined,
-      recurrence,
+      time: !undated && hasTime && time ? time : undefined,
+      recurrence: undated ? { kind: "none" } : recurrence,
+      group,
+      undated,
     });
   }
 
@@ -508,6 +522,28 @@ export function TodoComposer({
             />
           </label>
 
+          <TaskGroupPicker value={group} onChange={setGroup} />
+
+          <label className="check-inline">
+            <input
+              type="checkbox"
+              checked={undated}
+              onChange={(e) => {
+                const next = e.target.checked;
+                setUndated(next);
+                if (next) {
+                  setRepeats(false);
+                  setHasTime(false);
+                  setTime("");
+                } else if (!date) {
+                  setDate(today);
+                }
+              }}
+            />
+            No due date
+          </label>
+
+          {!undated && (
           <div className="todo-composer-datetime">
             <label className="field todo-composer-field">
               <span className="field-label">Date</span>
@@ -552,7 +588,9 @@ export function TodoComposer({
               )}
             </div>
           </div>
+          )}
 
+          {!undated && (
           <div className="field todo-repeat-field">
             <div className="field-label-row">
               <span className="field-label">Repeat</span>
@@ -593,6 +631,7 @@ export function TodoComposer({
               </button>
             )}
           </div>
+          )}
 
           {error && (
             <p className="tiny" style={{ color: "var(--danger)", margin: 0 }}>
@@ -617,7 +656,7 @@ export function TodoComposer({
             </SecondaryButton>
             <PrimaryButton
               onClick={() => void submit()}
-              disabled={busy || !label.trim()}
+              disabled={busy || !label.trim() || !group}
             >
               {busy ? "Saving…" : (submitLabel ?? (initial ? "Save" : "Add"))}
             </PrimaryButton>

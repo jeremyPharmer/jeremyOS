@@ -1,3 +1,5 @@
+import type { CalendarFeedGroups, TaskGroup } from "./task-groups";
+
 export type AlignmentStatus = "aligned" | "return_to_use" | "other";
 
 /** Built-in or custom support id (e.g. "gym", "custom_walk") */
@@ -166,6 +168,7 @@ export type TodoRecurrence =
  * Personal to-do (Today’s Items). Stored as `dayProvisions`.
  * `date` is the next due calendar day. One-off done sets `completed`.
  * Recurring stays open and advances `date` after each complete.
+ * Life-area `group` is required on create (RB-026); legacy rows assign-on-edit.
  */
 export type DayProvision = {
   id: string;
@@ -180,6 +183,13 @@ export type DayProvision = {
   repeatCount?: number;
   /** Last occurrence completed (YYYY-MM-DD); undo for recurring. */
   lastCompletedOn?: string;
+  /**
+   * Life-area group (RB-026): real_estate | family | home | work.
+   * Required for new tasks; optional on legacy until edit.
+   */
+  group?: TaskGroup;
+  /** No due date — listed under “No date” within group on Tasks page. */
+  undated?: boolean;
 };
 
 export type EveningCheckIn = {
@@ -382,6 +392,11 @@ export type RebuildProfile = {
    * Merged into the same Home agenda as personal / work feeds.
    */
   extraIcalUrls?: string[];
+  /**
+   * Default life-area group per calendar feed (RB-026).
+   * Events inherit color on Home agenda; per-event override on first open/edit.
+   */
+  calendarFeedGroups?: CalendarFeedGroups;
   /** User-added craving intervention labels (merged with defaults in the craving flow) */
   cravingInterventions?: string[];
 };
@@ -432,6 +447,8 @@ export type RebuildState = {
   workoutRoutines?: WorkoutRoutine[];
   /** Home agenda display titles keyed by calendar event id */
   calendarTitleOverrides?: Record<string, string>;
+  /** Per-event life-area group overrides for imported calendar events (RB-026) */
+  calendarEventGroups?: Record<string, TaskGroup>;
   /** Home agenda events hidden locally (ICS feed can lag after phone delete) */
   calendarHiddenEventIds?: string[];
   /** Jeremy-added reminders/events on Home calendar (local only) */
@@ -462,6 +479,8 @@ export type CustomAgendaEvent = {
   endTime?: string;
   note?: string;
   createdAt: string;
+  /** Life-area group (RB-026); required on create */
+  group?: TaskGroup;
 };
 
 export const DEFAULT_SUPPORTS: SupportConfig[] = [

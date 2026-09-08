@@ -1,10 +1,12 @@
 import { addDays, formatDate, formatDisplayDate, newId, parseDate } from "./journey";
+import { parseTaskGroup, optionalTaskGroup } from "./task-groups";
 import type {
   DayProvision,
   RebuildState,
   TodoRecurrence,
   TodoRepeatEnds,
 } from "./types";
+import type { TaskGroup } from "./task-groups";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
@@ -281,6 +283,7 @@ export function nextFirstOfMonth(fromInclusive: string, inclusive: boolean): str
 
 export function isOpenOn(item: DayProvision, date: string): boolean {
   if (item.completed) return false;
+  if (item.undated) return true;
   return item.date === date;
 }
 
@@ -295,13 +298,13 @@ export function completedTodosForUndo(
 ): DayProvision[] {
   return items.filter((item) => {
     if (item.lastCompletedOn === today && isRecurring(item)) return true;
-    return item.completed && item.date === today;
+    return item.completed && (item.date === today || item.undated);
   });
 }
 
 export function upcomingTodos(items: DayProvision[], today: string): DayProvision[] {
   return items
-    .filter((item) => !item.completed && item.date > today)
+    .filter((item) => !item.completed && !item.undated && item.date > today)
     .sort((a, b) => a.date.localeCompare(b.date) || a.label.localeCompare(b.label));
 }
 
@@ -313,12 +316,12 @@ export function doneOneOffTodos(items: DayProvision[]): DayProvision[] {
 
 /**
  * Incomplete items with a due date before today move to today.
- * Future (snoozed) and completed one-offs stay put.
+ * Undated, future (snoozed), and completed one-offs stay put.
  */
 export function autoRollTodos(items: DayProvision[], today: string): DayProvision[] {
   let changed = false;
   const next = items.map((item) => {
-    if (item.completed) return item;
+    if (item.completed || item.undated) return item;
     if (item.date < today) {
       changed = true;
       return { ...item, date: today };
@@ -342,7 +345,7 @@ export function snoozeUntil(item: DayProvision, until: string): DayProvision {
   if (!isCalendarDate(until)) {
     throw Object.assign(new Error("Pick a date to snooze until"), { status: 400 });
   }
-  return { ...item, date: until, completed: false };
+  return { ...item, date: until, undated: false, completed: false };
 }
 
 function seriesShouldEnd(
@@ -517,6 +520,8 @@ export type TodoActionInput = {
   time?: string | null;
   until?: string;
   recurrence?: unknown;
+  group?: unknown;
+  undated?: boolean;
 };
 
 export function applyTodoAction(
@@ -534,19 +539,26 @@ export function applyTodoAction(
     if (!label) {
       throw Object.assign(new Error("Item label is required"), { status: 400 });
     }
+    const group = parseTaskGroup(body.group);
     const recurrence = parseRecurrence(body.recurrence);
+    const undated = body.undated === true;
     const requested = String(body.date ?? "").trim();
-    let date = isCalendarDate(requested)
-      ? requested
-      : firstDueDate(today, recurrence);
-    if (date < today) date = today;
-    const time = parseTime(body.time);
+    let date = today;
+    if (!undated) {
+      date = isCalendarDate(requested)
+        ? requested
+        : firstDueDate(today, recurrence);
+      if (date < today) date = today;
+    }
+    const time = undated ? undefined : parseTime(body.time);
     const row: DayProvision = {
       id: newId("todo"),
       date,
       label,
       completed: false,
       recurrence,
+      group,
+      ...(undated ? { undated: true } : {}),
       ...(time ? { time } : {}),
     };
     return { ...next, dayProvisions: [...items, row] };
@@ -578,19 +590,37 @@ export function applyTodoAction(
       body.recurrence !== undefined
         ? parseRecurrence(body.recurrence)
         : recurrenceOf(current);
+    const undated =
+      body.undated !== undefined ? body.undated === true : Boolean(current.undated);
     const requested = String(body.date ?? "").trim();
-    let date = isCalendarDate(requested) ? requested : current.date;
-    if (date < today) date = today;
-    const time =
-      body.time !== undefined ? parseTime(body.time) : current.time;
+    let date = current.date;
+    if (!undated) {
+      date = isCalendarDate(requested) ? requested : current.date || today;
+      if (date < today) date = today;
+    }
+    const time = undated
+      ? undefined
+      : body.time !== undefined
+        ? parseTime(body.time)
+        : current.time;
+    const group: TaskGroup =
+      body.group !== undefined
+        ? parseTaskGroup(body.group)
+        : optionalTaskGroup(current.group) ??
+          (() => {
+            throw Object.assign(new Error("Pick a group"), { status: 400 });
+          })();
     items[index] = {
       ...current,
       label,
       recurrence,
       date,
       time,
+      group,
+      undated: undated || undefined,
       completed: recurrence.kind !== "none" ? false : current.completed,
     };
+    if (!undated) delete items[index].undated;
     return { ...next, dayProvisions: items };
   }
 
