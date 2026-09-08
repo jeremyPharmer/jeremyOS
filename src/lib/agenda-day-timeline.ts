@@ -286,16 +286,26 @@ export function buildDayTimeline(
   return { allDay, blocks };
 }
 
-/** Soft height for solo event blocks — short meetings stay tappable. */
-export function eventBlockHeightPx(startMin: number, endMin: number): number {
-  const mins = Math.max(15, endMin - startMin);
-  return Math.round(Math.min(168, Math.max(48, mins * 1.15)));
+/** Uniform elegant card height — duration lives in the time label, not the box. */
+export const EVENT_CARD_HEIGHT_PX = 52;
+
+/** Same-sized solo event blocks (ignore duration). */
+export function eventBlockHeightPx(
+  _startMin?: number,
+  _endMin?: number,
+): number {
+  return EVENT_CARD_HEIGHT_PX;
 }
 
-/** Time-scaled height for an overlap cluster band. */
+/**
+ * Compact band for an overlap cluster. Duration still places cards in time,
+ * but the band stays short and each card is the same size.
+ */
 export function clusterBlockHeightPx(startMin: number, endMin: number): number {
   const mins = Math.max(30, endMin - startMin);
-  return Math.round(Math.min(320, Math.max(96, mins * 1.35)));
+  return Math.round(
+    Math.min(148, Math.max(EVENT_CARD_HEIGHT_PX + 12, mins * 0.5)),
+  );
 }
 
 /** Absolute placement of one lane inside a cluster band. */
@@ -311,16 +321,15 @@ export function laneStyle(
   width: string;
 } {
   const span = Math.max(1, clusterEnd - clusterStart);
-  const top = ((lane.startMin - clusterStart) / span) * clusterHeight;
-  const rawH = ((lane.endMin - lane.startMin) / span) * clusterHeight;
-  const height = Math.max(36, rawH);
+  const travel = Math.max(0, clusterHeight - EVENT_CARD_HEIGHT_PX);
+  const top = ((lane.startMin - clusterStart) / span) * travel;
   const gapPct = lane.columns > 1 ? 1.2 : 0;
   const widthPct = 100 / lane.columns - gapPct;
   const leftPct =
     (lane.column / lane.columns) * 100 + (lane.columns > 1 ? gapPct / 2 : 0);
   return {
     top: Math.round(top),
-    height: Math.round(height),
+    height: EVENT_CARD_HEIGHT_PX,
     left: `${leftPct}%`,
     width: `${widthPct}%`,
   };

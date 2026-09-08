@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   DAY_END_MINUTES,
   DAY_START_MINUTES,
+  EVENT_CARD_HEIGHT_PX,
   assignOverlapColumns,
   buildDayTimeline,
+  eventBlockHeightPx,
   formatGapLabel,
   formatTimelineHour,
+  laneStyle,
   minutesToTimeInput,
   packTimedBlocks,
   suggestGapEventTimes,
@@ -237,5 +240,24 @@ describe("buildDayTimeline", () => {
       "caleb",
       "busy",
     ]);
+  });
+});
+
+describe("eventBlockHeightPx / laneStyle", () => {
+  it("uses a uniform compact card height", () => {
+    expect(eventBlockHeightPx(9 * 60, 9 * 60 + 30)).toBe(EVENT_CARD_HEIGHT_PX);
+    expect(eventBlockHeightPx(10 * 60, 11 * 60 + 30)).toBe(EVENT_CARD_HEIGHT_PX);
+  });
+
+  it("keeps overlap lanes the same card height", () => {
+    const lane = {
+      startMin: 16 * 60,
+      endMin: 16 * 60 + 30,
+      event: { id: "r", title: "R", startTime: "4:00 PM" },
+      column: 1,
+      columns: 3,
+    };
+    const place = laneStyle(lane, 15 * 60 + 30, 17 * 60 + 45, 120);
+    expect(place.height).toBe(EVENT_CARD_HEIGHT_PX);
   });
 });

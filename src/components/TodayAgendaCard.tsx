@@ -625,7 +625,7 @@ export function TodayAgendaCard() {
                 date === today
                   ? "Today"
                   : date === addDays(today, 1)
-                    ? "Tomorrow"
+                    ? "Tom"
                     : dayAbbrev(date);
               const dayStatus = formatMonthDay(date);
               return (
