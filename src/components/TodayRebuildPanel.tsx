@@ -117,7 +117,9 @@ export function TodayRebuildPanel() {
   const [adding, setAdding] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
   const [todoBusyId, setTodoBusyId] = useState<string | null>(null);
-  const [exitingTodos, setExitingTodos] = useState<string[]>([]);
+  const [exitingTodos, setExitingTodos] = useState<
+    Record<string, "complete" | "snooze">
+  >({});
 
   const onToday = viewDate === today;
 
@@ -219,17 +221,30 @@ export function TodayRebuildPanel() {
   async function todoAction(id: string, body: Record<string, unknown>) {
     setTodoBusyId(id);
     try {
-      if (body.action === "complete") {
-        setExitingTodos((prev) => (prev.includes(id) ? prev : [...prev, id]));
-        await new Promise((r) => setTimeout(r, 420));
+      if (body.action === "complete" || body.action === "snooze") {
+        const kind = body.action === "snooze" ? "snooze" : "complete";
+        setExitingTodos((prev) =>
+          prev[id] ? prev : { ...prev, [id]: kind },
+        );
+        await new Promise((r) =>
+          setTimeout(r, kind === "snooze" ? 380 : 420),
+        );
       }
       await post("/api/todos", body);
     } catch (e) {
-      setExitingTodos((prev) => prev.filter((x) => x !== id));
+      setExitingTodos((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       throw e;
     } finally {
       setTodoBusyId(null);
-      setExitingTodos((prev) => prev.filter((x) => x !== id));
+      setExitingTodos((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
     }
   }
 
@@ -260,7 +275,8 @@ export function TodayRebuildPanel() {
         viewDate={viewDate}
         home
         busy={todoBusyId === p.id}
-        clearing={exitingTodos.includes(p.id)}
+        clearing={Boolean(exitingTodos[p.id])}
+        clearingKind={exitingTodos[p.id] ?? "complete"}
         onComplete={() => todoAction(p.id, { action: "complete", id: p.id })}
         onSnooze={(until) =>
           todoAction(p.id, { action: "snooze", id: p.id, until })

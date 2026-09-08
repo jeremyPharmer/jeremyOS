@@ -58,6 +58,7 @@ export function TodoTaskRow({
   home = false,
   busy,
   clearing = false,
+  clearingKind = "complete",
   doneMeta,
   onComplete,
   onSnooze,
@@ -71,6 +72,7 @@ export function TodoTaskRow({
   home?: boolean;
   busy: boolean;
   clearing?: boolean;
+  clearingKind?: "complete" | "snooze";
   /** Extra meta for completed rows (e.g. done date M/D/YY) */
   doneMeta?: string | null;
   onComplete: () => void | Promise<void>;
@@ -89,12 +91,20 @@ export function TodoTaskRow({
     Boolean(item.completed) ||
     item.lastCompletedOn === today ||
     Boolean(doneMeta) ||
-    clearing;
+    (clearing && clearingKind === "complete");
   const canSnooze = activeDate >= today && !doneToday && !item.undated;
   const group = item.group as TaskGroup | undefined;
   const barStyle = group
     ? { ["--group-color" as string]: TASK_GROUP_COLORS[group] }
     : undefined;
+  const exitClass =
+    clearing && clearingKind === "snooze"
+      ? home
+        ? " tasks-item-snoozing"
+        : " todo-task-snoozing"
+      : clearing
+        ? " tasks-item-clearing"
+        : "";
 
   const snoozeButton = canSnooze ? (
     <button
@@ -112,12 +122,12 @@ export function TodoTaskRow({
     <div
       className={`${home ? "todo-task todo-task-home" : "todo-task"}${
         group ? " has-group-bar" : ""
-      }`}
+      }${!home && clearing && clearingKind === "snooze" ? " todo-task-snoozing" : ""}`}
       style={barStyle}
     >
       {home ? (
         <div
-          className={`tasks-item${clearing ? " tasks-item-clearing" : ""}`}
+          className={`tasks-item${exitClass}`}
         >
           <button
             type="button"
@@ -246,7 +256,7 @@ function SnoozeOptionsSheet({
       onClose={() => !busy && onClose()}
     >
       {mode === "menu" ? (
-        <div className="todo-snooze-sheet fade-in">
+        <div className="todo-snooze-sheet todo-snooze-sheet-enter" key="menu">
           <p className="eyebrow">Snooze</p>
           <p className="tiny" style={{ marginBottom: 8 }}>
             Pick when this comes back
@@ -287,7 +297,7 @@ function SnoozeOptionsSheet({
           </SecondaryButton>
         </div>
       ) : (
-        <div className="todo-snooze-sheet fade-in">
+        <div className="todo-snooze-sheet todo-snooze-sheet-enter" key="custom">
           <p className="eyebrow">Custom date</p>
           <label className="field" style={{ marginBottom: 8 }}>
             <span className="field-label">Snooze until</span>

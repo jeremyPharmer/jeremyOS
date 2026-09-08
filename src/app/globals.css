@@ -1637,6 +1637,34 @@ h2 {
   color: var(--muted);
 }
 
+.tasks-item-snoozing {
+  pointer-events: none;
+  animation: snooze-row-out 0.42s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.todo-task-snoozing {
+  pointer-events: none;
+  animation: snooze-row-out 0.42s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes snooze-row-out {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    max-height: 64px;
+    margin-bottom: 0;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(18px) scale(0.98);
+    max-height: 0;
+    margin-bottom: -8px;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
+  }
+}
+
 .tasks-item-dismissing {
   pointer-events: none;
   animation: clear-row 0.7s ease forwards;
@@ -5031,6 +5059,15 @@ html.sheet-open .top-nav {
   }
 }
 
+@keyframes fade-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes sheet-up {
   from {
     transform: translateY(100%);
@@ -5038,6 +5075,25 @@ html.sheet-open .top-nav {
   to {
     transform: translateY(0);
   }
+}
+
+@keyframes sheet-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(105%);
+  }
+}
+
+.modal-backdrop-out {
+  animation: fade-backdrop-out 0.28s ease forwards;
+  pointer-events: none;
+}
+
+.modal-sheet-out {
+  animation: sheet-down 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  pointer-events: none;
 }
 
 /* —— Account / trail enrollment —— */
@@ -5480,6 +5536,21 @@ html.sheet-open .top-nav {
   padding: 4px 0 8px;
 }
 
+.todo-snooze-sheet-enter {
+  animation: snooze-sheet-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes snooze-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .todo-snooze-option {
   display: flex;
   flex-direction: column;
@@ -5493,11 +5564,72 @@ html.sheet-open .top-nav {
   color: var(--text);
   text-align: left;
   cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+  animation: snooze-option-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.todo-snooze-option:nth-of-type(1) {
+  animation-delay: 0.04s;
+}
+
+.todo-snooze-option:nth-of-type(2) {
+  animation-delay: 0.09s;
+}
+
+.todo-snooze-option:nth-of-type(3) {
+  animation-delay: 0.14s;
+}
+
+@keyframes snooze-option-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.todo-snooze-option:hover:not(:disabled),
+.todo-snooze-option:focus-visible:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-strong, #fff));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  transform: translateY(-1px);
+}
+
+.todo-snooze-option:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
 }
 
 .todo-snooze-option:disabled {
   opacity: 0.55;
   cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-backdrop-out,
+  .modal-sheet,
+  .modal-sheet-out,
+  .todo-snooze-sheet-enter,
+  .todo-snooze-option,
+  .tasks-item-snoozing,
+  .todo-task-snoozing,
+  .tasks-item-clearing {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .modal-backdrop-out,
+  .modal-sheet-out,
+  .tasks-item-snoozing,
+  .todo-task-snoozing {
+    opacity: 0;
+  }
 }
 
 .todo-snooze-option-title {
