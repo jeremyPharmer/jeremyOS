@@ -27,8 +27,14 @@ import {
 import { dayAbbrev } from "@/lib/weather";
 import {
   isAgendaEventPast,
-  orderAgendaUpcomingThenPast,
+  localMinutesInTz,
 } from "@/lib/agenda-past";
+import {
+  buildDayTimeline,
+  eventBlockHeightPx,
+  formatGapLabel,
+  formatTimelineHour,
+} from "@/lib/agenda-day-timeline";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
 import { TaskGroupPicker } from "@/components/TaskGroupPicker";
 import { SecondaryButton, PrimaryButton } from "@/components/ui";
@@ -118,6 +124,8 @@ function AgendaEventRow({
   displayTitle,
   past = false,
   group,
+  timeline = false,
+  timeLabel,
   onSave,
   onRemove,
 }: {
@@ -125,6 +133,8 @@ function AgendaEventRow({
   displayTitle: string;
   past?: boolean;
   group?: TaskGroup;
+  timeline?: boolean;
+  timeLabel?: string;
   onSave: (next: { title: string; group: TaskGroup }) => Promise<void>;
   onRemove: () => Promise<void>;
 }) {
@@ -166,6 +176,108 @@ function AgendaEventRow({
     ? { ["--group-color" as string]: TASK_GROUP_COLORS[group] }
     : undefined;
 
+  const titleBlock = editing ? (
+    <div className="agenda-edit-block">
+      <input
+        ref={inputRef}
+        className="agenda-title-input"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            void commit();
+          }
+          if (e.key === "Escape") {
+            setDraft(displayTitle);
+            setDraftGroup(group ?? "");
+            setEditing(false);
+          }
+        }}
+        maxLength={120}
+        aria-label="Event name"
+      />
+      <TaskGroupPicker
+        value={draftGroup}
+        onChange={setDraftGroup}
+        id={`agenda-group-${event.id}`}
+      />
+      <div className="agenda-add-actions">
+        <SecondaryButton
+          type="button"
+          disabled={saving}
+          onClick={() => {
+            setDraft(displayTitle);
+            setDraftGroup(group ?? "");
+            setEditing(false);
+          }}
+        >
+          Cancel
+        </SecondaryButton>
+        <PrimaryButton
+          type="button"
+          disabled={saving || !draft.trim() || !draftGroup}
+          onClick={() => void commit()}
+        >
+          {saving ? "Saving…" : "Save"}
+        </PrimaryButton>
+      </div>
+    </div>
+  ) : (
+    <button
+      type="button"
+      className="agenda-title-btn"
+      onClick={() => setEditing(true)}
+      disabled={saving}
+    >
+      {displayTitle}
+    </button>
+  );
+
+  if (timeline) {
+    return (
+      <div
+        className={`agenda-day-event${isCustom ? " agenda-item-custom" : ""}${
+          event.url ? " agenda-item-joinable" : ""
+        }${past ? " agenda-item-past" : ""}${group ? " has-group-bar" : ""}`}
+        style={barStyle}
+      >
+        <div className="agenda-day-event-main">
+          {timeLabel ? (
+            <p className="agenda-day-event-time">
+              {timeLabel}
+              {event.url ? (
+                <a
+                  className="agenda-day-join"
+                  href={event.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Join
+                </a>
+              ) : null}
+            </p>
+          ) : null}
+          {titleBlock}
+          {!editing && shouldShowLocation(event) ? (
+            <p className="agenda-loc">{event.location}</p>
+          ) : null}
+        </div>
+        {!editing ? (
+          <button
+            type="button"
+            className="agenda-hide-btn"
+            aria-label={`Remove ${displayTitle}`}
+            disabled={saving}
+            onClick={() => void onRemove()}
+          >
+            ×
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <li
       className={`agenda-item${isCustom ? " agenda-item-custom" : ""}${
@@ -175,63 +287,7 @@ function AgendaEventRow({
     >
       <AgendaTime event={event} />
       <div className="agenda-body">
-        {editing ? (
-          <div className="agenda-edit-block">
-            <input
-              ref={inputRef}
-              className="agenda-title-input"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  void commit();
-                }
-                if (e.key === "Escape") {
-                  setDraft(displayTitle);
-                  setDraftGroup(group ?? "");
-                  setEditing(false);
-                }
-              }}
-              maxLength={120}
-              aria-label="Event name"
-            />
-            <TaskGroupPicker
-              value={draftGroup}
-              onChange={setDraftGroup}
-              id={`agenda-group-${event.id}`}
-            />
-            <div className="agenda-add-actions">
-              <SecondaryButton
-                type="button"
-                disabled={saving}
-                onClick={() => {
-                  setDraft(displayTitle);
-                  setDraftGroup(group ?? "");
-                  setEditing(false);
-                }}
-              >
-                Cancel
-              </SecondaryButton>
-              <PrimaryButton
-                type="button"
-                disabled={saving || !draft.trim() || !draftGroup}
-                onClick={() => void commit()}
-              >
-                {saving ? "Saving…" : "Save"}
-              </PrimaryButton>
-            </div>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="agenda-title-btn"
-            onClick={() => setEditing(true)}
-            disabled={saving}
-          >
-            {displayTitle}
-          </button>
-        )}
+        {titleBlock}
         {!editing && shouldShowLocation(event) ? (
           <p className="agenda-loc">{event.location}</p>
         ) : null}
@@ -264,6 +320,7 @@ export function TodayAgendaCard() {
   const [addBusy, setAddBusy] = useState(false);
   const [stripCounts, setStripCounts] = useState<Record<string, number>>({});
   const [now, setNow] = useState(() => new Date());
+  const [expandedGaps, setExpandedGaps] = useState<Record<string, boolean>>({});
   const cacheRef = useRef<Record<string, AgendaResponse>>({});
 
   const personal = state.profile?.personalIcalUrl?.trim();
@@ -306,6 +363,10 @@ export function TodayAgendaCard() {
     setWindowStart(today);
     cacheRef.current = {};
   }, [today]);
+
+  useEffect(() => {
+    setExpandedGaps({});
+  }, [viewDate]);
 
   useEffect(() => {
     if (!stripDays.includes(viewDate)) {
@@ -440,16 +501,17 @@ export function TodayAgendaCard() {
     applyCalendarTitleOverrides(rawEvents, overrides),
     hidden,
   );
-  const events = orderAgendaUpcomingThenPast(
-    visibleEvents,
-    viewDate,
-    today,
-    now,
-    timezone,
-  );
+  // Chronological day spine (8am–9pm); do not sink past events out of order.
+  const events = visibleEvents;
+  const timeline = useMemo(() => buildDayTimeline(events), [events]);
+  const nowMinutes =
+    viewDate === today ? localMinutesInTz(now, timezone) : null;
   const connected = dayReady ? (data?.connected ?? false) : false;
   const showLoading = loading && !dayReady;
-  const showSetup = !showLoading && !connected && !hasFeeds && events.length === 0;
+  const showSetup =
+    !showLoading && !connected && !hasFeeds && events.length === 0;
+  const showDaySpine =
+    !showLoading && !showSetup && (connected || events.length > 0 || hasFeeds);
 
   async function saveEvent(
     eventId: string,
@@ -587,35 +649,148 @@ export function TodayAgendaCard() {
         </p>
       )}
 
-      {!showLoading && connected && events.length === 0 && !adding && (
-        <p className="muted agenda-status">Clear day — tap + to add something.</p>
-      )}
+      {showDaySpine && !adding && (
+        <div className="agenda-day" aria-label="Day from 8 AM to 9 PM">
+          {timeline.allDay.length > 0 && (
+            <div className="agenda-day-allday">
+              <p className="agenda-day-allday-label">All day</p>
+              <div className="agenda-day-allday-list">
+                {timeline.allDay.map((ev) => {
+                  const full = events.find((e) => e.id === ev.id);
+                  if (!full) return null;
+                  const group = resolveEventGroup({
+                    eventId: full.id,
+                    source: full.source,
+                    extraIndex: full.extraIndex,
+                    customGroup: full.group,
+                    overrides: eventGroups,
+                    feedGroups,
+                  });
+                  return (
+                    <AgendaEventRow
+                      key={full.id}
+                      event={full}
+                      timeline
+                      past={isAgendaEventPast(
+                        full,
+                        viewDate,
+                        today,
+                        now,
+                        timezone,
+                      )}
+                      displayTitle={displayCalendarTitle(full, overrides)}
+                      group={group}
+                      onSave={(next) => saveEvent(full.id, next)}
+                      onRemove={() => removeEvent(full.id)}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-      {!showLoading && events.length > 0 && (
-        <div className="agenda-schedule">
-          <ul className="agenda-list">
-            {events.map((ev) => {
+          <div className="agenda-day-spine">
+            <div className="agenda-day-bounds" aria-hidden>
+              <span>8 AM</span>
+              <span>9 PM</span>
+            </div>
+            {timeline.blocks.map((block) => {
+              if (block.kind === "gap") {
+                const key = `${block.startMin}-${block.endMin}`;
+                const expanded = Boolean(expandedGaps[key]);
+                const collapsed = block.collapsed && !expanded;
+                if (collapsed) {
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      className="agenda-day-gap-collapsed"
+                      onClick={() =>
+                        setExpandedGaps((prev) => ({ ...prev, [key]: true }))
+                      }
+                      aria-label={`Expand ${formatGapLabel(block.startMin, block.endMin)}`}
+                    >
+                      <span className="agenda-day-gap-dots" aria-hidden>
+                        · · ·
+                      </span>
+                      <span className="agenda-day-gap-label">
+                        {formatGapLabel(block.startMin, block.endMin)}
+                      </span>
+                    </button>
+                  );
+                }
+                return (
+                  <div key={key} className="agenda-day-gap-open">
+                    <div className="agenda-day-gap-rail" aria-hidden />
+                    <div className="agenda-day-gap-meta">
+                      <span>{formatTimelineHour(block.startMin)}</span>
+                      <span className="agenda-day-gap-quiet">open</span>
+                      <span>{formatTimelineHour(block.endMin)}</span>
+                    </div>
+                    {block.collapsed ? (
+                      <button
+                        type="button"
+                        className="agenda-day-gap-collapse"
+                        onClick={() =>
+                          setExpandedGaps((prev) => ({
+                            ...prev,
+                            [key]: false,
+                          }))
+                        }
+                      >
+                        Collapse
+                      </button>
+                    ) : null}
+                  </div>
+                );
+              }
+
+              const full = events.find((e) => e.id === block.event.id);
+              if (!full) return null;
               const group = resolveEventGroup({
-                eventId: ev.id,
-                source: ev.source,
-                extraIndex: ev.extraIndex,
-                customGroup: ev.group,
+                eventId: full.id,
+                source: full.source,
+                extraIndex: full.extraIndex,
+                customGroup: full.group,
                 overrides: eventGroups,
                 feedGroups,
               });
+              const timeLabel =
+                full.endTime && full.endTime !== full.startTime
+                  ? `${full.startTime} – ${full.endTime}`
+                  : full.startTime;
+              const showNow =
+                nowMinutes != null &&
+                nowMinutes >= block.startMin &&
+                nowMinutes < block.endMin;
               return (
-                <AgendaEventRow
-                  key={ev.id}
-                  event={ev}
-                  past={isAgendaEventPast(ev, viewDate, today, now, timezone)}
-                  displayTitle={displayCalendarTitle(ev, overrides)}
-                  group={group}
-                  onSave={(next) => saveEvent(ev.id, next)}
-                  onRemove={() => removeEvent(ev.id)}
-                />
+                <div
+                  key={full.id}
+                  className={`agenda-day-slot${showNow ? " agenda-day-slot-now" : ""}`}
+                  style={{
+                    minHeight: eventBlockHeightPx(block.startMin, block.endMin),
+                  }}
+                >
+                  <AgendaEventRow
+                    event={full}
+                    timeline
+                    timeLabel={timeLabel}
+                    past={isAgendaEventPast(
+                      full,
+                      viewDate,
+                      today,
+                      now,
+                      timezone,
+                    )}
+                    displayTitle={displayCalendarTitle(full, overrides)}
+                    group={group}
+                    onSave={(next) => saveEvent(full.id, next)}
+                    onRemove={() => removeEvent(full.id)}
+                  />
+                </div>
               );
             })}
-          </ul>
+          </div>
         </div>
       )}
 

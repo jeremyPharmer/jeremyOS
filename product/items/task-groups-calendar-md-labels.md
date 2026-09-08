@@ -98,5 +98,6 @@ Do not split into separate releases.
 - Intake **2026-09-08** founder lock: calendar M/D + fixed task/event groups/colors + Tasks completed chevrons; ship all together; Status **In Progress** (build started).
 - Also locked: undated tasks under **No date** within group; Settings calendar→group defaults; assign imported event group on first open/edit.
 - **2026-09-08 Home grouping:** Tasks card matches Tasks-page group headers; Start/Close under Home; supports suppressed; no completed on Home.
+- **2026-09-08 Calendar day spine:** Home agenda is an **8 AM–9 PM** local day view; long empty stretches collapse (tap to expand); spa-clean layout.
 - Rank **4** (P0): founder asked for this now; sits immediately after RB-014 todos foundation; ahead of journal/email/puzzle queue for next build slice.
 - Effort **M**: types + Home flat list color bars + Tasks grouped open/completed UX + calendar M/D + create flows mandating group + assign-on-edit for existing — invasive across surfaces but fixed groups (no group CRUD).
