@@ -15,11 +15,29 @@ export type TimedAgendaEvent = {
   allDay?: boolean;
 };
 
+export type TimelineEventLane = {
+  startMin: number;
+  endMin: number;
+  event: TimedAgendaEvent;
+  /** 0-based column within the overlap cluster */
+  column: number;
+  /** Total columns in this cluster (≥1) */
+  columns: number;
+};
+
 export type TimelineEventBlock = {
   kind: "event";
   startMin: number;
   endMin: number;
   event: TimedAgendaEvent;
+};
+
+/** Overlapping events laid side-by-side in columns. */
+export type TimelineClusterBlock = {
+  kind: "cluster";
+  startMin: number;
+  endMin: number;
+  lanes: TimelineEventLane[];
 };
 
 export type TimelineGapBlock = {
@@ -30,7 +48,16 @@ export type TimelineGapBlock = {
   collapsed: boolean;
 };
 
-export type TimelineBlock = TimelineEventBlock | TimelineGapBlock;
+export type TimelineBlock =
+  | TimelineEventBlock
+  | TimelineClusterBlock
+  | TimelineGapBlock;
+
+type TimedRow = {
+  event: TimedAgendaEvent;
+  startMin: number;
+  endMin: number;
+};
 
 export function formatTimelineHour(minutes: number): string {
   const clamped = Math.max(0, Math.min(24 * 60 - 1, minutes));
@@ -101,9 +128,88 @@ function eventWindow(event: TimedAgendaEvent): {
   return { startMin, endMin };
 }
 
+/** Greedy column assign — first free lane that does not overlap. */
+export function assignOverlapColumns(rows: TimedRow[]): TimelineEventLane[] {
+  const columnEnds: number[] = [];
+  const lanes: TimelineEventLane[] = rows.map((row) => {
+    let column = columnEnds.findIndex((end) => end <= row.startMin);
+    if (column === -1) {
+      column = columnEnds.length;
+      columnEnds.push(row.endMin);
+    } else {
+      columnEnds[column] = row.endMin;
+    }
+    return {
+      startMin: row.startMin,
+      endMin: row.endMin,
+      event: row.event,
+      column,
+      columns: 0,
+    };
+  });
+  const columns = Math.max(1, columnEnds.length);
+  return lanes.map((lane) => ({ ...lane, columns }));
+}
+
+/**
+ * Group sorted timed rows into non-overlapping singles or overlap clusters.
+ * A cluster is a transitive overlap set (Google Calendar–style columns).
+ */
+export function packTimedBlocks(rows: TimedRow[]): Array<
+  TimelineEventBlock | TimelineClusterBlock
+> {
+  if (rows.length === 0) return [];
+
+  const out: Array<TimelineEventBlock | TimelineClusterBlock> = [];
+  let cluster: TimedRow[] = [];
+  let clusterEnd = -1;
+
+  function flush() {
+    if (cluster.length === 0) return;
+    if (cluster.length === 1) {
+      const only = cluster[0]!;
+      out.push({
+        kind: "event",
+        startMin: only.startMin,
+        endMin: only.endMin,
+        event: only.event,
+      });
+    } else {
+      const startMin = Math.min(...cluster.map((r) => r.startMin));
+      const endMin = Math.max(...cluster.map((r) => r.endMin));
+      out.push({
+        kind: "cluster",
+        startMin,
+        endMin,
+        lanes: assignOverlapColumns(cluster),
+      });
+    }
+    cluster = [];
+    clusterEnd = -1;
+  }
+
+  for (const row of rows) {
+    if (cluster.length === 0) {
+      cluster = [row];
+      clusterEnd = row.endMin;
+      continue;
+    }
+    if (row.startMin < clusterEnd) {
+      cluster.push(row);
+      clusterEnd = Math.max(clusterEnd, row.endMin);
+    } else {
+      flush();
+      cluster = [row];
+      clusterEnd = row.endMin;
+    }
+  }
+  flush();
+  return out;
+}
+
 /**
  * Build an 8am–9pm day timeline: timed events in order, long empty stretches collapsed.
- * Events overlapping the window are clamped into view.
+ * Overlapping events become side-by-side clusters. Events outside the window are clamped.
  */
 export function buildDayTimeline(
   events: TimedAgendaEvent[],
@@ -127,7 +233,7 @@ export function buildDayTimeline(
       const endMin = Math.max(startMin + 15, Math.min(dayEnd, win.endMin));
       return { event, startMin, endMin };
     })
-    .filter((row): row is NonNullable<typeof row> => row != null)
+    .filter((row): row is TimedRow => row != null)
     .sort(
       (a, b) =>
         a.startMin - b.startMin ||
@@ -149,26 +255,22 @@ export function buildDayTimeline(
     };
   }
 
+  const packed = packTimedBlocks(timed);
   const blocks: TimelineBlock[] = [];
   let cursor = dayStart;
 
-  for (const row of timed) {
-    if (row.startMin > cursor) {
-      const span = row.startMin - cursor;
+  for (const block of packed) {
+    if (block.startMin > cursor) {
+      const span = block.startMin - cursor;
       blocks.push({
         kind: "gap",
         startMin: cursor,
-        endMin: row.startMin,
+        endMin: block.startMin,
         collapsed: span >= collapseAfter,
       });
     }
-    blocks.push({
-      kind: "event",
-      startMin: row.startMin,
-      endMin: row.endMin,
-      event: row.event,
-    });
-    cursor = Math.max(cursor, row.endMin);
+    blocks.push(block);
+    cursor = Math.max(cursor, block.endMin);
   }
 
   if (cursor < dayEnd) {
@@ -184,8 +286,42 @@ export function buildDayTimeline(
   return { allDay, blocks };
 }
 
-/** Soft height for event blocks — short meetings stay tappable. */
+/** Soft height for solo event blocks — short meetings stay tappable. */
 export function eventBlockHeightPx(startMin: number, endMin: number): number {
   const mins = Math.max(15, endMin - startMin);
   return Math.round(Math.min(168, Math.max(48, mins * 1.15)));
+}
+
+/** Time-scaled height for an overlap cluster band. */
+export function clusterBlockHeightPx(startMin: number, endMin: number): number {
+  const mins = Math.max(30, endMin - startMin);
+  return Math.round(Math.min(320, Math.max(96, mins * 1.35)));
+}
+
+/** Absolute placement of one lane inside a cluster band. */
+export function laneStyle(
+  lane: TimelineEventLane,
+  clusterStart: number,
+  clusterEnd: number,
+  clusterHeight: number,
+): {
+  top: number;
+  height: number;
+  left: string;
+  width: string;
+} {
+  const span = Math.max(1, clusterEnd - clusterStart);
+  const top = ((lane.startMin - clusterStart) / span) * clusterHeight;
+  const rawH = ((lane.endMin - lane.startMin) / span) * clusterHeight;
+  const height = Math.max(36, rawH);
+  const gapPct = lane.columns > 1 ? 1.2 : 0;
+  const widthPct = 100 / lane.columns - gapPct;
+  const leftPct =
+    (lane.column / lane.columns) * 100 + (lane.columns > 1 ? gapPct / 2 : 0);
+  return {
+    top: Math.round(top),
+    height: Math.round(height),
+    left: `${leftPct}%`,
+    width: `${widthPct}%`,
+  };
 }

@@ -32,9 +32,11 @@ import {
 } from "@/lib/agenda-past";
 import {
   buildDayTimeline,
+  clusterBlockHeightPx,
   eventBlockHeightPx,
   formatGapLabel,
   formatTimelineHour,
+  laneStyle,
   suggestGapEventTimes,
 } from "@/lib/agenda-day-timeline";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
@@ -127,6 +129,7 @@ function AgendaEventRow({
   past = false,
   group,
   timeline = false,
+  compact = false,
   timeLabel,
   onSave,
   onRemove,
@@ -136,6 +139,8 @@ function AgendaEventRow({
   past?: boolean;
   group?: TaskGroup;
   timeline?: boolean;
+  /** Narrow column inside an overlap cluster */
+  compact?: boolean;
   timeLabel?: string;
   onSave: (next: { title: string; group: TaskGroup }) => Promise<void>;
   onRemove: () => Promise<void>;
@@ -239,9 +244,11 @@ function AgendaEventRow({
   if (timeline) {
     return (
       <div
-        className={`agenda-day-event${isCustom ? " agenda-item-custom" : ""}${
-          event.url ? " agenda-item-joinable" : ""
-        }${past ? " agenda-item-past" : ""}${group ? " has-group-bar" : ""}`}
+        className={`agenda-day-event${compact ? " agenda-day-event-compact" : ""}${
+          isCustom ? " agenda-item-custom" : ""
+        }${event.url ? " agenda-item-joinable" : ""}${
+          past ? " agenda-item-past" : ""
+        }${group ? " has-group-bar" : ""}`}
         style={barStyle}
       >
         <div className="agenda-day-event-main">
@@ -261,7 +268,7 @@ function AgendaEventRow({
             </p>
           ) : null}
           {titleBlock}
-          {!editing && shouldShowLocation(event) ? (
+          {!editing && !compact && shouldShowLocation(event) ? (
             <p className="agenda-loc">{event.location}</p>
           ) : null}
         </div>
@@ -775,6 +782,83 @@ export function TodayAgendaCard() {
                         </button>
                       ) : null}
                     </div>
+                  </div>
+                );
+              }
+
+              if (block.kind === "cluster") {
+                const height = clusterBlockHeightPx(
+                  block.startMin,
+                  block.endMin,
+                );
+                const showNow =
+                  nowMinutes != null &&
+                  nowMinutes >= block.startMin &&
+                  nowMinutes < block.endMin;
+                return (
+                  <div
+                    key={`cluster-${block.startMin}-${block.endMin}`}
+                    className={`agenda-day-cluster${
+                      showNow ? " agenda-day-cluster-now" : ""
+                    }`}
+                    style={{ height }}
+                    aria-label={`${block.lanes.length} overlapping events`}
+                  >
+                    {block.lanes.map((lane) => {
+                      const full = events.find((e) => e.id === lane.event.id);
+                      if (!full) return null;
+                      const group = resolveEventGroup({
+                        eventId: full.id,
+                        source: full.source,
+                        extraIndex: full.extraIndex,
+                        customGroup: full.group,
+                        overrides: eventGroups,
+                        feedGroups,
+                      });
+                      const timeLabel =
+                        full.endTime && full.endTime !== full.startTime
+                          ? `${full.startTime} – ${full.endTime}`
+                          : full.startTime;
+                      const place = laneStyle(
+                        lane,
+                        block.startMin,
+                        block.endMin,
+                        height,
+                      );
+                      return (
+                        <div
+                          key={full.id}
+                          className="agenda-day-lane"
+                          style={{
+                            top: place.top,
+                            height: place.height,
+                            left: place.left,
+                            width: place.width,
+                          }}
+                        >
+                          <AgendaEventRow
+                            event={full}
+                            timeline
+                            compact={lane.columns > 1}
+                            timeLabel={timeLabel}
+                            past={isAgendaEventPast(
+                              full,
+                              viewDate,
+                              today,
+                              now,
+                              timezone,
+                            )}
+                            displayTitle={displayCalendarTitle(
+                              full,
+                              overrides,
+                            )}
+                            group={group}
+                            onSave={(next) => saveEvent(full.id, next)}
+                            onRemove={() => removeEvent(full.id)}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               }

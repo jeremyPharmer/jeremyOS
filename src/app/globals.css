@@ -2219,6 +2219,32 @@ h2 {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
+.agenda-day-cluster {
+  position: relative;
+  width: 100%;
+  margin: 2px 0;
+}
+
+.agenda-day-cluster-now {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 14px;
+}
+
+.agenda-day-lane {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0 2px;
+  box-sizing: border-box;
+}
+
+.agenda-day-lane .agenda-day-event {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
 .agenda-day-event {
   position: relative;
   display: flex;
@@ -2230,6 +2256,31 @@ h2 {
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
   background: color-mix(in srgb, var(--surface) 92%, var(--surface-strong));
+}
+
+.agenda-day-event-compact {
+  padding: 8px 22px 8px 10px;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.agenda-day-event-compact .agenda-day-event-time {
+  font-size: 0.62rem;
+  gap: 4px;
+}
+
+.agenda-day-event-compact .agenda-title-btn {
+  font-size: 0.82rem;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.agenda-day-event-compact .agenda-hide-btn {
+  top: 4px;
+  right: 4px;
 }
 
 .agenda-day-event.has-group-bar {

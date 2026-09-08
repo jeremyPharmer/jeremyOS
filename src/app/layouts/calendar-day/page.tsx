@@ -4,9 +4,11 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   buildDayTimeline,
+  clusterBlockHeightPx,
   eventBlockHeightPx,
   formatGapLabel,
   formatTimelineHour,
+  laneStyle,
 } from "@/lib/agenda-day-timeline";
 import { TASK_GROUP_COLORS, type TaskGroup } from "@/lib/task-groups";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
@@ -19,6 +21,57 @@ type Sample = {
 };
 
 const SAMPLES: Sample[] = [
+  {
+    id: "overlap",
+    title: "Overlap afternoon",
+    blurb:
+      "Same-time events share a time band in columns — Landon / Rachael / Caleb / busy side by side.",
+    events: [
+      {
+        id: "e1",
+        title: "E1 Rearrangement",
+        startTime: "2:00 PM",
+        endTime: "2:30 PM",
+        source: "work",
+        group: "home",
+      },
+      {
+        id: "landon",
+        title: "Landon practice",
+        startTime: "3:30 PM",
+        endTime: "5:30 PM",
+        source: "personal",
+        group: "family",
+      },
+      {
+        id: "rachel",
+        title: "Rachael : Jeremy",
+        startTime: "4:00 PM",
+        endTime: "4:30 PM",
+        url: "https://example.com",
+        source: "work",
+        group: "work",
+      },
+      {
+        id: "caleb",
+        title: "Caleb practice",
+        startTime: "4:15 PM",
+        endTime: "5:45 PM",
+        location: "Webster Schroeder High School",
+        source: "personal",
+        group: "family",
+      },
+      {
+        id: "busy",
+        title: "busy",
+        startTime: "4:30 PM",
+        endTime: "5:30 PM",
+        url: "https://example.com",
+        source: "work",
+        group: "work",
+      },
+    ],
+  },
   {
     id: "busy",
     title: "Busy weekday",
@@ -90,6 +143,45 @@ const SAMPLES: Sample[] = [
   },
 ];
 
+function SampleEventCard({
+  event,
+  compact = false,
+}: {
+  event: WorkCalendarEvent;
+  compact?: boolean;
+}) {
+  const group = event.group as TaskGroup | undefined;
+  const timeLabel =
+    event.endTime && event.endTime !== event.startTime
+      ? `${event.startTime} – ${event.endTime}`
+      : event.startTime;
+  return (
+    <div
+      className={`agenda-day-event${compact ? " agenda-day-event-compact" : ""}${
+        group ? " has-group-bar" : ""
+      }${event.url ? " agenda-item-joinable" : ""}`}
+      style={
+        group
+          ? { ["--group-color" as string]: TASK_GROUP_COLORS[group] }
+          : undefined
+      }
+    >
+      <div className="agenda-day-event-main">
+        <p className="agenda-day-event-time">
+          {timeLabel}
+          {event.url ? <span className="agenda-day-join">Join</span> : null}
+        </p>
+        <button type="button" className="agenda-title-btn">
+          {event.title}
+        </button>
+        {!compact && event.location ? (
+          <p className="agenda-loc">{event.location}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function SampleDay({ sample }: { sample: Sample }) {
   const [expandedGaps, setExpandedGaps] = useState<Record<string, boolean>>({});
   const timeline = useMemo(
@@ -114,27 +206,7 @@ function SampleDay({ sample }: { sample: Sample }) {
             <div className="agenda-day-allday-list">
               {timeline.allDay.map((ev) => {
                 const full = sample.events.find((e) => e.id === ev.id)!;
-                const group = full.group as TaskGroup | undefined;
-                return (
-                  <div
-                    key={full.id}
-                    className={`agenda-day-event${group ? " has-group-bar" : ""}`}
-                    style={
-                      group
-                        ? {
-                            ["--group-color" as string]:
-                              TASK_GROUP_COLORS[group],
-                          }
-                        : undefined
-                    }
-                  >
-                    <div className="agenda-day-event-main">
-                      <button type="button" className="agenda-title-btn">
-                        {full.title}
-                      </button>
-                    </div>
-                  </div>
-                );
+                return <SampleEventCard key={full.id} event={full} />;
               })}
             </div>
           </div>
@@ -197,12 +269,48 @@ function SampleDay({ sample }: { sample: Sample }) {
               );
             }
 
+            if (block.kind === "cluster") {
+              const height = clusterBlockHeightPx(block.startMin, block.endMin);
+              return (
+                <div
+                  key={`cluster-${block.startMin}-${block.endMin}`}
+                  className="agenda-day-cluster"
+                  style={{ height }}
+                  aria-label={`${block.lanes.length} overlapping events`}
+                >
+                  {block.lanes.map((lane) => {
+                    const full = sample.events.find(
+                      (e) => e.id === lane.event.id,
+                    )!;
+                    const place = laneStyle(
+                      lane,
+                      block.startMin,
+                      block.endMin,
+                      height,
+                    );
+                    return (
+                      <div
+                        key={full.id}
+                        className="agenda-day-lane"
+                        style={{
+                          top: place.top,
+                          height: place.height,
+                          left: place.left,
+                          width: place.width,
+                        }}
+                      >
+                        <SampleEventCard
+                          event={full}
+                          compact={lane.columns > 1}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+
             const full = sample.events.find((e) => e.id === block.event.id)!;
-            const group = full.group as TaskGroup | undefined;
-            const timeLabel =
-              full.endTime && full.endTime !== full.startTime
-                ? `${full.startTime} – ${full.endTime}`
-                : full.startTime;
             return (
               <div
                 key={full.id}
@@ -211,31 +319,7 @@ function SampleDay({ sample }: { sample: Sample }) {
                   minHeight: eventBlockHeightPx(block.startMin, block.endMin),
                 }}
               >
-                <div
-                  className={`agenda-day-event${group ? " has-group-bar" : ""}${
-                    full.url ? " agenda-item-joinable" : ""
-                  }`}
-                  style={
-                    group
-                      ? {
-                          ["--group-color" as string]:
-                            TASK_GROUP_COLORS[group],
-                        }
-                      : undefined
-                  }
-                >
-                  <div className="agenda-day-event-main">
-                    <p className="agenda-day-event-time">
-                      {timeLabel}
-                      {full.url ? (
-                        <span className="agenda-day-join">Join</span>
-                      ) : null}
-                    </p>
-                    <button type="button" className="agenda-title-btn">
-                      {full.title}
-                    </button>
-                  </div>
-                </div>
+                <SampleEventCard event={full} />
               </div>
             );
           })}
@@ -255,7 +339,7 @@ export default function CalendarDaySamplesPage() {
       <h1>Calendar day spine</h1>
       <p className="muted">
         Sample layouts for the Home calendar — 8 AM to 9 PM, empty stretches
-        collapsed. Tap a gap chip to expand.
+        collapsed, overlapping events in side-by-side columns.
       </p>
       <p className="tiny muted">
         <Link href="/layouts">← Layouts</Link>
