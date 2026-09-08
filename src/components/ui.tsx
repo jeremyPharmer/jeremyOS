@@ -107,11 +107,14 @@ export function Sheet({
   label,
   busy,
   onClose,
+  closeToken = 0,
   children,
 }: {
   label: string;
   busy?: boolean;
   onClose: () => void;
+  /** Increment to request an animated close from a child action. */
+  closeToken?: number;
   children: ReactNode;
 }) {
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -131,6 +134,11 @@ export function Sheet({
     if (busy || closing) return;
     setClosing(true);
   }
+
+  useEffect(() => {
+    if (closeToken > 0) requestClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- token edge triggers close
+  }, [closeToken]);
 
   useEffect(() => {
     if (!closing) return;
