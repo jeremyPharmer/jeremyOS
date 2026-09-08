@@ -7,7 +7,7 @@ Recovery journey + fund/incentive tools remain **personal tools** when useful (n
 Maintained by the **Head of Product** agent (`.cursor/agents/head-of-product.md`).  
 **Priority ranking is the primary planning signal.** Due dates, effort, and timeline support rank — they do not override it.
 
-Last updated: 2026-09-07
+Last updated: 2026-09-08
 
 ## North star (locked 2026-08-29)
 
@@ -30,11 +30,11 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 | 1 | RB-012 | Rebrand to JeremyOS (EA + drop trail) | P0 | Ready | M | TBD |
 | 2 | RB-013 | Personal OS north star (cut bloat) | P0 | Ready | S | TBD |
 | 3 | RB-014 | To-do lists (first-class) | P0 | Ready | L | TBD |
-| 4 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD |
-| 5 | RB-021 | Journal photos (attach + paperclip) | P1 | Backlog | S | TBD |
-| 6 | RB-022 | Journal edit, star & month calendar | P0 | In Progress | M | TBD |
-| 7 | RB-002 | Email integration (Gmail) | P0 | Backlog | M | TBD |
-| 8 | RB-024 | Daily Puzzle on Home | P1 | In Progress | M | TBD |
+| 4 | RB-026 | Task groups + colors & calendar M/D | P0 | Backlog | M | TBD |
+| 5 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD |
+| 6 | RB-021 | Journal photos (attach + paperclip) | P1 | Backlog | S | TBD |
+| 7 | RB-022 | Journal edit, star & month calendar | P0 | In Progress | M | TBD |
+| 8 | RB-002 | Email integration (Gmail) | P0 | Backlog | M | TBD |
 
 ## Now / Next / Later
 
@@ -43,10 +43,11 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 1. **RB-012 — Rebrand to JeremyOS (EA + drop trail)** — naming + executive-assistant framing + retire trail metaphor (copy/IA); **Journey nav label kept**; thin chrome pass after docs; **not** a rewrite. Detail: [`items/rebrand-jeremyos.md`](./items/rebrand-jeremyos.md).
 2. **RB-013 — Personal OS north star** — enforce EA / personal-use build filter; ranking already reflects pivot. Detail: [`items/personal-os-north-star.md`](./items/personal-os-north-star.md).
 3. **RB-014 — To-do lists** — **scope locked 2026-08-31** (+ **2026-09-04**): Today’s Items (merge personal tasks + supports), **one Home banner / flat list** (no “Your tasks” sub-area), snooze/auto-roll, simple recurrence (+ 1st of month), master page (± nav tab); **no email**. Effort **L**. Detail: [`items/todo-lists.md`](./items/todo-lists.md).
-4. **RB-016 — Five-year / paper journal UX** — same calendar day across years; headline + short summary; journal vibes (not stacked cards). Detail: [`items/five-year-journal-ux.md`](./items/five-year-journal-ux.md). Distinct from RB-010 backfill integrity.
-5. **RB-021 — Journal photos (attach + paperclip)** — optional pics on journal/evening entries; paperclip (or similar) on year slots when a photo is present; tap to view; **reuse** existing photo infra. Detail: [`items/journal-photos.md`](./items/journal-photos.md).
+4. **RB-026 — Task groups + colors & calendar M/D** — **scope locked 2026-09-08**: Home calendar **M/D** (Today/Tomorrow text kept on single-day); fixed groups Real estate/Family/Home/Work (red/yellow/blue/green); mandatory group; Home flat open-only + color bar; Tasks page grouped open + forever completed under chevrons; **one first ship**. Effort **M**. Detail: [`items/task-groups-calendar-md-labels.md`](./items/task-groups-calendar-md-labels.md).
+5. **RB-016 — Five-year / paper journal UX** — same calendar day across years; headline + short summary; journal vibes (not stacked cards). Detail: [`items/five-year-journal-ux.md`](./items/five-year-journal-ux.md). Distinct from RB-010 backfill integrity.
+6. **RB-021 — Journal photos (attach + paperclip)** — optional pics on journal/evening entries; paperclip (or similar) on year slots when a photo is present; tap to view; **reuse** existing photo infra. Detail: [`items/journal-photos.md`](./items/journal-photos.md).
 
-**Mid-flight (finish thin; do not expand):** RB-011 (fund auto-credit), RB-010 (journal backfill) — personal-tool integrity, ranks 15–16. Do **not** widen RB-010 into edit-past ([RB-022](./items/journal-edit-star-calendar.md)).
+**Mid-flight (finish thin; do not expand):** RB-011 (fund auto-credit), RB-010 (journal backfill) — personal-tool integrity, ranks 16–17. Do **not** widen RB-010 into edit-past ([RB-022](./items/journal-edit-star-calendar.md)).
 
 ### Next
 
@@ -71,6 +72,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 5. **RB-025 — Park Home Entertainment section** — On Air / Today’s Entertainment **replaced by** 5×5 crossword (RB-024); residual layout cleanup Later. Detail: [`items/park-home-entertainment.md`](./items/park-home-entertainment.md).
 6. Alternate payment destination: soccer / bank — still deferred.
 7. In-app how-to walkthrough — still deferred.
+8. Task group add/rename (v2) — after [RB-026](./items/task-groups-calendar-md-labels.md); calendar group sections still out of scope unless founder reopens.
 
 **Won't Do:** RB-009 recovery patterns / craving analytics (founder: drop craving stats).  
 **Done:** RB-007 accounts + onboarding; **RB-020** drop craving stats + Home craving CTA; **RB-023** calendar iCal + Google (Home agenda + Settings; superseded env/Today’s Build PR #70 approach).
@@ -80,12 +82,12 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 | Focus | Planned | Notes |
 | --- | --- | --- |
 | Now (framing) | RB-012 rebrand (EA + drop trail) + RB-013 north star | Effort **M** + **S**; docs first, then chrome/copy; Journey label locked keep |
-| Now (personal tools) | RB-014 todos (**Ready / L**, scope locked; **one Home Tasks banner**, no “Your tasks” split) → RB-016 five-year journal → **RB-021 journal photos** | Merged Today’s Items + master page; nav-tab risk vs RB-012; journal cluster still in flight |
+| Now (personal tools) | RB-014 todos (**Ready / L**) → **RB-026 task groups + calendar M/D** (**Backlog / M**, locked 2026-09-08; one first ship) → RB-016 five-year journal → **RB-021 journal photos** | Merged Today’s Items + master page; groups/colors + Home no-completed + Tasks completed chevrons; nav-tab risk vs RB-012; journal cluster still in flight |
 | Next (journal tooling) | **RB-022 edit / star / month calendar** | After RB-016 + RB-021; effort **M**; photo storage risk (no auth, db.json + `.data/photos`); ≠ event calendar |
 | Next (EA + Home) | RB-002 Gmail → **RB-024 daily puzzle** → RB-005 podcast (thin; **off Home**) → RB-017 cameras → RB-018 workout → RB-019 recipes → RB-015 hub → RB-003 digest | Puzzle = **5×5** crossword replacing On Air; Start→attempt; banner `completed/attempts · success%` (**M**; not fill %); Entertainment park RB-025; **RB-023 calendar Done** |
 | Finish thin | RB-011, RB-010 | Do not expand money/daily-loop polish; journal UI = RB-016; media = RB-021; edit/star/calendar = RB-022 |
 | Later (personal fund) | RB-006, RB-001 | Locked model; rails demoted |
-| Later / paused | RB-008, RB-004, **RB-025 Home Entertainment park** | Unrequested channels + Entertainment demoted |
+| Later / paused | RB-008, RB-004, **RB-025 Home Entertainment park**, RB-026 v2 group CRUD | Unrequested channels + Entertainment demoted; group add/rename after fixed v1 groups |
 | Done (cut) | RB-020 drop craving stats + Home craving CTA | Surfaces removed; mood loop kept |
 | Done (calendar) | **RB-023** iCal + Google Home agenda | Settings Apple/Work/extra iCal + Google OAuth; Home `TodayAgendaCard`; superseded env/Today’s Build PR |
 | Won't Do | RB-009 | Craving pattern analytics |
