@@ -18,6 +18,14 @@ export const TASK_GROUP_LABELS: Record<TaskGroup, string> = {
   work: "Work",
 };
 
+/** Compact labels for the 4-across group picker (RB-026). */
+export const TASK_GROUP_SHORT_LABELS: Record<TaskGroup, string> = {
+  real_estate: "RE",
+  family: "Family",
+  home: "Home",
+  work: "Work",
+};
+
 /** Left-bar colors (RB-026). */
 export const TASK_GROUP_COLORS: Record<TaskGroup, string> = {
   real_estate: "#c45c4a",

@@ -4,6 +4,7 @@ import {
   TASK_GROUPS,
   TASK_GROUP_COLORS,
   TASK_GROUP_LABELS,
+  TASK_GROUP_SHORT_LABELS,
   type TaskGroup,
 } from "@/lib/task-groups";
 
@@ -30,12 +31,13 @@ export function TaskGroupPicker({
               type="button"
               role="radio"
               aria-checked={selected}
+              aria-label={TASK_GROUP_LABELS[group]}
               className={`task-group-option${selected ? " selected" : ""}`}
               style={{ ["--group-color" as string]: TASK_GROUP_COLORS[group] }}
               onClick={() => onChange(group)}
             >
               <span className="task-group-swatch" aria-hidden />
-              {TASK_GROUP_LABELS[group]}
+              {TASK_GROUP_SHORT_LABELS[group]}
             </button>
           );
         })}
