@@ -2347,6 +2347,28 @@ h2 {
   color: var(--accent);
 }
 
+.calendar-samples-page {
+  padding-bottom: 48px;
+}
+
+.calendar-samples-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.calendar-sample-card {
+  padding: 16px;
+}
+
+.calendar-sample-title {
+  margin: 4px 0 6px;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
 .home-card-head-row {
   display: flex;
   align-items: flex-start;
