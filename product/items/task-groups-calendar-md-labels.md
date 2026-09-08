@@ -53,8 +53,14 @@ Do not split into separate releases.
 
 ### Home
 
-- **Tasks:** flat list, color bar only (**no group headers**); day chips stay counts-only
+- **Tasks card:** same **group headers** + color swatch as Tasks page (Real estate → Family → Home → Work); **hide empty groups**
+- Within group: sort by due date; **No date** bucket for undated items
+- **Start the day** and **Close the day** live under the **Home** group (when open)
+- **Weekly supports suppressed** on Home for now (founder will add as recurrent tasks; would otherwise sit under Home)
+- Day chips stay **counts-only** (no group breakdown)
 - **Completed tasks NEVER on Home** — disappear from Home when done
+- Left color bar still on personal task rows
+- Contained entirely inside the Home Tasks card
 
 ### Tasks page (Open Tasks)
 
@@ -77,6 +83,7 @@ Do not split into separate releases.
 - Changing the four locked colors/names in v1
 - Ungrouped / optional group
 - Showing completed tasks on Home
+- Weekly supports on Home Tasks card (suppressed; may return under Home later)
 
 ## Dependencies & risks
 
@@ -90,5 +97,6 @@ Do not split into separate releases.
 
 - Intake **2026-09-08** founder lock: calendar M/D + fixed task/event groups/colors + Tasks completed chevrons; ship all together; Status **In Progress** (build started).
 - Also locked: undated tasks under **No date** within group; Settings calendar→group defaults; assign imported event group on first open/edit.
+- **2026-09-08 Home grouping:** Tasks card matches Tasks-page group headers; Start/Close under Home; supports suppressed; no completed on Home.
 - Rank **4** (P0): founder asked for this now; sits immediately after RB-014 todos foundation; ahead of journal/email/puzzle queue for next build slice.
 - Effort **M**: types + Home flat list color bars + Tasks grouped open/completed UX + calendar M/D + create flows mandating group + assign-on-edit for existing — invasive across surfaces but fixed groups (no group CRUD).

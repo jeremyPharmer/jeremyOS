@@ -5596,6 +5596,18 @@ html.sheet-open .top-nav {
   gap: 8px;
 }
 
+.home-task-group {
+  margin: 0 0 14px;
+}
+
+.home-task-group:last-child {
+  margin-bottom: 0;
+}
+
+.home-task-group-heading {
+  margin: 0 0 6px;
+}
+
 .task-group-nodate {
   margin: 10px 0 4px;
   letter-spacing: 0.02em;
