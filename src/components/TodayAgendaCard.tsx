@@ -619,12 +619,7 @@ export function TodayAgendaCard() {
             {stripDays.map((date) => {
               const selected = date === viewDate;
               const count = stripCounts[date] ?? 0;
-              const label =
-                date === today
-                  ? "Today"
-                  : date === addDays(today, 1)
-                    ? "Tom"
-                    : dayAbbrev(date);
+              const label = date === today ? "Today" : dayAbbrev(date);
               const dayStatus = formatMonthDay(date);
               return (
                 <button
