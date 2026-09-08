@@ -49,6 +49,9 @@ export default function LayoutsPage() {
           <Link href="/" className="layouts-board-link">
             ← Back to Home
           </Link>
+          <Link href="/layouts/calendar-day" className="layouts-board-link">
+            Calendar day samples →
+          </Link>
           <Link href="/settings" className="layouts-board-link">
             Settings
           </Link>
