@@ -2237,12 +2237,14 @@ h2 {
   min-width: 0;
   padding: 0 2px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .agenda-day-lane .agenda-day-event {
   flex: 1;
   min-height: 0;
   height: 100%;
+  overflow: hidden;
 }
 
 .agenda-day-event {
@@ -2264,18 +2266,55 @@ h2 {
   gap: 4px;
 }
 
+.agenda-day-event-compact .agenda-day-event-main {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .agenda-day-event-compact .agenda-day-event-time {
   font-size: 0.62rem;
   gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .agenda-day-event-compact .agenda-title-btn {
   font-size: 0.82rem;
   line-height: 1.2;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.agenda-day-event-title-only {
+  padding: 6px 8px 6px 10px;
+  align-items: center;
+}
+
+.agenda-day-event-title-only .agenda-title-btn {
+  -webkit-line-clamp: 2;
+  font-size: 0.78rem;
+}
+
+.agenda-day-event-blank {
+  padding: 0;
+  min-height: 0;
+}
+
+.agenda-day-event-blank .agenda-day-event-main:empty {
+  display: none;
+}
+
+.agenda-day-event-blank-hit {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1;
 }
 
 .agenda-day-event-compact .agenda-hide-btn {

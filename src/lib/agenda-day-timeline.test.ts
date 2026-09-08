@@ -6,6 +6,7 @@ import {
   buildDayTimeline,
   formatGapLabel,
   formatTimelineHour,
+  laneDensity,
   minutesToTimeInput,
   packTimedBlocks,
   suggestGapEventTimes,
@@ -237,5 +238,19 @@ describe("buildDayTimeline", () => {
       "caleb",
       "busy",
     ]);
+  });
+});
+
+describe("laneDensity", () => {
+  it("goes blank when a short slot cannot fit labels", () => {
+    expect(laneDensity(36, 3)).toBe("blank");
+  });
+
+  it("shows title only in narrow overlap columns", () => {
+    expect(laneDensity(72, 3)).toBe("title");
+  });
+
+  it("keeps full labels when there is room", () => {
+    expect(laneDensity(90, 2)).toBe("full");
   });
 });

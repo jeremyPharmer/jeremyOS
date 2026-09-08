@@ -313,7 +313,8 @@ export function laneStyle(
   const span = Math.max(1, clusterEnd - clusterStart);
   const top = ((lane.startMin - clusterStart) / span) * clusterHeight;
   const rawH = ((lane.endMin - lane.startMin) / span) * clusterHeight;
-  const height = Math.max(36, rawH);
+  // 2px gutter so abutting cards in a column don't paint into each other
+  const height = Math.max(28, rawH - 2);
   const gapPct = lane.columns > 1 ? 1.2 : 0;
   const widthPct = 100 / lane.columns - gapPct;
   const leftPct =
@@ -324,4 +325,19 @@ export function laneStyle(
     left: `${leftPct}%`,
     width: `${widthPct}%`,
   };
+}
+
+/**
+ * How much label to paint in a cramped overlap lane.
+ * Too-tight slots stay blank (color bar only) instead of illegible overflow.
+ */
+export type LaneDensity = "full" | "title" | "blank";
+
+export function laneDensity(
+  heightPx: number,
+  columns: number,
+): LaneDensity {
+  if (heightPx < 42 || (columns >= 3 && heightPx < 48)) return "blank";
+  if (heightPx < 64 || columns >= 3) return "title";
+  return "full";
 }

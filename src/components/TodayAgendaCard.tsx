@@ -36,8 +36,10 @@ import {
   eventBlockHeightPx,
   formatGapLabel,
   formatTimelineHour,
+  laneDensity,
   laneStyle,
   suggestGapEventTimes,
+  type LaneDensity,
 } from "@/lib/agenda-day-timeline";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
 import { TaskGroupPicker } from "@/components/TaskGroupPicker";
@@ -130,6 +132,7 @@ function AgendaEventRow({
   group,
   timeline = false,
   compact = false,
+  density = "full",
   timeLabel,
   onSave,
   onRemove,
@@ -141,6 +144,8 @@ function AgendaEventRow({
   timeline?: boolean;
   /** Narrow column inside an overlap cluster */
   compact?: boolean;
+  /** Fit what we can when an overlap lane is too short */
+  density?: LaneDensity;
   timeLabel?: string;
   onSave: (next: { title: string; group: TaskGroup }) => Promise<void>;
   onRemove: () => Promise<void>;
@@ -242,20 +247,36 @@ function AgendaEventRow({
   );
 
   if (timeline) {
+    const showTime = density === "full" && Boolean(timeLabel);
+    const showTitle = density !== "blank";
+    const showJoin = density === "full" && Boolean(event.url);
+    const showRemove = density === "full" && !editing;
     return (
       <div
         className={`agenda-day-event${compact ? " agenda-day-event-compact" : ""}${
+          density === "blank" ? " agenda-day-event-blank" : ""
+        }${density === "title" ? " agenda-day-event-title-only" : ""}${
           isCustom ? " agenda-item-custom" : ""
         }${event.url ? " agenda-item-joinable" : ""}${
           past ? " agenda-item-past" : ""
         }${group ? " has-group-bar" : ""}`}
         style={barStyle}
+        title={density === "blank" ? displayTitle : undefined}
       >
+        {density === "blank" && !editing ? (
+          <button
+            type="button"
+            className="agenda-day-event-blank-hit"
+            aria-label={`${displayTitle}${timeLabel ? `, ${timeLabel}` : ""}`}
+            onClick={() => setEditing(true)}
+            disabled={saving}
+          />
+        ) : null}
         <div className="agenda-day-event-main">
-          {timeLabel ? (
+          {showTime ? (
             <p className="agenda-day-event-time">
               {timeLabel}
-              {event.url ? (
+              {showJoin ? (
                 <a
                   className="agenda-day-join"
                   href={event.url}
@@ -267,12 +288,12 @@ function AgendaEventRow({
               ) : null}
             </p>
           ) : null}
-          {titleBlock}
-          {!editing && !compact && shouldShowLocation(event) ? (
+          {showTitle || editing ? titleBlock : null}
+          {!editing && !compact && density === "full" && shouldShowLocation(event) ? (
             <p className="agenda-loc">{event.location}</p>
           ) : null}
         </div>
-        {!editing ? (
+        {showRemove ? (
           <button
             type="button"
             className="agenda-hide-btn"
@@ -825,6 +846,7 @@ export function TodayAgendaCard() {
                         block.endMin,
                         height,
                       );
+                      const density = laneDensity(place.height, lane.columns);
                       return (
                         <div
                           key={full.id}
@@ -840,6 +862,7 @@ export function TodayAgendaCard() {
                             event={full}
                             timeline
                             compact={lane.columns > 1}
+                            density={density}
                             timeLabel={timeLabel}
                             past={isAgendaEventPast(
                               full,

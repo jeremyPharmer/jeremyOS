@@ -8,6 +8,7 @@ import {
   eventBlockHeightPx,
   formatGapLabel,
   formatTimelineHour,
+  laneDensity,
   laneStyle,
 } from "@/lib/agenda-day-timeline";
 import { TASK_GROUP_COLORS, type TaskGroup } from "@/lib/task-groups";
@@ -146,18 +147,24 @@ const SAMPLES: Sample[] = [
 function SampleEventCard({
   event,
   compact = false,
+  density = "full",
 }: {
   event: WorkCalendarEvent;
   compact?: boolean;
+  density?: "full" | "title" | "blank";
 }) {
   const group = event.group as TaskGroup | undefined;
   const timeLabel =
     event.endTime && event.endTime !== event.startTime
       ? `${event.startTime} – ${event.endTime}`
       : event.startTime;
+  const showTime = density === "full";
+  const showTitle = density !== "blank";
   return (
     <div
       className={`agenda-day-event${compact ? " agenda-day-event-compact" : ""}${
+        density === "blank" ? " agenda-day-event-blank" : ""
+      }${density === "title" ? " agenda-day-event-title-only" : ""}${
         group ? " has-group-bar" : ""
       }${event.url ? " agenda-item-joinable" : ""}`}
       style={
@@ -165,16 +172,26 @@ function SampleEventCard({
           ? { ["--group-color" as string]: TASK_GROUP_COLORS[group] }
           : undefined
       }
+      title={density === "blank" ? event.title : undefined}
+      aria-label={
+        density === "blank"
+          ? `${event.title}${timeLabel ? `, ${timeLabel}` : ""}`
+          : undefined
+      }
     >
       <div className="agenda-day-event-main">
-        <p className="agenda-day-event-time">
-          {timeLabel}
-          {event.url ? <span className="agenda-day-join">Join</span> : null}
-        </p>
-        <button type="button" className="agenda-title-btn">
-          {event.title}
-        </button>
-        {!compact && event.location ? (
+        {showTime ? (
+          <p className="agenda-day-event-time">
+            {timeLabel}
+            {event.url ? <span className="agenda-day-join">Join</span> : null}
+          </p>
+        ) : null}
+        {showTitle ? (
+          <button type="button" className="agenda-title-btn">
+            {event.title}
+          </button>
+        ) : null}
+        {density === "full" && !compact && event.location ? (
           <p className="agenda-loc">{event.location}</p>
         ) : null}
       </div>
@@ -288,6 +305,7 @@ function SampleDay({ sample }: { sample: Sample }) {
                       block.endMin,
                       height,
                     );
+                    const density = laneDensity(place.height, lane.columns);
                     return (
                       <div
                         key={full.id}
@@ -302,6 +320,7 @@ function SampleDay({ sample }: { sample: Sample }) {
                         <SampleEventCard
                           event={full}
                           compact={lane.columns > 1}
+                          density={density}
                         />
                       </div>
                     );
