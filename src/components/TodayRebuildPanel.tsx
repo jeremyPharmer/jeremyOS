@@ -5,11 +5,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { TodoComposer, type TodoComposerPayload } from "@/components/TodoComposer";
 import { TodoTaskRow } from "@/components/TodoTaskRow";
-import { truncateSupportLabel } from "@/lib/auth-constants";
 import { addDays } from "@/lib/journey";
+import {
+  groupOpenTodos,
+  TASK_GROUP_COLORS,
+  TASK_GROUP_LABELS,
+  TASK_GROUPS,
+  type GroupedOpenTodos,
+  type TaskGroup,
+} from "@/lib/task-groups";
 import { openTodosOn } from "@/lib/todos";
 import { dayAbbrev } from "@/lib/weather";
-import type { DayProvision } from "@/lib/types";
 import type { SupportType } from "@/lib/types";
 
 function threeDayWindow(start: string): [string, string, string] {
@@ -22,22 +28,6 @@ type DismissingItem = {
   label: string;
   meta?: string;
 };
-
-type ExitingSupport = {
-  type: SupportType;
-  label: string;
-  weekDone: number;
-  weeklyTarget: number;
-};
-
-function sortTodosForDay(items: DayProvision[]): DayProvision[] {
-  return [...items].sort((a, b) => {
-    if (a.time && b.time) return a.time.localeCompare(b.time) || a.label.localeCompare(b.label);
-    if (a.time) return -1;
-    if (b.time) return 1;
-    return a.label.localeCompare(b.label);
-  });
-}
 
 function DismissingTaskRow({ label, meta }: { label: string; meta?: string }) {
   return (
@@ -55,30 +45,20 @@ function HomeRoutineRow({
   label,
   meta,
   href,
-  onActivate,
   onDismiss,
   dismissLabel = "Not today",
   dismissBusy,
-  activateBusy,
-  clearing,
-  checked,
 }: {
   label: string;
   meta?: string;
   href?: string;
-  onActivate?: () => void;
   onDismiss?: () => void;
   dismissLabel?: string;
   dismissBusy?: boolean;
-  activateBusy?: boolean;
-  clearing?: boolean;
-  checked?: boolean;
 }) {
   const main = (
     <>
-      <span className={`tasks-check${checked ? " tasks-check-done" : ""}`}>
-        {checked ? "✓" : ""}
-      </span>
+      <span className="tasks-check" aria-hidden />
       <span className="tasks-body">
         <span className="tasks-title">{label}</span>
         {meta ? <span className="tasks-meta">{meta}</span> : null}
@@ -87,23 +67,13 @@ function HomeRoutineRow({
   );
 
   return (
-    <div
-      className={`tasks-item${clearing ? " tasks-item-clearing" : ""}`}
-      aria-live={clearing ? "polite" : undefined}
-    >
+    <div className="tasks-item home-routine-item">
       {href ? (
         <Link href={href} className="tasks-main">
           {main}
         </Link>
       ) : (
-        <button
-          type="button"
-          className="tasks-main"
-          disabled={activateBusy}
-          onClick={onActivate}
-        >
-          {main}
-        </button>
+        <div className="tasks-main">{main}</div>
       )}
       {onDismiss ? (
         <button
@@ -115,12 +85,25 @@ function HomeRoutineRow({
           {dismissLabel}
         </button>
       ) : null}
-      {clearing ? (
-        <span className="tasks-clear-burst" aria-hidden>
-          +1
-        </span>
-      ) : null}
     </div>
+  );
+}
+
+/** Open groups for Home; ensure Home appears when Start/Close routines are open. */
+function homeOpenGroups(
+  todos: ReturnType<typeof openTodosOn>,
+  includeHomeRoutines: boolean,
+): GroupedOpenTodos[] {
+  const grouped = groupOpenTodos(todos);
+  if (!includeHomeRoutines || grouped.some((g) => g.group === "home")) {
+    return grouped;
+  }
+  const withHome: GroupedOpenTodos[] = [
+    ...grouped,
+    { group: "home", dated: [], undated: [] },
+  ];
+  return withHome.sort(
+    (a, b) => TASK_GROUPS.indexOf(a.group) - TASK_GROUPS.indexOf(b.group),
   );
 }
 
@@ -128,9 +111,7 @@ export function TodayRebuildPanel() {
   const { state, dashboard, today, post } = useApp();
   const [viewDate, setViewDate] = useState(today);
   const [windowStart, setWindowStart] = useState(today);
-  const [busyType, setBusyType] = useState<SupportType | null>(null);
   const [skipBusy, setSkipBusy] = useState<SkipKey | null>(null);
-  const [exiting, setExiting] = useState<ExitingSupport[]>([]);
   const [dismissing, setDismissing] = useState<DismissingItem[]>([]);
   const [adding, setAdding] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
@@ -146,7 +127,7 @@ export function TodayRebuildPanel() {
 
   const todos = state.dayProvisions ?? [];
   const openTodos = useMemo(
-    () => sortTodosForDay(openTodosOn(todos, viewDate)),
+    () => openTodosOn(todos, viewDate),
     [todos, viewDate],
   );
 
@@ -171,19 +152,7 @@ export function TodayRebuildPanel() {
   if (!dashboard || !state.profile) return null;
 
   const skips = new Set(dashboard.todaySkips ?? []);
-  const enabledSupports = state.profile.supports.filter((s) => s.enabled);
-  const completedSupportTypes = new Set(
-    dashboard.todaySupports.map((t) => t.supportType),
-  );
-  const exitingTypes = new Set(exiting.map((e) => e.type));
   const dismissingKeys = new Set(dismissing.map((d) => d.key));
-  const openSupports = enabledSupports.filter(
-    (s) =>
-      !skips.has(s.type) &&
-      !completedSupportTypes.has(s.type) &&
-      !exitingTypes.has(s.type) &&
-      !dismissingKeys.has(s.type),
-  );
   const morningSkipped = skips.has("morning");
   const eveningSkipped = skips.has("evening");
   // Prefer live state so Home clears as soon as morning is saved (dashboard can lag).
@@ -197,32 +166,28 @@ export function TodayRebuildPanel() {
     onToday && !morningDone && !morningSkipped && !dismissingKeys.has("morning");
   const showEveningOpen =
     onToday && !eveningDone && !eveningSkipped && !dismissingKeys.has("evening");
+  const showMorningDismissing =
+    onToday && dismissing.some((d) => d.key === "morning");
+  const showEveningDismissing =
+    onToday && dismissing.some((d) => d.key === "evening");
+  const homeRoutinesOpen =
+    showMorningOpen ||
+    showEveningOpen ||
+    showMorningDismissing ||
+    showEveningDismissing;
+
+  const openGroups = homeOpenGroups(openTodos, homeRoutinesOpen);
+
+  // Weekly supports suppressed on Home (RB-026) — counts are personal + Start/Close only.
   const routineCount =
-    (showMorningOpen ? 1 : 0) +
-    openSupports.length +
-    exiting.length +
-    dismissing.filter((d) => d.key !== "evening").length +
-    (showEveningOpen ? 1 : 0);
+    (showMorningOpen || showMorningDismissing ? 1 : 0) +
+    (showEveningOpen || showEveningDismissing ? 1 : 0);
   const openCount = routineCount + openTodos.length;
 
   const todayPersonal = openTodosOn(todos, today).length;
-  const todayRoutineOpen =
-    (showMorningOpen ? 1 : 0) +
-    openSupports.length +
-    exiting.length +
-    dismissing.filter((d) => d.key !== "evening").length +
-    (showEveningOpen ? 1 : 0);
-  // When viewing another day, showMorningOpen is false — recompute today routines directly.
   const todayRoutineCount =
-    viewDate === today
-      ? todayRoutineOpen
-      : (morningDone || morningSkipped ? 0 : 1) +
-        enabledSupports.filter(
-          (s) =>
-            !skips.has(s.type) &&
-            !completedSupportTypes.has(s.type),
-        ).length +
-        (eveningDone || eveningSkipped ? 0 : 1);
+    (morningDone || morningSkipped ? 0 : 1) +
+    (eveningDone || eveningSkipped ? 0 : 1);
   const todayOpenTotal =
     viewDate === today ? openCount : todayRoutineCount + todayPersonal;
 
@@ -233,26 +198,6 @@ export function TodayRebuildPanel() {
     const personal = openTodosOn(todos, date).length;
     return { date, count: personal, done: false };
   });
-
-  async function completeSupport(item: ExitingSupport) {
-    setBusyType(item.type);
-    setExiting((prev) =>
-      prev.some((e) => e.type === item.type) ? prev : [...prev, item],
-    );
-    try {
-      await Promise.all([
-        post("/api/support", {
-          date: today,
-          supportType: item.type,
-          completed: true,
-        }),
-        new Promise((r) => setTimeout(r, 700)),
-      ]);
-    } finally {
-      setExiting((prev) => prev.filter((e) => e.type !== item.type));
-      setBusyType(null);
-    }
-  }
 
   async function dismissItem(item: DismissingItem) {
     setDismissing((prev) =>
@@ -303,6 +248,86 @@ export function TodayRebuildPanel() {
     } finally {
       setAddBusy(false);
     }
+  }
+
+  function renderTodoRow(p: (typeof openTodos)[number]) {
+    return (
+      <TodoTaskRow
+        key={p.id}
+        item={p}
+        today={today}
+        viewDate={viewDate}
+        home
+        busy={todoBusyId === p.id}
+        clearing={exitingTodos.includes(p.id)}
+        onComplete={() => todoAction(p.id, { action: "complete", id: p.id })}
+        onSnooze={(until) =>
+          todoAction(p.id, { action: "snooze", id: p.id, until })
+        }
+        onEdit={(payload) =>
+          todoAction(p.id, {
+            action: "edit",
+            id: p.id,
+            ...payload,
+          })
+        }
+        onDelete={() => todoAction(p.id, { action: "delete", id: p.id })}
+      />
+    );
+  }
+
+  function renderGroup(section: GroupedOpenTodos) {
+    const group = section.group as TaskGroup;
+    const isHome = group === "home";
+    return (
+      <div
+        key={group}
+        className="home-task-group"
+        style={{ ["--group-color" as string]: TASK_GROUP_COLORS[group] }}
+      >
+        <p className="eyebrow task-group-heading home-task-group-heading">
+          <span className="task-group-heading-swatch" aria-hidden />
+          {TASK_GROUP_LABELS[group]}
+        </p>
+        {isHome && showMorningOpen ? (
+          <HomeRoutineRow
+            label="Start the day"
+            href="/morning"
+            onDismiss={() =>
+              dismissItem({ key: "morning", label: "Start the day" })
+            }
+            dismissBusy={skipBusy === "morning"}
+          />
+        ) : null}
+        {isHome && showMorningDismissing
+          ? dismissing
+              .filter((d) => d.key === "morning")
+              .map((d) => <DismissingTaskRow key={d.key} label={d.label} />)
+          : null}
+        {section.dated.map(renderTodoRow)}
+        {section.undated.length > 0 ? (
+          <>
+            <p className="tiny muted task-group-nodate">No date</p>
+            {section.undated.map(renderTodoRow)}
+          </>
+        ) : null}
+        {isHome && showEveningOpen ? (
+          <HomeRoutineRow
+            label="Close the day"
+            href="/evening"
+            onDismiss={() =>
+              dismissItem({ key: "evening", label: "Close the day" })
+            }
+            dismissBusy={skipBusy === "evening"}
+          />
+        ) : null}
+        {isHome && showEveningDismissing
+          ? dismissing
+              .filter((d) => d.key === "evening")
+              .map((d) => <DismissingTaskRow key={d.key} label={d.label} />)
+          : null}
+      </div>
+    );
   }
 
   const showSchedule = openCount > 0 || adding;
@@ -388,134 +413,10 @@ export function TodayRebuildPanel() {
 
       {showSchedule ? (
         <div className="tasks-schedule">
-          {onToday && showMorningOpen && (
-            <HomeRoutineRow
-              label="Start the day"
-              href="/morning"
-              onDismiss={() =>
-                dismissItem({ key: "morning", label: "Start the day" })
-              }
-              dismissBusy={skipBusy === "morning"}
-            />
-          )}
-
-          {onToday &&
-            dismissing
-              .filter((d) => d.key === "morning")
-              .map((d) => (
-                <DismissingTaskRow key={d.key} label={d.label} />
-              ))}
-
-          {onToday &&
-            enabledSupports.map((s) => {
-              const weekDone =
-                dashboard.week.find((w) => w.type === s.type)?.done ?? 0;
-              const weekMeta = `${weekDone}/${s.weeklyTarget} this week`;
-              const dismissingItem = dismissing.find((d) => d.key === s.type);
-
-              if (dismissingItem) {
-                return (
-                  <DismissingTaskRow
-                    key={s.type}
-                    label={dismissingItem.label}
-                    meta={dismissingItem.meta}
-                  />
-                );
-              }
-
-              if (skips.has(s.type)) return null;
-
-              const isExiting = exitingTypes.has(s.type);
-              const isDone = completedSupportTypes.has(s.type) && !isExiting;
-              if (isDone) return null;
-
-              const exitingItem = exiting.find((e) => e.type === s.type);
-
-              if (isExiting && exitingItem) {
-                return (
-                  <HomeRoutineRow
-                    key={s.type}
-                    label={truncateSupportLabel(exitingItem.label)}
-                    meta={`${exitingItem.weekDone + 1}/${exitingItem.weeklyTarget} this week`}
-                    clearing
-                    checked
-                  />
-                );
-              }
-
-              return (
-                <HomeRoutineRow
-                  key={s.type}
-                  label={truncateSupportLabel(s.label)}
-                  meta={weekMeta}
-                  activateBusy={busyType === s.type}
-                  onActivate={() =>
-                    completeSupport({
-                      type: s.type,
-                      label: s.label,
-                      weekDone,
-                      weeklyTarget: s.weeklyTarget,
-                    })
-                  }
-                  onDismiss={() =>
-                    dismissItem({
-                      key: s.type,
-                      label: truncateSupportLabel(s.label),
-                      meta: weekMeta,
-                    })
-                  }
-                  dismissBusy={skipBusy === s.type}
-                />
-              );
-            })}
-
-          {openTodos.map((p) => (
-            <TodoTaskRow
-              key={p.id}
-              item={p}
-              today={today}
-              viewDate={viewDate}
-              home
-              busy={todoBusyId === p.id}
-              clearing={exitingTodos.includes(p.id)}
-              onComplete={() => todoAction(p.id, { action: "complete", id: p.id })}
-              onSnooze={(until) =>
-                todoAction(p.id, { action: "snooze", id: p.id, until })
-              }
-              onEdit={(payload) =>
-                todoAction(p.id, {
-                  action: "edit",
-                  id: p.id,
-                  ...payload,
-                })
-              }
-              onDelete={() => todoAction(p.id, { action: "delete", id: p.id })}
-            />
-          ))}
-
-          {onToday && showEveningOpen && (
-            <HomeRoutineRow
-              label="Close the day"
-              href="/evening"
-              onDismiss={() =>
-                dismissItem({ key: "evening", label: "Close the day" })
-              }
-              dismissBusy={skipBusy === "evening"}
-            />
-          )}
-
-          {onToday &&
-            dismissing
-              .filter((d) => d.key === "evening")
-              .map((d) => (
-                <DismissingTaskRow key={d.key} label={d.label} />
-              ))}
+          {openGroups.map(renderGroup)}
         </div>
       ) : onToday ? (
-        <div
-          className="tasks-complete"
-          aria-label="All tasks complete"
-        />
+        <div className="tasks-complete" aria-label="All tasks complete" />
       ) : (
         <p className="muted agenda-status">
           Nothing scheduled — tap + to add a task.

@@ -1436,6 +1436,32 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
+/* Calendar: M/D is a subheader under Today / Tomorrow / weekday */
+.home-card-agenda .tasks-day-chip-label {
+  font-size: 0.72rem;
+  color: var(--text);
+}
+
+.home-card-agenda .tasks-day-chip.selected .tasks-day-chip-label {
+  color: color-mix(in srgb, var(--accent) 78%, var(--text));
+}
+
+.home-card-agenda .tasks-day-chip-status {
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.home-card-agenda .tasks-day-chip.selected .tasks-day-chip-status {
+  color: color-mix(in srgb, var(--accent) 55%, var(--muted));
+}
+
+.home-card-agenda .tasks-day-chip.done .tasks-day-chip-status {
+  color: color-mix(in srgb, var(--accent) 70%, var(--muted));
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -5597,6 +5623,39 @@ html.sheet-open .top-nav {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.home-task-group {
+  margin: 0 0 14px;
+}
+
+.home-task-group:last-child {
+  margin-bottom: 0;
+}
+
+.home-task-group-heading {
+  margin: 0 0 6px;
+}
+
+/* One continuous group rail so Start/Close sit in the same visual bucket as tasks */
+.home-task-group .tasks-item,
+.home-task-group .todo-task-home .tasks-item {
+  border-left: 3px solid var(--group-color, transparent);
+  padding-left: 10px;
+  margin-left: 2px;
+}
+
+.home-task-group .todo-task-home.has-group-bar {
+  padding-left: 0;
+}
+
+.home-task-group .todo-task-home.has-group-bar .tasks-item {
+  /* rail comes from .home-task-group rule — avoid a second bar */
+  margin-left: 2px;
+}
+
+.home-task-group .task-group-nodate {
+  margin-left: 15px;
 }
 
 .task-group-nodate {
