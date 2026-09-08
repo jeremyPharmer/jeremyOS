@@ -112,6 +112,7 @@ export function Sheet({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const backdropRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
@@ -133,24 +134,53 @@ export function Sheet({
     document.body.style.overflow = "hidden";
 
     // Focus the dialog chrome (not an input) so iOS doesn't open the keyboard.
-    sheetRef.current?.focus({ preventScroll: true });
+    const sheetEl = sheetRef.current;
+    const backdropEl = backdropRef.current;
+    sheetEl?.focus({ preventScroll: true });
 
-    const syncMaxHeight = () => {
-      const viewport =
-        window.visualViewport?.height ?? window.innerHeight ?? 0;
-      const max = Math.round(Math.max(280, Math.min(viewport * 0.88, 720)));
-      sheetRef.current?.style.setProperty("max-height", `${max}px`);
+    /**
+     * Keep the sheet above the soft keyboard.
+     * Shrinking only max-height pins the sheet to the layout bottom and hides
+     * the form under the keyboard — lift with padding-bottom instead.
+     */
+    const syncToVisualViewport = () => {
+      const vv = window.visualViewport;
+      const layoutH = window.innerHeight || 0;
+      const visibleH = vv?.height ?? layoutH;
+      const offsetTop = vv?.offsetTop ?? 0;
+      const keyboardInset = Math.max(0, Math.round(layoutH - visibleH - offsetTop));
+      const max = Math.round(
+        Math.max(220, Math.min(visibleH * 0.92, 720)),
+      );
+      backdropEl?.style.setProperty("padding-bottom", `${keyboardInset}px`);
+      sheetEl?.style.setProperty("max-height", `${max}px`);
     };
-    syncMaxHeight();
-    window.visualViewport?.addEventListener("resize", syncMaxHeight);
-    window.addEventListener("resize", syncMaxHeight);
+    syncToVisualViewport();
+    window.visualViewport?.addEventListener("resize", syncToVisualViewport);
+    window.visualViewport?.addEventListener("scroll", syncToVisualViewport);
+    window.addEventListener("resize", syncToVisualViewport);
+
+    const onFocusIn = (e: FocusEvent) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      const tag = target.tagName;
+      if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") return;
+      // After keyboard animates, keep the focused field in the scrollport.
+      window.setTimeout(() => {
+        syncToVisualViewport();
+        target.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }, 50);
+    };
+    sheetEl?.addEventListener("focusin", onFocusIn);
 
     return () => {
       html.classList.remove("sheet-open");
       html.style.overflow = prevHtmlOverflow;
       document.body.style.overflow = prevBodyOverflow;
-      window.visualViewport?.removeEventListener("resize", syncMaxHeight);
-      window.removeEventListener("resize", syncMaxHeight);
+      window.visualViewport?.removeEventListener("resize", syncToVisualViewport);
+      window.visualViewport?.removeEventListener("scroll", syncToVisualViewport);
+      window.removeEventListener("resize", syncToVisualViewport);
+      sheetEl?.removeEventListener("focusin", onFocusIn);
       window.scrollTo(0, scrollY);
     };
   }, [ready]);
@@ -167,6 +197,7 @@ export function Sheet({
 
   return createPortal(
     <div
+      ref={backdropRef}
       className="modal-backdrop"
       role="presentation"
       onClick={() => !busy && onClose()}

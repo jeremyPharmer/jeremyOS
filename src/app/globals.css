@@ -4559,6 +4559,9 @@ button.check-item-btn:disabled {
   padding: 0;
   animation: fade-backdrop 0.28s ease;
   overscroll-behavior: none;
+  /* padding-bottom set by Sheet JS to clear the soft keyboard */
+  box-sizing: border-box;
+  transition: padding-bottom 0.12s ease-out;
 }
 
 .modal-sheet {
