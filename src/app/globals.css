@@ -2977,6 +2977,72 @@ h2 {
   accent-color: var(--accent);
 }
 
+.tap-scale {
+  gap: 8px;
+}
+
+.tap-scale-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  width: 100%;
+  padding: 2px 0 4px;
+  position: relative;
+}
+
+.tap-scale-line::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 50%;
+  height: 1px;
+  background: var(--line);
+  pointer-events: none;
+}
+
+.tap-scale-tick {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+
+.tap-scale-tick:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-strong) 80%, transparent);
+}
+
+.tap-scale-tick.selected {
+  color: var(--text);
+  font-weight: 650;
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-strong));
+  transform: translateY(-1px);
+}
+
+.morning-briefing {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.morning-briefing-p {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.45;
+}
+
 .settings-calendars .field {
   margin-bottom: 12px;
 }

@@ -5,7 +5,7 @@
 | ID | RB-027 |
 | Rank | 5 |
 | Priority | P0 |
-| Status | Ready |
+| Status | In Progress |
 | Effort | M |
 | Target due | TBD |
 | Milestone | v1 |

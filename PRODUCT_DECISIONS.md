@@ -62,7 +62,7 @@ Still available as Jeremy’s personal recovery tools under JeremyOS (executive 
 
 Interactive every day:
 
-**Morning** — Start the day (sleep, mood/state, intention) → Today’s Rebuild supports  
+**Morning** — Start the day (sleep + mood/state on 1–10 taps) → day-start briefing (quote + written summary); tasks stay on Home  
 **Day** — Log supports: recovery content (2/wk), meditation (5), medication (7), gym (4). **No** Home craving-timer CTA (RB-020).  
 **Evening** — Close the day: **Mood + Stress** (1–10), journal **headline** + optional **short summary** (~5 sentences soft limit; maps to stored `oneLine` / `expandedJournal`) → Move to Rebuild → Treat/Save if milestone. **Missed closes** can be backfilled from Journal (pick a day in the current run without an evening) via the same evening path (**RB-010** — journal only; funds for that day may already be in waiting reclaim via end-of-day accrual).
 

@@ -33,6 +33,7 @@ export type RewardCategory =
 
 export type MorningCheckIn = {
   date: string;
+  /** Subjective sleep amount 1–10 (legacy rows may be clock hours). */
   sleepHours: number;
   sleepQuality: number;
   mood: number;
@@ -40,10 +41,11 @@ export type MorningCheckIn = {
   stress: number;
   /** @deprecated removed from morning UI; prefer craving events */
   craving?: number;
+  /** @deprecated RB-027 dropped daily intention; empty on new check-ins */
   intention: string;
   trigger?: string;
   notes?: string;
-  /** Quote shown on the Set yourself up screen */
+  /** Quote shown on the day-start briefing screen */
   quoteId?: string;
   completedAt: string;
 };
