@@ -67,7 +67,7 @@ export default function MorningPage() {
   const [mood, setMood] = useState(6);
   const [energy, setEnergy] = useState(6);
   const [stress, setStress] = useState(5);
-  const [trigger, setTrigger] = useState("");
+  const [intention, setIntention] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -81,6 +81,8 @@ export default function MorningPage() {
     () => quoteById(todayMorning?.quoteId),
     [todayMorning?.quoteId],
   );
+  const shownIntention =
+    intention.trim() || todayMorning?.intention?.trim() || "";
   /** Morning already saved for today (or just submitted this session). */
   const morningDone = Boolean(todayMorning) || done;
 
@@ -190,10 +192,14 @@ export default function MorningPage() {
   }, [morningDone, today, timezone]);
 
   async function submit() {
+    const focus = intention.trim();
+    if (!focus) {
+      setError("Add the one thing you want to do well today.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      // Mark done before post settles so a refresh race can't land on a dead-end.
       setDone(true);
       await post("/api/morning", {
         date: today,
@@ -202,7 +208,7 @@ export default function MorningPage() {
         mood,
         energy,
         stress,
-        trigger: trigger || undefined,
+        intention: focus,
       });
       await refresh();
     } catch (e) {
@@ -215,30 +221,48 @@ export default function MorningPage() {
 
   if (morningDone) {
     return (
-      <main className="stack fade-in">
-        {quote && (
-          <section className="panel morning-quote">
-            <p className="morning-quote-text">&ldquo;{quote.text}&rdquo;</p>
-            <p className="tiny morning-quote-attr">— {quote.attribution}</p>
-          </section>
-        )}
-        <p className="eyebrow">Day start</p>
-        <h1>Here&apos;s your day.</h1>
-        <p className="muted">
-          A quick read of weather, how you feel, the calendar, tasks, and open
-          time.
-        </p>
+      <main className="stack fade-in morning-brief">
+        {quote ? (
+          <blockquote className="morning-brief-quote">
+            <p className="morning-brief-quote-text">&ldquo;{quote.text}&rdquo;</p>
+            <footer className="morning-brief-quote-attr">
+              — {quote.attribution}
+            </footer>
+          </blockquote>
+        ) : null}
 
-        <section className="panel morning-briefing" aria-live="polite">
+        <header className="morning-brief-header">
+          <p className="eyebrow">Day start</p>
+          <h1 className="morning-brief-title">Here&apos;s your day</h1>
+        </header>
+
+        {shownIntention ? (
+          <p className="morning-brief-focus">
+            <span className="morning-brief-focus-label">Today</span>
+            {shownIntention}
+          </p>
+        ) : null}
+
+        <section className="morning-brief-board" aria-live="polite">
           {briefingLoading && !weather && events.length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>
+            <p className="muted morning-brief-loading">
               Gathering today&apos;s picture…
             </p>
           ) : (
-            briefing.paragraphs.map((p, i) => (
-              <p key={i} className="morning-briefing-p">
-                {p}
-              </p>
+            briefing.sections.map((section) => (
+              <article key={section.key} className="morning-brief-block">
+                <h2 className="morning-brief-label">{section.label}</h2>
+                {section.body ? (
+                  <p className="morning-brief-copy">{section.body}</p>
+                ) : null}
+                {section.items && section.items.length > 0 ? (
+                  <ul className="morning-brief-list">
+                    {section.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </article>
             ))
           )}
         </section>
@@ -280,18 +304,23 @@ export default function MorningPage() {
 
       <section className="panel">
         <label className="field">
-          <span className="field-label">Any trigger or concern for today</span>
+          <span className="field-label">
+            What&apos;s the one thing you want to do well today?
+          </span>
           <input
             type="text"
-            value={trigger}
-            onChange={(e) => setTrigger(e.target.value)}
-            placeholder="Optional"
+            value={intention}
+            onChange={(e) => setIntention(e.target.value)}
+            placeholder="One short line"
           />
         </label>
       </section>
 
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-      <PrimaryButton onClick={submit} disabled={busy}>
+      <PrimaryButton
+        onClick={submit}
+        disabled={busy || !intention.trim()}
+      >
         {busy ? "Saving…" : "Continue"}
       </PrimaryButton>
       <SecondaryButton onClick={() => router.push("/")}>Cancel</SecondaryButton>

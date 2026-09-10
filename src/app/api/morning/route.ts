@@ -67,6 +67,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ state });
     }
 
+    const intention = String(body.intention ?? "").trim();
+    if (!intention) {
+      return NextResponse.json(
+        { error: "Intention is required" },
+        { status: 400 },
+      );
+    }
+
     const state = await updateState((prev) => {
       if (!prev.profile) {
         const err = new Error("Not onboarded");
@@ -89,7 +97,7 @@ export async function POST(req: Request) {
         stress: clampMorningScore(Number(body.stress)),
         // Morning craving scale removed from UI; kept optional for older rows.
         craving: body.craving !== undefined ? Number(body.craving) : undefined,
-        intention: "",
+        intention,
         trigger: body.trigger ? String(body.trigger) : undefined,
         notes: body.notes ? String(body.notes) : undefined,
         quoteId: quote.id,

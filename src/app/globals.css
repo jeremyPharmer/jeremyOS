@@ -3043,6 +3043,114 @@ h2 {
   line-height: 1.45;
 }
 
+.morning-brief {
+  gap: 18px;
+}
+
+.morning-brief-quote {
+  margin: 0;
+  padding: 0 0 4px;
+  border: none;
+}
+
+.morning-brief-quote-text {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.morning-brief-quote-attr {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-style: normal;
+}
+
+.morning-brief-header {
+  display: grid;
+  gap: 4px;
+}
+
+.morning-brief-title {
+  margin: 0;
+  font-size: clamp(1.75rem, 4.5vw, 2.15rem);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.morning-brief-focus {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+
+.morning-brief-focus-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.morning-brief-board {
+  display: grid;
+  gap: 0;
+}
+
+.morning-brief-loading {
+  margin: 0;
+  padding: 8px 0;
+}
+
+.morning-brief-block {
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.morning-brief-block:first-child {
+  border-top: none;
+  padding-top: 2px;
+}
+
+.morning-brief-label {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.morning-brief-copy {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.morning-brief-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.morning-brief-list li {
+  font-size: 0.98rem;
+  line-height: 1.4;
+  padding-left: 0;
+  color: var(--text);
+}
+
 .settings-calendars .field {
   margin-bottom: 12px;
 }

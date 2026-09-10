@@ -26,7 +26,8 @@ Jeremy opens morning, taps a fast 1–10 check-in, and lands on a **day-start br
 - Still **five** scores: **sleep hours, sleep quality, mood, energy, stress**
 - **Hours slept** moves to **1–10** (same scale as the other four) — drop clock/hours-style sleep entry
 - Replace **sliders** with **tap-a-number** on a horizontal **1–10** line
-- **Drop** the daily **intention** field
+- Keep **“What’s the one thing you want to do well today?”** (intention) — shown on briefing; used at evening close later
+- **Drop** the trigger / concern field from morning UI
 
 **Post check-in: day-start briefing (not Items checklist)**
 
@@ -55,7 +56,8 @@ Jeremy opens morning, taps a fast 1–10 check-in, and lands on a **day-start br
 ## Out of scope / later
 
 - LLM / generative briefing copy (upgrade path after rules-based v1)
-- Reintroducing intention or morning interactive checklist
+- Morning interactive checklist (rely on Home tasks)
+- Wiring intention into evening close UI (capture is back; close consumption is follow-on)
 - Evening ritual redesign (separate; evening still elevated but not this item)
 - Broad task/calendar product work owned by RB-014 / RB-026
 - Agenda hours past 9PM when events run later — **related / in flight on a separate PR**; do not block this item on that ship, but briefing/calendar gap logic should tolerate late events once that lands
@@ -70,7 +72,8 @@ Jeremy opens morning, taps a fast 1–10 check-in, and lands on a **day-start br
 
 ## Notes
 
-- Intake / lock: **2026-09-10** founder decisions (metrics scale, tap UX, briefing vs checklist, rules-based v1, five pillars, drop intention, no morning Items UI, ship live).
+- Intake / lock: **2026-09-10** founder decisions (metrics scale, tap UX, briefing vs checklist, rules-based v1, five pillars, no morning Items UI, ship live).
+- **2026-09-10 follow-up:** drop trigger/concern field; restore intention (“one thing to do well”) for evening close; polish briefing layout into labeled sections.
 - Why rank **5 / P0:** morning/evening mood ritual is explicitly **elevated** in `PRODUCT_DECISIONS` and the JeremyOS north star; placed after framing (RB-012/013) and task foundation (RB-014/026) so briefing can lean on Home tasks + calendar without blocking rebrand.
 - Related (not this ID): extend Home agenda past 9PM when events run later — separate PR / branch; track as dependency note only.
-- Supersedes prior morning copy that assumed intention + post-check-in Today’s Rebuild / Items checklist as the primary morning destination.
+- Supersedes prior morning copy that assumed post-check-in Today’s Rebuild / Items checklist as the primary morning destination.

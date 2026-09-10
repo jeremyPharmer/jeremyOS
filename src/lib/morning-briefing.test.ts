@@ -55,9 +55,12 @@ describe("buildMorningBriefing", () => {
     expect(briefing.weather).toMatch(/partly cloudy/i);
     expect(briefing.calendar).toMatch(/Standup/);
     expect(briefing.tasks).toMatch(/Call the bank/);
-    expect(briefing.freeTime).toMatch(/open/i);
+    expect(briefing.freeTime).toMatch(/open|AM|PM/i);
     expect(briefing.suggestions.length).toBeGreaterThan(0);
     expect(briefing.suggestions[0]!.taskLabel).toBe("Call the bank");
+    expect(briefing.sections.map((s) => s.key)).toEqual(
+      expect.arrayContaining(["you", "weather", "calendar", "tasks", "open", "try"]),
+    );
     expect(briefing.paragraphs.length).toBeGreaterThanOrEqual(5);
   });
 
@@ -76,7 +79,7 @@ describe("buildMorningBriefing", () => {
     });
     expect(briefing.feeling).toMatch(/thin|gentle|elevated/i);
     expect(briefing.calendar).toMatch(/clear/i);
-    expect(briefing.tasks).toMatch(/clear/i);
+    expect(briefing.tasks).toMatch(/nothing open|clear/i);
     expect(briefing.suggestions).toEqual([]);
   });
 });

@@ -41,8 +41,9 @@ export type MorningCheckIn = {
   stress: number;
   /** @deprecated removed from morning UI; prefer craving events */
   craving?: number;
-  /** @deprecated RB-027 dropped daily intention; empty on new check-ins */
+  /** One thing to do well today — shown on briefing; used at evening close later */
   intention: string;
+  /** @deprecated removed from morning UI (RB-027) */
   trigger?: string;
   notes?: string;
   /** Quote shown on the day-start briefing screen */
