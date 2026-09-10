@@ -226,10 +226,9 @@ function LineChartFrame({
 }
 
 const RANGE_OPTIONS: { key: ConditionRangePreset; label: string }[] = [
+  { key: "7", label: "7 days" },
   { key: "30", label: "30 days" },
-  { key: "60", label: "60 days" },
   { key: "90", label: "90 days" },
-  { key: "all", label: "All" },
   { key: "custom", label: "Custom" },
 ];
 
@@ -242,7 +241,7 @@ function ConditionsChart({
   today: string;
   journeyStart: string;
 }) {
-  const [preset, setPreset] = useState<ConditionRangePreset>("all");
+  const [preset, setPreset] = useState<ConditionRangePreset>("30");
   const [customStart, setCustomStart] = useState(journeyStart);
   const [customEnd, setCustomEnd] = useState(today);
   const [active, setActive] = useState<Record<ConditionMetric, boolean>>({
@@ -653,7 +652,7 @@ function VitalsLogCard({ today }: { today: string }) {
 }
 
 export default function JourneyPage() {
-  const { state, dashboard, today } = useApp();
+  const { state, today } = useApp();
   const journeyStart =
     state.profile?.currentRunStartedOn ??
     state.profile?.startDate ??
@@ -664,7 +663,7 @@ export default function JourneyPage() {
     <main className="stack fade-in">
       <header className="hero-day">
         <p className="eyebrow">Journey</p>
-        <h1>{dashboard?.label ?? "Journey"}</h1>
+        <h1>Health</h1>
       </header>
 
       <section className="panel">
