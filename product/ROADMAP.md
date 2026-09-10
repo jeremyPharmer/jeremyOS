@@ -48,7 +48,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 6. **RB-016 — Five-year / paper journal UX** — same calendar day across years; headline + short summary; journal vibes (not stacked cards). Detail: [`items/five-year-journal-ux.md`](./items/five-year-journal-ux.md). Distinct from RB-010 backfill integrity.
 7. **RB-021 — Journal photos (attach + paperclip)** — optional pics on journal/evening entries; paperclip (or similar) on year slots when a photo is present; tap to view; **reuse** existing photo infra. Detail: [`items/journal-photos.md`](./items/journal-photos.md).
 
-**Mid-flight (finish thin; do not expand):** RB-011 (fund auto-credit), RB-010 (journal backfill) — personal-tool integrity, ranks 17–18. Do **not** widen RB-010 into edit-past ([RB-022](./items/journal-edit-star-calendar.md)).
+**Mid-flight (finish thin; do not expand):** RB-011 (fund auto-credit), RB-010 (journal backfill) — personal-tool integrity, ranks 18–19. Do **not** widen RB-010 into edit-past ([RB-022](./items/journal-edit-star-calendar.md)).
 
 ### Next
 
@@ -57,12 +57,13 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 3. **RB-024 — Daily Puzzle on Home** — **In Progress.** Locked: **5×5 Mini Crossword** replaces On Air; **Start** → attempt; banner **`completed/attempts · success%`** (lifetime rate, e.g. `2/3 · 67%` — **not** today’s fill %); podcasts off Home. Effort **M**. Detail: [`items/daily-puzzle-on-home.md`](./items/daily-puzzle-on-home.md).
 4. **RB-005 — Podcast-first + regular recovery content** — **In Progress**; keep podcast useful + no-repeat off Home for now; founder still wants some regular recovery content (no duplicate item). Home On air **hidden** — slot is crossword (RB-024) / park RB-025. Detail: [`items/recovery-content-offers.md`](./items/recovery-content-offers.md).
 5. **RB-017 — Home cameras (Reolink)** — founder ~priority **5** on the personal-tools list; API spike / engineer handoff OK. Detail: [`items/home-cameras-reolink.md`](./items/home-cameras-reolink.md).
-6. **RB-018 — Workout tracker** — personal log, not fitness SaaS. Detail: [`items/workout-tracker.md`](./items/workout-tracker.md).
-7. **RB-019 — Favorite recipes** — thin favorites section. Detail: [`items/favorite-recipes.md`](./items/favorite-recipes.md).
-8. **RB-015 — Hub: Jeremy’s other apps & sites** — link hub v1. Detail: [`items/jeremy-apps-hub.md`](./items/jeremy-apps-hub.md).
-9. **RB-003 — Daily email: open checklist / todos** — after RB-002 (+ prefer RB-014 list model).
-10. **RB-011 — Auto-credit daily savings** — complete In Progress slice; then stop money expansion.
-11. **RB-010 — Backfill missed evening / journal** — complete thin slice if still useful personally (integrity only; five-year UI is RB-016; edit/star/calendar is RB-022).
+6. **RB-028 — Journey vitals: BP + heart rate** — **Backlog / P1.** Locked 2026-09-10: Journey-only log (not Home/morning); each entry systolic + diastolic + HR (all required); freeform anytime with AM/PM; no teach/explainers; **Vitals chart separate from Conditions**; logs + neutral trends (no medical advice / target bands v1). Effort **M**. Detail: [`items/journey-vitals-bp-hr.md`](./items/journey-vitals-bp-hr.md).
+7. **RB-018 — Workout tracker** — personal log, not fitness SaaS. Detail: [`items/workout-tracker.md`](./items/workout-tracker.md).
+8. **RB-019 — Favorite recipes** — thin favorites section. Detail: [`items/favorite-recipes.md`](./items/favorite-recipes.md).
+9. **RB-015 — Hub: Jeremy’s other apps & sites** — link hub v1. Detail: [`items/jeremy-apps-hub.md`](./items/jeremy-apps-hub.md).
+10. **RB-003 — Daily email: open checklist / todos** — after RB-002 (+ prefer RB-014 list model).
+11. **RB-011 — Auto-credit daily savings** — complete In Progress slice; then stop money expansion.
+12. **RB-010 — Backfill missed evening / journal** — complete thin slice if still useful personally (integrity only; five-year UI is RB-016; edit/star/calendar is RB-022).
 
 ### Later
 
@@ -86,7 +87,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 | Now (framing) | RB-012 rebrand (EA + drop trail) + RB-013 north star | Effort **M** + **S**; docs first, then chrome/copy; Journey label locked keep |
 | Now (personal tools) | RB-014 todos (**Ready / L**) → **RB-026 task groups + calendar M/D** (**In Progress / M**, locked 2026-09-08; one first ship) → **RB-027 morning day-start** (**Ready / P0 / M**, locked 2026-09-10) → RB-016 five-year journal → **RB-021 journal photos** | Merged Today’s Items + master page; groups/colors + Home no-completed; morning = tap 1–10 + templated briefing (not Items checklist); journal cluster still in flight |
 | Next (journal tooling) | **RB-022 edit / star / month calendar** | After RB-016 + RB-021; effort **M**; photo storage risk (no auth, db.json + `.data/photos`); ≠ event calendar |
-| Next (EA + Home) | RB-002 Gmail → **RB-024 daily puzzle** → RB-005 podcast (thin; **off Home**) → RB-017 cameras → RB-018 workout → RB-019 recipes → RB-015 hub → RB-003 digest | Puzzle = **5×5** crossword replacing On Air; Start→attempt; banner `completed/attempts · success%` (**M**; not fill %); Entertainment park RB-025; **RB-023 calendar Done** |
+| Next (EA + Home) | RB-002 Gmail → **RB-024 daily puzzle** → RB-005 podcast (thin; **off Home**) → RB-017 cameras → **RB-028 Journey vitals BP+HR** → RB-018 workout → RB-019 recipes → RB-015 hub → RB-003 digest | Puzzle = **5×5** crossword replacing On Air; Start→attempt; banner `completed/attempts · success%` (**M**; not fill %); Entertainment park RB-025; **RB-023 calendar Done**; vitals = Journey-only objective log/chart (≠ Conditions) |
 | Finish thin | RB-011, RB-010 | Do not expand money/daily-loop polish; journal UI = RB-016; media = RB-021; edit/star/calendar = RB-022 |
 | Later (personal fund) | RB-006, RB-001 | Locked model; rails demoted |
 | Later / paused | RB-008, RB-004, **RB-025 Home Entertainment park**, RB-026 v2 group CRUD, RB-027 LLM briefing | Unrequested channels + Entertainment demoted; group add/rename after fixed v1 groups; generative briefing after rules-based morning |

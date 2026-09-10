@@ -2,7 +2,7 @@
 
 Index of all product items. Canonical detail lives in `product/items/`.
 
-Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Journey nav label kept; craving stats / Home craving CTA cut (**RB-020**; was briefly RB-017 on the EA branch — remapped after main assigned RB-017–019 to cameras/workout/recipes); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done). **Task groups + calendar M/D** locked (**RB-026**). **Morning day-start briefing** locked (**RB-027**).
+Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Journey nav label kept; craving stats / Home craving CTA cut (**RB-020**; was briefly RB-017 on the EA branch — remapped after main assigned RB-017–019 to cameras/workout/recipes); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done). **Task groups + calendar M/D** locked (**RB-026**). **Morning day-start briefing** locked (**RB-027**). **Journey vitals BP+HR** locked (**RB-028**).
 
 **Ranking rule:** lower rank number = higher priority. Rank is the source of truth.
 
@@ -22,27 +22,28 @@ Last updated: 2026-09-10
 | 10 | RB-024 | Daily Puzzle on Home | P1 | In Progress | M | TBD | v1.x | [items/daily-puzzle-on-home.md](./items/daily-puzzle-on-home.md) |
 | 11 | RB-005 | Podcast-first + regular recovery content | P0 | In Progress | M | TBD | v1 | [items/recovery-content-offers.md](./items/recovery-content-offers.md) |
 | 12 | RB-017 | Home cameras via Reolink | P1 | Backlog | M | TBD | v1.x | [items/home-cameras-reolink.md](./items/home-cameras-reolink.md) |
-| 13 | RB-018 | Workout tracker | P1 | Backlog | M | TBD | v1.x | [items/workout-tracker.md](./items/workout-tracker.md) |
-| 14 | RB-019 | Favorite recipes section | P1 | Backlog | S | TBD | v1.x | [items/favorite-recipes.md](./items/favorite-recipes.md) |
-| 15 | RB-015 | Hub: Jeremy’s other apps & sites | P1 | Backlog | S | TBD | v1.x | [items/jeremy-apps-hub.md](./items/jeremy-apps-hub.md) |
-| 16 | RB-003 | Daily email: open checklist / todos | P1 | Backlog | S | TBD | v1.x | [items/daily-open-checklist-email.md](./items/daily-open-checklist-email.md) |
-| 17 | RB-011 | Auto-credit daily savings when the day ends | P1 | In Progress | S | TBD | v1 | [items/auto-credit-daily-savings-end-of-day.md](./items/auto-credit-daily-savings-end-of-day.md) |
-| 18 | RB-010 | Backfill missed evening / journal close | P1 | In Progress | S | TBD | v1.x | [items/backfill-missed-evening-journal-close.md](./items/backfill-missed-evening-journal-close.md) |
-| 19 | RB-006 | Fund buckets: Future + Treat @ 30/70 | P1 | Backlog | M | TBD | v1.x | [items/fund-two-buckets.md](./items/fund-two-buckets.md) |
-| 20 | RB-001 | Auto-pull funds: checking → Venmo | P1 | Backlog | L | TBD | later | [items/auto-pull-funds-venmo.md](./items/auto-pull-funds-venmo.md) |
-| 21 | RB-008 | Segregated ReBuild account (feasibility) | P2 | Backlog | S | TBD | later | [items/segregated-rebuild-account-rails.md](./items/segregated-rebuild-account-rails.md) |
-| 22 | RB-004 | SMS integration | P2 | Backlog | M | TBD | later | [items/sms-integration.md](./items/sms-integration.md) |
-| 23 | RB-025 | Park Home Entertainment section | P2 | Backlog | XS | TBD | later | [items/park-home-entertainment.md](./items/park-home-entertainment.md) |
-| 24 | RB-007 | Accounts + trail onboarding (multi-user) | P0 | Done | XL | TBD | v1 | [items/account-creation-onboarding.md](./items/account-creation-onboarding.md) |
-| 25 | RB-020 | Drop craving stats + Home craving CTA | P0 | Done | XS | TBD | v1 | [items/drop-craving-stats-home-cta.md](./items/drop-craving-stats-home-cta.md) |
-| 26 | RB-023 | Calendar: iCal + work Google (ICS) | P1 | Done | M | TBD | v1.x | [items/calendar-ical-google.md](./items/calendar-ical-google.md) |
-| 27 | RB-009 | Recovery patterns (Journey) — craving analytics | P2 | Won't Do | M | TBD | later | [items/recovery-patterns-insights.md](./items/recovery-patterns-insights.md) |
+| 13 | RB-028 | Journey vitals: BP + heart rate | P1 | Backlog | M | TBD | v1.x | [items/journey-vitals-bp-hr.md](./items/journey-vitals-bp-hr.md) |
+| 14 | RB-018 | Workout tracker | P1 | Backlog | M | TBD | v1.x | [items/workout-tracker.md](./items/workout-tracker.md) |
+| 15 | RB-019 | Favorite recipes section | P1 | Backlog | S | TBD | v1.x | [items/favorite-recipes.md](./items/favorite-recipes.md) |
+| 16 | RB-015 | Hub: Jeremy’s other apps & sites | P1 | Backlog | S | TBD | v1.x | [items/jeremy-apps-hub.md](./items/jeremy-apps-hub.md) |
+| 17 | RB-003 | Daily email: open checklist / todos | P1 | Backlog | S | TBD | v1.x | [items/daily-open-checklist-email.md](./items/daily-open-checklist-email.md) |
+| 18 | RB-011 | Auto-credit daily savings when the day ends | P1 | In Progress | S | TBD | v1 | [items/auto-credit-daily-savings-end-of-day.md](./items/auto-credit-daily-savings-end-of-day.md) |
+| 19 | RB-010 | Backfill missed evening / journal close | P1 | In Progress | S | TBD | v1.x | [items/backfill-missed-evening-journal-close.md](./items/backfill-missed-evening-journal-close.md) |
+| 20 | RB-006 | Fund buckets: Future + Treat @ 30/70 | P1 | Backlog | M | TBD | v1.x | [items/fund-two-buckets.md](./items/fund-two-buckets.md) |
+| 21 | RB-001 | Auto-pull funds: checking → Venmo | P1 | Backlog | L | TBD | later | [items/auto-pull-funds-venmo.md](./items/auto-pull-funds-venmo.md) |
+| 22 | RB-008 | Segregated ReBuild account (feasibility) | P2 | Backlog | S | TBD | later | [items/segregated-rebuild-account-rails.md](./items/segregated-rebuild-account-rails.md) |
+| 23 | RB-004 | SMS integration | P2 | Backlog | M | TBD | later | [items/sms-integration.md](./items/sms-integration.md) |
+| 24 | RB-025 | Park Home Entertainment section | P2 | Backlog | XS | TBD | later | [items/park-home-entertainment.md](./items/park-home-entertainment.md) |
+| 25 | RB-007 | Accounts + trail onboarding (multi-user) | P0 | Done | XL | TBD | v1 | [items/account-creation-onboarding.md](./items/account-creation-onboarding.md) |
+| 26 | RB-020 | Drop craving stats + Home craving CTA | P0 | Done | XS | TBD | v1 | [items/drop-craving-stats-home-cta.md](./items/drop-craving-stats-home-cta.md) |
+| 27 | RB-023 | Calendar: iCal + work Google (ICS) | P1 | Done | M | TBD | v1.x | [items/calendar-ical-google.md](./items/calendar-ical-google.md) |
+| 28 | RB-009 | Recovery patterns (Journey) — craving analytics | P2 | Won't Do | M | TBD | later | [items/recovery-patterns-insights.md](./items/recovery-patterns-insights.md) |
 
 ## Status counts
 
 | Status | Count |
 | --- | --- |
-| Backlog | 13 |
+| Backlog | 14 |
 | Ready | 4 |
 | In Progress | 6 |
 | Blocked | 0 |
