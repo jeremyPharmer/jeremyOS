@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { TodoComposer, type TodoComposerPayload } from "@/components/TodoComposer";
 import { TodoTaskRow } from "@/components/TodoTaskRow";
-import { truncateSupportLabel } from "@/lib/auth-constants";
 import { addDays } from "@/lib/journey";
 import {
   groupOpenTodos,
@@ -30,12 +29,6 @@ type DismissingItem = {
   meta?: string;
 };
 
-type ExitingSupport = {
-  type: SupportType;
-  label: string;
-  weekDone: number;
-  weeklyTarget: number;
-};
 
 function DismissingTaskRow({ label, meta }: { label: string; meta?: string }) {
   return (
@@ -53,30 +46,20 @@ function HomeRoutineRow({
   label,
   meta,
   href,
-  onActivate,
   onDismiss,
   dismissLabel = "Not today",
   dismissBusy,
-  activateBusy,
-  clearing,
-  checked,
 }: {
   label: string;
   meta?: string;
   href?: string;
-  onActivate?: () => void;
   onDismiss?: () => void;
   dismissLabel?: string;
   dismissBusy?: boolean;
-  activateBusy?: boolean;
-  clearing?: boolean;
-  checked?: boolean;
 }) {
   const main = (
     <>
-      <span className={`tasks-check${checked ? " tasks-check-done" : ""}`}>
-        {checked ? "✓" : ""}
-      </span>
+      <span className="tasks-check" aria-hidden />
       <span className="tasks-body">
         <span className="tasks-title">{label}</span>
         {meta ? <span className="tasks-meta">{meta}</span> : null}
@@ -85,25 +68,11 @@ function HomeRoutineRow({
   );
 
   return (
-    <div
-      className={`tasks-item home-routine-item${
-        clearing ? " tasks-item-clearing" : ""
-      }`}
-      aria-live={clearing ? "polite" : undefined}
-    >
+    <div className="tasks-item home-routine-item">
       {href ? (
         <Link href={href} className="tasks-main">
           {main}
         </Link>
-      ) : onActivate ? (
-        <button
-          type="button"
-          className="tasks-main"
-          disabled={activateBusy}
-          onClick={onActivate}
-        >
-          {main}
-        </button>
       ) : (
         <div className="tasks-main">{main}</div>
       )}
@@ -116,11 +85,6 @@ function HomeRoutineRow({
         >
           {dismissLabel}
         </button>
-      ) : null}
-      {clearing ? (
-        <span className="tasks-clear-burst" aria-hidden>
-          +1
-        </span>
       ) : null}
     </div>
   );
@@ -149,9 +113,7 @@ export function TodayRebuildPanel() {
   const { state, dashboard, today, post } = useApp();
   const [viewDate, setViewDate] = useState(today);
   const [windowStart, setWindowStart] = useState(today);
-  const [busyType, setBusyType] = useState<SupportType | null>(null);
   const [skipBusy, setSkipBusy] = useState<SkipKey | null>(null);
-  const [exiting, setExiting] = useState<ExitingSupport[]>([]);
   const [dismissing, setDismissing] = useState<DismissingItem[]>([]);
   const [adding, setAdding] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
@@ -194,19 +156,7 @@ export function TodayRebuildPanel() {
   if (!dashboard || !state.profile) return null;
 
   const skips = new Set(dashboard.todaySkips ?? []);
-  const enabledSupports = state.profile.supports.filter((s) => s.enabled);
-  const completedSupportTypes = new Set(
-    dashboard.todaySupports.map((t) => t.supportType),
-  );
-  const exitingTypes = new Set(exiting.map((e) => e.type));
   const dismissingKeys = new Set(dismissing.map((d) => d.key));
-  const openSupports = enabledSupports.filter(
-    (s) =>
-      !skips.has(s.type) &&
-      !completedSupportTypes.has(s.type) &&
-      !exitingTypes.has(s.type) &&
-      !dismissingKeys.has(s.type),
-  );
   const morningSkipped = skips.has("morning");
   const eveningSkipped = skips.has("evening");
   // Prefer live state so Home clears as soon as morning is saved (dashboard can lag).
@@ -224,32 +174,24 @@ export function TodayRebuildPanel() {
     onToday && dismissing.some((d) => d.key === "morning");
   const showEveningDismissing =
     onToday && dismissing.some((d) => d.key === "evening");
-  const showSupports =
-    onToday && (openSupports.length > 0 || exiting.length > 0 ||
-      dismissing.some((d) => d.key !== "morning" && d.key !== "evening"));
+  // Weekly supports stay off the Home task list — add as personal tasks if wanted.
+  // Tracking remains in Settings → Weekly supports for later.
   const homeRoutinesOpen =
     showMorningOpen ||
     showEveningOpen ||
     showMorningDismissing ||
-    showEveningDismissing ||
-    showSupports;
+    showEveningDismissing;
 
   const openGroups = homeOpenGroups(openTodos, today, homeRoutinesOpen);
 
   const routineCount =
     (showMorningOpen || showMorningDismissing ? 1 : 0) +
-    openSupports.length +
-    exiting.length +
-    dismissing.filter((d) => d.key !== "morning" && d.key !== "evening").length +
     (showEveningOpen || showEveningDismissing ? 1 : 0);
   const openCount = routineCount + openTodos.length;
 
   const todayPersonal = openTodosOn(todos, today).length;
   const todayRoutineCount =
     (morningDone || morningSkipped ? 0 : 1) +
-    enabledSupports.filter(
-      (s) => !skips.has(s.type) && !completedSupportTypes.has(s.type),
-    ).length +
     (eveningDone || eveningSkipped ? 0 : 1);
   const todayOpenTotal =
     viewDate === today ? openCount : todayRoutineCount + todayPersonal;
@@ -261,26 +203,6 @@ export function TodayRebuildPanel() {
     const personal = openTodosOn(todos, date).length;
     return { date, count: personal, done: false };
   });
-
-  async function completeSupport(item: ExitingSupport) {
-    setBusyType(item.type);
-    setExiting((prev) =>
-      prev.some((e) => e.type === item.type) ? prev : [...prev, item],
-    );
-    try {
-      await Promise.all([
-        post("/api/support", {
-          date: today,
-          supportType: item.type,
-          completed: true,
-        }),
-        new Promise((r) => setTimeout(r, 700)),
-      ]);
-    } finally {
-      setExiting((prev) => prev.filter((e) => e.type !== item.type));
-      setBusyType(null);
-    }
-  }
 
   async function dismissItem(item: DismissingItem) {
     setDismissing((prev) =>
@@ -401,69 +323,6 @@ export function TodayRebuildPanel() {
           ? dismissing
               .filter((d) => d.key === "morning")
               .map((d) => <DismissingTaskRow key={d.key} label={d.label} />)
-          : null}
-        {isHome && onToday
-          ? enabledSupports.map((s) => {
-              const weekDone =
-                dashboard!.week.find((w) => w.type === s.type)?.done ?? 0;
-              const weekMeta = `${weekDone}/${s.weeklyTarget} this week`;
-              const dismissingItem = dismissing.find((d) => d.key === s.type);
-
-              if (dismissingItem) {
-                return (
-                  <DismissingTaskRow
-                    key={s.type}
-                    label={dismissingItem.label}
-                    meta={dismissingItem.meta}
-                  />
-                );
-              }
-
-              if (skips.has(s.type)) return null;
-
-              const isExiting = exitingTypes.has(s.type);
-              const isDone = completedSupportTypes.has(s.type) && !isExiting;
-              if (isDone) return null;
-
-              const exitingItem = exiting.find((e) => e.type === s.type);
-
-              if (isExiting && exitingItem) {
-                return (
-                  <HomeRoutineRow
-                    key={s.type}
-                    label={truncateSupportLabel(exitingItem.label)}
-                    meta={`${exitingItem.weekDone + 1}/${exitingItem.weeklyTarget} this week`}
-                    clearing
-                    checked
-                  />
-                );
-              }
-
-              return (
-                <HomeRoutineRow
-                  key={s.type}
-                  label={truncateSupportLabel(s.label)}
-                  meta={weekMeta}
-                  activateBusy={busyType === s.type}
-                  onActivate={() =>
-                    completeSupport({
-                      type: s.type,
-                      label: s.label,
-                      weekDone,
-                      weeklyTarget: s.weeklyTarget,
-                    })
-                  }
-                  onDismiss={() =>
-                    dismissItem({
-                      key: s.type,
-                      label: truncateSupportLabel(s.label),
-                      meta: weekMeta,
-                    })
-                  }
-                  dismissBusy={skipBusy === s.type}
-                />
-              );
-            })
           : null}
         {section.dated.map(renderTodoRow)}
         {section.undated.length > 0 ? (
