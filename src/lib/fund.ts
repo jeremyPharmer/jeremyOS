@@ -52,6 +52,7 @@ export function normalizeState(state: RebuildState): RebuildState {
     calendarTitleOverrides: state.calendarTitleOverrides ?? {},
     calendarHiddenEventIds: state.calendarHiddenEventIds ?? [],
     customAgendaEvents: state.customAgendaEvents ?? [],
+    vitals: state.vitals ?? [],
     dailyCrossword: {
       attempts: Math.max(0, Math.floor(state.dailyCrossword?.attempts ?? 0)),
       completed: Math.max(0, Math.floor(state.dailyCrossword?.completed ?? 0)),
