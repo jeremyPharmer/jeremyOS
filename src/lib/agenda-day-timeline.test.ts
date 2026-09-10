@@ -10,6 +10,7 @@ import {
   laneDensity,
   minutesToTimeInput,
   packTimedBlocks,
+  resolveDayEndMinutes,
   suggestGapEventTimes,
 } from "./agenda-day-timeline";
 
@@ -19,6 +20,8 @@ describe("formatTimelineHour", () => {
     expect(formatTimelineHour(12 * 60)).toBe("12 PM");
     expect(formatTimelineHour(13 * 60 + 30)).toBe("1:30 PM");
     expect(formatTimelineHour(21 * 60)).toBe("9 PM");
+    expect(formatTimelineHour(22 * 60 + 30)).toBe("10:30 PM");
+    expect(formatTimelineHour(24 * 60)).toBe("12 AM");
   });
 });
 
@@ -103,10 +106,53 @@ describe("assignOverlapColumns / packTimedBlocks", () => {
   });
 });
 
+describe("resolveDayEndMinutes", () => {
+  it("stays at 9 PM when nothing runs later", () => {
+    expect(resolveDayEndMinutes([])).toBe(DAY_END_MINUTES);
+    expect(
+      resolveDayEndMinutes([
+        {
+          id: "d",
+          title: "Dinner",
+          startTime: "6:00 PM",
+          endTime: "7:00 PM",
+        },
+      ]),
+    ).toBe(DAY_END_MINUTES);
+  });
+
+  it("extends to the latest event end past 9 PM", () => {
+    expect(
+      resolveDayEndMinutes([
+        {
+          id: "late",
+          title: "Flight",
+          startTime: "8:00 PM",
+          endTime: "10:30 PM",
+        },
+      ]),
+    ).toBe(22 * 60 + 30);
+  });
+
+  it("includes events that start after 9 PM", () => {
+    expect(
+      resolveDayEndMinutes([
+        {
+          id: "night",
+          title: "Call",
+          startTime: "9:30 PM",
+          endTime: "10:00 PM",
+        },
+      ]),
+    ).toBe(22 * 60);
+  });
+});
+
 describe("buildDayTimeline", () => {
   it("collapses a clear day into one open gap 8–9", () => {
-    const { allDay, blocks } = buildDayTimeline([]);
+    const { allDay, blocks, dayEnd } = buildDayTimeline([]);
     expect(allDay).toEqual([]);
+    expect(dayEnd).toBe(DAY_END_MINUTES);
     expect(blocks).toEqual([
       {
         kind: "gap",
@@ -194,6 +240,41 @@ describe("buildDayTimeline", () => {
       kind: "event",
       startMin: DAY_START_MINUTES,
       endMin: 9 * 60,
+    });
+  });
+
+  it("extends past 9 PM and keeps the full late event", () => {
+    const { blocks, dayEnd } = buildDayTimeline([
+      {
+        id: "flight",
+        title: "Flight lands",
+        startTime: "9:45 PM",
+        endTime: "10:30 PM",
+      },
+    ]);
+    expect(dayEnd).toBe(22 * 60 + 30);
+    const ev = blocks.find((b) => b.kind === "event");
+    expect(ev).toMatchObject({
+      kind: "event",
+      startMin: 21 * 60 + 45,
+      endMin: 22 * 60 + 30,
+      event: { id: "flight" },
+    });
+  });
+
+  it("does not truncate an evening event that ends after 9 PM", () => {
+    const { blocks, dayEnd } = buildDayTimeline([
+      {
+        id: "show",
+        title: "Show",
+        startTime: "8:00 PM",
+        endTime: "10:00 PM",
+      },
+    ]);
+    expect(dayEnd).toBe(22 * 60);
+    expect(blocks.find((b) => b.kind === "event")).toMatchObject({
+      startMin: 20 * 60,
+      endMin: 22 * 60,
     });
   });
 

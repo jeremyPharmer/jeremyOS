@@ -510,9 +510,10 @@ export function TodayAgendaCard() {
     applyCalendarTitleOverrides(rawEvents, overrides),
     hidden,
   );
-  // Chronological day spine (8am–9pm); do not sink past events out of order.
+  // Chronological day spine (8am–9pm, later when events run past); keep order.
   const events = visibleEvents;
   const timeline = useMemo(() => buildDayTimeline(events), [events]);
+  const dayEndLabel = formatTimelineHour(timeline.dayEnd);
   const nowMinutes =
     viewDate === today ? localMinutesInTz(now, timezone) : null;
   const connected = dayReady ? (data?.connected ?? false) : false;
@@ -725,7 +726,10 @@ export function TodayAgendaCard() {
       )}
 
       {showDaySpine && !adding && (
-        <div className="agenda-day" aria-label="Day from 8 AM to 9 PM">
+        <div
+          className="agenda-day"
+          aria-label={`Day from 8 AM to ${dayEndLabel}`}
+        >
           {timeline.allDay.length > 0 && (
             <div className="agenda-day-allday">
               <p className="agenda-day-allday-label">All day</p>
@@ -964,7 +968,7 @@ export function TodayAgendaCard() {
               );
             })}
             <p className="agenda-day-bound agenda-day-bound-end" aria-hidden>
-              9 PM
+              {dayEndLabel}
             </p>
           </div>
         </div>

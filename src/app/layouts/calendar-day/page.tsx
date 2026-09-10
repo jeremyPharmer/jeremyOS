@@ -143,6 +143,29 @@ const SAMPLES: Sample[] = [
     blurb: "Nothing scheduled — still shows the 8 AM–9 PM frame.",
     events: [],
   },
+  {
+    id: "late",
+    title: "Late evening",
+    blurb: "Spine stretches past 9 PM when something runs later.",
+    events: [
+      {
+        id: "l1",
+        title: "Dinner",
+        startTime: "6:30 PM",
+        endTime: "7:30 PM",
+        source: "personal",
+        group: "family",
+      },
+      {
+        id: "l2",
+        title: "Flight lands",
+        startTime: "9:45 PM",
+        endTime: "10:30 PM",
+        source: "personal",
+        group: "home",
+      },
+    ],
+  },
 ];
 
 function SampleEventCard({ event }: { event: WorkCalendarEvent }) {
@@ -182,6 +205,7 @@ function SampleDay({ sample }: { sample: Sample }) {
     () => buildDayTimeline(sample.events),
     [sample.events],
   );
+  const dayEndLabel = formatTimelineHour(timeline.dayEnd);
 
   return (
     <article className="home-card home-card-agenda calendar-sample-card">
@@ -193,7 +217,10 @@ function SampleDay({ sample }: { sample: Sample }) {
         </p>
       </header>
 
-      <div className="agenda-day" aria-label="Day from 8 AM to 9 PM">
+      <div
+        className="agenda-day"
+        aria-label={`Day from 8 AM to ${dayEndLabel}`}
+      >
         {timeline.allDay.length > 0 && (
           <div className="agenda-day-allday">
             <p className="agenda-day-allday-label">All day</p>
@@ -343,7 +370,7 @@ function SampleDay({ sample }: { sample: Sample }) {
             );
           })}
           <p className="agenda-day-bound agenda-day-bound-end" aria-hidden>
-            9 PM
+            {dayEndLabel}
           </p>
         </div>
       </div>
@@ -357,8 +384,9 @@ export default function CalendarDaySamplesPage() {
       <p className="eyebrow">Preview</p>
       <h1>Calendar day spine</h1>
       <p className="muted">
-        Sample layouts for the Home calendar — 8 AM to 9 PM, empty stretches
-        collapsed, overlapping events in side-by-side columns.
+        Sample layouts for the Home calendar — 8 AM to 9 PM by default (later
+        when events run past), empty stretches collapsed, overlapping events in
+        side-by-side columns.
       </p>
       <p className="tiny muted">
         <Link href="/layouts">← Layouts</Link>

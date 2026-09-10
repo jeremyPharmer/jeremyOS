@@ -3,6 +3,8 @@ import { parseAgendaDisplayTimeToMinutes } from "./agenda-past";
 /** Home calendar day spine: 8:00 AM – 9:00 PM local (Jeremy profile / EST). */
 export const DAY_START_MINUTES = 8 * 60;
 export const DAY_END_MINUTES = 21 * 60; // 9:00 PM
+/** Hard cap when late events push the spine past the default 9 PM end. */
+export const DAY_END_MAX_MINUTES = 24 * 60; // midnight
 
 /** Collapse empty stretches at or above this length (minutes). */
 export const COLLAPSE_EMPTY_MINUTES = 45;
@@ -60,6 +62,7 @@ type TimedRow = {
 };
 
 export function formatTimelineHour(minutes: number): string {
+  if (minutes >= 24 * 60) return "12 AM";
   const clamped = Math.max(0, Math.min(24 * 60 - 1, minutes));
   const h24 = Math.floor(clamped / 60);
   const m = clamped % 60;
@@ -68,6 +71,31 @@ export function formatTimelineHour(minutes: number): string {
   if (h === 0) h = 12;
   if (m === 0) return `${h} ${ap}`;
   return `${h}:${String(m).padStart(2, "0")} ${ap}`;
+}
+
+/**
+ * Default spine ends at 9 PM; stretch later when a timed event runs past that
+ * (or starts after 9 PM). Never earlier than the default; never past midnight.
+ */
+export function resolveDayEndMinutes(
+  events: TimedAgendaEvent[],
+  opts?: {
+    dayStart?: number;
+    defaultDayEnd?: number;
+    maxDayEnd?: number;
+  },
+): number {
+  const dayStart = opts?.dayStart ?? DAY_START_MINUTES;
+  const defaultDayEnd = opts?.defaultDayEnd ?? DAY_END_MINUTES;
+  const maxDayEnd = opts?.maxDayEnd ?? DAY_END_MAX_MINUTES;
+  let dayEnd = defaultDayEnd;
+  for (const event of events) {
+    const win = eventWindow(event);
+    if (!win) continue;
+    if (win.endMin <= dayStart) continue;
+    if (win.endMin > dayEnd) dayEnd = win.endMin;
+  }
+  return Math.min(maxDayEnd, Math.max(defaultDayEnd, dayEnd));
 }
 
 export function formatGapLabel(startMin: number, endMin: number): string {
@@ -210,6 +238,7 @@ export function packTimedBlocks(rows: TimedRow[]): Array<
 /**
  * Build an 8am–9pm day timeline: timed events in order, long empty stretches collapsed.
  * Overlapping events become side-by-side clusters. Events outside the window are clamped.
+ * When `dayEnd` is omitted, the spine extends past 9 PM if any event runs later.
  */
 export function buildDayTimeline(
   events: TimedAgendaEvent[],
@@ -218,9 +247,19 @@ export function buildDayTimeline(
     dayEnd?: number;
     collapseAfter?: number;
   },
-): { allDay: TimedAgendaEvent[]; blocks: TimelineBlock[] } {
+): {
+  allDay: TimedAgendaEvent[];
+  blocks: TimelineBlock[];
+  dayStart: number;
+  dayEnd: number;
+} {
   const dayStart = opts?.dayStart ?? DAY_START_MINUTES;
-  const dayEnd = opts?.dayEnd ?? DAY_END_MINUTES;
+  const dayEnd =
+    opts?.dayEnd ??
+    resolveDayEndMinutes(events, {
+      dayStart,
+      defaultDayEnd: DAY_END_MINUTES,
+    });
   const collapseAfter = opts?.collapseAfter ?? COLLAPSE_EMPTY_MINUTES;
 
   const allDay = events.filter(isAllDayLike);
@@ -252,6 +291,8 @@ export function buildDayTimeline(
           collapsed: true,
         },
       ],
+      dayStart,
+      dayEnd,
     };
   }
 
@@ -283,7 +324,7 @@ export function buildDayTimeline(
     });
   }
 
-  return { allDay, blocks };
+  return { allDay, blocks, dayStart, dayEnd };
 }
 
 /** Soft height for solo event blocks — short meetings stay tappable. */
