@@ -667,7 +667,7 @@ export default function JourneyPage() {
       </header>
 
       <section className="panel">
-        <p className="eyebrow">Objective</p>
+        <p className="eyebrow">Over time</p>
         <h2 style={{ marginBottom: 10 }}>Blood pressure</h2>
         {today && <VitalsLogCard today={today} />}
       </section>
