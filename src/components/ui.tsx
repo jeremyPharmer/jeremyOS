@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 export function ScaleInput({
@@ -101,26 +101,52 @@ export function ProgressBar({ done, target }: { done: number; target: number }) 
   );
 }
 
+const SHEET_EXIT_MS = 280;
+
 export function Sheet({
   label,
   busy,
   onClose,
+  closeToken = 0,
   children,
 }: {
   label: string;
   busy?: boolean;
   onClose: () => void;
+  /** Increment to request an animated close from a child action. */
+  closeToken?: number;
   children: ReactNode;
 }) {
   const backdropRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
+  const onCloseRef = useRef(onClose);
   const [dragOffset, setDragOffset] = useState(0);
   const [ready, setReady] = useState(false);
+  const [closing, setClosing] = useState(false);
+  onCloseRef.current = onClose;
 
   useLayoutEffect(() => {
     setReady(true);
   }, []);
+
+  function requestClose() {
+    if (busy || closing) return;
+    setClosing(true);
+  }
+
+  useEffect(() => {
+    if (closeToken > 0) requestClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- token edge triggers close
+  }, [closeToken]);
+
+  useEffect(() => {
+    if (!closing) return;
+    const t = window.setTimeout(() => {
+      onCloseRef.current();
+    }, SHEET_EXIT_MS);
+    return () => window.clearTimeout(t);
+  }, [closing]);
 
   useLayoutEffect(() => {
     if (!ready) return;
@@ -190,7 +216,7 @@ export function Sheet({
     const delta = clientY - dragStartY.current;
     dragStartY.current = null;
     setDragOffset(0);
-    if (!busy && delta > 80) onClose();
+    if (!busy && delta > 80) requestClose();
   }
 
   if (!ready) return null;
@@ -198,19 +224,19 @@ export function Sheet({
   return createPortal(
     <div
       ref={backdropRef}
-      className="modal-backdrop"
+      className={`modal-backdrop${closing ? " modal-backdrop-out" : ""}`}
       role="presentation"
-      onClick={() => !busy && onClose()}
+      onClick={() => requestClose()}
     >
       <div
         ref={sheetRef}
-        className="modal-sheet"
+        className={`modal-sheet${closing ? " modal-sheet-out" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
         style={
-          dragOffset > 0
+          dragOffset > 0 && !closing
             ? { transform: `translateY(${dragOffset}px)` }
             : undefined
         }
@@ -222,7 +248,7 @@ export function Sheet({
             dragStartY.current = e.touches[0]?.clientY ?? null;
           }}
           onTouchMove={(e) => {
-            if (dragStartY.current == null) return;
+            if (dragStartY.current == null || closing) return;
             const y = e.touches[0]?.clientY ?? dragStartY.current;
             setDragOffset(Math.max(0, y - dragStartY.current));
           }}

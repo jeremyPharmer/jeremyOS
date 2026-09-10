@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   TodoComposer,
   type TodoComposerPayload,
@@ -62,6 +62,7 @@ export function TodoTaskRow({
   home = false,
   busy,
   clearing = false,
+  clearingKind = "complete",
   doneMeta,
   onComplete,
   onSnooze,
@@ -75,6 +76,7 @@ export function TodoTaskRow({
   home?: boolean;
   busy: boolean;
   clearing?: boolean;
+  clearingKind?: "complete" | "snooze";
   /** Extra meta for completed rows (e.g. done date M/D/YY) */
   doneMeta?: string | null;
   onComplete: () => void | Promise<void>;
@@ -93,12 +95,20 @@ export function TodoTaskRow({
     Boolean(item.completed) ||
     item.lastCompletedOn === today ||
     Boolean(doneMeta) ||
-    clearing;
+    (clearing && clearingKind === "complete");
   const canSnooze = activeDate >= today && !doneToday && !item.undated;
   const group = item.group as TaskGroup | undefined;
   const barStyle = group
     ? { ["--group-color" as string]: TASK_GROUP_COLORS[group] }
     : undefined;
+  const exitClass =
+    clearing && clearingKind === "snooze"
+      ? home
+        ? " tasks-item-snoozing"
+        : " todo-task-snoozing"
+      : clearing
+        ? " tasks-item-clearing"
+        : "";
 
   const snoozeButton = canSnooze ? (
     <button
@@ -116,12 +126,12 @@ export function TodoTaskRow({
     <div
       className={`${home ? "todo-task todo-task-home" : "todo-task"}${
         group ? " has-group-bar" : ""
-      }`}
+      }${!home && clearing && clearingKind === "snooze" ? " todo-task-snoozing" : ""}`}
       style={barStyle}
     >
       {home ? (
         <div
-          className={`tasks-item${clearing ? " tasks-item-clearing" : ""}`}
+          className={`tasks-item${exitClass}`}
         >
           <button
             type="button"
@@ -211,10 +221,7 @@ export function TodoTaskRow({
           activeDate={activeDate}
           label={item.label}
           busy={busy}
-          onPick={async (until) => {
-            await onSnooze(until);
-            setSnoozing(false);
-          }}
+          onPick={onSnooze}
           onClose={() => setSnoozing(false)}
         />
       )}
@@ -238,19 +245,37 @@ function SnoozeOptionsSheet({
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<"menu" | "custom">("menu");
+  const [closeToken, setCloseToken] = useState(0);
+  const pendingUntil = useRef<string | null>(null);
   const base = activeDate >= today ? activeDate : today;
   const tomorrow = addDays(base, 1);
   const later = addDays(base, 3);
   const [customUntil, setCustomUntil] = useState(tomorrow);
 
+  function choose(until: string) {
+    if (busy) return;
+    pendingUntil.current = until;
+    setCloseToken((n) => n + 1);
+  }
+
+  async function handleSheetClosed() {
+    const until = pendingUntil.current;
+    pendingUntil.current = null;
+    onClose();
+    if (until) await onPick(until);
+  }
+
   return (
     <Sheet
       label={`Snooze ${label}`}
       busy={busy}
-      onClose={() => !busy && onClose()}
+      closeToken={closeToken}
+      onClose={() => {
+        void handleSheetClosed();
+      }}
     >
       {mode === "menu" ? (
-        <div className="todo-snooze-sheet fade-in">
+        <div className="todo-snooze-sheet todo-snooze-sheet-enter" key="menu">
           <p className="eyebrow">Snooze</p>
           <p className="tiny" style={{ marginBottom: 8 }}>
             Pick when this comes back
@@ -259,7 +284,7 @@ function SnoozeOptionsSheet({
             type="button"
             className="todo-snooze-option"
             disabled={busy}
-            onClick={() => void onPick(tomorrow)}
+            onClick={() => choose(tomorrow)}
           >
             <span className="todo-snooze-option-title">Tomorrow</span>
             <span className="todo-snooze-option-meta">
@@ -270,7 +295,7 @@ function SnoozeOptionsSheet({
             type="button"
             className="todo-snooze-option"
             disabled={busy}
-            onClick={() => void onPick(later)}
+            onClick={() => choose(later)}
           >
             <span className="todo-snooze-option-title">Later</span>
             <span className="todo-snooze-option-meta">
@@ -286,12 +311,15 @@ function SnoozeOptionsSheet({
             <span className="todo-snooze-option-title">Custom</span>
             <span className="todo-snooze-option-meta">Pick a date</span>
           </button>
-          <SecondaryButton onClick={onClose} disabled={busy}>
+          <SecondaryButton
+            onClick={() => setCloseToken((n) => n + 1)}
+            disabled={busy}
+          >
             Cancel
           </SecondaryButton>
         </div>
       ) : (
-        <div className="todo-snooze-sheet fade-in">
+        <div className="todo-snooze-sheet todo-snooze-sheet-enter" key="custom">
           <p className="eyebrow">Custom date</p>
           <label className="field" style={{ marginBottom: 8 }}>
             <span className="field-label">Snooze until</span>
@@ -307,7 +335,7 @@ function SnoozeOptionsSheet({
               Back
             </SecondaryButton>
             <PrimaryButton
-              onClick={() => void onPick(customUntil)}
+              onClick={() => choose(customUntil)}
               disabled={busy || customUntil <= today}
             >
               Snooze

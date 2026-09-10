@@ -19,6 +19,9 @@ export default function ItemsPage() {
   const [adding, setAdding] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [exiting, setExiting] = useState<
+    Record<string, "complete" | "snooze">
+  >({});
   const [openCompleted, setOpenCompleted] = useState<Record<string, boolean>>(
     {},
   );
@@ -41,11 +44,37 @@ export default function ItemsPage() {
     if (id) setBusyId(id);
     else setAddBusy(true);
     try {
+      if (
+        id &&
+        (body.action === "complete" || body.action === "snooze")
+      ) {
+        const kind = body.action === "snooze" ? "snooze" : "complete";
+        setExiting((prev) => (prev[id] ? prev : { ...prev, [id]: kind }));
+        await new Promise((r) =>
+          setTimeout(r, kind === "snooze" ? 380 : 420),
+        );
+      }
       await post("/api/todos", body);
       if (!id) setAdding(false);
+    } catch (e) {
+      if (id) {
+        setExiting((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      }
+      throw e;
     } finally {
       setBusyId(null);
       setAddBusy(false);
+      if (id) {
+        setExiting((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      }
     }
   }
 
@@ -118,6 +147,8 @@ export default function ItemsPage() {
                   item={item}
                   today={today}
                   busy={busyId === item.id}
+                  clearing={Boolean(exiting[item.id])}
+                  clearingKind={exiting[item.id] ?? "complete"}
                   onComplete={() =>
                     run(item.id, { action: "complete", id: item.id })
                   }
