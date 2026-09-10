@@ -412,6 +412,24 @@ export type GoogleCalendarLink = {
   refreshToken: string;
 };
 
+export type VitalsPeriod = "am" | "pm";
+
+/** Objective BP + HR log entry (Journey vitals, RB-028). */
+export type VitalsReading = {
+  id: string;
+  /** Local calendar day YYYY-MM-DD */
+  date: string;
+  /** Morning or evening reading */
+  period: VitalsPeriod;
+  /** mmHg */
+  systolic: number;
+  /** mmHg */
+  diastolic: number;
+  /** bpm */
+  heartRate: number;
+  loggedAt: string;
+};
+
 export type RebuildState = {
   profile: RebuildProfile | null;
   mornings: MorningCheckIn[];
@@ -456,6 +474,8 @@ export type RebuildState = {
   calendarHiddenEventIds?: string[];
   /** Jeremy-added reminders/events on Home calendar (local only) */
   customAgendaEvents?: CustomAgendaEvent[];
+  /** Journey objective vitals (BP + HR), RB-028 */
+  vitals?: VitalsReading[];
   /** Daily mini crossword — attempts/completed + today’s grid */
   dailyCrossword?: {
     attempts: number;

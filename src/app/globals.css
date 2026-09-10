@@ -4958,6 +4958,131 @@ button.check-item-btn:disabled {
   stroke-width: 1;
 }
 
+.vitals-log {
+  display: grid;
+  gap: 14px;
+}
+
+.vitals-log-open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vitals-log-open:hover {
+  border-color: var(--accent);
+}
+
+.vitals-log-plus {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--accent);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.vitals-log-form {
+  display: grid;
+  gap: 12px;
+}
+
+.vitals-period {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.vitals-period-btn {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.vitals-period-btn.on {
+  color: var(--text);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.vitals-nums {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.vitals-nums .field {
+  margin: 0;
+}
+
+.vitals-nums input {
+  min-width: 0;
+}
+
+.vitals-recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+
+.vitals-recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.vitals-recent-date {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.vitals-recent-vals {
+  margin: 4px 0 0;
+  font-size: 0.98rem;
+}
+
+.vitals-recent-del {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.vitals-recent-del:hover {
+  color: var(--danger);
+}
+
 .podcast-card h2 {
   margin: 0;
   font-size: 1.35rem;
