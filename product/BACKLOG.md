@@ -22,7 +22,7 @@ Last updated: 2026-09-10
 | 10 | RB-024 | Daily Puzzle on Home | P1 | In Progress | M | TBD | v1.x | [items/daily-puzzle-on-home.md](./items/daily-puzzle-on-home.md) |
 | 11 | RB-005 | Podcast-first + regular recovery content | P0 | In Progress | M | TBD | v1 | [items/recovery-content-offers.md](./items/recovery-content-offers.md) |
 | 12 | RB-017 | Home cameras via Reolink | P1 | Backlog | M | TBD | v1.x | [items/home-cameras-reolink.md](./items/home-cameras-reolink.md) |
-| 13 | RB-028 | Journey vitals: BP + heart rate | P1 | In Progress | M | TBD | v1.x | [items/journey-vitals-bp-hr.md](./items/journey-vitals-bp-hr.md) |
+| 13 | RB-028 | Journey vitals: BP + heart rate | P1 | Done | M | TBD | v1.x | [items/journey-vitals-bp-hr.md](./items/journey-vitals-bp-hr.md) |
 | 14 | RB-018 | Workout tracker | P1 | Backlog | M | TBD | v1.x | [items/workout-tracker.md](./items/workout-tracker.md) |
 | 15 | RB-019 | Favorite recipes section | P1 | Backlog | S | TBD | v1.x | [items/favorite-recipes.md](./items/favorite-recipes.md) |
 | 16 | RB-015 | Hub: Jeremy’s other apps & sites | P1 | Backlog | S | TBD | v1.x | [items/jeremy-apps-hub.md](./items/jeremy-apps-hub.md) |

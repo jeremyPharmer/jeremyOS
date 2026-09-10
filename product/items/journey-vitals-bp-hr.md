@@ -5,7 +5,7 @@
 | ID | RB-028 |
 | Rank | 13 |
 | Priority | P1 |
-| Status | In Progress |
+| Status | Done |
 | Effort | M |
 | Target due | TBD |
 | Milestone | v1.x |
