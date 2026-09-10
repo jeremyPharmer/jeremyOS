@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-002 |
-| Rank | 8 |
+| Rank | 9 |
 | Priority | P0 |
 | Status | Backlog |
 | Effort | M |
