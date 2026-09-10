@@ -13,7 +13,7 @@ import {
   type TaskGroup,
 } from "@/lib/task-groups";
 import { DEFAULT_SUPPORTS, type SupportConfig } from "@/lib/types";
-import { normalizeIcalUrl } from "@/lib/work-calendar";
+import { normalizeIcalUrl } from "@/lib/ical-url";
 
 const EXTRA_ICAL_MAX = 10;
 

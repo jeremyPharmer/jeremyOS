@@ -6,6 +6,7 @@ import {
 } from "./google-calendar";
 import type { TaskGroup } from "./task-groups";
 import type { GoogleCalendarLink } from "./types";
+import { normalizeIcalUrl } from "./ical-url";
 
 export type CalendarFeedSource = "personal" | "work" | "extra" | "custom";
 
@@ -36,6 +37,8 @@ export type CalendarFeedUrls = {
 
 const EXTRA_ICAL_MAX = 10;
 
+export { normalizeIcalUrl } from "./ical-url";
+
 /** Normalize + de-dupe extra iCal URLs (max 10). */
 export function normalizeExtraIcalUrls(
   raw: unknown,
@@ -51,24 +54,6 @@ export function normalizeExtraIcalUrls(
     if (out.length >= EXTRA_ICAL_MAX) break;
   }
   return out.length > 0 ? out : undefined;
-}
-
-const ICS_URL_MAX = 2000;
-
-/** Normalize pasted calendar links (webcal → https). */
-export function normalizeIcalUrl(
-  raw: string | undefined | null,
-): string | undefined {
-  const trimmed = String(raw ?? "").trim();
-  if (!trimmed) return undefined;
-  const swapped = trimmed.replace(/^webcal:/i, "https:");
-  try {
-    const u = new URL(swapped);
-    if (u.protocol !== "https:" && u.protocol !== "http:") return undefined;
-    return u.toString().slice(0, ICS_URL_MAX);
-  } catch {
-    return undefined;
-  }
 }
 
 export function ymdInTz(date: Date, timezone: string): string {
@@ -262,7 +247,7 @@ function feedErrorLabel(
   url: string,
   extraIndex?: number,
 ): string {
-  let host = source;
+  let host: string = source;
   try {
     host = new URL(url).hostname.replace(/^www\./, "");
   } catch {
