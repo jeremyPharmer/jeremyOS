@@ -5515,66 +5515,91 @@ html.sheet-open .top-nav {
   padding: 4px 0 8px;
 }
 
-.todo-composer-datetime {
-  display: flex;
-  flex-direction: column;
+.todo-composer-schedule {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr) auto;
   gap: 0;
-  margin: 0;
+  margin: 0 0 10px;
   border: 1px solid var(--line);
   border-radius: 14px;
   overflow: hidden;
   background: color-mix(in srgb, var(--text) 4%, var(--surface-strong, #fff));
 }
 
-.todo-composer-datetime .todo-composer-field {
-  margin: 0;
+.todo-composer-schedule-cell {
+  display: grid;
+  gap: 4px;
   min-width: 0;
-  padding: 12px 14px;
+  margin: 0;
+  padding: 8px 10px;
 }
 
-.todo-composer-datetime .todo-composer-field + .todo-composer-field {
-  border-top: 1px solid var(--line);
+.todo-composer-schedule-cell + .todo-composer-schedule-cell {
+  border-left: 1px solid var(--line);
 }
 
-.todo-composer-datetime .field-label {
-  margin-bottom: 8px;
+.todo-composer-schedule-cell .field-label {
+  margin-bottom: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
 }
 
-.todo-composer-datetime input[type="date"],
-.todo-composer-datetime input[type="time"],
-.todo-composer-datetime .todo-time-add {
+.todo-composer-schedule-cell input[type="date"],
+.todo-composer-schedule-cell input[type="time"],
+.todo-composer-schedule-cell .todo-time-add {
   width: 100%;
-  min-height: 44px;
+  min-height: 36px;
   box-sizing: border-box;
+  padding: 6px 8px;
+  font-size: 0.86rem;
 }
 
-.todo-composer-datetime input[type="date"],
-.todo-composer-datetime input[type="time"] {
-  max-width: 100%;
-}
-
-.todo-composer-datetime .todo-time-add {
+.todo-composer-schedule-cell .todo-time-add {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   border: 1px solid var(--line);
   background: var(--surface-strong, #fff);
-  border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 0.92rem;
+  border-radius: 10px;
   font-weight: 400;
   color: var(--muted);
 }
 
-.todo-composer-datetime .todo-time-row {
+.todo-composer-schedule-cell .todo-time-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
 }
 
-.todo-composer-datetime .todo-time-row input[type="time"] {
+.todo-composer-schedule-cell .todo-time-row input[type="time"] {
   min-width: 0;
+}
+
+.todo-composer-schedule-cell .todo-time-row .text-btn {
+  padding: 4px 6px;
+  font-size: 0.72rem;
+}
+
+.todo-composer-schedule-repeat {
+  align-content: center;
+  justify-items: stretch;
+}
+
+.todo-composer-schedule-repeat .todo-repeat-toggle.compact {
+  width: 100%;
+}
+
+.todo-composer-notes {
+  margin-bottom: 10px;
+}
+
+.todo-composer-notes textarea {
+  min-height: 56px;
+  resize: vertical;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  line-height: 1.35;
 }
 
 .field-label-row {
@@ -5681,13 +5706,13 @@ html.sheet-open .top-nav {
   justify-content: space-between;
   gap: 10px;
   width: 100%;
-  margin-top: 8px;
-  padding: 12px 14px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface-strong);
   color: var(--text);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   text-align: left;
   cursor: pointer;
 }

@@ -34,6 +34,10 @@ function taskMeta(
   if (item.time) parts.push(formatTodoTime(item.time));
   const recLabel = formatRecurrence(rec, item.date);
   if (recLabel) parts.push(recLabel);
+  if (item.notes?.trim()) {
+    const note = item.notes.trim();
+    parts.push(note.length > 48 ? `${note.slice(0, 47)}…` : note);
+  }
   if (
     !item.undated &&
     item.date !== viewDate &&

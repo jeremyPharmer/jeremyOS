@@ -11,6 +11,7 @@ import { addDays, parseDate } from "@/lib/journey";
 import {
   WEEKDAY_LABELS,
   WEEKDAY_LETTERS,
+  TODO_NOTE_MAX,
   firstDueDate,
   formatRecurrence,
   recurrenceOf,
@@ -22,6 +23,7 @@ export type TodoComposerPayload = {
   label: string;
   date: string;
   time?: string;
+  notes?: string;
   recurrence: TodoRecurrence;
   group: TaskGroup;
   /** Always explicit so edit can clear “No due date”. */
@@ -427,6 +429,7 @@ export function TodoComposer({
   const [group, setGroup] = useState<TaskGroup | "">(initial?.group ?? "");
   const [time, setTime] = useState(initial?.time ?? "");
   const [hasTime, setHasTime] = useState(Boolean(initial?.time));
+  const [notes, setNotes] = useState(initial?.notes ?? "");
   const [repeats, setRepeats] = useState(initialRec.kind !== "none");
   const [customFields, setCustomFields] = useState<CustomFields>(initialFields);
   const [customOpen, setCustomOpen] = useState(false);
@@ -494,6 +497,7 @@ export function TodoComposer({
       label: trimmed,
       date: due,
       time: !undated && hasTime && time ? time : undefined,
+      notes: notes.trim() || undefined,
       recurrence: undated ? { kind: "none" } : recurrence,
       group,
       undated,
@@ -544,8 +548,8 @@ export function TodoComposer({
           </label>
 
           {!undated && (
-          <div className="todo-composer-datetime">
-            <label className="field todo-composer-field">
+          <div className="todo-composer-schedule">
+            <label className="todo-composer-schedule-cell">
               <span className="field-label">Date</span>
               <input
                 type="date"
@@ -554,7 +558,7 @@ export function TodoComposer({
                 onChange={(e) => setDate(e.target.value)}
               />
             </label>
-            <div className="field todo-composer-field">
+            <div className="todo-composer-schedule-cell">
               <span className="field-label">Time</span>
               {hasTime ? (
                 <div className="todo-time-row">
@@ -583,16 +587,11 @@ export function TodoComposer({
                     setTime("09:00");
                   }}
                 >
-                  Add time
+                  Add
                 </button>
               )}
             </div>
-          </div>
-          )}
-
-          {!undated && (
-          <div className="field todo-repeat-field">
-            <div className="field-label-row">
+            <div className="todo-composer-schedule-cell todo-composer-schedule-repeat">
               <span className="field-label">Repeat</span>
               <div
                 className="todo-repeat-toggle compact"
@@ -619,19 +618,31 @@ export function TodoComposer({
                 </button>
               </div>
             </div>
-            {repeats && (
-              <button
-                type="button"
-                className="todo-repeat-summary"
-                disabled={busy}
-                onClick={openCustomSheet}
-              >
-                <span>{schedulePreview || "Set schedule"}</span>
-                <span className="todo-repeat-summary-edit">Edit</span>
-              </button>
-            )}
           </div>
           )}
+
+          {!undated && repeats && (
+            <button
+              type="button"
+              className="todo-repeat-summary"
+              disabled={busy}
+              onClick={openCustomSheet}
+            >
+              <span>{schedulePreview || "Set schedule"}</span>
+              <span className="todo-repeat-summary-edit">Edit</span>
+            </button>
+          )}
+
+          <label className="field todo-composer-notes">
+            <span className="field-label">Notes</span>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Optional"
+              rows={2}
+              maxLength={TODO_NOTE_MAX}
+            />
+          </label>
 
           {error && (
             <p className="tiny" style={{ color: "var(--danger)", margin: 0 }}>
