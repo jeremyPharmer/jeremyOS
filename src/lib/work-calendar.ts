@@ -36,7 +36,7 @@ export type CalendarFeedUrls = {
 
 const EXTRA_ICAL_MAX = 10;
 
-/** Normalize + de-dupe extra iCal URLs (max 5). */
+/** Normalize + de-dupe extra iCal URLs (max 10). */
 export function normalizeExtraIcalUrls(
   raw: unknown,
 ): string[] | undefined {
