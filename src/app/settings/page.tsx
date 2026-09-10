@@ -14,7 +14,7 @@ import {
 } from "@/lib/task-groups";
 import { DEFAULT_SUPPORTS, type SupportConfig } from "@/lib/types";
 
-const EXTRA_ICAL_MAX = 5;
+const EXTRA_ICAL_MAX = 10;
 
 function FeedGroupSelect({
   label,

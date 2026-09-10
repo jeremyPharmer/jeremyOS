@@ -34,7 +34,7 @@ export type CalendarFeedUrls = {
   googleCalendar?: GoogleCalendarLink;
 };
 
-const EXTRA_ICAL_MAX = 5;
+const EXTRA_ICAL_MAX = 10;
 
 /** Normalize + de-dupe extra iCal URLs (max 5). */
 export function normalizeExtraIcalUrls(
