@@ -251,4 +251,34 @@ describe("journal edit + star helpers", () => {
       summary: "Great day on the course. Kept the same story.",
     });
   });
+
+  it("collapses duplicate one_line/journal rows so edits stick to what the UI shows", () => {
+    const state = emptyState();
+    state.journals = [
+      entry({ date: "2026-09-06", type: "one_line", text: "Power Flooring" }),
+      entry({ date: "2026-09-06", type: "journal", text: "Original note." }),
+      entry({ date: "2026-09-06", type: "one_line", text: "X" }),
+      entry({ date: "2026-09-06", type: "journal", text: "Z" }),
+    ];
+    // Bundle (UI) shows last-wins: X / Z
+    expect(bundleJournalsByDate(state.journals).get("2026-09-06")).toEqual({
+      date: "2026-09-06",
+      headline: "X",
+      summary: "Z",
+    });
+
+    const next = applyJournalProseEdit(
+      state,
+      "2026-09-06",
+      "Power Flooring",
+      "Day on the floors.",
+    );
+
+    expect(next.journals.filter((j) => j.date === "2026-09-06")).toHaveLength(2);
+    expect(bundleJournalsByDate(next.journals).get("2026-09-06")).toEqual({
+      date: "2026-09-06",
+      headline: "Power Flooring",
+      summary: "Day on the floors.",
+    });
+  });
 });

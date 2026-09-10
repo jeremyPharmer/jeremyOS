@@ -158,10 +158,46 @@ export function isStarredDay(
   return normalizeStarredDays(starredDays).includes(date);
 }
 
+
+
+/**
+ * Keep at most one `one_line` and one `journal` row per date.
+ * Prefer the last row of each type (matches bundle display).
+ */
+export function dedupeJournalRows(journals: JournalEntry[]): JournalEntry[] {
+  const lastOneLine = new Map<string, JournalEntry>();
+  const lastJournal = new Map<string, JournalEntry>();
+  const other: JournalEntry[] = [];
+
+  for (const j of journals) {
+    if (j.type === "one_line") {
+      lastOneLine.set(j.date, j);
+    } else if (j.type === "journal") {
+      lastJournal.set(j.date, j);
+    } else {
+      other.push(j);
+    }
+  }
+
+  const dates = new Set([...lastOneLine.keys(), ...lastJournal.keys()]);
+  const collapsed: JournalEntry[] = [];
+  for (const date of dates) {
+    const one = lastOneLine.get(date);
+    const summary = lastJournal.get(date);
+    if (one) collapsed.push(one);
+    if (summary) collapsed.push(summary);
+  }
+  return [...other, ...collapsed];
+}
+
 /**
  * Create or update journal prose for a day.
  * Syncs evenings when a check-in exists; otherwise journals only (manual backfill).
  * Never touches reclaim/milestones.
+ *
+ * Collapses duplicate one_line/journal rows for the date so display (last-wins
+ * in the bundle) and edit stay in sync — leftover duplicates made saves look
+ * like they "didn't stick."
  */
 export function applyJournalProseEdit(
   state: RebuildState,
@@ -185,62 +221,36 @@ export function applyJournalProseEdit(
       )
     : state.evenings;
 
-  let journals = [...state.journals];
-  const oneLineIdx = journals.findIndex(
-    (j) => j.date === date && j.type === "one_line",
-  );
-  const journalIdx = journals.findIndex(
-    (j) => j.date === date && j.type === "journal",
-  );
-
-  const existingPhoto = journals.find(
+  const existingPhoto = state.journals.find(
     (j) => j.date === date && j.photoId,
   )?.photoId;
   const resolvedPhoto =
     photoId !== undefined ? photoId || undefined : existingPhoto;
 
-  if (oneLineIdx >= 0) {
-    journals[oneLineIdx] = {
-      ...journals[oneLineIdx],
-      text: headline,
-      ...(photoId !== undefined ? { photoId: resolvedPhoto } : {}),
-    };
-  } else {
+  // Drop prior prose rows for this date, then write a single clean pair.
+  const journals = state.journals.filter(
+    (j) =>
+      !(j.date === date && (j.type === "one_line" || j.type === "journal")),
+  );
+
+  journals.push({
+    id: newId("journal"),
+    date,
+    type: "one_line",
+    text: headline,
+    photoId: resolvedPhoto,
+    createdAt: new Date().toISOString(),
+  });
+
+  if (summary) {
     journals.push({
       id: newId("journal"),
       date,
-      type: "one_line",
-      text: headline,
+      type: "journal",
+      text: summary,
       photoId: resolvedPhoto,
       createdAt: new Date().toISOString(),
     });
-  }
-
-  if (summary) {
-    if (journalIdx >= 0) {
-      journals[journalIdx] = {
-        ...journals[journalIdx],
-        text: summary,
-        ...(photoId !== undefined ? { photoId: resolvedPhoto } : {}),
-      };
-    } else {
-      journals.push({
-        id: newId("journal"),
-        date,
-        type: "journal",
-        text: summary,
-        photoId: resolvedPhoto,
-        createdAt: new Date().toISOString(),
-      });
-    }
-  } else if (journalIdx >= 0) {
-    journals = journals.filter((_, i) => i !== journalIdx);
-  }
-
-  if (photoId !== undefined) {
-    journals = journals.map((j) =>
-      j.date === date ? { ...j, photoId: resolvedPhoto } : j,
-    );
   }
 
   return { ...state, evenings, journals };
