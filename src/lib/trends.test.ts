@@ -134,24 +134,21 @@ describe("filledTrendPointsInRange", () => {
 });
 
 describe("resolveConditionRange", () => {
-  it("defaults all time to the current journey start", () => {
-    expect(resolveConditionRange("all", "2026-08-01", "2026-08-20")).toEqual({
-      start: "2026-08-01",
+  it("clamps rolling windows to journey start", () => {
+    expect(resolveConditionRange("7", "2026-08-15", "2026-08-20")).toEqual({
+      start: "2026-08-15",
       end: "2026-08-20",
     });
-  });
-
-  it("clamps rolling windows to journey start", () => {
+    expect(resolveConditionRange("7", "2026-01-01", "2026-08-20")).toEqual({
+      start: "2026-08-14",
+      end: "2026-08-20",
+    });
     expect(resolveConditionRange("30", "2026-08-15", "2026-08-20")).toEqual({
       start: "2026-08-15",
       end: "2026-08-20",
     });
-    expect(resolveConditionRange("60", "2026-07-01", "2026-08-20")).toEqual({
-      start: "2026-07-01",
-      end: "2026-08-20",
-    });
-    expect(resolveConditionRange("60", "2026-01-01", "2026-08-20")).toEqual({
-      start: "2026-06-22",
+    expect(resolveConditionRange("90", "2026-01-01", "2026-08-20")).toEqual({
+      start: "2026-05-23",
       end: "2026-08-20",
     });
     expect(resolveConditionRange("30", "2026-07-01", "2026-08-20")).toEqual({

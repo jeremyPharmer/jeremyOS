@@ -200,7 +200,7 @@ function mitigationLabels(c: {
   return [];
 }
 
-export type ConditionRangePreset = "30" | "60" | "90" | "all" | "custom";
+export type ConditionRangePreset = "7" | "30" | "90" | "custom";
 
 /** Morning state metrics (1–10). Mood can fall back to evening. No morning craving. */
 export function trendPointsInRange(
@@ -260,7 +260,7 @@ function clampDate(date: string, min: string, max: string): string {
   return date;
 }
 
-/** Resolve preset/custom bounds for the Conditions chart (clamped to current journey). */
+/** Resolve preset/custom bounds for Journey charts (clamped to current journey). */
 export function resolveConditionRange(
   preset: ConditionRangePreset,
   journeyStart: string,
@@ -269,10 +269,6 @@ export function resolveConditionRange(
 ): { start: string; end: string } {
   const end = asOfDate;
   const minStart = journeyStart;
-
-  if (preset === "all") {
-    return { start: minStart, end };
-  }
 
   if (preset === "custom" && custom) {
     const start = clampDate(custom.start, minStart, end);
@@ -283,10 +279,7 @@ export function resolveConditionRange(
   }
 
   const daysBack =
-    preset === "30" ? 29 : preset === "60" ? 59 : preset === "90" ? 89 : 0;
-  if (daysBack === 0) {
-    return { start: minStart, end };
-  }
+    preset === "7" ? 6 : preset === "30" ? 29 : preset === "90" ? 89 : 29;
   const rollingStart = addDays(end, -daysBack);
   const start = rollingStart < minStart ? minStart : rollingStart;
   return { start, end };
