@@ -13,6 +13,7 @@ import {
   type TaskGroup,
 } from "@/lib/task-groups";
 import { DEFAULT_SUPPORTS, type SupportConfig } from "@/lib/types";
+import { normalizeIcalUrl } from "@/lib/work-calendar";
 
 const EXTRA_ICAL_MAX = 10;
 
@@ -186,12 +187,29 @@ export default function SettingsPage() {
     setBusy(true);
     setMsg("");
     try {
+      // Drop blank/duplicate extras and keep group indices aligned.
+      const cleanedExtras: string[] = [];
+      const cleanedExtraGroups: (TaskGroup | undefined)[] = [];
+      const seen = new Set<string>();
+      extraIcalUrls.forEach((raw, index) => {
+        const url = normalizeIcalUrl(raw);
+        if (!url || seen.has(url)) return;
+        seen.add(url);
+        cleanedExtras.push(url);
+        cleanedExtraGroups.push(feedGroups.extra?.[index]);
+      });
+      const nextFeedGroups: CalendarFeedGroups = {
+        ...feedGroups,
+        extra: cleanedExtraGroups,
+      };
+      setExtraIcalUrls(cleanedExtras);
+      setFeedGroups(nextFeedGroups);
       await post("/api/settings", {
         supports,
         personalIcalUrl,
         workIcalUrl,
-        extraIcalUrls,
-        calendarFeedGroups: feedGroups,
+        extraIcalUrls: cleanedExtras,
+        calendarFeedGroups: nextFeedGroups,
       });
       setMsg("Saved.");
     } catch (e) {
@@ -337,7 +355,9 @@ export default function SettingsPage() {
       <section className="panel settings-calendars">
         <p className="eyebrow">Calendars</p>
         <p className="tiny muted" style={{ marginTop: 0 }}>
-          Assign each feed a group so events get a color on Home.
+          Assign each feed a group so events get a color on Home. Paste the full
+          subscribe URL (TeamSnap links look like{" "}
+          <code className="tiny">…/team_schedule/….ics</code>), then tap Save.
         </p>
 
         <div className="settings-calendar-block">
