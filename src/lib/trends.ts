@@ -545,7 +545,7 @@ export const CONDITION_METRICS: {
   color: string;
   axis: ConditionAxis;
 }[] = [
-  { key: "sleepHours", label: "Sleep hrs", color: "#5a9a78", axis: "hours" },
+  { key: "sleepHours", label: "Sleep", color: "#5a9a78", axis: "scale" },
   { key: "sleepQuality", label: "Quality", color: "#7fbf9a", axis: "scale" },
   { key: "mood", label: "Mood", color: "#d4844a", axis: "scale" },
   { key: "energy", label: "Energy", color: "#d4a24a", axis: "scale" },
@@ -564,7 +564,10 @@ export function daysBetween(from: string, to: string): number {
   return calendarDaysBetween(from, to);
 }
 
-/** Round sleep hours to nearest half hour for capture/display. */
+/**
+ * Legacy half-hour rounding for older clock-style sleep captures.
+ * New morning check-ins use clampMorningScore (1–10).
+ */
 export function roundSleepHours(hours: number): number {
   if (!Number.isFinite(hours)) return 0;
   return Math.round(hours * 2) / 2;

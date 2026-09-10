@@ -1,60 +1,205 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
-import { TodoComposer, type TodoComposerPayload } from "@/components/TodoComposer";
-import { PrimaryButton, ScaleInput, SecondaryButton } from "@/components/ui";
+import { PrimaryButton, SecondaryButton, TapScale } from "@/components/ui";
+import {
+  buildMorningBriefing,
+  type BriefingEvent,
+  type BriefingScores,
+  type BriefingTask,
+  type BriefingWeather,
+} from "@/lib/morning-briefing";
 import { quoteById } from "@/lib/quotes";
-import { openTodosOn } from "@/lib/todos";
-import type { SupportType } from "@/lib/types";
+import { openTodosOn, upcomingTodos } from "@/lib/todos";
+import type { WorkCalendarEvent } from "@/lib/work-calendar";
+
+const COORDS_KEY = "rebuild-weather-coords";
+
+type StoredCoords = {
+  lat: number;
+  lon: number;
+  label: string;
+};
+
+function readStoredCoords(): StoredCoords | null {
+  try {
+    const raw = localStorage.getItem(COORDS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredCoords;
+    if (
+      typeof parsed.lat === "number" &&
+      typeof parsed.lon === "number" &&
+      typeof parsed.label === "string"
+    ) {
+      return parsed;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function scoresFromMorning(m: {
+  sleepHours: number;
+  sleepQuality: number;
+  mood: number;
+  energy: number;
+  stress: number;
+}): BriefingScores {
+  return {
+    sleepHours: m.sleepHours,
+    sleepQuality: m.sleepQuality,
+    mood: m.mood,
+    energy: m.energy,
+    stress: m.stress,
+  };
+}
 
 export default function MorningPage() {
   const { post, state, dashboard, today, refresh } = useApp();
   const router = useRouter();
+  const timezone = state.profile?.timezone ?? "America/New_York";
+
   const [sleepHours, setSleepHours] = useState(7);
   const [sleepQuality, setSleepQuality] = useState(6);
   const [mood, setMood] = useState(6);
   const [energy, setEnergy] = useState(6);
   const [stress, setStress] = useState(5);
   const [intention, setIntention] = useState("");
-  const [trigger, setTrigger] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
-  const [itemOpen, setItemOpen] = useState(false);
-  const [itemBusy, setItemBusy] = useState(false);
-  const [clearingIds, setClearingIds] = useState<string[]>([]);
-  const [rowBusyId, setRowBusyId] = useState<string | null>(null);
+
+  const [weather, setWeather] = useState<BriefingWeather>(null);
+  const [events, setEvents] = useState<BriefingEvent[]>([]);
+  const [briefingLoading, setBriefingLoading] = useState(false);
 
   const todayMorning = state.mornings.find((m) => m.date === today);
   const quote = useMemo(
     () => quoteById(todayMorning?.quoteId),
     [todayMorning?.quoteId],
   );
-  const todayItems = openTodosOn(state.dayProvisions ?? [], today);
-  const doneSupportTypes = useMemo(
-    () =>
-      new Set(
-        (dashboard?.todaySupports ?? [])
-          .filter((t) => t.completed)
-          .map((t) => t.supportType),
-      ),
-    [dashboard?.todaySupports],
-  );
+  const shownIntention =
+    intention.trim() || todayMorning?.intention?.trim() || "";
   /** Morning already saved for today (or just submitted this session). */
   const morningDone = Boolean(todayMorning) || done;
-  const shownIntention = intention.trim() || todayMorning?.intention || "";
-  const openSupports =
-    state.profile?.supports.filter(
-      (s) => s.enabled && !doneSupportTypes.has(s.type),
-    ) ?? [];
+
+  const briefingTasks: BriefingTask[] = useMemo(() => {
+    const open = openTodosOn(state.dayProvisions ?? [], today).map((t) => ({
+      id: t.id,
+      label: t.label,
+      time: t.time,
+      snoozedAhead: false as const,
+    }));
+    const snoozed = upcomingTodos(state.dayProvisions ?? [], today)
+      .slice(0, 8)
+      .map((t) => ({
+        id: t.id,
+        label: t.label,
+        time: t.time,
+        snoozedAhead: true as const,
+      }));
+    return [...open, ...snoozed];
+  }, [state.dayProvisions, today]);
+
+  const liveScores: BriefingScores = useMemo(() => {
+    if (todayMorning) return scoresFromMorning(todayMorning);
+    return { sleepHours, sleepQuality, mood, energy, stress };
+  }, [todayMorning, sleepHours, sleepQuality, mood, energy, stress]);
+
+  const briefing = useMemo(
+    () =>
+      buildMorningBriefing({
+        scores: liveScores,
+        weather,
+        events,
+        tasks: briefingTasks,
+      }),
+    [liveScores, weather, events, briefingTasks],
+  );
+
+  useEffect(() => {
+    if (!morningDone) return;
+    let cancelled = false;
+
+    async function loadBriefingContext() {
+      setBriefingLoading(true);
+      try {
+        const coords = readStoredCoords();
+        const weatherQs = new URLSearchParams();
+        if (coords) {
+          weatherQs.set("lat", String(coords.lat));
+          weatherQs.set("lon", String(coords.lon));
+          if (coords.label && coords.label !== "Near you") {
+            weatherQs.set("label", coords.label);
+          }
+        }
+        const [weatherRes, calRes] = await Promise.all([
+          fetch(`/api/weather?${weatherQs.toString()}`),
+          fetch(`/api/calendar/work?date=${encodeURIComponent(today)}`),
+        ]);
+        if (cancelled) return;
+
+        if (weatherRes.ok) {
+          const data = (await weatherRes.json()) as {
+            days?: Array<{
+              date: string;
+              label: string;
+              highF: number;
+              lowF: number;
+              precipChancePct: number;
+            }>;
+          };
+          const day =
+            data.days?.find((d) => d.date === today) ?? data.days?.[0];
+          if (day) {
+            setWeather({
+              label: day.label,
+              highF: day.highF,
+              lowF: day.lowF,
+              precipChancePct: day.precipChancePct,
+            });
+          }
+        }
+
+        if (calRes.ok) {
+          const data = (await calRes.json()) as {
+            events?: WorkCalendarEvent[];
+          };
+          setEvents(
+            (data.events ?? []).map((e) => ({
+              id: e.id,
+              title: e.title,
+              startTime: e.startTime,
+              endTime: e.endTime,
+              allDay: e.allDay,
+            })),
+          );
+        }
+      } catch {
+        /* briefing still works with partial context */
+      } finally {
+        if (!cancelled) setBriefingLoading(false);
+      }
+    }
+
+    void loadBriefingContext();
+    return () => {
+      cancelled = true;
+    };
+  }, [morningDone, today, timezone]);
 
   async function submit() {
+    const focus = intention.trim();
+    if (!focus) {
+      setError("Add the one thing you want to do well today.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      // Mark done before post settles so a refresh race can't land on a dead-end.
       setDone(true);
       await post("/api/morning", {
         date: today,
@@ -63,9 +208,9 @@ export default function MorningPage() {
         mood,
         energy,
         stress,
-        intention,
-        trigger: trigger || undefined,
+        intention: focus,
       });
+      await refresh();
     } catch (e) {
       setDone(false);
       setError(e instanceof Error ? e.message : "Failed");
@@ -74,143 +219,54 @@ export default function MorningPage() {
     }
   }
 
-  async function addItem(payload: TodoComposerPayload) {
-    setItemBusy(true);
-    try {
-      await post("/api/todos", {
-        action: "add",
-        label: payload.label,
-        date: payload.date,
-        time: payload.time,
-        recurrence: payload.recurrence,
-      });
-      setItemOpen(false);
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not add item");
-    } finally {
-      setItemBusy(false);
-    }
-  }
-
-  async function completeSupport(type: SupportType) {
-    const key = `support:${type}`;
-    if (rowBusyId || clearingIds.includes(key)) return;
-    setRowBusyId(key);
-    setClearingIds((prev) => (prev.includes(key) ? prev : [...prev, key]));
-    try {
-      // Show check + strikethrough before the row drops off the list.
-      await new Promise((r) => setTimeout(r, 420));
-      await post("/api/support", {
-        date: today,
-        supportType: type,
-        completed: true,
-      });
-    } catch (e) {
-      setClearingIds((prev) => prev.filter((x) => x !== key));
-      setError(e instanceof Error ? e.message : "Could not complete");
-    } finally {
-      setRowBusyId(null);
-    }
-  }
-
-  async function completeTodo(id: string) {
-    if (rowBusyId || clearingIds.includes(id)) return;
-    setRowBusyId(id);
-    setClearingIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-    try {
-      await new Promise((r) => setTimeout(r, 420));
-      await post("/api/todos", { action: "complete", id });
-    } catch (e) {
-      setClearingIds((prev) => prev.filter((x) => x !== id));
-      setError(e instanceof Error ? e.message : "Could not complete");
-    } finally {
-      setRowBusyId(null);
-    }
-  }
-
   if (morningDone) {
     return (
-      <main className="stack fade-in">
-        {quote && (
-          <section className="panel morning-quote">
-            <p className="morning-quote-text">&ldquo;{quote.text}&rdquo;</p>
-            <p className="tiny morning-quote-attr">— {quote.attribution}</p>
-          </section>
-        )}
-        <p className="eyebrow">Today&apos;s Items</p>
-        <h1>Set yourself up.</h1>
-        <div className="panel list-check">
-          <p className="eyebrow" style={{ marginBottom: 10 }}>
-            Today — tap to check off
-          </p>
-          {openSupports.map((s) => {
-            const key = `support:${s.type}`;
-            const clearing = clearingIds.includes(key);
-            return (
-              <button
-                key={s.type}
-                type="button"
-                className={`check-item check-item-btn${clearing ? " done clearing" : ""}`}
-                disabled={Boolean(rowBusyId)}
-                onClick={() => void completeSupport(s.type)}
-              >
-                <span className={`check-box${clearing ? " checked" : ""}`}>
-                  {clearing ? "✓" : ""}
-                </span>
-                <span className="check-label">{s.label}</span>
-              </button>
-            );
-          })}
-          {todayItems.map((p) => {
-            const clearing = clearingIds.includes(p.id);
-            return (
-              <button
-                key={p.id}
-                type="button"
-                className={`check-item check-item-btn${clearing ? " done clearing" : ""}`}
-                disabled={Boolean(rowBusyId)}
-                onClick={() => void completeTodo(p.id)}
-              >
-                <span className={`check-box${clearing ? " checked" : ""}`}>
-                  {clearing ? "✓" : ""}
-                </span>
-                <span className="check-label">{p.label}</span>
-              </button>
-            );
-          })}
-          {openSupports.length === 0 &&
-          todayItems.length === 0 &&
-          !itemOpen ? (
-            <p className="muted" style={{ margin: "4px 0 8px" }}>
-              List is clear — into the day whenever you&apos;re ready.
-            </p>
-          ) : null}
-          <button
-            type="button"
-            className="todo-add-toggle"
-            onClick={() => setItemOpen(true)}
-          >
-            <span>Add an item for today</span>
-            <span className="morning-add-plus" aria-hidden>
-              +
-            </span>
-          </button>
-          {itemOpen && (
-            <TodoComposer
-              today={today}
-              busy={itemBusy}
-              onSubmit={addItem}
-              onCancel={() => setItemOpen(false)}
-            />
-          )}
-        </div>
-        {shownIntention ? (
-          <div className="panel">
-            <p className="eyebrow">Today&apos;s intention</p>
-            <p style={{ margin: 0, fontSize: "1.15rem" }}>{shownIntention}</p>
-          </div>
+      <main className="stack fade-in morning-brief">
+        {quote ? (
+          <blockquote className="morning-brief-quote">
+            <p className="morning-brief-quote-text">&ldquo;{quote.text}&rdquo;</p>
+            <footer className="morning-brief-quote-attr">
+              — {quote.attribution}
+            </footer>
+          </blockquote>
         ) : null}
+
+        <header className="morning-brief-header">
+          <p className="eyebrow">Day start</p>
+          <h1 className="morning-brief-title">Here&apos;s your day</h1>
+        </header>
+
+        {shownIntention ? (
+          <p className="morning-brief-focus">
+            <span className="morning-brief-focus-label">Today</span>
+            {shownIntention}
+          </p>
+        ) : null}
+
+        <section className="morning-brief-board" aria-live="polite">
+          {briefingLoading && !weather && events.length === 0 ? (
+            <p className="muted morning-brief-loading">
+              Gathering today&apos;s picture…
+            </p>
+          ) : (
+            briefing.sections.map((section) => (
+              <article key={section.key} className="morning-brief-block">
+                <h2 className="morning-brief-label">{section.label}</h2>
+                {section.body ? (
+                  <p className="morning-brief-copy">{section.body}</p>
+                ) : null}
+                {section.items && section.items.length > 0 ? (
+                  <ul className="morning-brief-list">
+                    {section.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </article>
+            ))
+          )}
+        </section>
+
         {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
         <PrimaryButton onClick={() => router.push("/")}>
           Into the day
@@ -223,19 +279,16 @@ export default function MorningPage() {
     <main className="stack fade-in">
       <p className="eyebrow">Prepare</p>
       <h1>Start the day</h1>
-      <p className="muted">About 2–4 minutes. Not a medical form.</p>
+      <p className="muted">Tap how you&apos;re landing — about a minute.</p>
 
       <section className="panel">
         <p className="eyebrow">Sleep</p>
-        <ScaleInput
+        <TapScale
           label="Hours slept"
           value={sleepHours}
-          min={0}
-          max={14}
-          step={0.5}
           onChange={setSleepHours}
         />
-        <ScaleInput
+        <TapScale
           label="Sleep quality"
           value={sleepQuality}
           onChange={setSleepQuality}
@@ -244,24 +297,12 @@ export default function MorningPage() {
 
       <section className="panel">
         <p className="eyebrow">Current state</p>
-        <ScaleInput label="Mood" value={mood} onChange={setMood} />
-        <ScaleInput label="Energy" value={energy} onChange={setEnergy} />
-        <ScaleInput label="Stress" value={stress} onChange={setStress} />
+        <TapScale label="Mood" value={mood} onChange={setMood} />
+        <TapScale label="Energy" value={energy} onChange={setEnergy} />
+        <TapScale label="Stress" value={stress} onChange={setStress} />
       </section>
 
       <section className="panel">
-        <p className="eyebrow">Alignment</p>
-        <label className="field">
-          <span className="field-label">
-            Any trigger or concern for today
-          </span>
-          <input
-            type="text"
-            value={trigger}
-            onChange={(e) => setTrigger(e.target.value)}
-            placeholder="Optional"
-          />
-        </label>
         <label className="field">
           <span className="field-label">
             What&apos;s the one thing you want to do well today?
@@ -276,7 +317,10 @@ export default function MorningPage() {
       </section>
 
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-      <PrimaryButton onClick={submit} disabled={busy || !intention.trim()}>
+      <PrimaryButton
+        onClick={submit}
+        disabled={busy || !intention.trim()}
+      >
         {busy ? "Saving…" : "Continue"}
       </PrimaryButton>
       <SecondaryButton onClick={() => router.push("/")}>Cancel</SecondaryButton>

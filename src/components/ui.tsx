@@ -38,6 +38,53 @@ export function ScaleInput({
   );
 }
 
+/** Discrete 1–10 (or custom) tap line — morning check-in (RB-027). */
+export function TapScale({
+  label,
+  value,
+  onChange,
+  min = 1,
+  max = 10,
+}: {
+  label: string;
+  value: number;
+  onChange: (n: number) => void;
+  min?: number;
+  max?: number;
+}) {
+  const ticks: number[] = [];
+  for (let n = min; n <= max; n += 1) ticks.push(n);
+  return (
+    <div className="field tap-scale">
+      <div className="field-label">
+        <span>{label}</span>
+        <strong>{value}</strong>
+      </div>
+      <div
+        className="tap-scale-line"
+        role="radiogroup"
+        aria-label={label}
+      >
+        {ticks.map((n) => {
+          const selected = value === n;
+          return (
+            <button
+              key={n}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              className={`tap-scale-tick${selected ? " selected" : ""}`}
+              onClick={() => onChange(n)}
+            >
+              {n}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function Money({ value }: { value: number }) {
   return (
     <span className="money">

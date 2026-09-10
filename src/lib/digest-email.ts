@@ -308,9 +308,11 @@ export function buildEveningDigest(
   const lookBack = alreadyClosed
     ? `You already closed today — this is a look back.`
     : `This is your chance to look back on the day. Don’t forget to close it.`;
-  const intention = morning?.intention?.trim()
-    ? `You started with "${esc(morning.intention.trim())}."`
-    : `Start the day is still open, if you want to set an intention before you close.`;
+  const intention = morning
+    ? morning.intention?.trim()
+      ? `You started with "${esc(morning.intention.trim())}."`
+      : `You already started the day.`
+    : `Start the day is still open, if you want a quick check-in before you close.`;
 
   const html = wrapCard(
     `${kicker(day)}
@@ -332,8 +334,10 @@ export function buildEveningDigest(
     "",
     `Hey ${name}. ${lookBack}`,
     "",
-    morning?.intention?.trim()
-      ? `You started with "${morning.intention.trim()}."`
+    morning
+      ? morning.intention?.trim()
+        ? `You started with "${morning.intention.trim()}."`
+        : "You already started the day."
       : "Start the day is still open.",
     "",
     "THIS RUN",
