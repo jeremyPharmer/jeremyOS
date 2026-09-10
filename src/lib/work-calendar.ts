@@ -242,6 +242,38 @@ export function parseIcsEventsForDay(
 const ICS_CACHE_TTL_MS = 90_000;
 const icsTextCache = new Map<string, { text: string; at: number }>();
 
+/** Reject HTML / CDN stub bodies that are not real calendars. */
+export function assertIcsCalendar(text: string): void {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    throw new Error("Calendar feed was empty");
+  }
+  // TeamSnap returns HTTP 200 with body `false` for bad/expired links
+  if (/^(false|true|null)\s*$/i.test(trimmed)) {
+    throw new Error("Calendar link looks invalid or expired");
+  }
+  if (!/BEGIN:VCALENDAR/i.test(trimmed)) {
+    throw new Error("Feed did not return a calendar file");
+  }
+}
+
+function feedErrorLabel(
+  source: CalendarFeedSource,
+  url: string,
+  extraIndex?: number,
+): string {
+  let host = source;
+  try {
+    host = new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    /* keep source */
+  }
+  if (source === "extra" && extraIndex !== undefined) {
+    return `extra ${extraIndex + 1} (${host})`;
+  }
+  return `${source} (${host})`;
+}
+
 async function fetchIcsText(url: string): Promise<string> {
   const cached = icsTextCache.get(url);
   if (cached && Date.now() - cached.at < ICS_CACHE_TTL_MS) {
@@ -250,6 +282,8 @@ async function fetchIcsText(url: string): Promise<string> {
   const res = await fetch(url, {
     headers: {
       Accept: "text/calendar, text/plain, */*",
+      "User-Agent":
+        "Mozilla/5.0 (compatible; Google-Calendar; JeremyOS/1.0)",
       "Cache-Control": "no-cache",
       Pragma: "no-cache",
     },
@@ -261,6 +295,7 @@ async function fetchIcsText(url: string): Promise<string> {
     throw new Error(`Calendar feed failed (${res.status})`);
   }
   const text = await res.text();
+  assertIcsCalendar(text);
   icsTextCache.set(url, { text, at: Date.now() });
   return text;
 }
@@ -345,7 +380,7 @@ export async function fetchWorkCalendarEvents(
         );
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Feed error";
-        errors.push(`${source}: ${msg}`);
+        errors.push(`${feedErrorLabel(source, url, extraIndex)}: ${msg}`);
       }
     }),
   );

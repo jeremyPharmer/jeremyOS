@@ -8,6 +8,7 @@ import {
   normalizeIcalUrl,
   parseIcsEventsForDay,
   resolveCalendarFeedUrls,
+  assertIcsCalendar,
   type WorkCalendarEvent,
 } from "./work-calendar";
 
@@ -26,6 +27,21 @@ describe("normalizeIcalUrl", () => {
 
   it("trims empty to undefined", () => {
     expect(normalizeIcalUrl("  ")).toBeUndefined();
+  });
+});
+
+describe("assertIcsCalendar", () => {
+  it("accepts a VCALENDAR body", () => {
+    expect(() =>
+      assertIcsCalendar("BEGIN:VCALENDAR\nBEGIN:VEVENT\nEND:VEVENT\nEND:VCALENDAR"),
+    ).not.toThrow();
+  });
+
+  it("rejects TeamSnap stub and HTML", () => {
+    expect(() => assertIcsCalendar("false")).toThrow(/invalid or expired/i);
+    expect(() => assertIcsCalendar("<!DOCTYPE html>")).toThrow(
+      /did not return a calendar/i,
+    );
   });
 });
 
