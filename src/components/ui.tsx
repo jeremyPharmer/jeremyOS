@@ -47,7 +47,8 @@ export function TapScale({
   max = 10,
 }: {
   label: string;
-  value: number;
+  /** null = nothing chosen yet (no preselect). */
+  value: number | null;
   onChange: (n: number) => void;
   min?: number;
   max?: number;
@@ -58,7 +59,6 @@ export function TapScale({
     <div className="field tap-scale">
       <div className="field-label">
         <span>{label}</span>
-        <strong>{value}</strong>
       </div>
       <div
         className="tap-scale-line"

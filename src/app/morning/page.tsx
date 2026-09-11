@@ -58,15 +58,15 @@ function scoresFromMorning(m: {
 }
 
 export default function MorningPage() {
-  const { post, state, dashboard, today, refresh } = useApp();
+  const { post, state, today, refresh } = useApp();
   const router = useRouter();
   const timezone = state.profile?.timezone ?? "America/New_York";
 
-  const [sleepHours, setSleepHours] = useState(7);
-  const [sleepQuality, setSleepQuality] = useState(6);
-  const [mood, setMood] = useState(6);
-  const [energy, setEnergy] = useState(6);
-  const [stress, setStress] = useState(5);
+  const [sleepHours, setSleepHours] = useState<number | null>(null);
+  const [sleepQuality, setSleepQuality] = useState<number | null>(null);
+  const [mood, setMood] = useState<number | null>(null);
+  const [energy, setEnergy] = useState<number | null>(null);
+  const [stress, setStress] = useState<number | null>(null);
   const [intention, setIntention] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -104,10 +104,32 @@ export default function MorningPage() {
     return [...open, ...snoozed];
   }, [state.dayProvisions, today]);
 
+  const scalesReady =
+    sleepHours != null &&
+    sleepQuality != null &&
+    mood != null &&
+    energy != null &&
+    stress != null;
+
   const liveScores: BriefingScores = useMemo(() => {
     if (todayMorning) return scoresFromMorning(todayMorning);
-    return { sleepHours, sleepQuality, mood, energy, stress };
-  }, [todayMorning, sleepHours, sleepQuality, mood, energy, stress]);
+    if (!scalesReady) {
+      return {
+        sleepHours: 5,
+        sleepQuality: 5,
+        mood: 5,
+        energy: 5,
+        stress: 5,
+      };
+    }
+    return {
+      sleepHours,
+      sleepQuality,
+      mood,
+      energy,
+      stress,
+    };
+  }, [todayMorning, scalesReady, sleepHours, sleepQuality, mood, energy, stress]);
 
   const briefing = useMemo(
     () =>
@@ -195,6 +217,16 @@ export default function MorningPage() {
     const focus = intention.trim();
     if (!focus) {
       setError("Add the one thing you want to do well today.");
+      return;
+    }
+    if (
+      sleepHours == null ||
+      sleepQuality == null ||
+      mood == null ||
+      energy == null ||
+      stress == null
+    ) {
+      setError("Tap a number for each scale.");
       return;
     }
     setBusy(true);
@@ -319,16 +351,11 @@ export default function MorningPage() {
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
       <PrimaryButton
         onClick={submit}
-        disabled={busy || !intention.trim()}
+        disabled={busy || !intention.trim() || !scalesReady}
       >
         {busy ? "Saving…" : "Continue"}
       </PrimaryButton>
       <SecondaryButton onClick={() => router.push("/")}>Cancel</SecondaryButton>
-      {dashboard && (
-        <p className="tiny" style={{ textAlign: "center" }}>
-          {dashboard.label}
-        </p>
-      )}
     </main>
   );
 }
