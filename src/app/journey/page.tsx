@@ -12,16 +12,10 @@ import {
   type ConditionRangePreset,
 } from "@/lib/trends";
 import type { RebuildState, VitalsPeriod } from "@/lib/types";
-import {
-  VITALS_METRICS,
-  filledVitalsPointsInRange,
-  formatVitalsReading,
-  vitalsSorted,
-  type VitalsAxis,
-  type VitalsMetric,
-} from "@/lib/vitals";
+import { medicationAdherence } from "@/lib/medication-adherence";
+import { formatVitalsReading, vitalsSorted } from "@/lib/vitals";
 
-type ChartAxis = "scale" | "hours" | VitalsAxis;
+type ChartAxis = "scale" | "hours";
 
 const AXIS_SPECS: Record<
   ChartAxis,
@@ -29,8 +23,6 @@ const AXIS_SPECS: Record<
 > = {
   scale: { min: 1, max: 10, ticks: [1, 4, 7, 10] },
   hours: { min: 0, max: 14, ticks: [0, 7, 14] },
-  bp: { min: 60, max: 180, ticks: [60, 100, 140, 180] },
-  hr: { min: 40, max: 120, ticks: [40, 80, 120] },
 };
 
 function LineChartFrame({
@@ -358,126 +350,65 @@ function ConditionsChart({
   );
 }
 
-function VitalsChart({
-  state,
-  today,
-  journeyStart,
-}: {
-  state: RebuildState;
-  today: string;
-  journeyStart: string;
-}) {
-  const [preset, setPreset] = useState<ConditionRangePreset>("30");
-  const [customStart, setCustomStart] = useState(journeyStart);
-  const [customEnd, setCustomEnd] = useState(today);
-  const [active, setActive] = useState<Record<VitalsMetric, boolean>>({
-    systolic: true,
-    diastolic: true,
-    heartRate: true,
-  });
 
-  function toggle(key: VitalsMetric) {
-    setActive((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
+function MedicationAdherenceCard({ today }: { today: string }) {
+  const { post, state } = useApp();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const adherence = useMemo(
+    () => medicationAdherence(state, today),
+    [state, today],
+  );
 
-  function selectPreset(next: ConditionRangePreset) {
-    setPreset(next);
-    if (next === "custom") {
-      const bounds = resolveConditionRange(preset, journeyStart, today, {
-        start: customStart,
-        end: customEnd,
+  async function tookIt() {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/support", {
+        date: today,
+        supportType: "medication",
+        completed: true,
       });
-      setCustomStart(bounds.start);
-      setCustomEnd(bounds.end);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save");
+    } finally {
+      setBusy(false);
     }
   }
 
-  const range = useMemo(
-    () =>
-      resolveConditionRange(
-        preset,
-        journeyStart,
-        today,
-        preset === "custom" ? { start: customStart, end: customEnd } : undefined,
-      ),
-    [preset, journeyStart, today, customStart, customEnd],
-  );
-
-  const points = useMemo(
-    () => filledVitalsPointsInRange(state, range.start, range.end),
-    [state, range.start, range.end],
-  );
-
-  const series = VITALS_METRICS.filter((m) => active[m.key]).map((m) => ({
-    key: m.key,
-    color: m.color,
-    axis: m.axis as ChartAxis,
-    values: points.map((p) => p[m.key]),
-  }));
-
   return (
-    <div className="trends">
-      <div className="trend-range-toggles" role="group" aria-label="Vitals range">
-        {RANGE_OPTIONS.map((option) => (
-          <button
-            key={option.key}
-            type="button"
-            className={
-              preset === option.key
-                ? "trend-range-toggle on"
-                : "trend-range-toggle"
-            }
-            onClick={() => selectPreset(option.key)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-      {preset === "custom" && (
-        <div className="trend-custom-range">
-          <label className="trend-custom-field">
-            <span className="field-label">From</span>
-            <input
-              type="date"
-              value={customStart}
-              min={journeyStart}
-              max={customEnd}
-              onChange={(e) => setCustomStart(e.target.value)}
-            />
-          </label>
-          <label className="trend-custom-field">
-            <span className="field-label">To</span>
-            <input
-              type="date"
-              value={customEnd}
-              min={customStart}
-              max={today}
-              onChange={(e) => setCustomEnd(e.target.value)}
-            />
-          </label>
-        </div>
+    <div className="med-adherence">
+      {adherence.percent != null ? (
+        <>
+          <p className="med-adherence-pct">
+            <span className="med-adherence-num">{adherence.percent}%</span>
+            <span className="med-adherence-unit"> days covered</span>
+          </p>
+          <p className="muted med-adherence-detail">
+            {adherence.daysCovered} of {adherence.daysElapsed} days since{" "}
+            {formatTrendDate(adherence.firstDoseDate!)} — daily reminder to take
+            it.
+          </p>
+        </>
+      ) : (
+        <p className="muted med-adherence-detail">
+          {adherence.configured
+            ? "Log the first dose to start your adherence % — one tap per day."
+            : "Turn on Medication in Settings → Supports to track adherence here."}
+        </p>
       )}
-      <div className="trend-toggles">
-        {VITALS_METRICS.map((m) => (
-          <button
-            key={m.key}
-            type="button"
-            className={active[m.key] ? "trend-toggle on" : "trend-toggle"}
-            style={{ ["--trend" as string]: m.color }}
-            onClick={() => toggle(m.key)}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
-      <LineChartFrame
-        points={points}
-        series={series}
-        rangeStart={points[0]?.date ?? range.start}
-        rangeEnd={points[points.length - 1]?.date ?? range.end}
-        emptyMessage="Log a reading to see vitals over time."
-        footer="Systolic / diastolic (mmHg) · HR (bpm). Neutral log — no targets."
-      />
+
+      {error && <p className="form-error">{error}</p>}
+
+      {adherence.configured && (
+        adherence.takenToday ? (
+          <p className="med-adherence-done">Taken today</p>
+        ) : (
+          <PrimaryButton onClick={() => void tookIt()} disabled={busy}>
+            {busy ? "Saving…" : "Took it today"}
+          </PrimaryButton>
+        )
+      )}
     </div>
   );
 }
@@ -493,7 +424,7 @@ function VitalsLogCard({ today }: { today: string }) {
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
 
-  const recent = useMemo(() => vitalsSorted(state).slice(0, 8), [state]);
+  const recent = useMemo(() => vitalsSorted(state).slice(0, 40), [state]);
 
   async function save() {
     setBusy(true);
@@ -667,21 +598,15 @@ export default function JourneyPage() {
       </header>
 
       <section className="panel">
-        <p className="eyebrow">Over time</p>
-        <h2 style={{ marginBottom: 10 }}>Blood pressure</h2>
-        {today && <VitalsLogCard today={today} />}
+        <p className="eyebrow">Daily reminder</p>
+        <h2 style={{ marginBottom: 10 }}>Medication adherence</h2>
+        {today && <MedicationAdherenceCard today={today} />}
       </section>
 
       <section className="panel">
-        <p className="eyebrow">Over time</p>
-        <h2 style={{ marginBottom: 10 }}>Vitals</h2>
-        {today && journeyStart && (
-          <VitalsChart
-            state={state}
-            today={today}
-            journeyStart={journeyStart}
-          />
-        )}
+        <p className="eyebrow">Log</p>
+        <h2 style={{ marginBottom: 10 }}>Blood pressure</h2>
+        {today && <VitalsLogCard today={today} />}
       </section>
 
       <section className="panel">
