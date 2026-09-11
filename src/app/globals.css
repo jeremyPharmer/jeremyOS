@@ -5268,6 +5268,46 @@ button.check-item-btn:disabled {
   color: var(--danger);
 }
 
+/* RB-031 — Journey medication adherence */
+.med-adherence {
+  display: grid;
+  gap: 12px;
+}
+
+.med-adherence-pct {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.med-adherence-num {
+  font-size: clamp(2.1rem, 8vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.med-adherence-unit {
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.med-adherence-detail {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.med-adherence-done {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 .podcast-card h2 {
   margin: 0;
   font-size: 1.35rem;

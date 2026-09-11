@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-023 |
-| Rank | 28 |
+| Rank | 29 |
 | Priority | P1 |
 | Status | Done |
 | Effort | M |
