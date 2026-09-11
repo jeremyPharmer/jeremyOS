@@ -274,34 +274,15 @@ function EveningPageInner() {
                     ))}
                   </ul>
                 ) : null}
+                {section.key === "journal" && closed.photoDataUrl ? (
+                  <div className="photo-subtle-preview" style={{ marginTop: 12 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={closed.photoDataUrl} alt="Attached photo" />
+                  </div>
+                ) : null}
               </article>
             ))}
           </section>
-        ) : null}
-
-        {closed.headline ? (
-          <div className="panel">
-            <p className="tiny" style={{ margin: "0 0 6px" }}>
-              Your headline
-            </p>
-            <p style={{ margin: 0, fontSize: "1.15rem" }}>
-              &ldquo;{closed.headline}&rdquo;
-            </p>
-            {closed.summary ? (
-              <p
-                className="muted"
-                style={{ margin: "10px 0 0", lineHeight: 1.45 }}
-              >
-                {closed.summary}
-              </p>
-            ) : null}
-            {closed.photoDataUrl ? (
-              <div className="photo-subtle-preview" style={{ marginTop: 12 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={closed.photoDataUrl} alt="Attached photo" />
-              </div>
-            ) : null}
-          </div>
         ) : null}
 
         <section className="panel evening-news" aria-live="polite">
