@@ -58,8 +58,16 @@ export type MorningBriefing = {
   tasks: string;
   freeTime: string;
   suggestions: GapSuggestion[];
+  /** Soft one-liner: how you feel + weather (secondary). */
+  opener: string;
+  /** Conversational calendar lead + event lines. */
+  calendarStory: { lead: string; items: string[] };
+  /** Open windows + task placement — co-primary with calendar. */
+  planStory: { lead: string; items: string[] };
+  /** Light aside for leftover tasks not placed into a window. */
+  leftoverNote?: string;
   sections: BriefingSection[];
-  /** @deprecated prefer sections */
+  /** @deprecated prefer narrative fields / sections */
   paragraphs: string[];
 };
 
@@ -190,14 +198,18 @@ function freeTimeSection(gaps: OpenGap[]): {
   if (gaps.length === 0) {
     return { body: "Packed from 8 AM to 9 PM — little open runway." };
   }
-  const items = gaps.slice(0, 3).map((g) => {
-    const span =
-      g.minutes >= 60
-        ? `${Math.round(g.minutes / 60)}h`
-        : `${g.minutes}m`;
-    return `${formatTimelineHour(g.startMin)}–${formatTimelineHour(g.endMin)} · ${span}`;
-  });
+  const items = gaps.slice(0, 4).map(
+    (g) =>
+      `${formatTimelineHour(g.startMin)}–${formatTimelineHour(g.endMin)}`,
+  );
   return { items };
+}
+
+function gapSpanWords(minutes: number): string {
+  if (minutes >= 150) return "a long stretch";
+  if (minutes >= 90) return "a solid block";
+  if (minutes >= 60) return "about an hour";
+  return "a short pocket";
 }
 
 /**
@@ -233,6 +245,98 @@ export function suggestTasksForGaps(
   return out;
 }
 
+function calendarStoryFrom(
+  events: BriefingEvent[],
+  cal: { body?: string; items?: string[] },
+): { lead: string; items: string[] } {
+  if (events.length === 0) {
+    return {
+      lead: "The calendar is clear — the day is yours to shape.",
+      items: [],
+    };
+  }
+  const timed = events.filter((e) => !e.allDay && e.startTime !== "All day");
+  const allDay = events.filter((e) => e.allDay || e.startTime === "All day");
+  const n = timed.length + allDay.length;
+  const lead =
+    n === 1
+      ? "One thing anchors the day:"
+      : n <= 3
+        ? `A few anchors on the calendar (${n}):`
+        : `Here’s the spine of the day — ${n} things on the books:`;
+  return { lead, items: cal.items ?? [] };
+}
+
+function planStoryFrom(
+  gaps: OpenGap[],
+  suggestions: GapSuggestion[],
+): { lead: string; items: string[] } {
+  if (suggestions.length > 0) {
+    const lead =
+      suggestions.length === 1
+        ? "One open window looks useful:"
+        : "Here’s where you could fit the other work:";
+    return {
+      lead,
+      items: suggestions.map((s) => {
+        const gap = gaps.find(
+          (g) =>
+            `${formatTimelineHour(g.startMin)}–${formatTimelineHour(g.endMin)}` ===
+            s.gapLabel,
+        );
+        const feel = gap ? gapSpanWords(gap.minutes) : "open time";
+        return `${s.gapLabel} — ${feel} for “${s.taskLabel}”.`;
+      }),
+    };
+  }
+  if (gaps.length === 0) {
+    return {
+      lead: "The day is packed — protect the seams between meetings.",
+      items: [],
+    };
+  }
+  return {
+    lead: "Open air on the clock — nothing assigned yet:",
+    items: gaps
+      .slice(0, 4)
+      .map(
+        (g) =>
+          `${formatTimelineHour(g.startMin)}–${formatTimelineHour(g.endMin)} — ${gapSpanWords(g.minutes)}.`,
+      ),
+  };
+}
+
+function leftoverNoteFrom(
+  tasks: BriefingTask[],
+  suggestions: GapSuggestion[],
+): string | undefined {
+  const placed = new Set(suggestions.map((s) => s.taskId));
+  const todayOpen = tasks.filter((t) => !t.snoozedAhead && !t.time);
+  const leftover = todayOpen.filter((t) => !placed.has(t.id));
+  const timed = tasks.filter((t) => !t.snoozedAhead && t.time);
+  const bits: string[] = [];
+  if (timed.length > 0) {
+    bits.push(
+      timed.length === 1
+        ? `Already timed: ${timed[0]!.label}`
+        : `${timed.length} tasks already have a clock time`,
+    );
+  }
+  if (leftover.length > 0) {
+    const names = leftover
+      .slice(0, 3)
+      .map((t) => t.label)
+      .join(", ");
+    bits.push(
+      leftover.length <= 3
+        ? `Still loose on the list: ${names}`
+        : `Still loose on the list: ${names}, +${leftover.length - 3} more`,
+    );
+  }
+  if (bits.length === 0) return undefined;
+  return bits.join(". ") + ".";
+}
+
 export function buildMorningBriefing(input: {
   scores: BriefingScores;
   weather: BriefingWeather;
@@ -263,50 +367,49 @@ export function buildMorningBriefing(input: {
       ? `Open: ${free.items.join("; ")}.`
       : "Little open time.");
 
+  const opener = `${feeling.replace(/\.$/, "")}. ${weather}`;
+  const calendarStory = calendarStoryFrom(input.events, cal);
+  const planStory = planStoryFrom(gaps, suggestions);
+  const leftoverNote = leftoverNoteFrom(input.tasks, suggestions);
+
+  // Conversational board: calendar + plan first; feeling/weather only as light aside.
   const sections: BriefingSection[] = [
-    { key: "you", label: "You", body: feeling },
-    { key: "weather", label: "Weather", body: weather },
     {
       key: "calendar",
-      label: "Calendar",
-      body: cal.body,
-      items: cal.items,
+      label: "On the calendar",
+      body: calendarStory.items.length === 0 ? calendarStory.lead : undefined,
+      items:
+        calendarStory.items.length > 0
+          ? [calendarStory.lead, ...calendarStory.items]
+          : undefined,
     },
     {
-      key: "tasks",
-      label: "Tasks",
-      body: taskBlock.body,
-      items: taskBlock.items,
-    },
-    {
-      key: "open",
-      label: "Open time",
-      body: free.body,
-      items: free.items,
+      key: "plan",
+      label: "When you could do the rest",
+      body: planStory.items.length === 0 ? planStory.lead : undefined,
+      items:
+        planStory.items.length > 0
+          ? [planStory.lead, ...planStory.items]
+          : undefined,
     },
   ];
-
-  if (suggestions.length > 0) {
-    sections.push({
-      key: "try",
-      label: "Try here",
-      items: suggestions.map(
-        (s) => `${s.gapLabel} · ${s.taskLabel}`,
-      ),
-    });
+  if (leftoverNote) {
+    sections.push({ key: "aside", label: "Also on the list", body: leftoverNote });
   }
+  sections.push({
+    key: "pulse",
+    label: "Quick pulse",
+    body: opener,
+  });
 
-  const paragraphs = [feeling, weather, calendar, tasks, freeTime];
-  if (suggestions.length > 0) {
-    paragraphs.push(
-      suggestions
-        .map(
-          (s) =>
-            `${s.gapLabel} looks open — good window for “${s.taskLabel}”.`,
-        )
-        .join(" "),
-    );
-  }
+  const paragraphs = [
+    calendarStory.lead,
+    ...calendarStory.items,
+    planStory.lead,
+    ...planStory.items,
+  ];
+  if (leftoverNote) paragraphs.push(leftoverNote);
+  paragraphs.push(opener);
 
   return {
     feeling,
@@ -315,6 +418,10 @@ export function buildMorningBriefing(input: {
     tasks,
     freeTime,
     suggestions,
+    opener,
+    calendarStory,
+    planStory,
+    leftoverNote,
     sections,
     paragraphs,
   };
