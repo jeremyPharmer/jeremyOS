@@ -2,11 +2,11 @@
 
 Index of all product items. Canonical detail lives in `product/items/`.
 
-Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Journey nav label kept; craving stats / Home craving CTA cut (**RB-020**; was briefly RB-017 on the EA branch — remapped after main assigned RB-017–019 to cameras/workout/recipes); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done). **Task groups + calendar M/D** locked (**RB-026**). **Morning day-start briefing** locked (**RB-027**). **Journey vitals BP+HR** locked (**RB-028**).
+Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Journey nav label kept; craving stats / Home craving CTA cut (**RB-020**; was briefly RB-017 on the EA branch — remapped after main assigned RB-017–019 to cameras/workout/recipes); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done). **Task groups + calendar M/D** locked (**RB-026**). **Morning day-start briefing** shipped (**RB-027** Done); **conversational calendar-first iterate** locked (**RB-029**). **Journey vitals BP+HR** locked (**RB-028**).
 
 **Ranking rule:** lower rank number = higher priority. Rank is the source of truth.
 
-Last updated: 2026-09-10
+Last updated: 2026-09-11
 
 | Rank | ID | Item | Priority | Status | Effort | Target due | Milestone | File |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -14,7 +14,7 @@ Last updated: 2026-09-10
 | 2 | RB-013 | Personal OS north star (cut bloat) | P0 | Ready | S | TBD | v1 | [items/personal-os-north-star.md](./items/personal-os-north-star.md) |
 | 3 | RB-014 | To-do lists (first-class) | P0 | Ready | L | TBD | v1 | [items/todo-lists.md](./items/todo-lists.md) |
 | 4 | RB-026 | Task groups + colors & calendar M/D | P0 | In Progress | M | TBD | v1 | [items/task-groups-calendar-md-labels.md](./items/task-groups-calendar-md-labels.md) |
-| 5 | RB-027 | Redesigned morning day-start (check-in + briefing) | P0 | Done | M | TBD | v1 | [items/morning-day-start-briefing.md](./items/morning-day-start-briefing.md) |
+| 5 | RB-029 | Conversational morning briefing (calendar-first) | P0 | Ready | S | TBD | v1.x | [items/morning-briefing-conversational.md](./items/morning-briefing-conversational.md) |
 | 6 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD | v1 | [items/five-year-journal-ux.md](./items/five-year-journal-ux.md) |
 | 7 | RB-021 | Journal photos (attach + paperclip) | P1 | Backlog | S | TBD | v1.x | [items/journal-photos.md](./items/journal-photos.md) |
 | 8 | RB-022 | Journal edit, star & month calendar | P0 | In Progress | M | TBD | v1.x | [items/journal-edit-star-calendar.md](./items/journal-edit-star-calendar.md) |
@@ -37,17 +37,18 @@ Last updated: 2026-09-10
 | 25 | RB-007 | Accounts + trail onboarding (multi-user) | P0 | Done | XL | TBD | v1 | [items/account-creation-onboarding.md](./items/account-creation-onboarding.md) |
 | 26 | RB-020 | Drop craving stats + Home craving CTA | P0 | Done | XS | TBD | v1 | [items/drop-craving-stats-home-cta.md](./items/drop-craving-stats-home-cta.md) |
 | 27 | RB-023 | Calendar: iCal + work Google (ICS) | P1 | Done | M | TBD | v1.x | [items/calendar-ical-google.md](./items/calendar-ical-google.md) |
-| 28 | RB-009 | Recovery patterns (Journey) — craving analytics | P2 | Won't Do | M | TBD | later | [items/recovery-patterns-insights.md](./items/recovery-patterns-insights.md) |
+| 28 | RB-027 | Redesigned morning day-start (check-in + briefing) | P0 | Done | M | TBD | v1 | [items/morning-day-start-briefing.md](./items/morning-day-start-briefing.md) |
+| 29 | RB-009 | Recovery patterns (Journey) — craving analytics | P2 | Won't Do | M | TBD | later | [items/recovery-patterns-insights.md](./items/recovery-patterns-insights.md) |
 
 ## Status counts
 
 | Status | Count |
 | --- | --- |
 | Backlog | 14 |
-| Ready | 4 |
+| Ready | 5 |
 | In Progress | 6 |
 | Blocked | 0 |
-| Done | 3 |
+| Done | 5 |
 | Won't Do | 1 |
 
 ## Intake
