@@ -58,7 +58,7 @@ function scoresFromMorning(m: {
 }
 
 export default function MorningPage() {
-  const { post, state, dashboard, today, refresh } = useApp();
+  const { post, state, today, refresh } = useApp();
   const router = useRouter();
   const timezone = state.profile?.timezone ?? "America/New_York";
 
@@ -221,9 +221,20 @@ export default function MorningPage() {
 
   if (morningDone) {
     return (
-      <main className="stack fade-in morning-brief">
+      <main className="stack fade-in morning-brief morning-brief-converse">
+        <header className="morning-brief-header">
+          <p className="eyebrow">Morning brief</p>
+          <h1 className="morning-brief-title">Here&apos;s the shape of today</h1>
+        </header>
+
+        {shownIntention ? (
+          <p className="morning-brief-focus morning-brief-focus-soft">
+            You&apos;re aiming to do well at: <strong>{shownIntention}</strong>
+          </p>
+        ) : null}
+
         {quote ? (
-          <blockquote className="morning-brief-quote">
+          <blockquote className="morning-brief-quote morning-brief-quote-soft">
             <p className="morning-brief-quote-text">&ldquo;{quote.text}&rdquo;</p>
             <footer className="morning-brief-quote-attr">
               — {quote.attribution}
@@ -231,39 +242,43 @@ export default function MorningPage() {
           </blockquote>
         ) : null}
 
-        <header className="morning-brief-header">
-          <p className="eyebrow">Day start</p>
-          <h1 className="morning-brief-title">Here&apos;s your day</h1>
-        </header>
-
-        {shownIntention ? (
-          <p className="morning-brief-focus">
-            <span className="morning-brief-focus-label">Today</span>
-            {shownIntention}
-          </p>
-        ) : null}
-
-        <section className="morning-brief-board" aria-live="polite">
+        <section className="morning-brief-letter" aria-live="polite">
           {briefingLoading && !weather && events.length === 0 ? (
             <p className="muted morning-brief-loading">
-              Gathering today&apos;s picture…
+              Pulling calendar and open windows…
             </p>
           ) : (
-            briefing.sections.map((section) => (
-              <article key={section.key} className="morning-brief-block">
-                <h2 className="morning-brief-label">{section.label}</h2>
-                {section.body ? (
-                  <p className="morning-brief-copy">{section.body}</p>
-                ) : null}
-                {section.items && section.items.length > 0 ? (
-                  <ul className="morning-brief-list">
-                    {section.items.map((item) => (
+            <>
+              <article className="morning-brief-chapter">
+                <p className="morning-brief-lead">
+                  {briefing.calendarStory.lead}
+                </p>
+                {briefing.calendarStory.items.length > 0 ? (
+                  <ul className="morning-brief-agenda">
+                    {briefing.calendarStory.items.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
                 ) : null}
               </article>
-            ))
+
+              <article className="morning-brief-chapter morning-brief-chapter-plan">
+                <p className="morning-brief-lead">{briefing.planStory.lead}</p>
+                {briefing.planStory.items.length > 0 ? (
+                  <ul className="morning-brief-agenda morning-brief-agenda-plan">
+                    {briefing.planStory.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </article>
+
+              {briefing.leftoverNote ? (
+                <p className="morning-brief-aside">{briefing.leftoverNote}</p>
+              ) : null}
+
+              <p className="morning-brief-pulse">{briefing.opener}</p>
+            </>
           )}
         </section>
 
@@ -324,11 +339,6 @@ export default function MorningPage() {
         {busy ? "Saving…" : "Continue"}
       </PrimaryButton>
       <SecondaryButton onClick={() => router.push("/")}>Cancel</SecondaryButton>
-      {dashboard && (
-        <p className="tiny" style={{ textAlign: "center" }}>
-          {dashboard.label}
-        </p>
-      )}
     </main>
   );
 }
