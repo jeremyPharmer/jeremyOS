@@ -3111,6 +3111,95 @@ h2 {
   padding: 8px 0;
 }
 
+/* Evening close success — day recap + world news (RB-029) */
+.evening-recap {
+  gap: 16px;
+}
+
+.evening-recap-board {
+  display: grid;
+  gap: 0;
+}
+
+.evening-recap-summary {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.evening-recap-block {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.evening-recap-block:first-of-type {
+  margin-top: 8px;
+}
+
+.evening-recap-label {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.evening-recap-copy {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.evening-recap-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.evening-recap-list li {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.evening-news-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.evening-news-list li {
+  display: grid;
+  gap: 2px;
+}
+
+.evening-news-link,
+.evening-news-title {
+  font-size: 0.98rem;
+  line-height: 1.4;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 550;
+}
+
+.evening-news-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.evening-news-source {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .morning-brief-block {
   padding: 14px 0;
   border-top: 1px solid var(--line);
