@@ -57,8 +57,8 @@ Jeremy opens morning, taps a fast 1–10 check-in, and lands on a **day-start br
 
 - LLM / generative briefing copy (upgrade path after rules-based v1)
 - Morning interactive checklist (rely on Home tasks)
-- Wiring intention into evening close UI (capture is back; close consumption is follow-on)
-- Evening ritual redesign (separate; evening still elevated but not this item)
+- Wiring intention into evening close UI (capture is back; close consumption is follow-on — thin mention OK under **[RB-029](./evening-close-recap-news.md)**)
+- Evening close success redesign (day recap + world news + empty-quotes fix) — **[RB-029](./evening-close-recap-news.md)**
 - Broad task/calendar product work owned by RB-014 / RB-026
 - Agenda hours past 9PM when events run later — **related / in flight on a separate PR**; do not block this item on that ship, but briefing/calendar gap logic should tolerate late events once that lands
 
@@ -76,4 +76,5 @@ Jeremy opens morning, taps a fast 1–10 check-in, and lands on a **day-start br
 - **2026-09-10 follow-up:** drop trigger/concern field; restore intention (“one thing to do well”) for evening close; polish briefing layout into labeled sections.
 - Why rank **5 / P0:** morning/evening mood ritual is explicitly **elevated** in `PRODUCT_DECISIONS` and the JeremyOS north star; placed after framing (RB-012/013) and task foundation (RB-014/026) so briefing can lean on Home tasks + calendar without blocking rebrand.
 - Related (not this ID): extend Home agenda past 9PM when events run later — separate PR / branch; track as dependency note only.
+- **2026-09-11:** evening counterpart intake → **[RB-029](./evening-close-recap-news.md)** (close success = day recap + 3–5 news; fix empty Headline quotes; do not overload journal `oneLine`).
 - Supersedes prior morning copy that assumed post-check-in Today’s Rebuild / Items checklist as the primary morning destination.
