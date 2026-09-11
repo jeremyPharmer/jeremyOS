@@ -78,7 +78,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 9. LLM / generative morning briefing — after [RB-029](./items/morning-briefing-conversational.md) conversational rules-based iterate (parent [RB-027](./items/morning-day-start-briefing.md) Done).
 
 **Won't Do:** RB-009 recovery patterns / craving analytics (founder: drop craving stats).  
-**Done:** RB-007 accounts + onboarding; **RB-020** drop craving stats + Home craving CTA; **RB-023** calendar iCal + Google (Home agenda + Settings; superseded env/Today’s Build PR #70 approach).
+**Done:** RB-007 accounts + onboarding; **RB-020** drop craving stats + Home craving CTA; **RB-023** calendar iCal + Google (Home agenda + Settings; superseded env/Today’s Build PR #70 approach); **RB-027** redesigned morning day-start (iterate = RB-029); **RB-028** Journey vitals BP+HR.
 
 ## Timeline (effort view)
 
