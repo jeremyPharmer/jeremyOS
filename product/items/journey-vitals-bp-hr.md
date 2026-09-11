@@ -17,7 +17,9 @@ Jeremy wants to log **blood pressure** and **heart rate** as objective vitals on
 
 ## Outcome
 
-On Journey, Jeremy can log BP + HR anytime (with AM/PM), browse past logs, and see a **neutral** Vitals chart/trends surface — distinct from Conditions. No medical advice or target bands in v1.
+On Journey, Jeremy can log BP + HR anytime (with AM/PM) and browse past logs — distinct from Conditions. No medical advice or target bands in v1.
+
+**Follow-on (2026-09-11):** Vitals **chart** removed; list-only + medication adherence card → [RB-031](./journey-med-adherence-drop-vitals-chart.md).
 
 ## Scope (v1)
 
@@ -47,5 +49,6 @@ Locked **2026-09-10**:
 ## Notes
 
 - Intake **2026-09-10** — six locked decisions above; founder ask.
-- Rank **13** / **P1** — health + Journey adjacent; sits with personal health tools ahead of [RB-018](./workout-tracker.md); after cameras [RB-017](./home-cameras-reolink.md) and recovery content [RB-005](./recovery-content-offers.md). Does not displace P0 EA / journal / morning work.
+- Rank **14** / **P1** — health + Journey adjacent; sits with personal health tools ahead of [RB-018](./workout-tracker.md); after cameras [RB-017](./home-cameras-reolink.md) and recovery content [RB-005](./recovery-content-offers.md). Does not displace P0 EA / journal / morning work.
 - Distinct from morning subjective metrics ([RB-027](./morning-day-start-briefing.md)) — vitals are Journey-only objective logs.
+- **2026-09-11:** Founder cut chart — keep list; adherence card in [RB-031](./journey-med-adherence-drop-vitals-chart.md). Scope item 5 (“Separate Vitals chart”) remains historical for what shipped; ongoing product is list-only per RB-031.

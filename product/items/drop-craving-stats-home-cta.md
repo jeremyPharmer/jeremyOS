@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-020 |
-| Rank | 27 |
+| Rank | 28 |
 | Priority | P0 |
 | Status | Done |
 | Effort | XS |
