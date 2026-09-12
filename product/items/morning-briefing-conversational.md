@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-030 |
-| Rank | 30 |
+| Rank | 8 |
 | Priority | P0 |
 | Status | Done |
 | Effort | S |
@@ -62,3 +62,4 @@ After morning check-in, Jeremy gets a **conversational day-start briefing** that
 - Why rank was **5 / P0** at intake (now Done / parked with other shipped rituals): same elevated morning ritual as RB-027; replaces Done RB-027 in the active Now slot so the iterate ships before lower personal-tool work.
 - Effort **S:** layout + copy priority rewrite on existing rules-based briefing; not a new morning system.
 - Related: eng morning check-in polish (scales / preselect) is adjacent chrome — do not conflate with this briefing hierarchy change.
+- **2026-09-12:** Active Open/Close Daily briefing twin redesign is **[RB-032](./daily-briefing-open-close-redesign.md)** (rank 5) — do not reopen this item; iterate there.
