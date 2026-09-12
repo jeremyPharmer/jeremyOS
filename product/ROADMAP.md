@@ -31,12 +31,12 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 | 2 | RB-013 | Personal OS north star (cut bloat) | P0 | Ready | S | TBD |
 | 3 | RB-014 | To-do lists (first-class) | P0 | Ready | L | TBD |
 | 4 | RB-026 | Task groups + colors & calendar M/D | P0 | In Progress | M | TBD |
-| 5 | RB-032 | Daily briefing: Open / Close redesign | P0 | Done | L | TBD |
-| 6 | RB-027 | Redesigned morning day-start (check-in + briefing) | P0 | Done | M | TBD |
-| 7 | RB-029 | Evening close success: day recap + world news | P0 | Done | M | TBD |
-| 8 | RB-030 | Conversational morning briefing (calendar-first) | P0 | Done | S | TBD |
-| 9 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD |
-| 10 | RB-021 | Journal photos (attach + paperclip) | P1 | Backlog | S | TBD |
+| 5 | RB-033 | Track over time (task adherence on Journey) | P0 | In Progress | S | TBD |
+| 6 | RB-032 | Daily briefing: Open / Close redesign | P0 | Done | L | TBD |
+| 7 | RB-027 | Redesigned morning day-start (check-in + briefing) | P0 | Done | M | TBD |
+| 8 | RB-029 | Evening close success: day recap + world news | P0 | Done | M | TBD |
+| 9 | RB-030 | Conversational morning briefing (calendar-first) | P0 | Done | S | TBD |
+| 10 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD |
 
 ## Now / Next / Later
 
@@ -46,12 +46,13 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 2. **RB-013 — Personal OS north star** — enforce EA / personal-use build filter; ranking already reflects pivot. Detail: [`items/personal-os-north-star.md`](./items/personal-os-north-star.md).
 3. **RB-014 — To-do lists** — **scope locked 2026-08-31** (+ **2026-09-04**): Today’s Items (merge personal tasks + supports), **one Home banner / flat list** (no “Your tasks” sub-area), snooze/auto-roll, simple recurrence (+ 1st of month), master page (± nav tab); **no email**. Effort **L**. Detail: [`items/todo-lists.md`](./items/todo-lists.md).
 4. **RB-026 — Task groups + colors & calendar M/D** — **In Progress.** Scope locked 2026-09-08 (+ undated **No date**, Settings calendar→group): Home calendar **M/D**; fixed groups Real estate/Family/Home/Work (red/yellow/blue/green); mandatory group; Home flat open-only + color bar; Tasks page grouped open + forever completed under chevrons; **one first ship**. Effort **M**. Detail: [`items/task-groups-calendar-md-labels.md`](./items/task-groups-calendar-md-labels.md).
-5. **RB-032 — Daily briefing: Open / Close redesign** — **Done / shipped prod 2026-09-12.** Unify Open + Close into matching **Daily briefing** rituals; Home header Open/Close (grey out when done; **no** dismiss/skip); remove from Tasks Home; shared shell (check-in first, evening tap chips like morning); rich Open + Close newsletter twins (weather, this-day-in-history all years, top 5 news + Bills in season, expanded tasks no checkboxes, workout gaps + 7-day trends). Effort **L**. Iterates Done **RB-027 / RB-029 / RB-030**. Detail: [`items/daily-briefing-open-close-redesign.md`](./items/daily-briefing-open-close-redesign.md).
-6. **RB-027 — Redesigned morning day-start** — **Done.** Locked 2026-09-10: five metrics all **1–10** (sleep hours unified); tap-a-number (no sliders); intention kept; post-check-in **templated briefing**. Active iterate: **RB-032**. Detail: [`items/morning-day-start-briefing.md`](./items/morning-day-start-briefing.md).
-7. **RB-029 — Evening close success: day recap + world news** — **Done.** Success screen day recap + world news. Active iterate: **RB-032**. Detail: [`items/evening-close-recap-news.md`](./items/evening-close-recap-news.md).
-8. **RB-030 — Conversational morning briefing (calendar-first)** — **Done.** Conversational rules-based surface. Active iterate: **RB-032**. Detail: [`items/morning-briefing-conversational.md`](./items/morning-briefing-conversational.md).
-9. **RB-016 — Five-year / paper journal UX** — same calendar day across years; headline + short summary; journal vibes (not stacked cards). Detail: [`items/five-year-journal-ux.md`](./items/five-year-journal-ux.md). Distinct from RB-010 backfill integrity.
-10. **RB-021 — Journal photos (attach + paperclip)** — optional pics on journal/evening entries; paperclip (or similar) on year slots when a photo is present; tap to view; **reuse** existing photo infra. Detail: [`items/journal-photos.md`](./items/journal-photos.md).
+5. **RB-033 — Track over time (task adherence on Journey)** — **In Progress.** Repeat tasks: Track over time Yes/No; Journey shows adherence % since created. Effort **S**. Detail: [`items/task-track-over-time-adherence.md`](./items/task-track-over-time-adherence.md).
+6. **RB-032 — Daily briefing: Open / Close redesign** — **Done / shipped prod 2026-09-12.** Unify Open + Close into matching **Daily briefing** rituals; Home header Open/Close (grey out when done; **no** dismiss/skip); remove from Tasks Home; shared shell (check-in first, evening tap chips like morning); rich Open + Close newsletter twins (weather, this-day-in-history all years, top 5 news + Bills in season, expanded tasks no checkboxes, workout gaps + 7-day trends). Effort **L**. Iterates Done **RB-027 / RB-029 / RB-030**. Detail: [`items/daily-briefing-open-close-redesign.md`](./items/daily-briefing-open-close-redesign.md).
+7. **RB-027 — Redesigned morning day-start** — **Done.** Locked 2026-09-10: five metrics all **1–10** (sleep hours unified); tap-a-number (no sliders); intention kept; post-check-in **templated briefing**. Active iterate: **RB-032**. Detail: [`items/morning-day-start-briefing.md`](./items/morning-day-start-briefing.md).
+8. **RB-029 — Evening close success: day recap + world news** — **Done.** Success screen day recap + world news. Active iterate: **RB-032**. Detail: [`items/evening-close-recap-news.md`](./items/evening-close-recap-news.md).
+9. **RB-030 — Conversational morning briefing (calendar-first)** — **Done.** Conversational rules-based surface. Active iterate: **RB-032**. Detail: [`items/morning-briefing-conversational.md`](./items/morning-briefing-conversational.md).
+10. **RB-016 — Five-year / paper journal UX** — same calendar day across years; headline + short summary; journal vibes (not stacked cards). Detail: [`items/five-year-journal-ux.md`](./items/five-year-journal-ux.md). Distinct from RB-010 backfill integrity.
+11. **RB-021 — Journal photos (attach + paperclip)** — optional pics on journal/evening entries; paperclip (or similar) on year slots when a photo is present; tap to view; **reuse** existing photo infra. Detail: [`items/journal-photos.md`](./items/journal-photos.md).
 
 **Mid-flight (finish thin; do not expand):** RB-011 (fund auto-credit), RB-010 (journal backfill) — personal-tool integrity, ranks 22–23. Do **not** widen RB-010 into edit-past ([RB-022](./items/journal-edit-star-calendar.md)).
 

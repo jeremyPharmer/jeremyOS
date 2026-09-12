@@ -26,6 +26,8 @@ export type TodoComposerPayload = {
   group: TaskGroup;
   /** Always explicit so edit can clear “No due date”. */
   undated: boolean;
+  /** When repeating, log completions for Journey adherence (RB-032). */
+  trackOverTime: boolean;
 };
 
 type EndsMode = "never" | "on" | "after";
@@ -428,6 +430,9 @@ export function TodoComposer({
   const [time, setTime] = useState(initial?.time ?? "");
   const [hasTime, setHasTime] = useState(Boolean(initial?.time));
   const [repeats, setRepeats] = useState(initialRec.kind !== "none");
+  const [trackOverTime, setTrackOverTime] = useState(
+    Boolean(initial?.trackOverTime) && initialRec.kind !== "none",
+  );
   const [customFields, setCustomFields] = useState<CustomFields>(initialFields);
   const [customOpen, setCustomOpen] = useState(false);
   const [error, setError] = useState("");
@@ -462,6 +467,7 @@ export function TodoComposer({
 
   function setRepeatsNo() {
     setRepeats(false);
+    setTrackOverTime(false);
     setCustomOpen(false);
     setError("");
   }
@@ -497,6 +503,7 @@ export function TodoComposer({
       recurrence: undated ? { kind: "none" } : recurrence,
       group,
       undated,
+      trackOverTime: Boolean(repeats && !undated && trackOverTime),
     });
   }
 
@@ -630,6 +637,38 @@ export function TodoComposer({
                 <span className="todo-repeat-summary-edit">Edit</span>
               </button>
             )}
+          </div>
+          )}
+
+          {!undated && repeats && (
+          <div className="field todo-repeat-field">
+            <div className="field-label-row">
+              <span className="field-label">Track over time</span>
+              <div
+                className="todo-repeat-toggle compact"
+                role="group"
+                aria-label="Track over time"
+              >
+                <button
+                  type="button"
+                  className={!trackOverTime ? "todo-repeat-seg on" : "todo-repeat-seg"}
+                  aria-pressed={!trackOverTime}
+                  disabled={busy}
+                  onClick={() => setTrackOverTime(false)}
+                >
+                  No
+                </button>
+                <button
+                  type="button"
+                  className={trackOverTime ? "todo-repeat-seg on" : "todo-repeat-seg"}
+                  aria-pressed={trackOverTime}
+                  disabled={busy}
+                  onClick={() => setTrackOverTime(true)}
+                >
+                  Yes
+                </button>
+              </div>
+            </div>
           </div>
           )}
 

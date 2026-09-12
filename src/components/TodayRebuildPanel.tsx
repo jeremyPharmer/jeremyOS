@@ -104,6 +104,7 @@ export function TodayRebuildPanel() {
         recurrence: payload.recurrence,
         group: payload.group,
         undated: payload.undated,
+        trackOverTime: payload.trackOverTime,
       });
       setAdding(false);
     } finally {

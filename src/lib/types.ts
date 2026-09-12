@@ -193,6 +193,14 @@ export type DayProvision = {
   group?: TaskGroup;
   /** No due date — listed under “No date” within group on Tasks page. */
   undated?: boolean;
+  /**
+   * When true (recurring tasks), log completions and show adherence % on Journey (RB-032).
+   */
+  trackOverTime?: boolean;
+  /** ISO timestamp when the task was created (or when Track over time was first enabled). */
+  createdAt?: string;
+  /** Distinct YYYY-MM-DD days this tracked task was completed (adherence numerator). */
+  completionDates?: string[];
 };
 
 export type EveningCheckIn = {

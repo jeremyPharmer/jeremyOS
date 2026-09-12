@@ -11,6 +11,21 @@ import type { TaskGroup } from "./task-groups";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
 
+function appendCompletionDate(item: DayProvision, day: string): string[] {
+  const prev = item.completionDates ?? [];
+  if (prev.includes(day)) return prev;
+  return [...prev, day].sort();
+}
+
+function removeCompletionDate(
+  item: DayProvision,
+  day: string | undefined,
+): string[] | undefined {
+  if (!day || !item.completionDates?.length) return item.completionDates;
+  const next = item.completionDates.filter((d) => d !== day);
+  return next.length ? next : undefined;
+}
+
 export const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 /** Single-letter labels for custom repeat-on row (Google Calendar style). */
@@ -387,12 +402,16 @@ export function completeTodo(
   nowIso: string,
 ): DayProvision {
   const rec = recurrenceOf(item);
+  const completionDates = item.trackOverTime
+    ? appendCompletionDate(item, today)
+    : item.completionDates;
   if (rec.kind === "none") {
     return {
       ...item,
       completed: true,
       completedAt: nowIso,
       lastCompletedOn: today,
+      ...(completionDates ? { completionDates } : {}),
     };
   }
   const nextCount = (item.repeatCount ?? 0) + 1;
@@ -404,6 +423,7 @@ export function completeTodo(
       completedAt: nowIso,
       lastCompletedOn: today,
       repeatCount: nextCount,
+      ...(completionDates ? { completionDates } : {}),
     };
   }
   return {
@@ -413,10 +433,14 @@ export function completeTodo(
     lastCompletedOn: today,
     date: nextDate,
     repeatCount: nextCount,
+    ...(completionDates ? { completionDates } : {}),
   };
 }
 
 export function undoCompleteTodo(item: DayProvision): DayProvision {
+  const completionDates = item.trackOverTime
+    ? removeCompletionDate(item, item.lastCompletedOn)
+    : item.completionDates;
   if (isRecurring(item) && item.lastCompletedOn) {
     return {
       ...item,
@@ -425,6 +449,7 @@ export function undoCompleteTodo(item: DayProvision): DayProvision {
       lastCompletedOn: undefined,
       completedAt: undefined,
       repeatCount: Math.max(0, (item.repeatCount ?? 1) - 1) || undefined,
+      completionDates,
     };
   }
   return {
@@ -432,6 +457,7 @@ export function undoCompleteTodo(item: DayProvision): DayProvision {
     completed: false,
     lastCompletedOn: undefined,
     completedAt: undefined,
+    completionDates,
   };
 }
 
@@ -540,6 +566,7 @@ export type TodoActionInput = {
   recurrence?: unknown;
   group?: unknown;
   undated?: boolean;
+  trackOverTime?: boolean;
 };
 
 export function applyTodoAction(
@@ -569,6 +596,8 @@ export function applyTodoAction(
       if (date < today) date = today;
     }
     const time = undated ? undefined : parseTime(body.time);
+    const trackOverTime =
+      !undated && recurrence.kind !== "none" && body.trackOverTime === true;
     const row: DayProvision = {
       id: newId("todo"),
       date,
@@ -578,6 +607,9 @@ export function applyTodoAction(
       group,
       ...(undated ? { undated: true } : {}),
       ...(time ? { time } : {}),
+      ...(trackOverTime
+        ? { trackOverTime: true, createdAt: nowIso, completionDates: [] }
+        : {}),
     };
     return { ...next, dayProvisions: [...items, row] };
   }
@@ -628,6 +660,12 @@ export function applyTodoAction(
           (() => {
             throw Object.assign(new Error("Pick a group"), { status: 400 });
           })();
+    const trackOverTime =
+      body.trackOverTime !== undefined
+        ? body.trackOverTime === true && !undated && recurrence.kind !== "none"
+        : Boolean(current.trackOverTime) &&
+          !undated &&
+          recurrence.kind !== "none";
     items[index] = {
       ...current,
       label,
@@ -637,8 +675,18 @@ export function applyTodoAction(
       group,
       undated: undated || undefined,
       completed: recurrence.kind !== "none" ? false : current.completed,
+      trackOverTime: trackOverTime || undefined,
+      createdAt: trackOverTime
+        ? current.createdAt ?? nowIso
+        : current.createdAt,
+      completionDates: trackOverTime
+        ? current.completionDates ?? []
+        : current.completionDates,
     };
     if (!undated) delete items[index].undated;
+    if (!trackOverTime) {
+      delete items[index].trackOverTime;
+    }
     return { ...next, dayProvisions: items };
   }
 
