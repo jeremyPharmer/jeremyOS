@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-029 |
-| Rank | 5 |
+| Rank | 7 |
 | Priority | P0 |
 | Status | Done |
 | Effort | M |
@@ -48,3 +48,4 @@ After evening close, Jeremy lands on a clear **day recap** plus a short **world 
 - Intake **2026-09-11** founder (Jeremy) + screenshot of Day closed / Remember with broken Headline quotes; eng exploration confirmed save OK / local clear bug; **no existing news feature**; morning has rules-based briefing (RB-027); evening intention wiring was deferred.
 - Why rank **6 / P0:** founder-visible **daily-loop** breakage every close + natural **evening counterpart** to shipped morning briefing (RB-027 Done). Placed after framing / todos / task groups / morning; ahead of the journal polish cluster so the close ritual stops looking broken every night.
 - Related: [RB-027](./morning-day-start-briefing.md) (morning pair), [RB-016](./five-year-journal-ux.md) (headline stays personal), [RB-010](./backfill-missed-evening-journal-close.md) (evening path integrity — distinct).
+- **2026-09-12:** Active Open/Close Daily briefing twin redesign is **[RB-032](./daily-briefing-open-close-redesign.md)** (rank 5) — do not reopen this item; iterate there.

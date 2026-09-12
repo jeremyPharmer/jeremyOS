@@ -3,7 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
+import {
+  BodyMind,
+  BriefingTasks,
+  ThisDayInHistory,
+  WeatherExpanded,
+  WorldHeadlines,
+  type BriefingTaskRow,
+} from "@/components/DailyBriefingSections";
 import { PrimaryButton, SecondaryButton, TapScale } from "@/components/ui";
+import {
+  sevenDayTrendInsight,
+  thisDayInHistory,
+  workoutGapInsight,
+} from "@/lib/briefing";
 import {
   buildMorningBriefing,
   type BriefingEvent,
@@ -11,8 +24,10 @@ import {
   type BriefingTask,
   type BriefingWeather,
 } from "@/lib/morning-briefing";
+import type { NewsHeadline } from "@/lib/news";
 import { quoteById } from "@/lib/quotes";
 import { openTodosOn, upcomingTodos } from "@/lib/todos";
+import type { DailyForecast } from "@/lib/weather";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
 
 const COORDS_KEY = "rebuild-weather-coords";
@@ -72,8 +87,10 @@ export default function MorningPage() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
 
-  const [weather, setWeather] = useState<BriefingWeather>(null);
+  const [weatherDays, setWeatherDays] = useState<DailyForecast[]>([]);
+  const [weatherLocation, setWeatherLocation] = useState("");
   const [events, setEvents] = useState<BriefingEvent[]>([]);
+  const [news, setNews] = useState<NewsHeadline[]>([]);
   const [briefingLoading, setBriefingLoading] = useState(false);
 
   const todayMorning = state.mornings.find((m) => m.date === today);
@@ -104,6 +121,39 @@ export default function MorningPage() {
     return [...open, ...snoozed];
   }, [state.dayProvisions, today]);
 
+  const expandedTasks: BriefingTaskRow[] = useMemo(() => {
+    const open = openTodosOn(state.dayProvisions ?? [], today).map((t) => ({
+      id: t.id,
+      label: t.label,
+      time: t.time,
+      group: t.group,
+      meta: undefined as string | undefined,
+    }));
+    const ahead = upcomingTodos(state.dayProvisions ?? [], today)
+      .slice(0, 6)
+      .map((t) => ({
+        id: t.id,
+        label: t.label,
+        time: t.time,
+        group: t.group,
+        meta: "Ahead",
+      }));
+    return [...open, ...ahead];
+  }, [state.dayProvisions, today]);
+
+  const historyEntries = useMemo(
+    () => thisDayInHistory(state.journals ?? [], today),
+    [state.journals, today],
+  );
+  const workoutGaps = useMemo(
+    () => workoutGapInsight(state.workouts, today),
+    [state.workouts, today],
+  );
+  const trends = useMemo(
+    () => sevenDayTrendInsight(state, today),
+    [state, today],
+  );
+
   const scalesReady =
     sleepHours != null &&
     sleepQuality != null &&
@@ -131,15 +181,26 @@ export default function MorningPage() {
     };
   }, [todayMorning, scalesReady, sleepHours, sleepQuality, mood, energy, stress]);
 
+  const thinWeather: BriefingWeather = useMemo(() => {
+    const day = weatherDays.find((d) => d.date === today) ?? weatherDays[0];
+    if (!day) return null;
+    return {
+      label: day.label,
+      highF: day.highF,
+      lowF: day.lowF,
+      precipChancePct: day.precipChancePct,
+    };
+  }, [weatherDays, today]);
+
   const briefing = useMemo(
     () =>
       buildMorningBriefing({
         scores: liveScores,
-        weather,
+        weather: thinWeather,
         events,
         tasks: briefingTasks,
       }),
-    [liveScores, weather, events, briefingTasks],
+    [liveScores, thinWeather, events, briefingTasks],
   );
 
   useEffect(() => {
@@ -150,7 +211,7 @@ export default function MorningPage() {
       setBriefingLoading(true);
       try {
         const coords = readStoredCoords();
-        const weatherQs = new URLSearchParams();
+        const weatherQs = new URLSearchParams({ days: "5" });
         if (coords) {
           weatherQs.set("lat", String(coords.lat));
           weatherQs.set("lon", String(coords.lon));
@@ -158,32 +219,20 @@ export default function MorningPage() {
             weatherQs.set("label", coords.label);
           }
         }
-        const [weatherRes, calRes] = await Promise.all([
+        const [weatherRes, calRes, newsRes] = await Promise.all([
           fetch(`/api/weather?${weatherQs.toString()}`),
           fetch(`/api/calendar/work?date=${encodeURIComponent(today)}`),
+          fetch(`/api/news?date=${encodeURIComponent(today)}`),
         ]);
         if (cancelled) return;
 
         if (weatherRes.ok) {
           const data = (await weatherRes.json()) as {
-            days?: Array<{
-              date: string;
-              label: string;
-              highF: number;
-              lowF: number;
-              precipChancePct: number;
-            }>;
+            locationLabel?: string;
+            days?: DailyForecast[];
           };
-          const day =
-            data.days?.find((d) => d.date === today) ?? data.days?.[0];
-          if (day) {
-            setWeather({
-              label: day.label,
-              highF: day.highF,
-              lowF: day.lowF,
-              precipChancePct: day.precipChancePct,
-            });
-          }
+          setWeatherDays(data.days ?? []);
+          setWeatherLocation(data.locationLabel ?? "");
         }
 
         if (calRes.ok) {
@@ -199,6 +248,13 @@ export default function MorningPage() {
               allDay: e.allDay,
             })),
           );
+        }
+
+        if (newsRes.ok) {
+          const data = (await newsRes.json()) as {
+            headlines?: NewsHeadline[];
+          };
+          setNews((data.headlines ?? []).slice(0, 5));
         }
       } catch {
         /* briefing still works with partial context */
@@ -253,10 +309,10 @@ export default function MorningPage() {
 
   if (morningDone) {
     return (
-      <main className="stack fade-in morning-brief morning-brief-converse">
-        <header className="morning-brief-header">
-          <p className="eyebrow">Morning brief</p>
-          <h1 className="morning-brief-title">Here&apos;s the shape of today</h1>
+      <main className="stack fade-in daily-briefing morning-brief">
+        <header className="daily-briefing-header">
+          <p className="eyebrow">Daily briefing</p>
+          <h1 className="daily-briefing-title">Open</h1>
         </header>
 
         {shownIntention ? (
@@ -274,8 +330,16 @@ export default function MorningPage() {
           </blockquote>
         ) : null}
 
+        <WeatherExpanded
+          mode="today"
+          locationLabel={weatherLocation}
+          days={weatherDays}
+          focusDate={today}
+          loading={briefingLoading}
+        />
+
         <section className="morning-brief-letter" aria-live="polite">
-          {briefingLoading && !weather && events.length === 0 ? (
+          {briefingLoading && events.length === 0 && !thinWeather ? (
             <p className="muted morning-brief-loading">
               Pulling calendar and open windows…
             </p>
@@ -314,6 +378,11 @@ export default function MorningPage() {
           )}
         </section>
 
+        <ThisDayInHistory today={today} entries={historyEntries} />
+        <WorldHeadlines headlines={news} loading={briefingLoading} />
+        <BriefingTasks tasks={expandedTasks} />
+        <BodyMind workouts={workoutGaps} trends={trends} />
+
         {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
         <PrimaryButton onClick={() => router.push("/")}>
           Into the day
@@ -323,10 +392,10 @@ export default function MorningPage() {
   }
 
   return (
-    <main className="stack fade-in">
-      <p className="eyebrow">Prepare</p>
-      <h1>Start the day</h1>
-      <p className="muted">Tap how you&apos;re landing — about a minute.</p>
+    <main className="stack fade-in daily-briefing">
+      <p className="eyebrow">Daily briefing</p>
+      <h1>Open</h1>
+      <p className="muted">Check in first — then your briefing. About a minute.</p>
 
       <section className="panel">
         <p className="eyebrow">Sleep</p>

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-027 |
-| Rank | 28 |
+| Rank | 6 |
 | Priority | P0 |
 | Status | Done |
 | Effort | M |
@@ -74,8 +74,9 @@ Jeremy opens morning, taps a fast 1–10 check-in, and lands on a **day-start br
 
 - Intake / lock: **2026-09-10** founder decisions (metrics scale, tap UX, briefing vs checklist, rules-based v1, five pillars, no morning Items UI, ship live).
 - **2026-09-10 follow-up:** drop trigger/concern field; restore intention (“one thing to do well”) for evening close; polish briefing layout into labeled sections.
-- **Shipped → Done.** Rank vacated for iterate: **[RB-029](./morning-briefing-conversational.md)** (2026-09-11) — conversational, calendar-first briefing; weather/feeling demoted; still rules-based; no morning Items checklist.
+- **Shipped → Done.** Rank vacated for iterate: **[RB-030](./morning-briefing-conversational.md)** (2026-09-11) — conversational, calendar-first briefing; weather/feeling demoted; still rules-based; no morning Items checklist.
 - Why was rank **5 / P0:** morning/evening mood ritual is explicitly **elevated** in `PRODUCT_DECISIONS` and the JeremyOS north star; placed after framing (RB-012/013) and task foundation (RB-014/026) so briefing can lean on Home tasks + calendar without blocking rebrand.
 - Related (not this ID): extend Home agenda past 9PM when events run later — separate PR / branch; track as dependency note only.
 - **2026-09-11:** evening counterpart intake → **[RB-029](./evening-close-recap-news.md)** (close success = day recap + 3–5 news; fix empty Headline quotes; do not overload journal `oneLine`).
 - Supersedes prior morning copy that assumed post-check-in Today’s Rebuild / Items checklist as the primary morning destination.
+- **2026-09-12:** Active Open/Close Daily briefing twin redesign is **[RB-032](./daily-briefing-open-close-redesign.md)** (rank 5) — do not reopen this item; iterate there.

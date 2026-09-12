@@ -6,6 +6,7 @@ import {
   assertPuzzleValid,
   answerAt,
   bannerText,
+  clueLeaksAnswer,
   correctWordCellIndexes,
   isGridSolved,
   isWordCorrect,
@@ -26,6 +27,25 @@ describe("mini crossword pack", () => {
         expect(answerAt(p, c.num, "down").length).toBeGreaterThanOrEqual(2);
       }
     }
+  });
+
+  it("never puts the answer word inside its clue", () => {
+    for (const p of MINI_CROSSWORDS) {
+      for (const c of p.across) {
+        const a = answerAt(p, c.num, "across");
+        expect(clueLeaksAnswer(c.clue, a)).toBe(false);
+      }
+      for (const c of p.down) {
+        const a = answerAt(p, c.num, "down");
+        expect(clueLeaksAnswer(c.clue, a)).toBe(false);
+      }
+    }
+  });
+
+  it("detects classic giveaway clues", () => {
+    expect(clueLeaksAnswer("Southern belle, e.g.", "BELLE")).toBe(true);
+    expect(clueLeaksAnswer("Spice from a sumac tree", "SUMAC")).toBe(true);
+    expect(clueLeaksAnswer("Scarlett of Tara, for one", "BELLE")).toBe(false);
   });
 
   it("picks a stable puzzle for a date", () => {
