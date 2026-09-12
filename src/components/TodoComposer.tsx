@@ -669,11 +669,6 @@ export function TodoComposer({
                 </button>
               </div>
             </div>
-            {trackOverTime && (
-              <p className="tiny muted" style={{ margin: "6px 0 0" }}>
-                Journey shows how often you complete this since you started.
-              </p>
-            )}
           </div>
           )}
 
