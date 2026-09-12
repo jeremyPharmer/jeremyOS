@@ -31,7 +31,8 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 | 2 | RB-013 | Personal OS north star (cut bloat) | P0 | Ready | S | TBD |
 | 3 | RB-014 | To-do lists (first-class) | P0 | Ready | L | TBD |
 | 4 | RB-026 | Task groups + colors & calendar M/D | P0 | In Progress | M | TBD |
-| 5 | RB-027 | Redesigned morning day-start (check-in + briefing) | P0 | Done | M | TBD |
+| 5 | RB-032 | Track over time (task adherence on Journey) | P0 | In Progress | S | TBD |
+| 6 | RB-027 | Redesigned morning day-start (check-in + briefing) | P0 | Done | M | TBD |
 | 6 | RB-029 | Evening close success: day recap + world news | P0 | Done | M | TBD |
 | 7 | RB-030 | Conversational morning briefing (calendar-first) | P0 | Done | S | TBD |
 | 8 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD |

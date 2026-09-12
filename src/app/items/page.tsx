@@ -58,6 +58,7 @@ export default function ItemsPage() {
       recurrence: payload.recurrence,
       group: payload.group,
       undated: payload.undated,
+      trackOverTime: payload.trackOverTime,
     });
   }
 
@@ -133,6 +134,7 @@ export default function ItemsPage() {
                       recurrence: payload.recurrence,
                       group: payload.group,
                       undated: payload.undated,
+                      trackOverTime: payload.trackOverTime,
                     })
                   }
                   onDelete={() =>
@@ -163,6 +165,7 @@ export default function ItemsPage() {
                           recurrence: payload.recurrence,
                           group: payload.group,
                           undated: payload.undated,
+                          trackOverTime: payload.trackOverTime,
                         })
                       }
                       onDelete={() =>
@@ -213,6 +216,7 @@ export default function ItemsPage() {
                             recurrence: payload.recurrence,
                             group: payload.group,
                             undated: payload.undated,
+                            trackOverTime: payload.trackOverTime,
                           })
                         }
                         onDelete={() =>
@@ -284,6 +288,7 @@ export default function ItemsPage() {
                             recurrence: payload.recurrence,
                             group: payload.group,
                             undated: payload.undated,
+                            trackOverTime: payload.trackOverTime,
                           })
                         }
                         onDelete={() =>
