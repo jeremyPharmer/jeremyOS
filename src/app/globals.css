@@ -179,12 +179,20 @@ h2 {
 }
 
 .home-open-close-btn-done {
-  background: color-mix(in srgb, var(--muted) 12%, var(--surface));
-  border-color: var(--line);
-  color: color-mix(in srgb, var(--muted) 85%, var(--text));
-  opacity: 0.72;
+  background: color-mix(in srgb, var(--muted) 18%, var(--surface));
+  border-color: color-mix(in srgb, var(--muted) 28%, var(--line));
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
+  opacity: 0.55;
   cursor: default;
   pointer-events: none;
+  filter: grayscale(0.35);
+}
+
+/* Remaining ritual reads as the primary action once the other is done */
+.home-open-close:has(.home-open-close-btn-done) a.home-open-close-btn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 .weather-strip {

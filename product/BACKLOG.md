@@ -2,7 +2,7 @@
 
 Index of all product items. Canonical detail lives in `product/items/`.
 
-Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Journey nav label kept; craving stats / Home craving CTA cut (**RB-020**; was briefly RB-017 on the EA branch — remapped after main assigned RB-017–019 to cameras/workout/recipes); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done). **Task groups + calendar M/D** locked (**RB-026**). **Morning day-start briefing** Done (**RB-027**). **Journey vitals BP+HR** Done (**RB-028**). **Evening close recap + world news** Done (**RB-029**). **Conversational calendar-first morning briefing** Done (**RB-030**). **Journey med adherence + drop vitals chart** Ready (**RB-031**). **Daily briefing Open/Close redesign** In Progress (**RB-032**).
+Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Journey nav label kept; craving stats / Home craving CTA cut (**RB-020**; was briefly RB-017 on the EA branch — remapped after main assigned RB-017–019 to cameras/workout/recipes); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done). **Task groups + calendar M/D** locked (**RB-026**). **Morning day-start briefing** Done (**RB-027**). **Journey vitals BP+HR** Done (**RB-028**). **Evening close recap + world news** Done (**RB-029**). **Conversational calendar-first morning briefing** Done (**RB-030**). **Journey med adherence + drop vitals chart** Ready (**RB-031**). **Daily briefing Open/Close redesign** Ready (**RB-032**).
 
 **Ranking rule:** lower rank number = higher priority. Rank is the source of truth.
 
@@ -14,7 +14,7 @@ Last updated: 2026-09-12
 | 2 | RB-013 | Personal OS north star (cut bloat) | P0 | Ready | S | TBD | v1 | [items/personal-os-north-star.md](./items/personal-os-north-star.md) |
 | 3 | RB-014 | To-do lists (first-class) | P0 | Ready | L | TBD | v1 | [items/todo-lists.md](./items/todo-lists.md) |
 | 4 | RB-026 | Task groups + colors & calendar M/D | P0 | In Progress | M | TBD | v1 | [items/task-groups-calendar-md-labels.md](./items/task-groups-calendar-md-labels.md) |
-| 5 | RB-032 | Daily briefing: Open / Close redesign | P0 | In Progress | L | TBD | v1.x | [items/daily-briefing-open-close-redesign.md](./items/daily-briefing-open-close-redesign.md) |
+| 5 | RB-032 | Daily briefing: Open / Close redesign | P0 | Ready | L | TBD | v1.x | [items/daily-briefing-open-close-redesign.md](./items/daily-briefing-open-close-redesign.md) |
 | 6 | RB-027 | Redesigned morning day-start (check-in + briefing) | P0 | Done | M | TBD | v1 | [items/morning-day-start-briefing.md](./items/morning-day-start-briefing.md) |
 | 7 | RB-029 | Evening close success: day recap + world news | P0 | Done | M | TBD | v1 | [items/evening-close-recap-news.md](./items/evening-close-recap-news.md) |
 | 8 | RB-030 | Conversational morning briefing (calendar-first) | P0 | Done | S | TBD | v1.x | [items/morning-briefing-conversational.md](./items/morning-briefing-conversational.md) |
