@@ -640,7 +640,7 @@ export function TodoComposer({
           </div>
           )}
 
-          {!undated && repeats && (
+          {!undated && (
           <div className="field todo-repeat-field">
             <div className="field-label-row">
               <span className="field-label">Track over time</span>
@@ -663,7 +663,11 @@ export function TodoComposer({
                   className={trackOverTime ? "todo-repeat-seg on" : "todo-repeat-seg"}
                   aria-pressed={trackOverTime}
                   disabled={busy}
-                  onClick={() => setTrackOverTime(true)}
+                  onClick={() => {
+                    setTrackOverTime(true);
+                    // Tracking only applies to repeating tasks — flip Repeat on.
+                    if (!repeats) setRepeatsYes();
+                  }}
                 >
                   Yes
                 </button>
