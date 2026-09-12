@@ -151,3 +151,66 @@ export async function fetchWorldHeadlines(
   }
   return out;
 }
+
+/**
+ * Bills season for briefing news: Aug 1 through March 1 inclusive
+ * (spans the year boundary).
+ */
+export function isBillsSeason(isoDate: string): boolean {
+  const md = isoDate.slice(5); // MM-DD
+  if (!/^\d{2}-\d{2}$/.test(md)) return false;
+  return md >= "08-01" || md <= "03-01";
+}
+
+function looksLikeBillsStory(title: string): boolean {
+  const t = title.toLowerCase();
+  return (
+    t.includes("buffalo bills") ||
+    t.includes("bills ") ||
+    t.includes(" bills") ||
+    t.startsWith("bills") ||
+    /\bbills\b/.test(t)
+  );
+}
+
+const BILLS_FEED: FeedSource = {
+  source: "Bills",
+  url: "https://news.google.com/rss/search?q=Buffalo+Bills&hl=en-US&gl=US&ceid=US:en",
+};
+
+/**
+ * Top 5 briefing headlines with dedupe. In Bills season, always include
+ * one recent Buffalo Bills story (replaces the last slot if needed).
+ */
+export async function fetchBriefingHeadlines(
+  isoDate: string,
+  limit = 5,
+): Promise<NewsHeadline[]> {
+  const capped = Math.min(5, Math.max(3, Math.round(limit)));
+  const world = await fetchWorldHeadlines(capped);
+  if (!isBillsSeason(isoDate)) return world.slice(0, capped);
+
+  const existingBillsIdx = world.findIndex((h) => looksLikeBillsStory(h.title));
+  if (existingBillsIdx >= 0) {
+    // Promote the Bills story into the set; keep order otherwise.
+    return world.slice(0, capped);
+  }
+
+  const billsBatch = await fetchFeed(BILLS_FEED);
+  const billsStory = billsBatch.find(
+    (h) => looksLikeBillsStory(h.title) || h.source === "Bills",
+  );
+  if (!billsStory) return world.slice(0, capped);
+
+  const tagged: NewsHeadline = {
+    ...billsStory,
+    source: billsStory.source === "Bills" ? "Bills" : `${billsStory.source} · Bills`,
+  };
+  const seen = new Set(world.map((h) => normalizeTitle(h.title)));
+  const key = normalizeTitle(tagged.title);
+  if (key && seen.has(key)) return world.slice(0, capped);
+
+  if (world.length < capped) return [...world, tagged].slice(0, capped);
+  // Replace last world story so we always keep one Bills item in season.
+  return [...world.slice(0, capped - 1), tagged];
+}

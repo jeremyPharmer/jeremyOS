@@ -9,6 +9,10 @@ export type DailyForecast = {
   precipChancePct: number;
   /** Total precipitation for the day (inches) */
   precipIn: number;
+  /** Peak wind speed (mph) when available — used for detailed briefing weather */
+  windMphMax?: number;
+  /** Peak UV index when available */
+  uvIndexMax?: number;
 };
 
 export type WeatherForecast = {
@@ -39,14 +43,19 @@ type OpenMeteoDaily = {
   temperature_2m_min: number[];
   precipitation_probability_max?: number[];
   precipitation_sum?: number[];
+  wind_speed_10m_max?: number[];
+  uv_index_max?: number[];
 };
 
+/** Home strip stays 3 days; briefings may request a longer window. */
 export async function fetchForecast(
   lat: number,
   lon: number,
   timezone: string,
   locationLabel: string,
+  forecastDays = WEATHER_FORECAST_DAYS,
 ): Promise<WeatherForecast> {
+  const daysRequested = Math.min(7, Math.max(1, Math.round(forecastDays)));
   const params = new URLSearchParams({
     latitude: String(lat),
     longitude: String(lon),
@@ -56,11 +65,14 @@ export async function fetchForecast(
       "temperature_2m_min",
       "precipitation_probability_max",
       "precipitation_sum",
+      "wind_speed_10m_max",
+      "uv_index_max",
     ].join(","),
     timezone,
-    forecast_days: String(WEATHER_FORECAST_DAYS),
+    forecast_days: String(daysRequested),
     temperature_unit: "fahrenheit",
     precipitation_unit: "inch",
+    wind_speed_unit: "mph",
   });
 
   const res = await fetch(
@@ -78,6 +90,8 @@ export async function fetchForecast(
     const code = daily.weather_code[i] ?? 0;
     const meta = weatherCodeMeta(code);
     const precipInRaw = daily.precipitation_sum?.[i] ?? 0;
+    const windRaw = daily.wind_speed_10m_max?.[i];
+    const uvRaw = daily.uv_index_max?.[i];
     return {
       date,
       highF: Math.round(daily.temperature_2m_max[i] ?? 0),
@@ -89,13 +103,45 @@ export async function fetchForecast(
         daily.precipitation_probability_max?.[i] ?? 0,
       ),
       precipIn: Math.round(precipInRaw * 100) / 100,
+      windMphMax:
+        windRaw != null && Number.isFinite(windRaw)
+          ? Math.round(windRaw)
+          : undefined,
+      uvIndexMax:
+        uvRaw != null && Number.isFinite(uvRaw)
+          ? Math.round(uvRaw)
+          : undefined,
     };
   });
 
   return {
     locationLabel,
-    days: days.slice(0, WEATHER_FORECAST_DAYS),
+    days: days.slice(0, daysRequested),
   };
+}
+
+/** One-line briefing note from a daily forecast. */
+export function weatherDetailNote(day: DailyForecast): string {
+  const bits: string[] = [];
+  if (day.precipChancePct >= 40) {
+    bits.push(
+      day.precipIn >= 0.1
+        ? `${day.precipChancePct}% chance of rain (~${day.precipIn.toFixed(2)}")`
+        : `${day.precipChancePct}% chance of rain`,
+    );
+  } else if (day.precipChancePct <= 15) {
+    bits.push("Mostly dry");
+  }
+  if (day.windMphMax != null && day.windMphMax >= 15) {
+    bits.push(`winds up to ${day.windMphMax} mph`);
+  }
+  if (day.uvIndexMax != null && day.uvIndexMax >= 6) {
+    bits.push(`UV ${day.uvIndexMax}`);
+  }
+  if (bits.length === 0) {
+    return `${day.label} — high ${day.highF}°, low ${day.lowF}°.`;
+  }
+  return `${day.label}. ${bits.join(" · ")}. High ${day.highF}° / low ${day.lowF}°.`;
 }
 
 /** Approximate coords when geolocation is unavailable */

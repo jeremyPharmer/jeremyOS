@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
+import { HomeOpenCloseButtons } from "@/components/HomeOpenCloseButtons";
 import {
   dayAbbrev,
   dayLabel,
@@ -116,7 +117,10 @@ export function WeatherBanner() {
 
   return (
     <header className="home-top-banner">
-      <p className="home-greeting">{greeting}</p>
+      <div className="home-greeting-row">
+        <p className="home-greeting">{greeting}</p>
+        <HomeOpenCloseButtons />
+      </div>
 
       {error && !forecast && (
         <section className="weather-strip weather-strip-muted" aria-label="Weather">

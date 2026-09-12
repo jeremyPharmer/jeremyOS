@@ -5,7 +5,7 @@
 | ID | RB-032 |
 | Rank | 5 |
 | Priority | P0 |
-| Status | Ready |
+| Status | In Progress |
 | Effort | L |
 | Target due | TBD |
 | Milestone | v1.x |
@@ -76,6 +76,7 @@ Open and Close are **matching Daily briefing rituals**: same shell and check-in-
 ## Notes
 
 - Intake / lock: **2026-09-12** founder-approved Daily briefing redesign of Open/Close.
+- **2026-09-12:** Implementation in progress — Home Open/Close header, shared Daily briefing sections, morning/evening twin rewrite, news `date` + Bills season, briefing helpers/tests.
 - Why rank **5 / P0:** founder-locked daily-loop twin; sits after framing / todos / task groups (**RB-012–014**, **RB-026**); ahead of journal polish cluster so Open/Close stop living under Tasks and feel like one ritual. Done parents **RB-027 / RB-029 / RB-030** renumbered below this active iterate.
 - Effort **L:** full ship across Home header, shared shell, Open + Close content parity — not a thin copy pass.
 - Related Later: LLM generative morning/evening briefing still deferred until after this rules-based twin.

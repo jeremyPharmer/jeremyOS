@@ -14,6 +14,12 @@ export async function GET(req: Request) {
     const latRaw = url.searchParams.get("lat");
     const lonRaw = url.searchParams.get("lon");
     const labelParam = url.searchParams.get("label");
+    const daysRaw = url.searchParams.get("days");
+    const daysParsed = daysRaw != null ? Number(daysRaw) : undefined;
+    const forecastDays =
+      daysParsed != null && Number.isFinite(daysParsed)
+        ? daysParsed
+        : undefined;
     const timezone = state.profile.timezone;
 
     let lat: number;
@@ -37,7 +43,13 @@ export async function GET(req: Request) {
       locationLabel = fb.label;
     }
 
-    const forecast = await fetchForecast(lat, lon, timezone, locationLabel);
+    const forecast = await fetchForecast(
+      lat,
+      lon,
+      timezone,
+      locationLabel,
+      forecastDays,
+    );
     const today = todayInTz(timezone);
 
     return NextResponse.json({ ...forecast, today });
