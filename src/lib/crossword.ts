@@ -69,7 +69,7 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
       { num: 5, clue: "Deck-shoe gripper" },
     ],
     down: [
-      { num: 1, clue: "Spice from a sumac tree" },
+      { num: 1, clue: "Tangy red kebab seasoning" },
       { num: 2, clue: "Lather, ___, repeat" },
       { num: 3, clue: "Heron of marsh fame" },
     ],
@@ -97,7 +97,7 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
       { num: 5, clue: "Doorway or ledger line" },
     ],
     down: [
-      { num: 1, clue: "Southern belle, e.g." },
+      { num: 1, clue: "Scarlett of Tara, for one" },
       { num: 2, clue: "Should, biblically" },
       { num: 3, clue: "Gaudy or sticky, slangily" },
     ],
@@ -591,6 +591,14 @@ function normalizeCells(
   });
 }
 
+/** True when the clue contains the answer as a whole word (case-insensitive). */
+export function clueLeaksAnswer(clue: string, answer: string): boolean {
+  const a = answer.trim().toUpperCase();
+  if (a.length < 2) return false;
+  const re = new RegExp(`\\b${a.replace(/[^A-Z]/g, "")}\\b`, "i");
+  return re.test(clue);
+}
+
 /** Validate pack integrity (tests). */
 export function assertPuzzleValid(puzzle: MiniCrosswordPuzzle): void {
   if (puzzle.rows.length !== CROSSWORD_SIZE) {
@@ -608,6 +616,11 @@ export function assertPuzzleValid(puzzle: MiniCrosswordPuzzle): void {
     }
     const a = answerAt(puzzle, c.num, "across");
     if (a.length < 2) throw new Error(`${puzzle.id}: across ${c.num} short`);
+    if (clueLeaksAnswer(c.clue, a)) {
+      throw new Error(
+        `${puzzle.id}: across ${c.num} clue leaks answer "${a}"`,
+      );
+    }
   }
   for (const c of puzzle.down) {
     if (![...nums.values()].includes(c.num)) {
@@ -615,5 +628,8 @@ export function assertPuzzleValid(puzzle: MiniCrosswordPuzzle): void {
     }
     const a = answerAt(puzzle, c.num, "down");
     if (a.length < 2) throw new Error(`${puzzle.id}: down ${c.num} short`);
+    if (clueLeaksAnswer(c.clue, a)) {
+      throw new Error(`${puzzle.id}: down ${c.num} clue leaks answer "${a}"`);
+    }
   }
 }
