@@ -5,7 +5,7 @@
 | ID | RB-032 |
 | Rank | 5 |
 | Priority | P0 |
-| Status | Ready |
+| Status | Done |
 | Effort | L |
 | Target due | TBD |
 | Milestone | v1.x |
