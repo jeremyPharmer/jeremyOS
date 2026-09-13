@@ -7,7 +7,7 @@ Recovery journey + fund/incentive tools remain **personal tools** when useful (n
 Maintained by the **Head of Product** agent (`.cursor/agents/head-of-product.md`).  
 **Priority ranking is the primary planning signal.** Due dates, effort, and timeline support rank — they do not override it.
 
-Last updated: 2026-09-12
+Last updated: 2026-09-13
 
 ## North star (locked 2026-08-29)
 
@@ -66,11 +66,12 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 6. **RB-028 — Journey vitals: BP + heart rate** — **Done.** Journey-only log (not Home/morning); each entry systolic + diastolic + HR (all required); freeform anytime with AM/PM; no teach/explainers; list + (historically) chart separate from Conditions. **Chart cut + med adherence → RB-031.** Detail: [`items/journey-vitals-bp-hr.md`](./items/journey-vitals-bp-hr.md).
 7. **RB-031 — Journey: med adherence card + drop vitals chart** — **Ready / scope locked 2026-09-11.** Remove vitals chart (keep BP/HR list); Journey **Medication adherence** card from default medication Support + SupportCompletion; % days covered = completed days ÷ days from first dose through today; optional same-day “took it” via `/api/support`; framing = daily reminder + adherence education (no separate education-med model). Effort **S**. Detail: [`items/journey-med-adherence-drop-vitals-chart.md`](./items/journey-med-adherence-drop-vitals-chart.md).
 8. **RB-018 — Workout tracker** — personal log, not fitness SaaS. Detail: [`items/workout-tracker.md`](./items/workout-tracker.md).
-9. **RB-019 — Favorite recipes** — thin favorites section. Detail: [`items/favorite-recipes.md`](./items/favorite-recipes.md).
-10. **RB-015 — Hub: Jeremy’s other apps & sites** — link hub v1. Detail: [`items/jeremy-apps-hub.md`](./items/jeremy-apps-hub.md).
-11. **RB-003 — Daily email: open checklist / todos** — after RB-002 (+ prefer RB-014 list model).
-12. **RB-011 — Auto-credit daily savings** — complete In Progress slice; then stop money expansion.
-13. **RB-010 — Backfill missed evening / journal** — complete thin slice if still useful personally (integrity only; five-year UI is RB-016; edit/star/calendar is RB-022).
+9. **RB-034 — Bills panel on Home** — **Backlog** (open questions). Buffalo Bills (NFL) lean card at bottom of Home: schedule + W–L + light fancy stats; seasonality aligned to briefing **Aug 1 – Mar 1**. Corrected 2026-09-13 from Bulls mishearing. Effort **M**. Detail: [`items/bills-panel-home.md`](./items/bills-panel-home.md).
+10. **RB-019 — Favorite recipes** — thin favorites section. Detail: [`items/favorite-recipes.md`](./items/favorite-recipes.md).
+11. **RB-015 — Hub: Jeremy’s other apps & sites** — link hub v1. Detail: [`items/jeremy-apps-hub.md`](./items/jeremy-apps-hub.md).
+12. **RB-003 — Daily email: open checklist / todos** — after RB-002 (+ prefer RB-014 list model).
+13. **RB-011 — Auto-credit daily savings** — complete In Progress slice; then stop money expansion.
+14. **RB-010 — Backfill missed evening / journal** — complete thin slice if still useful personally (integrity only; five-year UI is RB-016; edit/star/calendar is RB-022).
 
 ### Later
 
@@ -94,7 +95,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 | Now (framing) | RB-012 rebrand (EA + drop trail) + RB-013 north star | Effort **M** + **S**; docs first, then chrome/copy; Journey label locked keep |
 | Now (personal tools + rituals) | RB-014 todos (**Ready / L**) → **RB-026 task groups + calendar M/D** (**In Progress / M**) → **RB-032 Daily briefing Open/Close** (**Done / L**, shipped prod 2026-09-12; iterates Done RB-027/029/030) → RB-016 five-year journal → **RB-021 journal photos** | Merged Today’s Items + master page; groups/colors; ritual twin redesign is the active Open/Close ship |
 | Next (journal tooling) | **RB-022 edit / star / month calendar** | After RB-016 + RB-021; effort **M**; photo storage risk (no auth, db.json + `.data/photos`); ≠ event calendar |
-| Next (EA + Home) | RB-002 Gmail → **RB-024 daily puzzle** → RB-005 podcast (thin; **off Home**) → RB-017 cameras → **RB-028 Journey vitals** (**Done**) → **RB-031 med adherence + drop vitals chart** (**Ready / S**) → RB-018 workout → RB-019 recipes → RB-015 hub → RB-003 digest | Puzzle = **5×5** crossword replacing On Air; Start→attempt; banner `completed/attempts · success%` (**M**; not fill %); Entertainment park RB-025; **RB-023 calendar Done**; RB-031 = list-only vitals + SupportCompletion % days covered |
+| Next (EA + Home) | RB-002 Gmail → **RB-024 daily puzzle** → RB-005 podcast (thin; **off Home**) → RB-017 cameras → **RB-028 Journey vitals** (**Done**) → **RB-031 med adherence + drop vitals chart** (**Ready / S**) → RB-018 workout → **RB-034 Bills panel** (**Backlog / M**; NFL; Aug 1–Mar 1) → RB-019 recipes → RB-015 hub → RB-003 digest | Puzzle = **5×5** crossword replacing On Air; Start→attempt; banner `completed/attempts · success%` (**M**; not fill %); Entertainment park RB-025; **RB-023 calendar Done**; RB-031 = list-only vitals + SupportCompletion % days covered; RB-034 = Home bottom Bills card (schedule / W–L / light stats; not news) |
 | Finish thin | RB-011, RB-010 | Do not expand money/daily-loop polish; journal UI = RB-016; media = RB-021; edit/star/calendar = RB-022 |
 | Later (personal fund) | RB-006, RB-001 | Locked model; rails demoted |
 | Later / paused | RB-008, RB-004, **RB-025 Home Entertainment park**, RB-026 v2 group CRUD, RB-032 LLM briefing | Unrequested channels + Entertainment demoted; group add/rename after fixed v1 groups; generative copy after rules-based Daily briefing twin |

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-015 |
-| Rank | 18 |
+| Rank | 22 |
 | Priority | P1 |
 | Status | Backlog |
 | Effort | S |
