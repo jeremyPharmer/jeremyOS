@@ -4,6 +4,7 @@ import {
   newId,
   waitingReclaimTotal,
 } from "./journey";
+import { migrateLongTermTrackers } from "./long-term-trackers";
 import type {
   FundLedger,
   MilestoneAchievement,
@@ -35,8 +36,22 @@ export function normalizeFund(fund: FundLedger | undefined): FundLedger {
 }
 
 export function normalizeState(state: RebuildState): RebuildState {
+  const profile = state.profile
+    ? (() => {
+        const migrated = migrateLongTermTrackers(
+          state.profile!.supports,
+          state.profile!.longTermTrackingCleared,
+        );
+        return {
+          ...state.profile!,
+          supports: migrated.supports,
+          longTermTrackingCleared: migrated.longTermTrackingCleared,
+        };
+      })()
+    : null;
   return {
     ...state,
+    profile,
     skips: state.skips ?? [],
     starredDays: normalizeStarredDays(state.starredDays),
     fund: normalizeFund(state.fund),

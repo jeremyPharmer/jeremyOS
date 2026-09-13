@@ -18,7 +18,7 @@ const STEPS = [
   "Account",
   "About you",
   "Unlock",
-  "Supports",
+  "Long-term tracking",
   "Money",
   "Rewards",
   "Ready",
@@ -102,12 +102,12 @@ export default function OnboardingPage() {
   const [skipPin, setSkipPin] = useState(false);
 
   // Supports
-  const [supports, setSupports] = useState<SupportConfig[]>(() =>
-    SUPPORT_INSPIRATION.slice(0, 4).map((s) => ({
-      ...s,
-      enabled: true,
-    })),
-  );
+  const [supports, setSupports] = useState<SupportConfig[]>(() => {
+    const med = SUPPORT_INSPIRATION.find((s) => s.type === "medication");
+    return med
+      ? [{ ...med, enabled: true }]
+      : [{ type: "medication", label: "Medication", weeklyTarget: 7, enabled: true }];
+  });
   const [customLabel, setCustomLabel] = useState("");
   const [customTarget, setCustomTarget] = useState("3");
 
@@ -464,11 +464,10 @@ export default function OnboardingPage() {
 
       {step === 3 && (
         <section className="stack enroll-step" key="s3">
-          <p className="eyebrow">Supports</p>
-          <h1>What will support you each week?</h1>
+          <p className="eyebrow">Long-term tracking</p>
+          <h1>What do you want to track long-term?</h1>
           <p className="muted enroll-lead">
-            Consistently engaging in your recovery is a key to success — what
-            will you do every week to stay on track?
+            These show up on Journey with adherence over time. Pick habits and set how often (times per week).
           </p>
           <div className="chip-row">
             {SUPPORT_INSPIRATION.map((s) => {
@@ -544,14 +543,14 @@ export default function OnboardingPage() {
           <PrimaryButton
             onClick={() => {
               if (supports.length === 0) {
-                setError("Choose at least one support");
+                setError("Choose at least one tracker");
                 return;
               }
               setError("");
               setStep(4);
             }}
           >
-            Save weekly supports
+            Save long-term tracking
           </PrimaryButton>
           <SecondaryButton onClick={() => setStep(2)}>Back</SecondaryButton>
         </section>

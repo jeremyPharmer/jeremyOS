@@ -12,7 +12,7 @@ import {
   type ConditionRangePreset,
 } from "@/lib/trends";
 import type { RebuildState, VitalsPeriod } from "@/lib/types";
-import { medicationAdherence } from "@/lib/medication-adherence";
+import { longTermTrackerAdherenceList } from "@/lib/tracker-adherence";
 import { formatVitalsReading, vitalsSorted } from "@/lib/vitals";
 
 type ChartAxis = "scale" | "hours";
@@ -351,63 +351,83 @@ function ConditionsChart({
 }
 
 
-function MedicationAdherenceCard({ today }: { today: string }) {
+
+function LongTermTrackingCards({ today }: { today: string }) {
   const { post, state } = useApp();
-  const [busy, setBusy] = useState(false);
+  const [busyType, setBusyType] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const adherence = useMemo(
-    () => medicationAdherence(state, today),
+  const rows = useMemo(
+    () => longTermTrackerAdherenceList(state, today),
     [state, today],
   );
 
-  async function tookIt() {
-    setBusy(true);
+  async function logToday(supportType: string) {
+    setBusyType(supportType);
     setError("");
     try {
       await post("/api/support", {
         date: today,
-        supportType: "medication",
+        supportType,
         completed: true,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save");
     } finally {
-      setBusy(false);
+      setBusyType(null);
     }
   }
 
+  if (rows.length === 0) {
+    return (
+      <p className="muted med-adherence-detail">
+        Add trackers in Settings → Long-term tracking to see adherence here.
+      </p>
+    );
+  }
+
   return (
-    <div className="med-adherence">
-      {adherence.percent != null ? (
-        <>
-          <p className="med-adherence-pct">
-            <span className="med-adherence-num">{adherence.percent}%</span>
-            <span className="med-adherence-unit"> days covered</span>
-          </p>
-          <p className="muted med-adherence-detail">
-            {adherence.daysCovered} of {adherence.daysElapsed} days since{" "}
-            {formatTrendDate(adherence.firstDoseDate!)} — tracking daily.
-          </p>
-        </>
-      ) : (
-        <p className="muted med-adherence-detail">
-          {adherence.configured
-            ? "Log the first dose to start your adherence % — one tap per day."
-            : "Turn on Medication in Settings → Supports to track adherence here."}
-        </p>
-      )}
-
+    <div className="stack" style={{ gap: 16 }}>
       {error && <p className="form-error">{error}</p>}
-
-      {adherence.configured && (
-        adherence.takenToday ? (
-          <p className="med-adherence-done">Taken today</p>
-        ) : (
-          <PrimaryButton onClick={() => void tookIt()} disabled={busy}>
-            {busy ? "Saving…" : "Took it today"}
-          </PrimaryButton>
-        )
-      )}
+      {rows.map((row) => (
+        <div key={row.type} className="med-adherence">
+          <h3 style={{ margin: "0 0 6px", fontSize: "1.05rem" }}>{row.label}</h3>
+          <p className="tiny muted" style={{ marginTop: 0 }}>
+            {row.weeklyTarget}/wk target
+          </p>
+          {row.percent != null ? (
+            <>
+              <p className="med-adherence-pct">
+                <span className="med-adherence-num">{row.percent}%</span>
+                <span className="med-adherence-unit"> adherence</span>
+              </p>
+              <p className="muted med-adherence-detail">
+                {row.completed} of {row.expected} expected since{" "}
+                {formatTrendDate(row.firstLogDate!)} ({row.daysElapsed} days).
+              </p>
+            </>
+          ) : (
+            <p className="muted med-adherence-detail">
+              Log the first day to start your adherence %.
+            </p>
+          )}
+          {row.doneToday ? (
+            <p className="med-adherence-done">
+              {row.type === "medication" ? "Taken today" : "Logged today"}
+            </p>
+          ) : (
+            <PrimaryButton
+              onClick={() => void logToday(row.type)}
+              disabled={busyType === row.type}
+            >
+              {busyType === row.type
+                ? "Saving…"
+                : row.type === "medication"
+                  ? "Took it today"
+                  : "Log today"}
+            </PrimaryButton>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -597,9 +617,9 @@ export default function JourneyPage() {
       </header>
 
       <section className="panel">
-        <p className="eyebrow">Tracking</p>
-        <h2 style={{ marginBottom: 10 }}>Medication adherence</h2>
-        {today && <MedicationAdherenceCard today={today} />}
+        <p className="eyebrow">Long-term tracking</p>
+        <h2 style={{ marginBottom: 10 }}>Adherence over time</h2>
+        {today && <LongTermTrackingCards today={today} />}
       </section>
 
       <section className="panel">

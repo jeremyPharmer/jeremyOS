@@ -371,38 +371,16 @@ describe("dashboard label", () => {
 describe("weekly supports", () => {
   it("creates bonus when all targets hit", () => {
     let state = baseState();
-    // Week of Aug 9–15 2026. Hit all targets on various days.
+    // Med-only default (RB-033): hit medication 7/wk in Aug 9–15.
     const d = (n: number) => `2026-08-${String(n).padStart(2, "0")}`;
-    const completions = [
-      ...[10, 11].map((n) => ({
-        date: d(n),
-        supportType: "recovery_content" as const,
-      })),
-      ...[10, 11, 12, 13, 14].map((n) => ({
-        date: d(n),
-        supportType: "meditation" as const,
-      })),
-      ...[9, 10, 11, 12, 13, 14, 15].map((n) => ({
-        date: d(n),
-        supportType: "medication" as const,
-      })),
-      ...[10, 11, 12, 13].map((n) => ({
-        date: d(n),
-        supportType: "gym" as const,
-      })),
-    ];
+    const completions = [9, 10, 11, 12, 13, 14, 15].map((n) => ({
+      date: d(n),
+      supportType: "medication" as const,
+    }));
     state.supports = completions.map((c) => ({
       ...c,
       completed: true,
       completedAt: "",
-    }));
-    state.workouts = [10, 11, 12, 13].map((n) => ({
-      id: `w${n}`,
-      date: d(n),
-      type: "lift" as const,
-      label: "Gym",
-      quality: 4,
-      createdAt: "",
     }));
     expect(weekFullyComplete(state, "2026-08-10")).toBe(true);
     state = applyEveningSideEffects(state, {
@@ -419,6 +397,14 @@ describe("weekly supports", () => {
 
   it("does not count skipped supports toward weekly targets", () => {
     let state = baseState();
+    state.profile!.supports = [
+      {
+        type: "meditation",
+        label: "Meditation",
+        weeklyTarget: 5,
+        enabled: true,
+      },
+    ];
     state.skips = [
       {
         date: "2026-08-10",
@@ -434,6 +420,14 @@ describe("weekly supports", () => {
 
   it("allows weekly done counts above the target", () => {
     const state = baseState();
+    state.profile!.supports = [
+      {
+        type: "recovery_content",
+        label: "Recovery content",
+        weeklyTarget: 2,
+        enabled: true,
+      },
+    ];
     // recovery_content weeklyTarget = 2; log 5 days
     state.supports = [0, 1, 2, 3, 4].map((n) => ({
       date: `2026-08-0${n + 1}`,
@@ -451,6 +445,9 @@ describe("weekly supports", () => {
 
   it("counts gym from logged workouts, not support check-offs", () => {
     const state = baseState();
+    state.profile!.supports = [
+      { type: "gym", label: "Gym", weeklyTarget: 4, enabled: true },
+    ];
     state.supports = [
       ...[0, 1, 2].map((n) => ({
         date: `2026-08-3${n}`,

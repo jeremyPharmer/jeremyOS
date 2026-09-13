@@ -21,7 +21,7 @@ export function WeekPlanPanel({
 
   return (
     <section className="panel">
-      <p className="eyebrow">This week&apos;s plan</p>
+      <p className="eyebrow">Long-term tracking</p>
       <p className="tiny" style={{ marginBottom: 10 }}>
         {formatDisplayDate(start)} – {formatDisplayDate(end)} · targets, not
         judgments
