@@ -56,7 +56,7 @@ Do not split into separate releases.
 - **Tasks card:** same **group headers** + color swatch as Tasks page (Real estate → Family → Home → Work); **hide empty groups**
 - Within group: sort by due date; **No date** bucket for undated items
 - **Start the day** and **Close the day** live under the **Home** group (when open)
-- **Weekly supports suppressed** on Home for now (founder will add as recurrent tasks; would otherwise sit under Home)
+- **Weekly supports / long-term trackers suppressed** on Home for now (longitudinal habits → **Long-term tracking** + Journey adherence per [RB-033](./long-term-tracking-adherence.md); not recurrent tasks)
 - Day chips stay **counts-only** (no group breakdown)
 - **Completed tasks NEVER on Home** — disappear from Home when done
 - Left color bar still on personal task rows
@@ -83,7 +83,7 @@ Do not split into separate releases.
 - Changing the four locked colors/names in v1
 - Ungrouped / optional group
 - Showing completed tasks on Home
-- Weekly supports on Home Tasks card (suppressed; may return under Home later)
+- Long-term trackers on Home Tasks card (suppressed; Journey / Settings per [RB-033](./long-term-tracking-adherence.md))
 
 ## Dependencies & risks
 
