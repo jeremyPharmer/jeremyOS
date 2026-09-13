@@ -12,6 +12,9 @@ function vsLine(game: BillsGame): string {
 }
 
 function scoreLine(game: BillsGame): string {
+  if (game.status === "pre") {
+    return game.statusDetail || "Upcoming";
+  }
   if (game.billsScore == null || game.opponentScore == null) {
     return game.statusDetail || "TBD";
   }
@@ -34,7 +37,7 @@ function GameRow({ game }: { game: BillsGame }) {
       </div>
       <div className="bills-game-meta">
         <span className="bills-game-score">{scoreLine(game)}</span>
-        {game.status === "pre" && game.statusDetail ? (
+        {game.status === "in" && game.statusDetail ? (
           <span className="bills-game-when">{game.statusDetail}</span>
         ) : null}
       </div>
