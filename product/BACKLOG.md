@@ -2,7 +2,7 @@
 
 Index of all product items. Canonical detail lives in `product/items/`.
 
-Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Journey nav label kept; craving stats / Home craving CTA cut (**RB-020**; was briefly RB-017 on the EA branch — remapped after main assigned RB-017–019 to cameras/workout/recipes); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done). **Task groups + calendar M/D** locked (**RB-026**). **Morning day-start briefing** Done (**RB-027**). **Journey vitals BP+HR** Done (**RB-028**). **Evening close recap + world news** Done (**RB-029**). **Conversational calendar-first morning briefing** Done (**RB-030**). **Journey med adherence + drop vitals chart** Ready (**RB-031**). **Daily briefing Open/Close redesign** Done (**RB-032**). **Track over time (task adherence on Journey)** In Progress (**RB-033**). **Bills panel on Home** Backlog (**RB-034** — Buffalo Bills / NFL; corrected from Bulls mishearing 2026-09-13).
+Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Journey nav label kept; craving stats / Home craving CTA cut (**RB-020**; was briefly RB-017 on the EA branch — remapped after main assigned RB-017–019 to cameras/workout/recipes); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done). **Task groups + calendar M/D** locked (**RB-026**). **Morning day-start briefing** Done (**RB-027**). **Journey vitals BP+HR** Done (**RB-028**). **Evening close recap + world news** Done (**RB-029**). **Conversational calendar-first morning briefing** Done (**RB-030**). **Journey med adherence + drop vitals chart** Ready (**RB-031**). **Daily briefing Open/Close redesign** Done (**RB-032**). **Track over time (task adherence on Journey)** In Progress (**RB-033**). **Bills panel on Home** Ready (**RB-034** — Buffalo Bills / NFL; scope locked 2026-09-13 via deferred defaults; eng next).
 
 **Ranking rule:** lower rank number = higher priority. Rank is the source of truth.
 
@@ -29,7 +29,7 @@ Last updated: 2026-09-13
 | 17 | RB-028 | Journey vitals: BP + heart rate | P1 | Done | M | TBD | v1.x | [items/journey-vitals-bp-hr.md](./items/journey-vitals-bp-hr.md) |
 | 18 | RB-031 | Journey: med adherence card + drop vitals chart | P1 | Ready | S | TBD | v1.x | [items/journey-med-adherence-drop-vitals-chart.md](./items/journey-med-adherence-drop-vitals-chart.md) |
 | 19 | RB-018 | Workout tracker | P1 | Backlog | M | TBD | v1.x | [items/workout-tracker.md](./items/workout-tracker.md) |
-| 20 | RB-034 | Bills panel on Home (Buffalo Bills / NFL) | P1 | Backlog | M | TBD | v1.x | [items/bills-panel-home.md](./items/bills-panel-home.md) |
+| 20 | RB-034 | Bills panel on Home (Buffalo Bills / NFL) | P1 | Ready | M | TBD | v1.x | [items/bills-panel-home.md](./items/bills-panel-home.md) |
 | 21 | RB-019 | Favorite recipes section | P1 | Backlog | S | TBD | v1.x | [items/favorite-recipes.md](./items/favorite-recipes.md) |
 | 22 | RB-015 | Hub: Jeremy’s other apps & sites | P1 | Backlog | S | TBD | v1.x | [items/jeremy-apps-hub.md](./items/jeremy-apps-hub.md) |
 | 23 | RB-003 | Daily email: open checklist / todos | P1 | Backlog | S | TBD | v1.x | [items/daily-open-checklist-email.md](./items/daily-open-checklist-email.md) |
@@ -49,8 +49,8 @@ Last updated: 2026-09-13
 
 | Status | Count |
 | --- | --- |
-| Backlog | 13 |
-| Ready | 5 |
+| Backlog | 12 |
+| Ready | 6 |
 | In Progress | 8 |
 | Blocked | 0 |
 | Done | 7 |

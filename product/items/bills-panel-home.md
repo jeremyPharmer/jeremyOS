@@ -5,7 +5,7 @@
 | ID | RB-034 |
 | Rank | 20 |
 | Priority | P1 |
-| Status | Backlog |
+| Status | Ready |
 | Effort | M |
 | Target due | TBD |
 | Milestone | v1.x |
@@ -19,26 +19,26 @@ Jeremy wants a **Buffalo Bills** (NFL) glance on Home — schedule first, plus r
 
 Home ends with a **clean, lean card** showing Bills **schedule** (primary), **wins/losses**, and a small set of **stats**, so Jeremy can check the team without leaving JeremyOS.
 
-## Scope (v1) — draft pending founder answers
+## Scope (v1) — locked 2026-09-13
+
+Open questions **answered via deferred founder defaults** (2026-09-13). Status **Ready**; **eng ships next**.
 
 Working intake from founder (2026-09-13): *“Bills panel - on the homepage, [a lean / Alena?] clean looking card at the very bottom of the [Home]. Schedule, as it is, [no?] fancy stats, wins losses and schedule is all.”* (Initially misheard as Chicago Bulls; corrected to **Buffalo Bills** / NFL — see Notes.)
 
-### Tentative v1 (defaults until answers land)
+### Locked v1
 
-| Decision | Tentative default |
+| Decision | Locked (deferred defaults 2026-09-13) |
 | --- | --- |
 | Team | **Buffalo Bills** (NFL) only |
 | Placement | **Very bottom** of Home (below existing Home stack) |
-| Visual | **Lean / clean card** — one composition, not a dashboard of chips |
-| Primary content | **Schedule as-is** (upcoming / recent games — exact window TBD) |
-| Record | Season **W–L** (and optionally home/away, division, or last-N — TBD) |
-| Stats | **Light** “fancy” glance (e.g. AFC East place, point differential, streak) — **schedule wins**; not a full analytics suite |
-| Seasonality | Align with briefing news **Bills season window: Aug 1 – Mar 1** inclusive (year-boundary span; same rule as [RB-032](./daily-briefing-open-close-redesign.md) / `isBillsSeason`) — full panel in-season; quiet off-season UX (exact behavior TBD in open questions) |
-| Interactivity | Read-only glance; optional tap-out to official schedule (TBD) |
-
-### Must clarify before Ready
-
-See **Open questions** below — founder explicitly asked to be asked. Do not start eng until Q1–Q7 are answered (or explicitly deferred).
+| Visual | **Lean / minimal clean home-card** (“Alena” = lean) |
+| Schedule | **Last completed game** + **next 2–3 upcoming** |
+| Live | Show **in-progress score** when game is live; otherwise **finals + upcoming**; **refresh on Home load** |
+| Fancy stats | Season **W–L** + **division standing** + **streak** (**cap 3**) |
+| Off-season | Quiet **in-card empty state**; **hide card** outside **Aug 1 – Mar 1** Bills season window (same rule as [RB-032](./daily-briefing-open-close-redesign.md) / `isBillsSeason`) |
+| Tap | Link out to **ESPN Bills clubhouse** |
+| Priority | Keep **rank 20** (do not jump P0s) |
+| Interactivity | Glance card + external tap-out only (no in-app Bills detail surface in v1) |
 
 ## Out of scope / later
 
@@ -51,40 +51,36 @@ See **Open questions** below — founder explicitly asked to be asked. Do not st
 
 ## Dependencies & risks
 
-- **Data source:** official NFL / third-party API vs scrape vs manual/static — licensing, rate limits, and reliability
-- **Seasonality:** reuse **Aug 1 – Mar 1** Bills window for show/hide or empty-state policy; off-season must not look broken (draft, free agency, “next kickoff”)
+- **Data source:** ESPN public site API (spike 2026-09-13) vs other NFL/third-party — licensing, rate limits, and reliability
+- **Seasonality:** reuse **Aug 1 – Mar 1** Bills window; hide outside window; quiet in-card empty when shown but no games
 - **Home density:** bottom card must stay lean so it does not fight Daily Puzzle / tasks / agenda
 - UXUI owns card polish; Reese owns fetch + cache contract if live data
-- Distinct from calendar agenda ([RB-023](./calendar-ical-google.md)) — sports schedule is not personal calendar unless founder wants merge (default: **no**)
+- Distinct from calendar agenda ([RB-023](./calendar-ical-google.md)) — sports schedule is not personal calendar (locked: **no** merge)
 - Distinct from Open/Close news Bills injection — share season helper if useful; do not conflate product surfaces
 
-## Open questions (ask Jeremy)
+## Open questions
 
-1. **“Alena”** — Did you mean **a lean** (minimal) card, or is **Alena** a person/style reference we should match?
-2. **Schedule window** — What should “schedule as-is” show: next game only, next N games, this week, or a short past + upcoming strip?
-3. **Live vs static** — Live scores / in-progress games on Home, or schedule + final results only (refresh on load / periodic)?
-4. **Which stats** — Beyond season W–L, what is “fancy stats” for v1 (AFC East place, point differential, streak, last-N)? Cap at 2–3 numbers?
-5. **Off-season (Mar 2 – Jul 31)** — Hide the card, show a quiet “season starts …” empty state, or keep last season’s record + next season schedule when available? (Default lean: quiet empty state or hide — align with Aug 1–Mar 1 window.)
-6. **Tap behavior** — Card is glance-only, or tap opens a Bills detail / external NFL/Bills link?
-7. **Priority vs other Home work** — OK to stay behind todos / journal / Daily Puzzle on Home, or bump sooner once scope is locked?
+**Answered 2026-09-13 via deferred founder defaults** (recommended defaults adopted; Q1–Q7 closed). Eng may ship against locked scope above.
+
+| # | Question | Answer (deferred default) |
+| --- | --- | --- |
+| 1 | “Alena” lean vs style ref? | Lean / minimal card |
+| 2 | Schedule window? | Last completed + next 2–3 upcoming |
+| 3 | Live vs static? | In-progress score when live; else finals + upcoming; refresh on Home load |
+| 4 | Which fancy stats (cap)? | Season W–L + division standing + streak (cap 3) |
+| 5 | Off-season UX? | Quiet in-card empty; hide card outside Aug 1–Mar 1 |
+| 6 | Tap behavior? | Link out to ESPN Bills clubhouse |
+| 7 | Priority? | Keep rank 20 |
 
 ## Notes
 
-- Intake **2026-09-13** from founder verbatim (punctuation normalized in Problem/Outcome). Initial pass misheard as Chicago Bulls (NBA); **founder correction 2026-09-13: Buffalo Bills (NFL), not Bulls.** Schedule primary; W–L + light stats; bottom Home card; **ask clarifying questions** before build.
+- Intake **2026-09-13** from founder verbatim (punctuation normalized in Problem/Outcome). Initial pass misheard as Chicago Bulls (NBA); **founder correction 2026-09-13: Buffalo Bills (NFL), not Bulls.** Schedule primary; W–L + light stats; bottom Home card.
 - **2026-09-13:** Rescoped item file `bulls-panel-home.md` → `bills-panel-home.md`; team/league, scope, risks, and open questions updated for NFL Bills; seasonality aligned to briefing **Aug 1 – Mar 1**.
+- **2026-09-13:** Scope **locked** via deferred defaults; Status **Ready**; eng shipping next. Rank remains **20**.
 - Passes [RB-013](./personal-os-north-star.md) filter as a personal want (team affinity), not generic product bloat — keep v1 thin.
 - Rank **20** — with personal Home / life tools cluster after [RB-018](./workout-tracker.md); **does not** jump P0 rebrand/todos/journal or In Progress Home puzzle ([RB-024](./daily-puzzle-on-home.md)).
-- Status stays **Backlog** until open questions close → then **Ready** with locked scope table.
-- **2026-09-13 eng spike (no build yet):** ESPN public site API works for Buffalo Bills without auth:
+- **2026-09-13 eng spike (no build yet at spike time):** ESPN public site API works for Buffalo Bills without auth:
   - Team: `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/buf` → record summary, logos, colors
   - Schedule: `.../teams/buf/schedule` → events with week, date, competitors, scores, status; `recordSummary`, `standingSummary` (e.g. "1st in AFC East")
   - Soft-fail + cache pattern should mirror weather/news APIs
   - As of spike date, Bills were **1-0 Week 1 (vs HOU)** mid-2026 season — good live data for v1.
-- **Recommended defaults if founder defers / says "your call"** (open questions Q1–Q7 stay open until confirmed; do not mark Ready on these alone):
-  1. Alena → lean/minimal card
-  2. Schedule → last completed + next 2–3 upcoming
-  3. Live → show in-progress score when game is live; otherwise finals + upcoming (refresh on Home load)
-  4. Fancy stats → season W–L + division standing + streak (cap 3)
-  5. Off-season → quiet empty state in-card; optional hide outside Aug 1–Mar 1 Bills window
-  6. Tap → optional link to ESPN Bills clubhouse/schedule
-  7. Priority → keep rank 20; ship after scope lock without jumping P0s
