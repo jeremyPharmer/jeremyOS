@@ -98,4 +98,5 @@ None blocking scope. Optional later polish only: whether to show light text labe
 | **Cross-Sums (Mini Kakuro)** | Number-crossword | Same chip rhythm | M | Not selected |
 
 - **Also considered / less preferred for chip-at-day:** Daily Word Unscramble; Riddle of the Day; Pattern Pulse.
+- **2026-09-13 founder feedback:** pack felt like “the same 5-letter word puzzle”; clearing a wrong typed word was painful. **Polish:** mix ladder grids (4- and 5-letter entries) into the curated pack; add **Clear N Across/Down** for the active clue; typing advances in Across/Down direction; clues are tappable.
 - Passes RB-013 build filter (Jeremy asked). Rank **9**. Slot replacement with [RB-025](./park-home-entertainment.md).

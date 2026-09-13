@@ -13,10 +13,18 @@ import { useApp } from "@/components/AppProvider";
 import {
   bannerText,
   buildGrid,
+  clearEntryCells,
   correctWordCellIndexes,
+  entryForCell,
+  entryForCellPrefer,
+  entryHasLetters,
+  isWordCorrect,
+  nextCellInDirection,
   normalizeDailyCrossword,
   puzzleForDate,
   type CrosswordCell,
+  type CrosswordDir,
+  type CrosswordEntry,
 } from "@/lib/crossword";
 
 export function DailyCrosswordCard() {
@@ -35,10 +43,12 @@ export function DailyCrosswordCard() {
     () => progress?.cells ?? grid.map((c) => (c.black ? "#" : "")),
   );
   const [selected, setSelected] = useState<number | null>(null);
+  const [direction, setDirection] = useState<CrosswordDir>("across");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const cellRefs = useRef<Map<number, HTMLInputElement>>(new Map());
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTap = useRef<{ index: number; at: number } | null>(null);
 
   useEffect(() => {
     if (progress?.cells?.length) {
@@ -63,6 +73,22 @@ export function DailyCrosswordCard() {
     }
     return correctWordCellIndexes(puzzle, cells);
   }, [started, revealed, solved, puzzle, cells, grid]);
+
+  const activeEntry: CrosswordEntry | null = useMemo(() => {
+    if (selected == null) return null;
+    return entryForCellPrefer(puzzle, selected, direction);
+  }, [puzzle, selected, direction]);
+
+  const activeIndexes = useMemo(() => {
+    return new Set(activeEntry?.indexes ?? []);
+  }, [activeEntry]);
+
+  const canClear = Boolean(
+    !locked &&
+      activeEntry &&
+      entryHasLetters(cells, activeEntry.indexes) &&
+      !isWordCorrect(puzzle, cells, activeEntry.num, activeEntry.dir),
+  );
 
   const persist = useEffectEvent(async (nextCells: string[]) => {
     setError("");
@@ -96,6 +122,7 @@ export function DailyCrosswordCard() {
     const first = grid.find((c) => !c.black);
     if (!first) return;
     setSelected(first.index);
+    setDirection("across");
   }, [started, locked, grid]);
 
   async function onStart() {
@@ -125,23 +152,34 @@ export function DailyCrosswordCard() {
     }
   }
 
-  function focusCell(index: number) {
+  function focusCell(index: number, dir?: CrosswordDir) {
     if (locked) return;
     const cell = grid[index];
     if (!cell || cell.black) return;
+    if (dir) setDirection(dir);
     setSelected(index);
     const el = cellRefs.current.get(index);
     el?.focus();
     el?.select();
   }
 
-  function nextWhite(from: number, dir: 1 | -1): number | null {
-    let i = from + dir;
-    while (i >= 0 && i < grid.length) {
-      if (!grid[i]!.black) return i;
-      i += dir;
+  function onCellPointerDown(index: number) {
+    if (locked) return;
+    const now = Date.now();
+    const prev = lastTap.current;
+    // Second tap on the same square flips Across ↔ Down (NYT-style).
+    if (prev && prev.index === index && now - prev.at < 450) {
+      setDirection((d) => (d === "across" ? "down" : "across"));
+    } else {
+      const prefer = entryForCell(puzzle, index, direction)
+        ? direction
+        : entryForCell(puzzle, index, "across")
+          ? "across"
+          : "down";
+      setDirection(prefer);
     }
-    return null;
+    lastTap.current = { index, at: now };
+    setSelected(index);
   }
 
   function setLetterAt(index: number, letter: string, advance: boolean) {
@@ -151,7 +189,10 @@ export function DailyCrosswordCard() {
     setCells(next);
     queueSave(next);
     if (advance) {
-      const n = nextWhite(index, 1);
+      const entry = entryForCellPrefer(puzzle, index, direction);
+      const dir = entry?.dir ?? direction;
+      if (entry) setDirection(dir);
+      const n = nextCellInDirection(puzzle, index, dir, 1);
       if (n != null) {
         setSelected(n);
         requestAnimationFrame(() => {
@@ -159,6 +200,26 @@ export function DailyCrosswordCard() {
           el?.focus();
           el?.select();
         });
+      }
+    }
+  }
+
+  function onClearActive() {
+    if (!canClear || !activeEntry) return;
+    const next = clearEntryCells(cells, activeEntry.indexes);
+    setCells(next);
+    queueSave(next);
+    const start = activeEntry.indexes[0];
+    if (start != null) focusCell(start, activeEntry.dir);
+  }
+
+  function selectClue(num: number, dir: CrosswordDir) {
+    if (locked) return;
+    for (let i = 0; i < grid.length; i++) {
+      const e = entryForCell(puzzle, i, dir);
+      if (e?.num === num) {
+        focusCell(e.indexes[0]!, dir);
+        return;
       }
     }
   }
@@ -175,13 +236,21 @@ export function DailyCrosswordCard() {
 
   function onCellKeyDown(index: number, e: KeyboardEvent<HTMLInputElement>) {
     if (locked) return;
+    if (e.key === " " || e.key === "Spacebar") {
+      e.preventDefault();
+      setDirection((d) => (d === "across" ? "down" : "across"));
+      return;
+    }
     if (e.key === "Backspace" || e.key === "Delete") {
       if (cells[index]) {
-        // let onChange clear via empty value
+        e.preventDefault();
+        setLetterAt(index, "", false);
         return;
       }
       e.preventDefault();
-      const prev = nextWhite(index, -1);
+      const entry = entryForCellPrefer(puzzle, index, direction);
+      const dir = entry?.dir ?? direction;
+      const prev = nextCellInDirection(puzzle, index, dir, -1);
       if (prev != null) {
         const next = [...cells];
         next[prev] = "";
@@ -196,15 +265,32 @@ export function DailyCrosswordCard() {
       }
       return;
     }
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+    if (e.key === "ArrowRight") {
       e.preventDefault();
-      const n = nextWhite(index, 1);
-      if (n != null) focusCell(n);
+      setDirection("across");
+      const n = nextCellInDirection(puzzle, index, "across", 1);
+      if (n != null) focusCell(n, "across");
+      return;
     }
-    if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+    if (e.key === "ArrowLeft") {
       e.preventDefault();
-      const n = nextWhite(index, -1);
-      if (n != null) focusCell(n);
+      setDirection("across");
+      const n = nextCellInDirection(puzzle, index, "across", -1);
+      if (n != null) focusCell(n, "across");
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setDirection("down");
+      const n = nextCellInDirection(puzzle, index, "down", 1);
+      if (n != null) focusCell(n, "down");
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setDirection("down");
+      const n = nextCellInDirection(puzzle, index, "down", -1);
+      if (n != null) focusCell(n, "down");
     }
   }
 
@@ -213,8 +299,12 @@ export function DailyCrosswordCard() {
     : revealed
       ? "Answers revealed"
       : started
-        ? "Tap a square, then type"
-        : "One 5×5 puzzle a day";
+        ? "Tap a square, then type — Clear lifts a wrong word"
+        : "One mini puzzle a day — shapes change";
+
+  const clearLabel = activeEntry
+    ? `Clear ${activeEntry.num} ${activeEntry.dir === "across" ? "Across" : "Down"}`
+    : "Clear word";
 
   return (
     <section className="home-card home-card-crossword" aria-label="Daily crossword">
@@ -247,12 +337,14 @@ export function DailyCrosswordCard() {
                 cell={cell}
                 value={cells[cell.index] || ""}
                 selected={selected === cell.index}
+                inActiveWord={activeIndexes.has(cell.index)}
                 locked={locked}
                 correct={correctCells.has(cell.index)}
                 inputRef={(el) => {
                   if (el) cellRefs.current.set(cell.index, el);
                   else cellRefs.current.delete(cell.index);
                 }}
+                onPointerDown={() => onCellPointerDown(cell.index)}
                 onFocus={() => setSelected(cell.index)}
                 onChange={(e) => onCellChange(cell.index, e)}
                 onKeyDown={(e) => onCellKeyDown(cell.index, e)}
@@ -264,34 +356,69 @@ export function DailyCrosswordCard() {
             <div>
               <p className="crossword-clue-head">Across</p>
               <ul>
-                {puzzle.across.map((c) => (
-                  <li key={`a-${c.num}`}>
-                    <strong>{c.num}.</strong> {c.clue}
-                  </li>
-                ))}
+                {puzzle.across.map((c) => {
+                  const active =
+                    activeEntry?.dir === "across" && activeEntry.num === c.num;
+                  const ok = isWordCorrect(puzzle, cells, c.num, "across");
+                  return (
+                    <li key={`a-${c.num}`}>
+                      <button
+                        type="button"
+                        className={`crossword-clue-btn${active ? " active" : ""}${ok ? " correct" : ""}`}
+                        disabled={locked}
+                        onClick={() => selectClue(c.num, "across")}
+                      >
+                        <strong>{c.num}.</strong> {c.clue}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             <div>
               <p className="crossword-clue-head">Down</p>
               <ul>
-                {puzzle.down.map((c) => (
-                  <li key={`d-${c.num}`}>
-                    <strong>{c.num}.</strong> {c.clue}
-                  </li>
-                ))}
+                {puzzle.down.map((c) => {
+                  const active =
+                    activeEntry?.dir === "down" && activeEntry.num === c.num;
+                  const ok = isWordCorrect(puzzle, cells, c.num, "down");
+                  return (
+                    <li key={`d-${c.num}`}>
+                      <button
+                        type="button"
+                        className={`crossword-clue-btn${active ? " active" : ""}${ok ? " correct" : ""}`}
+                        disabled={locked}
+                        onClick={() => selectClue(c.num, "down")}
+                      >
+                        <strong>{c.num}.</strong> {c.clue}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>
 
           {!locked ? (
-            <button
-              type="button"
-              className="btn ghost crossword-solve"
-              disabled={busy}
-              onClick={() => void onReveal()}
-            >
-              {busy ? "Solving…" : "Solve"}
-            </button>
+            <div className="crossword-actions">
+              <button
+                type="button"
+                className="btn ghost crossword-clear"
+                disabled={!canClear || busy}
+                onClick={onClearActive}
+                aria-label={clearLabel}
+              >
+                {clearLabel}
+              </button>
+              <button
+                type="button"
+                className="btn ghost crossword-solve"
+                disabled={busy}
+                onClick={() => void onReveal()}
+              >
+                {busy ? "Solving…" : "Solve"}
+              </button>
+            </div>
           ) : null}
         </>
       )}
@@ -309,9 +436,11 @@ function GridCell({
   cell,
   value,
   selected,
+  inActiveWord,
   locked,
   correct,
   inputRef,
+  onPointerDown,
   onFocus,
   onChange,
   onKeyDown,
@@ -319,9 +448,11 @@ function GridCell({
   cell: CrosswordCell;
   value: string;
   selected: boolean;
+  inActiveWord: boolean;
   locked: boolean;
   correct: boolean;
   inputRef: (el: HTMLInputElement | null) => void;
+  onPointerDown: () => void;
   onFocus: () => void;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
@@ -331,7 +462,8 @@ function GridCell({
   }
   return (
     <div
-      className={`crossword-cell${selected && !locked ? " selected" : ""}${locked ? " done" : ""}${correct ? " correct" : ""}`}
+      className={`crossword-cell${selected && !locked ? " selected" : ""}${inActiveWord && !selected && !locked ? " in-word" : ""}${locked ? " done" : ""}${correct ? " correct" : ""}`}
+      onPointerDown={onPointerDown}
     >
       {cell.number != null ? (
         <span className="crossword-num">{cell.number}</span>

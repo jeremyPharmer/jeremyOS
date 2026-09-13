@@ -2018,6 +2018,10 @@ h2 {
   z-index: 1;
 }
 
+.crossword-cell.in-word {
+  background: color-mix(in srgb, var(--accent-soft, var(--accent)) 18%, var(--surface));
+}
+
 .crossword-cell.done {
   cursor: default;
 }
@@ -2090,10 +2094,44 @@ h2 {
   color: var(--text);
 }
 
+.crossword-clue-btn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.crossword-clue-btn:disabled {
+  cursor: default;
+}
+
+.crossword-clue-btn.active {
+  background: color-mix(in srgb, var(--accent-soft, var(--accent)) 28%, var(--surface));
+}
+
+.crossword-clue-btn.correct {
+  color: color-mix(in srgb, var(--accent) 65%, var(--text));
+}
+
+.crossword-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.crossword-clear,
 .crossword-solve {
   width: 100%;
   justify-content: center;
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .crossword-banner {

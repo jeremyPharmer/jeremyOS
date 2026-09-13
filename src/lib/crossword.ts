@@ -37,13 +37,11 @@ export type DailyCrosswordState = {
 };
 
 /**
- * Hand-authored pack — denser interlocking pattern:
- *   XXXXX
- *   X#X#X
- *   XXXXX
- *   X#X#X
- *   XXXXX
- * Across 1/4/5 (rows 0,2,4); down 1/2/3 (cols 0,2,4). Rotate by day-of-year.
+ * Hand-authored pack — mix of grid shapes so days aren’t always the same
+ * five-letter-across pattern:
+ *   classic  XXXXX / X#X#X / XXXXX / X#X#X / XXXXX
+ *   ladder   XXXX# / X#X#X / XXXXX / X#X#X / #XXXX  (4- and 5-letter mix)
+ * Rotate by day-of-year.
  */
 export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
   {
@@ -61,6 +59,20 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
+    id: "glow-ideal",
+    rows: ["GLOW#", "R#P#F", "IDEAL", "T#R#I", "#LAMP"],
+    across: [
+      { num: 1, clue: "Soft radiance" },
+      { num: 4, clue: "Perfect, as a day" },
+      { num: 5, clue: "Bedside light" },
+    ],
+    down: [
+      { num: 1, clue: "Sandpaper quality" },
+      { num: 2, clue: "Met’s singing house" },
+      { num: 3, clue: "Turn over, as a pancake" },
+    ],
+  },
+  {
     id: "spree-manor",
     rows: ["SPREE", "U#I#G", "MANOR", "A#S#E", "CLEAT"],
     across: [
@@ -72,6 +84,20 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
       { num: 1, clue: "Tangy red kebab seasoning" },
       { num: 2, clue: "Lather, ___, repeat" },
       { num: 3, clue: "Heron of marsh fame" },
+    ],
+  },
+  {
+    id: "wasp-score",
+    rows: ["WASP#", "I#T#N", "SCORE", "P#V#O", "#VEIN"],
+    across: [
+      { num: 1, clue: "Picnic pest" },
+      { num: 4, clue: "Final tally" },
+      { num: 5, clue: "Blood vessel" },
+    ],
+    down: [
+      { num: 1, clue: "Thin strand" },
+      { num: 2, clue: "Kitchen heat box" },
+      { num: 3, clue: "Gas-station glow" },
     ],
   },
   {
@@ -89,6 +115,20 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
+    id: "beam-ideal",
+    rows: ["BEAM#", "A#L#P", "IDEAL", "T#R#U", "#ITEM"],
+    across: [
+      { num: 1, clue: "Grin widely" },
+      { num: 4, clue: "Model example" },
+      { num: 5, clue: "Agenda bullet" },
+    ],
+    down: [
+      { num: 1, clue: "Hook’s offering" },
+      { num: 2, clue: "Heads-up, as a warning" },
+      { num: 3, clue: "Purple stone fruit" },
+    ],
+  },
+  {
     id: "boost-logic",
     rows: ["BOOST", "E#U#A", "LOGIC", "L#H#K", "ENTRY"],
     across: [
@@ -103,6 +143,20 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
+    id: "spot-alert",
+    rows: ["SPOT#", "T#P#I", "ALERT", "R#R#E", "#FARM"],
+    across: [
+      { num: 1, clue: "Notice, as a typo" },
+      { num: 4, clue: "Ready for action" },
+      { num: 5, clue: "Barn territory" },
+    ],
+    down: [
+      { num: 1, clue: "Sky’s night lead" },
+      { num: 2, clue: "La Scala spectacle" },
+      { num: 3, clue: "Checklist entry" },
+    ],
+  },
+  {
     id: "weigh-polar",
     rows: ["WEIGH", "I#S#U", "POLAR", "E#E#R", "DITTY"],
     across: [
@@ -114,6 +168,20 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
       { num: 1, clue: "Erased, as a slate" },
       { num: 2, clue: "Key in a chain, maybe" },
       { num: 3, clue: "Move with haste" },
+    ],
+  },
+  {
+    id: "soap-opera",
+    rows: ["SOAP#", "P#V#F", "OPERA", "T#R#R", "#ITEM"],
+    across: [
+      { num: 1, clue: "Dish duty bar" },
+      { num: 4, clue: "Aida’s art form" },
+      { num: 5, clue: "Thing on a list" },
+    ],
+    down: [
+      { num: 1, clue: "Dalmatian mark" },
+      { num: 2, clue: "Turn aside, as eyes" },
+      { num: 3, clue: "Acreage with crops" },
     ],
   },
   {
@@ -212,20 +280,6 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
       { num: 1, clue: "Cut off, as ties" },
       { num: 2, clue: "Owl’s working hours" },
       { num: 3, clue: "Medal-worthy esteem" },
-    ],
-  },
-  {
-    id: "synth-bison",
-    rows: ["SYNTH", "O#A#O", "BISON", "E#A#O", "RULER"],
-    across: [
-      { num: 1, clue: "Keyboard cousin of a piano" },
-      { num: 4, clue: "Yellowstone heavyweight" },
-      { num: 5, clue: "Desk edge straightener" },
-    ],
-    down: [
-      { num: 1, clue: "Straight-faced" },
-      { num: 2, clue: "Twangy, as a voice" },
-      { num: 3, clue: "What a toast confers" },
     ],
   },
   {
@@ -401,11 +455,19 @@ export function solutionCells(puzzle: MiniCrosswordPuzzle): string[] {
   return cells;
 }
 
+export type CrosswordDir = "across" | "down";
+
+export type CrosswordEntry = {
+  num: number;
+  dir: CrosswordDir;
+  indexes: number[];
+};
+
 /** Indexes for one across or down entry starting at `num`. */
 export function wordCellIndexes(
   puzzle: MiniCrosswordPuzzle,
   num: number,
-  dir: "across" | "down",
+  dir: CrosswordDir,
 ): number[] {
   const start = clueStartIndex(puzzle, num);
   if (start == null) return [];
@@ -426,12 +488,85 @@ export function wordCellIndexes(
   return indexes;
 }
 
+/**
+ * Across or down clue entry that owns `index` for the given direction.
+ * Returns null when that cell isn’t part of a listed clue in `dir`.
+ */
+export function entryForCell(
+  puzzle: MiniCrosswordPuzzle,
+  index: number,
+  dir: CrosswordDir,
+): CrosswordEntry | null {
+  const clues = dir === "across" ? puzzle.across : puzzle.down;
+  for (const c of clues) {
+    const indexes = wordCellIndexes(puzzle, c.num, dir);
+    if (indexes.includes(index)) {
+      return { num: c.num, dir, indexes };
+    }
+  }
+  return null;
+}
+
+/** Prefer `dir`, else the other direction, else null. */
+export function entryForCellPrefer(
+  puzzle: MiniCrosswordPuzzle,
+  index: number,
+  dir: CrosswordDir,
+): CrosswordEntry | null {
+  return (
+    entryForCell(puzzle, index, dir) ??
+    entryForCell(puzzle, index, dir === "across" ? "down" : "across")
+  );
+}
+
+export function entryHasLetters(
+  cells: string[],
+  indexes: number[],
+): boolean {
+  return indexes.some((i) => {
+    const ch = cells[i];
+    return Boolean(ch && ch !== "#");
+  });
+}
+
+/** Wipe letters for one clue entry (black cells untouched). */
+export function clearEntryCells(
+  cells: string[],
+  indexes: number[],
+): string[] {
+  const next = [...cells];
+  for (const i of indexes) {
+    if (next[i] !== "#") next[i] = "";
+  }
+  return next;
+}
+
+/** Next fillable cell along an across/down run, or null at the edge. */
+export function nextCellInDirection(
+  puzzle: MiniCrosswordPuzzle,
+  index: number,
+  dir: CrosswordDir,
+  step: 1 | -1,
+): number | null {
+  const row = Math.floor(index / CROSSWORD_SIZE);
+  const col = index % CROSSWORD_SIZE;
+  let r = row;
+  let c = col;
+  if (dir === "across") c += step;
+  else r += step;
+  if (r < 0 || r >= CROSSWORD_SIZE || c < 0 || c >= CROSSWORD_SIZE) {
+    return null;
+  }
+  if (puzzle.rows[r]![c] === "#") return null;
+  return r * CROSSWORD_SIZE + c;
+}
+
 /** True when every letter of that entry is filled and matches the solution. */
 export function isWordCorrect(
   puzzle: MiniCrosswordPuzzle,
   cells: string[],
   num: number,
-  dir: "across" | "down",
+  dir: CrosswordDir,
 ): boolean {
   const indexes = wordCellIndexes(puzzle, num, dir);
   if (indexes.length < 2) return false;
