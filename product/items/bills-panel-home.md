@@ -75,3 +75,16 @@ See **Open questions** below — founder explicitly asked to be asked. Do not st
 - Passes [RB-013](./personal-os-north-star.md) filter as a personal want (team affinity), not generic product bloat — keep v1 thin.
 - Rank **20** — with personal Home / life tools cluster after [RB-018](./workout-tracker.md); **does not** jump P0 rebrand/todos/journal or In Progress Home puzzle ([RB-024](./daily-puzzle-on-home.md)).
 - Status stays **Backlog** until open questions close → then **Ready** with locked scope table.
+- **2026-09-13 eng spike (no build yet):** ESPN public site API works for Buffalo Bills without auth:
+  - Team: `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/buf` → record summary, logos, colors
+  - Schedule: `.../teams/buf/schedule` → events with week, date, competitors, scores, status; `recordSummary`, `standingSummary` (e.g. "1st in AFC East")
+  - Soft-fail + cache pattern should mirror weather/news APIs
+  - As of spike date, Bills were **1-0 Week 1 (vs HOU)** mid-2026 season — good live data for v1.
+- **Recommended defaults if founder defers / says "your call"** (open questions Q1–Q7 stay open until confirmed; do not mark Ready on these alone):
+  1. Alena → lean/minimal card
+  2. Schedule → last completed + next 2–3 upcoming
+  3. Live → show in-progress score when game is live; otherwise finals + upcoming (refresh on Home load)
+  4. Fancy stats → season W–L + division standing + streak (cap 3)
+  5. Off-season → quiet empty state in-card; optional hide outside Aug 1–Mar 1 Bills window
+  6. Tap → optional link to ESPN Bills clubhouse/schedule
+  7. Priority → keep rank 20; ship after scope lock without jumping P0s
