@@ -2126,10 +2126,10 @@ h2 {
   align-items: center;
   width: min(100%, 260px);
   margin: 0 auto -2px;
-  min-height: 1.5rem;
+  min-height: 1.35rem;
 }
 
-.crossword-clear {
+.crossword-toolbar .btn.ghost.crossword-clear {
   width: auto;
   min-height: 0;
   padding: 2px 8px;
