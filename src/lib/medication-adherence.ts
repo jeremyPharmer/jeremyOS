@@ -1,5 +1,8 @@
-import { datesInRange, isSupportDoneToday } from "./journey";
-import { isMedicationTodoLabel } from "./todos";
+import {
+  longTermTrackerAdherenceList,
+  trackerAdherence,
+  trackerCompletionDates,
+} from "./tracker-adherence";
 import type { RebuildState, SupportType } from "./types";
 
 const MEDICATION: SupportType = "medication";
@@ -24,27 +27,12 @@ export function medicationCompletionDates(
   state: RebuildState,
   today: string,
 ): string[] {
-  const dates = new Set<string>();
-  for (const s of state.supports ?? []) {
-    if (s.supportType === MEDICATION && s.completed && s.date <= today) {
-      dates.add(s.date);
-    }
-  }
-  for (const item of state.dayProvisions ?? []) {
-    if (!isMedicationTodoLabel(item.label)) continue;
-    for (const d of item.completionDates ?? []) {
-      if (d <= today) dates.add(d);
-    }
-    if (item.lastCompletedOn && item.lastCompletedOn <= today) {
-      dates.add(item.lastCompletedOn);
-    }
-  }
-  return [...dates].sort();
+  return trackerCompletionDates(state, MEDICATION, today);
 }
 
 /**
- * % of calendar days covered by medication logs (Journey support and/or
- * Medication todo) from the first logged dose through today. RB-031.
+ * % of expected doses covered from the first logged dose through today.
+ * Daily (7/wk) target → days covered ÷ days elapsed. RB-031 / RB-033.
  */
 export function medicationAdherence(
   state: RebuildState,
@@ -54,38 +42,33 @@ export function medicationAdherence(
   const configured = Boolean(config?.enabled ?? config);
   const label = config?.label?.trim() || "Medication";
 
-  const completedDates = medicationCompletionDates(state, today);
-  const firstDoseDate = completedDates[0] ?? null;
-  const takenToday =
-    isSupportDoneToday(state, today, MEDICATION) ||
-    completedDates.includes(today);
-
-  if (!firstDoseDate) {
+  if (!config) {
     return {
       firstDoseDate: null,
       daysCovered: 0,
       daysElapsed: 0,
       percent: null,
-      takenToday,
-      configured,
+      takenToday: false,
+      configured: false,
       label,
     };
   }
 
-  const window = datesInRange(firstDoseDate, today);
-  const coveredSet = new Set(completedDates);
-  const daysCovered = window.filter((d) => coveredSet.has(d)).length;
-  const daysElapsed = window.length;
-  const percent =
-    daysElapsed === 0 ? 0 : Math.round((100 * daysCovered) / daysElapsed);
+  const row = trackerAdherence(
+    state,
+    { ...config, enabled: true },
+    today,
+  );
 
   return {
-    firstDoseDate,
-    daysCovered,
-    daysElapsed,
-    percent,
-    takenToday,
+    firstDoseDate: row.firstLogDate,
+    daysCovered: row.completed,
+    daysElapsed: row.daysElapsed,
+    percent: row.percent,
+    takenToday: row.doneToday,
     configured,
     label,
   };
 }
+
+export { longTermTrackerAdherenceList };

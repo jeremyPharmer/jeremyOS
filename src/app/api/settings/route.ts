@@ -3,6 +3,7 @@ import { normalizeReminders } from "@/lib/reminders";
 import { INTERVENTION_LABEL_MAX } from "@/lib/craving-interventions";
 import { updateState } from "@/lib/store";
 import { optionalTaskGroup, type CalendarFeedGroups } from "@/lib/task-groups";
+import { migrateLongTermTrackers } from "@/lib/long-term-trackers";
 import { DEFAULT_SUPPORTS, type SupportConfig } from "@/lib/types";
 import { normalizeExtraIcalUrls } from "@/lib/work-calendar";
 
@@ -31,9 +32,14 @@ export async function POST(req: Request) {
         (err as Error & { status: number }).status = 400;
         throw err;
       }
-      const supports: SupportConfig[] = Array.isArray(body.supports)
-        ? body.supports
-        : prev.profile.supports ?? DEFAULT_SUPPORTS;
+      const migrated = migrateLongTermTrackers(
+        Array.isArray(body.supports)
+          ? body.supports
+          : prev.profile.supports ?? DEFAULT_SUPPORTS,
+        // Settings save is intentional — never re-strip user choices.
+        true,
+      );
+      const supports: SupportConfig[] = migrated.supports;
       const cravingInterventions = Array.isArray(body.cravingInterventions)
         ? body.cravingInterventions
             .map((s: unknown) => String(s).trim().slice(0, INTERVENTION_LABEL_MAX))
@@ -104,6 +110,7 @@ export async function POST(req: Request) {
         profile: {
           ...prev.profile,
           supports,
+          longTermTrackingCleared: true,
           cravingInterventions,
           historicalDailySpend,
           displayName: body.displayName

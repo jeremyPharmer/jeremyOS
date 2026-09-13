@@ -5,7 +5,7 @@
 | ID | RB-033 |
 | Rank | 5 |
 | Priority | P0 |
-| Status | In Progress |
+| Status | Ready |
 | Effort | S |
 | Target due | TBD |
 | Milestone | v1 |

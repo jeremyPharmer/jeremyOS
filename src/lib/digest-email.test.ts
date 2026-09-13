@@ -33,12 +33,6 @@ function sample(): RebuildState {
   state.supports = [
     {
       date: "2026-08-17",
-      supportType: "recovery_content",
-      completed: true,
-      completedAt: "2026-08-17T12:00:00.000Z",
-    },
-    {
-      date: "2026-08-17",
       supportType: "medication",
       completed: true,
       completedAt: "2026-08-17T12:00:00.000Z",
@@ -70,13 +64,12 @@ describe("digest emails", () => {
     const digest = buildMorningDigest(sample(), "2026-08-17");
     expect(digest.subject).toBe("Day 8 is waiting");
     expect(digest.html).toContain("Start the day still open");
-    expect(digest.html).toContain("1 / 2 this week");
     expect(digest.html).toContain("2 / 7 this week");
+    expect(digest.html).toContain("Medication");
     expect(digest.html).toContain("NFL Bets");
     expect(digest.html).toContain("Start the day — keep Day 8");
     expect(digest.html).toContain("to play");
     expect(digest.html).toContain("to read");
-    expect(digest.html).not.toContain("Recovery content 1/2 ·");
   });
 
   it("evening is close-focused with look-back copy", () => {
@@ -86,7 +79,7 @@ describe("digest emails", () => {
     expect(digest.html).toContain("Don’t forget to close it");
     expect(digest.html).toContain("Stay present");
     expect(digest.html).toContain("Close the day");
-    expect(digest.html).toContain("1 / 2 this week");
+    expect(digest.html).toContain("2 / 7 this week");
     expect(digest.html).not.toContain("5 to play");
   });
 });

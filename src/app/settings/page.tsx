@@ -507,9 +507,9 @@ export default function SettingsPage() {
       </section>
 
       <section className="panel">
-        <p className="eyebrow">Weekly supports</p>
+        <p className="eyebrow">Long-term tracking</p>
         <p className="tiny" style={{ marginBottom: 10 }}>
-          Toggle what shows on Today&apos;s Items. Add your own anytime.
+          Habits you want tracked over time on Journey. Set how many times per week.
         </p>
         {supports.map((s) => (
           <div key={s.type} className="support-edit">
@@ -534,7 +534,7 @@ export default function SettingsPage() {
                 />
               </label>
               <label className="target-inline">
-                <span className="tiny">/wk</span>
+                <span className="tiny">times/wk</span>
                 <input
                   type="number"
                   min={0}
@@ -552,13 +552,13 @@ export default function SettingsPage() {
         ))}
 
         <div className="add-support">
-          <p className="eyebrow">Add a support</p>
+          <p className="eyebrow">Add a tracker</p>
           <div className="add-support-row">
             <input
               value={newLabel}
               maxLength={SUPPORT_LABEL_MAX}
               onChange={(e) => setNewLabel(e.target.value)}
-              placeholder="e.g. Walk, Meeting, Therapy"
+              placeholder="e.g. Meditation, Walk, Therapy"
             />
             <input
               type="number"
@@ -566,7 +566,7 @@ export default function SettingsPage() {
               max={14}
               value={newTarget}
               onChange={(e) => setNewTarget(e.target.value)}
-              aria-label="Weekly target"
+              aria-label="Times per week"
               style={{ width: 64 }}
             />
             <button type="button" className="btn ghost" onClick={addSupport}>

@@ -369,6 +369,10 @@ describe("cravingHeadwindHours", () => {
 describe("supportRhythmLastFourWeeks", () => {
   it("counts completions vs target across four Sunday weeks", () => {
     const state = baseState();
+    state.profile!.supports = [
+      { type: "gym", label: "Gym", weeklyTarget: 4, enabled: true },
+      { type: "medication", label: "Medication", weeklyTarget: 7, enabled: true },
+    ];
     // 2026-08-18 is a Tuesday; current week Sun 16–Sat 22.
     state.supports = [
       {
@@ -405,6 +409,10 @@ describe("supportRhythmLastFourWeeks", () => {
 
   it("adds gym vs rest contrast only with enough active days on both sides", () => {
     const state = baseState();
+    state.profile!.supports = [
+      { type: "gym", label: "Gym", weeklyTarget: 4, enabled: true },
+      { type: "medication", label: "Medication", weeklyTarget: 7, enabled: true },
+    ];
     state.mornings = [];
     for (let i = 0; i < 8; i++) {
       const date = `2026-08-${String(10 + i).padStart(2, "0")}`;

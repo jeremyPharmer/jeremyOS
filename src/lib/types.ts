@@ -378,6 +378,11 @@ export type RebuildProfile = {
   currentRunId: string;
   currentRunStartedOn: string;
   supports: SupportConfig[];
+  /**
+   * After RB-033: legacy canned weekly supports were cleared once.
+   * Do not strip again so Jeremy can re-add them.
+   */
+  longTermTrackingCleared?: boolean;
   timezone: string;
   /**
    * Treat Yourself share of each Move (0–1). Future = 1 − treatSplit.
@@ -514,32 +519,27 @@ export type CustomAgendaEvent = {
   group?: TaskGroup;
 };
 
+/** Default long-term trackers (formerly Weekly supports). Medication only. */
 export const DEFAULT_SUPPORTS: SupportConfig[] = [
-  {
-    type: "recovery_content",
-    label: "Recovery content",
-    weeklyTarget: 2,
-    enabled: true,
-  },
-  {
-    type: "meditation",
-    label: "Meditation",
-    weeklyTarget: 5,
-    enabled: true,
-  },
   {
     type: "medication",
     label: "Medication",
     weeklyTarget: 7,
     enabled: true,
   },
-  {
-    type: "gym",
-    label: "Gym",
-    weeklyTarget: 4,
-    enabled: true,
-  },
 ];
+
+/**
+ * Canned types cleared once from existing profiles for Long-term tracking (RB-033).
+ * Medication and custom_* stay; user may re-add canned types after the flag is set.
+ */
+export const CLEARED_LEGACY_SUPPORT_TYPES = new Set<string>([
+  "recovery_content",
+  "meditation",
+  "gym",
+  "walk",
+  "meetings",
+]);
 
 export const MILESTONE_DEFS: MilestoneDef[] = [
   { dayNumber: 1, type: "checkpoint", title: "Begin" },

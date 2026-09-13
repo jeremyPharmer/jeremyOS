@@ -4,6 +4,7 @@ import { FUTURE_SPLIT, TREAT_SPLIT } from "@/lib/fund";
 import { newId } from "@/lib/journey";
 import { updateState, updateUserRecord } from "@/lib/store";
 import { SUPPORT_LABEL_MAX } from "@/lib/auth-constants";
+import { migrateLongTermTrackers } from "@/lib/long-term-trackers";
 import { DEFAULT_SUPPORTS, type RewardCategory, type SupportConfig } from "@/lib/types";
 
 export async function POST(req: Request) {
@@ -22,15 +23,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const supports: SupportConfig[] = Array.isArray(body.supports)
-      ? body.supports.filter(
-          (s: SupportConfig) => s && s.enabled !== false && s.label,
-        )
-      : DEFAULT_SUPPORTS;
+    const migrated = migrateLongTermTrackers(
+      Array.isArray(body.supports)
+        ? body.supports.filter(
+            (s: SupportConfig) => s && s.enabled !== false && s.label,
+          )
+        : DEFAULT_SUPPORTS,
+      // Onboarding choices are intentional (inspiration chips may include gym etc.).
+      true,
+    );
+    const supports: SupportConfig[] = migrated.supports;
 
     if (supports.length === 0) {
       return NextResponse.json(
-        { error: "Choose at least one weekly support" },
+        { error: "Choose at least one long-term tracker" },
         { status: 400 },
       );
     }
@@ -111,6 +117,7 @@ export async function POST(req: Request) {
           startDate: today,
           currentRunId: runId,
           currentRunStartedOn: prev.profile?.currentRunStartedOn ?? today,
+          longTermTrackingCleared: true,
           supports: supports.map((s) => ({
             type: String(s.type),
             label: String(s.label).trim().slice(0, SUPPORT_LABEL_MAX) || "Support",
