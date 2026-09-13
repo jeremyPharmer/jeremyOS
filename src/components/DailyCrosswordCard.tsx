@@ -302,9 +302,7 @@ export function DailyCrosswordCard() {
         ? "Tap a square, then type — Clear lifts a wrong word"
         : "One mini puzzle a day — shapes change";
 
-  const clearLabel = activeEntry
-    ? `Clear ${activeEntry.num} ${activeEntry.dir === "across" ? "Across" : "Down"}`
-    : "Clear word";
+  const clearLabel = "Clear";
 
   return (
     <section className="home-card home-card-crossword" aria-label="Daily crossword">
