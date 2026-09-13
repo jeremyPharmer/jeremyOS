@@ -299,7 +299,7 @@ export function DailyCrosswordCard() {
     : revealed
       ? "Answers revealed"
       : started
-        ? "Tap a square, then type — Clear lifts a wrong word"
+        ? "Tap a square, then type"
         : "One mini puzzle a day — shapes change";
 
   const clearLabel = "Clear";
