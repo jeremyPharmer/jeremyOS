@@ -26,7 +26,7 @@ import {
 } from "@/lib/morning-briefing";
 import type { NewsHeadline } from "@/lib/news";
 import { quoteById } from "@/lib/quotes";
-import { openTodosOn, upcomingTodos } from "@/lib/todos";
+import { dueTodosOn } from "@/lib/todos";
 import type { DailyForecast } from "@/lib/weather";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
 
@@ -104,41 +104,22 @@ export default function MorningPage() {
   const morningDone = Boolean(todayMorning) || done;
 
   const briefingTasks: BriefingTask[] = useMemo(() => {
-    const open = openTodosOn(state.dayProvisions ?? [], today).map((t) => ({
+    return dueTodosOn(state.dayProvisions ?? [], today).map((t) => ({
       id: t.id,
       label: t.label,
       time: t.time,
       snoozedAhead: false as const,
     }));
-    const snoozed = upcomingTodos(state.dayProvisions ?? [], today)
-      .slice(0, 8)
-      .map((t) => ({
-        id: t.id,
-        label: t.label,
-        time: t.time,
-        snoozedAhead: true as const,
-      }));
-    return [...open, ...snoozed];
   }, [state.dayProvisions, today]);
 
   const expandedTasks: BriefingTaskRow[] = useMemo(() => {
-    const open = openTodosOn(state.dayProvisions ?? [], today).map((t) => ({
+    return dueTodosOn(state.dayProvisions ?? [], today).map((t) => ({
       id: t.id,
       label: t.label,
       time: t.time,
       group: t.group,
       meta: undefined as string | undefined,
     }));
-    const ahead = upcomingTodos(state.dayProvisions ?? [], today)
-      .slice(0, 6)
-      .map((t) => ({
-        id: t.id,
-        label: t.label,
-        time: t.time,
-        group: t.group,
-        meta: "Ahead",
-      }));
-    return [...open, ...ahead];
   }, [state.dayProvisions, today]);
 
   const historyEntries = useMemo(
@@ -313,13 +294,12 @@ export default function MorningPage() {
         <header className="daily-briefing-header">
           <p className="eyebrow">Daily briefing</p>
           <h1 className="daily-briefing-title">Open</h1>
+          {shownIntention ? (
+            <p className="daily-briefing-lede">
+              Aim for today: <strong>{shownIntention}</strong>
+            </p>
+          ) : null}
         </header>
-
-        {shownIntention ? (
-          <p className="morning-brief-focus morning-brief-focus-soft">
-            You&apos;re aiming to do well at: <strong>{shownIntention}</strong>
-          </p>
-        ) : null}
 
         {quote ? (
           <blockquote className="morning-brief-quote morning-brief-quote-soft">
@@ -330,58 +310,60 @@ export default function MorningPage() {
           </blockquote>
         ) : null}
 
-        <WeatherExpanded
-          mode="today"
-          locationLabel={weatherLocation}
-          days={weatherDays}
-          focusDate={today}
-          loading={briefingLoading}
-        />
+        <div className="daily-briefing-issue">
+          <WeatherExpanded
+            mode="today"
+            locationLabel={weatherLocation}
+            days={weatherDays}
+            focusDate={today}
+            loading={briefingLoading}
+          />
 
-        <section className="morning-brief-letter" aria-live="polite">
-          {briefingLoading && events.length === 0 && !thinWeather ? (
-            <p className="muted morning-brief-loading">
-              Pulling calendar and open windows…
-            </p>
-          ) : (
-            <>
-              <article className="morning-brief-chapter">
-                <p className="morning-brief-lead">
-                  {briefing.calendarStory.lead}
-                </p>
-                {briefing.calendarStory.items.length > 0 ? (
-                  <ul className="morning-brief-agenda">
-                    {briefing.calendarStory.items.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+          <section className="morning-brief-letter" aria-live="polite">
+            {briefingLoading && events.length === 0 && !thinWeather ? (
+              <p className="muted morning-brief-loading">
+                Pulling calendar and open windows…
+              </p>
+            ) : (
+              <>
+                <article className="morning-brief-chapter">
+                  <p className="morning-brief-lead">
+                    {briefing.calendarStory.lead}
+                  </p>
+                  {briefing.calendarStory.items.length > 0 ? (
+                    <ul className="morning-brief-agenda">
+                      {briefing.calendarStory.items.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </article>
+
+                <article className="morning-brief-chapter morning-brief-chapter-plan">
+                  <p className="morning-brief-lead">{briefing.planStory.lead}</p>
+                  {briefing.planStory.items.length > 0 ? (
+                    <ul className="morning-brief-agenda morning-brief-agenda-plan">
+                      {briefing.planStory.items.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </article>
+
+                {briefing.leftoverNote ? (
+                  <p className="morning-brief-aside">{briefing.leftoverNote}</p>
                 ) : null}
-              </article>
 
-              <article className="morning-brief-chapter morning-brief-chapter-plan">
-                <p className="morning-brief-lead">{briefing.planStory.lead}</p>
-                {briefing.planStory.items.length > 0 ? (
-                  <ul className="morning-brief-agenda morning-brief-agenda-plan">
-                    {briefing.planStory.items.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                ) : null}
-              </article>
+                <p className="morning-brief-pulse">{briefing.opener}</p>
+              </>
+            )}
+          </section>
 
-              {briefing.leftoverNote ? (
-                <p className="morning-brief-aside">{briefing.leftoverNote}</p>
-              ) : null}
-
-              <p className="morning-brief-pulse">{briefing.opener}</p>
-            </>
-          )}
-        </section>
-
-        <ThisDayInHistory today={today} entries={historyEntries} />
-        <WorldHeadlines headlines={news} loading={briefingLoading} />
-        <BriefingTasks tasks={expandedTasks} />
-        <BodyMind workouts={workoutGaps} trends={trends} />
+          <BriefingTasks tasks={expandedTasks} />
+          <ThisDayInHistory today={today} entries={historyEntries} />
+          <WorldHeadlines headlines={news} loading={briefingLoading} />
+          <BodyMind workouts={workoutGaps} trends={trends} />
+        </div>
 
         {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
         <PrimaryButton onClick={() => router.push("/")}>
