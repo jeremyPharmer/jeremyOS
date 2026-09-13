@@ -323,45 +323,47 @@ export function DailyCrosswordCard() {
         </button>
       ) : (
         <>
-          {!locked ? (
-            <div className="crossword-toolbar">
-              <button
-                type="button"
-                className="btn ghost crossword-clear"
-                disabled={!canClear || busy}
-                onClick={onClearActive}
-                aria-label={clearLabel}
-              >
-                {clearLabel}
-              </button>
-            </div>
-          ) : null}
+          <div className="crossword-board">
+            {!locked ? (
+              <div className="crossword-toolbar">
+                <button
+                  type="button"
+                  className="btn ghost crossword-clear"
+                  disabled={!canClear || busy}
+                  onClick={onClearActive}
+                  aria-label={clearLabel}
+                >
+                  {clearLabel}
+                </button>
+              </div>
+            ) : null}
 
-          <div
-            className={`crossword-grid${locked ? " locked" : ""}${solved ? " solved" : ""}${revealed ? " revealed" : ""}`}
-            role="grid"
-            aria-label="Crossword grid"
-            aria-readonly={locked || undefined}
-          >
-            {grid.map((cell) => (
-              <GridCell
-                key={cell.index}
-                cell={cell}
-                value={cells[cell.index] || ""}
-                selected={selected === cell.index}
-                inActiveWord={activeIndexes.has(cell.index)}
-                locked={locked}
-                correct={correctCells.has(cell.index)}
-                inputRef={(el) => {
-                  if (el) cellRefs.current.set(cell.index, el);
-                  else cellRefs.current.delete(cell.index);
-                }}
-                onPointerDown={() => onCellPointerDown(cell.index)}
-                onFocus={() => setSelected(cell.index)}
-                onChange={(e) => onCellChange(cell.index, e)}
-                onKeyDown={(e) => onCellKeyDown(cell.index, e)}
-              />
-            ))}
+            <div
+              className={`crossword-grid${locked ? " locked" : ""}${solved ? " solved" : ""}${revealed ? " revealed" : ""}`}
+              role="grid"
+              aria-label="Crossword grid"
+              aria-readonly={locked || undefined}
+            >
+              {grid.map((cell) => (
+                <GridCell
+                  key={cell.index}
+                  cell={cell}
+                  value={cells[cell.index] || ""}
+                  selected={selected === cell.index}
+                  inActiveWord={activeIndexes.has(cell.index)}
+                  locked={locked}
+                  correct={correctCells.has(cell.index)}
+                  inputRef={(el) => {
+                    if (el) cellRefs.current.set(cell.index, el);
+                    else cellRefs.current.delete(cell.index);
+                  }}
+                  onPointerDown={() => onCellPointerDown(cell.index)}
+                  onFocus={() => setSelected(cell.index)}
+                  onChange={(e) => onCellChange(cell.index, e)}
+                  onKeyDown={(e) => onCellKeyDown(cell.index, e)}
+                />
+              ))}
+            </div>
           </div>
 
           <div className="crossword-clues">
