@@ -5,7 +5,7 @@
 | ID | RB-034 |
 | Rank | 20 |
 | Priority | P1 |
-| Status | Ready |
+| Status | Done |
 | Effort | M |
 | Target due | TBD |
 | Milestone | v1.x |
@@ -19,9 +19,9 @@ Jeremy wants a **Buffalo Bills** (NFL) glance on Home — schedule first, plus r
 
 Home ends with a **clean, lean card** showing Bills **schedule** (primary), **wins/losses**, and a small set of **stats**, so Jeremy can check the team without leaving JeremyOS.
 
-## Scope (v1) — locked 2026-09-13
+## Scope (v1) — locked 2026-09-13 · shipped
 
-Open questions **answered via deferred founder defaults** (2026-09-13). Status **Ready**; **eng ships next**.
+Open questions **answered via deferred founder defaults** (2026-09-13). Status **Done** — eng shipped 2026-09-13.
 
 Working intake from founder (2026-09-13): *“Bills panel - on the homepage, [a lean / Alena?] clean looking card at the very bottom of the [Home]. Schedule, as it is, [no?] fancy stats, wins losses and schedule is all.”* (Initially misheard as Chicago Bulls; corrected to **Buffalo Bills** / NFL — see Notes.)
 
@@ -76,7 +76,8 @@ Working intake from founder (2026-09-13): *“Bills panel - on the homepage, [a 
 
 - Intake **2026-09-13** from founder verbatim (punctuation normalized in Problem/Outcome). Initial pass misheard as Chicago Bulls (NBA); **founder correction 2026-09-13: Buffalo Bills (NFL), not Bulls.** Schedule primary; W–L + light stats; bottom Home card.
 - **2026-09-13:** Rescoped item file `bulls-panel-home.md` → `bills-panel-home.md`; team/league, scope, risks, and open questions updated for NFL Bills; seasonality aligned to briefing **Aug 1 – Mar 1**.
-- **2026-09-13:** Scope **locked** via deferred defaults; Status **Ready**; eng shipping next. Rank remains **20**.
+- **2026-09-13:** Scope **locked** via deferred defaults; Status was **Ready**; eng shipping next. Rank remains **20**.
+- **2026-09-13 Done:** Eng shipped Home bottom Bills card — ESPN schedule (last completed + next upcoming), W–L + division standing + streak; card **hidden** outside **Aug 1 – Mar 1**; tap → ESPN Bills clubhouse. Status → **Done**.
 - Passes [RB-013](./personal-os-north-star.md) filter as a personal want (team affinity), not generic product bloat — keep v1 thin.
 - Rank **20** — with personal Home / life tools cluster after [RB-018](./workout-tracker.md); **does not** jump P0 rebrand/todos/journal or In Progress Home puzzle ([RB-024](./daily-puzzle-on-home.md)).
 - **2026-09-13 eng spike (no build yet at spike time):** ESPN public site API works for Buffalo Bills without auth:
