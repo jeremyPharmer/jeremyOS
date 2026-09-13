@@ -323,6 +323,20 @@ export function DailyCrosswordCard() {
         </button>
       ) : (
         <>
+          {!locked ? (
+            <div className="crossword-toolbar">
+              <button
+                type="button"
+                className="btn ghost crossword-clear"
+                disabled={!canClear || busy}
+                onClick={onClearActive}
+                aria-label={clearLabel}
+              >
+                {clearLabel}
+              </button>
+            </div>
+          ) : null}
+
           <div
             className={`crossword-grid${locked ? " locked" : ""}${solved ? " solved" : ""}${revealed ? " revealed" : ""}`}
             role="grid"
@@ -398,25 +412,14 @@ export function DailyCrosswordCard() {
           </div>
 
           {!locked ? (
-            <div className="crossword-actions">
-              <button
-                type="button"
-                className="btn ghost crossword-clear"
-                disabled={!canClear || busy}
-                onClick={onClearActive}
-                aria-label={clearLabel}
-              >
-                {clearLabel}
-              </button>
-              <button
-                type="button"
-                className="btn ghost crossword-solve"
-                disabled={busy}
-                onClick={() => void onReveal()}
-              >
-                {busy ? "Solving…" : "Solve"}
-              </button>
-            </div>
+            <button
+              type="button"
+              className="btn ghost crossword-solve"
+              disabled={busy}
+              onClick={() => void onReveal()}
+            >
+              {busy ? "Solving…" : "Solve"}
+            </button>
           ) : null}
         </>
       )}

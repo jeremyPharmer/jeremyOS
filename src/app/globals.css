@@ -2120,18 +2120,32 @@ h2 {
   color: color-mix(in srgb, var(--accent) 65%, var(--text));
 }
 
-.crossword-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 2px;
+.crossword-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: min(100%, 260px);
+  margin: 0 auto -2px;
+  min-height: 1.5rem;
 }
 
-.crossword-clear,
+.crossword-clear {
+  width: auto;
+  min-height: 0;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  border-radius: 6px;
+  justify-content: center;
+  margin: 0;
+}
+
 .crossword-solve {
   width: 100%;
   justify-content: center;
-  margin-top: 0;
+  margin-top: 2px;
 }
 
 .crossword-banner {
