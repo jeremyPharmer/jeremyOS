@@ -51,3 +51,4 @@ Locked **2026-09-11** (thin ship):
 - Intake **2026-09-11** — founder Journey ask; engineering already has chart as separate panel vs `VitalsLogCard`, and SupportCompletion as best first-dose / coverage source.
 - Rank **15** / **P1** / Effort **S** — thin follow-on immediately after Done vitals [RB-028](./journey-vitals-bp-hr.md); ahead of [RB-018](./workout-tracker.md). Does not displace P0 EA / journal / todo work.
 - Supersedes RB-028 Outcome language that promised a Vitals **chart/trends** surface for ongoing product; list + neutral log remain; chart removed by this item.
+- **2026-09-13:** Medication is the **only default** long-term tracker under [RB-033](./long-term-tracking-adherence.md) (Weekly supports → Long-term tracking; recovery/meditation/gym cleared). This item stays the med card + vitals-chart-cut slice; broader rename/defaults/multi-tracker Journey framing lives on RB-033.

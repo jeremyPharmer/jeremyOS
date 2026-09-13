@@ -1,7 +1,7 @@
 # JeremyOS — Product decisions (locked)
 
-Last updated: 2026-08-29  
-Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening mood ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
+Last updated: 2026-09-13  
+Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening mood ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). **2026-09-13:** Weekly supports → **Long-term tracking**; default **Medication only**; Journey adherence from trackers not tasks (**RB-033**). Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
 
 ---
 
@@ -63,13 +63,13 @@ Still available as Jeremy’s personal recovery tools under JeremyOS (executive 
 Interactive every day:
 
 **Morning** — Start the day (sleep + mood/state on 1–10 taps + one focus line) → **conversational** day-start briefing (**calendar + open windows / Try here** first; weather/feeling secondary; rules-based — [RB-029](./product/items/morning-briefing-conversational.md); parent ship [RB-027](./product/items/morning-day-start-briefing.md)); **no** morning Items checklist; tasks stay on Home; focus/intention unchanged; feeds evening close later  
-**Day** — Log supports: recovery content (2/wk), meditation (5), medication (7), gym (4). **No** Home craving-timer CTA (RB-020).  
+**Day** — Log **long-term trackers** (Settings/onboarding label; formerly Weekly supports): default / cleared set is **Medication only** (times/week target). Jeremy may add custom trackers with a frequency. Do **not** use tasks (“Track over time”) for longitudinal adherence — **RB-033**. **No** Home craving-timer CTA (RB-020). *(Engineering updating runtime defaults + copy; docs ahead of ship.)*  
 **Evening** — Close the day: **Mood + Stress** (1–10), journal **headline** + optional **short summary** (~5 sentences soft limit; maps to stored `oneLine` / `expandedJournal`) → Move to Rebuild → Treat/Save if milestone. **Missed closes** can be backfilled from Journal (pick a day in the current run without an evening) via the same evening path (**RB-010** — journal only; funds for that day may already be in waiting reclaim via end-of-day accrual).
 
 **Journal UI (RB-016)** — Paper **five-year** layout: one calendar day (month-day) shows that day across up to five years (headline + summary). Not a stacked feed. Catch-up for missed evenings stays a thin link; integrity rules remain RB-010.
 
-Weekly supports are **targets** (not shame). Counts may go **above** the weekly goal (e.g. 5 of 2). Hitting all four unlocks **$20 treat gift** (out of pocket).  
-Content log asks: “What will you do differently because of this?”
+Long-term trackers are **targets** (not shame). Counts may go **above** the weekly goal (e.g. 5 of 2). Historical V1: hitting all four canned weekly supports unlocked **$20 treat gift** (out of pocket) — with **Medication-only** default, gift eligibility needs an explicit eng pass (do not invent a new rule here).  
+Content log (when used for recovery-style trackers) asks: “What will you do differently because of this?”
 
 Closing the day **always counts as aligned** for reclaim / milestones. There is no evening “did you stay aligned?” card. Missing close does **not** skip daily savings accrual (RB-011).
 

@@ -41,7 +41,7 @@ Progress UI consistent with trail / journey language. Suggested steps:
 1. Create account (email, password, confirm)
 2. About you (display name, gender, state)
 3. Device unlock (set PIN and/or Remember this device — both optional but offered here)
-4. Weekly supports — canned inspiration chips **plus** custom; set **frequency/target** per support
+4. Long-term tracking (formerly Weekly supports) — default **Medication only**; add custom trackers with **frequency (times/week)** — see [RB-033](./long-term-tracking-adherence.md)
 5. Money — historical daily spend; recommend **70% Treat / 30% Future** (editable); no bank linking
 6. Seed wishlist — add rewards **exactly like today’s reward create** (couple to start; same fields/rules as v1 Settings)
 7. Enter Home / Day 1
