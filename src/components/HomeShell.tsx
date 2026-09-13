@@ -8,6 +8,7 @@ import { TodayRebuildPanel } from "@/components/TodayRebuildPanel";
 import { DailyCrosswordCard } from "@/components/DailyCrosswordCard";
 import { MoveHubCard } from "@/components/MoveHubCard";
 import { WeekPlanPanel } from "@/components/WeekPlanPanel";
+import { BillsPanelCard } from "@/components/BillsPanelCard";
 import { useHomeLayout } from "@/components/LayoutProvider";
 import type { HomeLayoutId } from "@/lib/home-layouts";
 
@@ -79,6 +80,7 @@ function layoutBody(
           <AgendaBlock />
           <HubsPair />
           <WeekPlanPanel today={today} week={week} />
+          <BillsPanelCard />
         </>
       );
     case "split-day":
@@ -95,6 +97,7 @@ function layoutBody(
             <CrosswordRail />
           </div>
           <WeekPlanPanel today={today} week={week} />
+          <BillsPanelCard />
         </>
       );
     case "train-first":
@@ -109,6 +112,7 @@ function layoutBody(
           </div>
           <DailyCrosswordCard />
           <WeekPlanPanel today={today} week={week} />
+          <BillsPanelCard />
         </>
       );
     case "ritual":
@@ -126,6 +130,7 @@ function layoutBody(
           <AgendaBlock />
           <HubsPair />
           <WeekPlanPanel today={today} week={week} />
+          <BillsPanelCard />
         </>
       );
     case "command":
@@ -138,6 +143,7 @@ function layoutBody(
           <AgendaBlock />
           <MoveHubCard />
           <CommandBoard today={today} week={week} />
+          <BillsPanelCard />
         </>
       );
     case "wind-down":
@@ -151,6 +157,7 @@ function layoutBody(
           </div>
           <MoveHubCard />
           <WeekPlanPanel today={today} week={week} />
+          <BillsPanelCard />
         </>
       );
     case "dual-pillar":
@@ -162,6 +169,7 @@ function layoutBody(
           <AgendaBlock />
           <HubsPair hero />
           <WeekPlanPanel today={today} week={week} />
+          <BillsPanelCard />
         </>
       );
     case "classic":
@@ -174,6 +182,7 @@ function layoutBody(
           <AgendaBlock />
           <HubsPair />
           <WeekPlanPanel today={today} week={week} />
+          <BillsPanelCard />
         </>
       );
   }

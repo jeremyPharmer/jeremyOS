@@ -1947,6 +1947,105 @@ h2 {
   opacity: 0.85;
 }
 
+.home-card-bills {
+  gap: 12px;
+}
+
+.home-card-bills .bills-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.bills-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.bills-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bills-stat-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.bills-stat-value {
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.bills-schedule {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bills-game {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.bills-game:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.bills-game-main,
+.bills-game-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.bills-game-matchup {
+  font-weight: 600;
+}
+
+.bills-game-week,
+.bills-game-when {
+  font-size: 0.78rem;
+  opacity: 0.75;
+  text-align: right;
+}
+
+.bills-game-score {
+  font-size: 0.9rem;
+}
+
+.bills-game-in .bills-game-score {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.bills-empty {
+  margin: 0;
+  opacity: 0.8;
+}
+
+.bills-open-link {
+  width: 100%;
+  justify-content: center;
+}
+
 .home-card-crossword {
   gap: 12px;
   position: relative;
