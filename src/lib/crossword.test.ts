@@ -6,14 +6,19 @@ import {
   assertPuzzleValid,
   answerAt,
   bannerText,
+  clearEntryCells,
   clueLeaksAnswer,
   correctWordCellIndexes,
+  entryForCell,
+  entryHasLetters,
   isGridSolved,
   isWordCorrect,
+  nextCellInDirection,
   puzzleForDate,
   solutionCells,
   todayFillPercent,
   emptyCellsForPuzzle,
+  wordCellIndexes,
 } from "./crossword";
 
 describe("mini crossword pack", () => {
@@ -27,6 +32,17 @@ describe("mini crossword pack", () => {
         expect(answerAt(p, c.num, "down").length).toBeGreaterThanOrEqual(2);
       }
     }
+  });
+
+  it("includes mixed word lengths, not only 5-letter across", () => {
+    const lengths = new Set<number>();
+    for (const p of MINI_CROSSWORDS) {
+      for (const c of p.across) {
+        lengths.add(answerAt(p, c.num, "across").length);
+      }
+    }
+    expect(lengths.has(5)).toBe(true);
+    expect(lengths.has(4)).toBe(true);
   });
 
   it("never puts the answer word inside its clue", () => {
@@ -60,19 +76,46 @@ describe("correct word feedback", () => {
     const puzzle = puzzleForDate("2026-09-06");
     const cells = emptyCellsForPuzzle(puzzle);
     const across = puzzle.across[0]!;
+    const indexes = wordCellIndexes(puzzle, across.num, "across");
     const answer = answerAt(puzzle, across.num, "across");
-    // Fill only the first across word
-    let col = 0;
-    const startRow = 0;
-    for (let i = 0; i < answer.length; i++) {
-      while (puzzle.rows[startRow]![col] === "#") col += 1;
-      cells[startRow * 5 + col] = answer[i]!;
-      col += 1;
+    for (let i = 0; i < indexes.length; i++) {
+      cells[indexes[i]!] = answer[i]!;
     }
-    // For this pack, across 1 is always row 0
     expect(isWordCorrect(puzzle, cells, across.num, "across")).toBe(true);
     const marked = correctWordCellIndexes(puzzle, cells);
     expect(marked.size).toBe(answer.length);
+  });
+});
+
+describe("clear entry helpers", () => {
+  it("clears letters for the active clue without touching others", () => {
+    const puzzle = MINI_CROSSWORDS.find((p) => p.id === "glow-ideal")!;
+    const cells = emptyCellsForPuzzle(puzzle);
+    const across = puzzle.across[0]!;
+    const indexes = wordCellIndexes(puzzle, across.num, "across");
+    const answer = answerAt(puzzle, across.num, "across");
+    for (let i = 0; i < indexes.length; i++) {
+      cells[indexes[i]!] = answer[i] === "G" ? "X" : answer[i]!;
+    }
+    const other = wordCellIndexes(puzzle, puzzle.across[1]!.num, "across")[0]!;
+    cells[other] = "Z";
+
+    expect(entryHasLetters(cells, indexes)).toBe(true);
+    const entry = entryForCell(puzzle, indexes[0]!, "across");
+    expect(entry?.num).toBe(across.num);
+
+    const cleared = clearEntryCells(cells, indexes);
+    for (const i of indexes) expect(cleared[i]).toBe("");
+    expect(cleared[other]).toBe("Z");
+  });
+
+  it("moves along across/down, not flat grid order", () => {
+    const puzzle = MINI_CROSSWORDS.find((p) => p.id === "glow-ideal")!;
+    const start = wordCellIndexes(puzzle, 1, "down")[0]!;
+    const nextDown = nextCellInDirection(puzzle, start, "down", 1);
+    expect(nextDown).toBe(start + 5);
+    const nextAcross = nextCellInDirection(puzzle, start, "across", 1);
+    expect(nextAcross).toBe(start + 1);
   });
 });
 
