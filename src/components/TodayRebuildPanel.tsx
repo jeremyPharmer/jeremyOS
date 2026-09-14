@@ -161,8 +161,6 @@ export function TodayRebuildPanel() {
     );
   }
 
-  const showSchedule = openCount > 0 || adding;
-
   return (
     <section className="home-card home-card-tasks" aria-label="Tasks">
       <header className="agenda-header">
@@ -242,17 +240,15 @@ export function TodayRebuildPanel() {
         />
       )}
 
-      {showSchedule ? (
+      {openCount > 0 ? (
         <div className="tasks-schedule">
           {openGroups.map(renderGroup)}
         </div>
-      ) : onToday ? (
-        <div className="tasks-complete" aria-label="All tasks complete" />
-      ) : (
+      ) : !onToday && !adding ? (
         <p className="muted agenda-status">
           Nothing scheduled — tap + to add a task.
         </p>
-      )}
+      ) : null}
 
       <Link href="/items" className="btn ghost workout-open-link">
         Open tasks →
