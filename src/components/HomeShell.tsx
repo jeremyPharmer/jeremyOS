@@ -79,6 +79,7 @@ function layoutBody(
           </div>
           <AgendaBlock />
           <HubsPair />
+          <BillsPanelCard />
           <WeekPlanPanel today={today} week={week} />
         </>
       );
@@ -95,6 +96,7 @@ function layoutBody(
             </div>
             <CrosswordRail />
           </div>
+          <BillsPanelCard />
           <WeekPlanPanel today={today} week={week} />
         </>
       );
@@ -109,6 +111,7 @@ function layoutBody(
             <MoveHubCard />
           </div>
           <DailyCrosswordCard />
+          <BillsPanelCard />
           <WeekPlanPanel today={today} week={week} />
         </>
       );
@@ -126,6 +129,7 @@ function layoutBody(
           </div>
           <AgendaBlock />
           <HubsPair />
+          <BillsPanelCard />
           <WeekPlanPanel today={today} week={week} />
         </>
       );
@@ -139,6 +143,7 @@ function layoutBody(
           <AgendaBlock />
           <MoveHubCard />
           <CommandBoard today={today} week={week} />
+          <BillsPanelCard />
         </>
       );
     case "wind-down":
@@ -150,6 +155,7 @@ function layoutBody(
           <div className="home-wind-hero">
             <DailyCrosswordCard />
           </div>
+          <BillsPanelCard />
           <MoveHubCard />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -162,6 +168,7 @@ function layoutBody(
           <TodayRebuildPanel />
           <AgendaBlock />
           <HubsPair hero />
+          <BillsPanelCard />
           <WeekPlanPanel today={today} week={week} />
         </>
       );
@@ -174,6 +181,7 @@ function layoutBody(
           <TodayRebuildPanel />
           <AgendaBlock />
           <HubsPair />
+          <BillsPanelCard />
           <WeekPlanPanel today={today} week={week} />
         </>
       );
@@ -195,8 +203,6 @@ export function HomeShell({
       data-home-layout={homeLayout}
     >
       {layoutBody(homeLayout, today, week)}
-      {/* Always the bottom Home card, every layout */}
-      <BillsPanelCard />
     </main>
   );
 }
