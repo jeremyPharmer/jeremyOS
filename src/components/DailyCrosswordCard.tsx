@@ -17,7 +17,7 @@ import {
   correctWordCellIndexes,
   entryForCell,
   entryForCellPrefer,
-  entryHasLetters,
+  entryHasClearableLetters,
   isWordCorrect,
   nextCellInDirection,
   normalizeDailyCrossword,
@@ -86,7 +86,7 @@ export function DailyCrosswordCard() {
   const canClear = Boolean(
     !locked &&
       activeEntry &&
-      entryHasLetters(cells, activeEntry.indexes) &&
+      entryHasClearableLetters(puzzle, cells, activeEntry.indexes) &&
       !isWordCorrect(puzzle, cells, activeEntry.num, activeEntry.dir),
   );
 
@@ -206,7 +206,7 @@ export function DailyCrosswordCard() {
 
   function onClearActive() {
     if (!canClear || !activeEntry) return;
-    const next = clearEntryCells(cells, activeEntry.indexes);
+    const next = clearEntryCells(puzzle, cells, activeEntry.indexes);
     setCells(next);
     queueSave(next);
     const start = activeEntry.indexes[0];
