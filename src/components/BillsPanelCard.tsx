@@ -4,34 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { isBillsSeason } from "@/lib/news";
 import {
-  featuredBullets,
   matchupLabel,
   pickFeaturedGame,
-  tickerLabel,
-  type BillsGame,
+  scheduleWhenLabel,
+  weekShortLabel,
   type BillsPanel,
 } from "@/lib/bills";
 
-/** Classic standing/charging buffalo badge (local old-school mark). */
 const BILLS_CLASSIC_LOGO = "/bills-classic.svg";
-
-function ScheduleTicker({ games }: { games: BillsGame[] }) {
-  if (games.length === 0) return null;
-  const labels = games.map(tickerLabel);
-  // Duplicate for a seamless marquee loop.
-  const loop = [...labels, ...labels];
-  return (
-    <div className="bills-ticker" aria-label="Upcoming schedule">
-      <div className="bills-ticker-track">
-        {loop.map((label, i) => (
-          <span key={`${label}-${i}`} className="bills-ticker-item">
-            {label}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export function BillsPanelCard() {
   const { today } = useApp();
@@ -64,79 +44,102 @@ export function BillsPanelCard() {
     };
   }, [today]);
 
-  const featured = useMemo(
-    () => (panel ? pickFeaturedGame(panel.games) : null),
-    [panel],
-  );
-
-  const bullets = useMemo(() => {
-    if (!panel || !featured) return [];
-    return featuredBullets(featured, panel.streak, panel.record);
-  }, [panel, featured]);
-
-  const tickerGames = useMemo(() => {
-    if (!panel || !featured) return [];
-    return panel.games.filter(
-      (g) => g.status === "pre" && g.id !== featured.id,
-    );
-  }, [panel, featured]);
+  const featuredId = useMemo(() => {
+    if (!panel) return null;
+    return pickFeaturedGame(panel.games)?.id ?? null;
+  }, [panel]);
 
   if (!loaded || !panel || !isBillsSeason(today)) {
     return null;
   }
 
-  const headline =
-    featured?.status === "in"
-      ? "Live"
-      : featured?.status === "post"
-        ? "Last out"
-        : "Next up";
-
-  const logoSrc = BILLS_CLASSIC_LOGO;
-
   return (
     <section
-      className="home-card home-card-bills bills-bulletin"
+      className="home-card home-card-bills bills-stub"
       aria-label="Buffalo Bills"
     >
-      <div className="bills-bulletin-hero">
-        <div className="bills-buffalo-wrap" aria-hidden="true">
+      <div className="bills-stub-perforation" aria-hidden="true" />
+
+      <header className="bills-stub-header">
+        <div className="bills-stub-admit">
+          <span>Admit one</span>
+          <span>2026 season</span>
+        </div>
+        <div className="bills-stub-brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            className="bills-buffalo"
-            src={logoSrc}
+            className="bills-stub-logo"
+            src={BILLS_CLASSIC_LOGO}
             alt=""
-            width={84}
-            height={84}
+            width={56}
+            height={56}
           />
-        </div>
-        <div className="bills-bulletin-copy">
-          <p className="bills-bulletin-kicker">Let&apos;s go</p>
-          <h2 className="bills-bulletin-title">Buffalo</h2>
-          <p className="bills-bulletin-record">
+          <h2 className="bills-stub-title">Buffalo Bills</h2>
+          <p className="bills-stub-record">
             {panel.record}
             {panel.standing !== "—" ? ` · ${panel.standing}` : ""}
             {panel.streak !== "—" ? ` · ${panel.streak}` : ""}
           </p>
         </div>
-      </div>
+      </header>
 
-      {featured ? (
-        <div className="bills-next">
-          <p className="bills-next-kicker">{headline}</p>
-          <p className="bills-next-matchup">{matchupLabel(featured)}</p>
-          <p className="bills-next-opponent">{featured.opponentName}</p>
-          <ul className="bills-next-bullets">
-            {bullets.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
+      <div className="bills-stub-tear" aria-hidden="true" />
+
+      {panel.games.length === 0 ? (
+        <p className="tiny bills-stub-empty">
+          Schedule updates when kickoff nears.
+        </p>
+      ) : (
+        <div className="bills-stub-schedule-wrap">
+          <div className="bills-stub-cols" aria-hidden="true">
+            <span>Week</span>
+            <span>Matchup</span>
+            <span>When</span>
+          </div>
+          <ul className="bills-stub-schedule">
+            {panel.games.map((game) => {
+              const isLive = game.status === "in";
+              const isNext = game.id === featuredId && game.status !== "post";
+              return (
+                <li
+                  key={game.id}
+                  className={[
+                    "bills-stub-row",
+                    game.status === "post" ? "is-done" : "",
+                    isNext || isLive ? "is-next" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  <span className="bills-stub-week">
+                    {weekShortLabel(game.weekLabel)}
+                    {isLive ? (
+                      <span className="bills-stub-stamp">Live</span>
+                    ) : null}
+                    {isNext && !isLive ? (
+                      <span className="bills-stub-stamp">Next</span>
+                    ) : null}
+                  </span>
+                  <span className="bills-stub-matchup">
+                    <span className="bills-stub-vs">{matchupLabel(game)}</span>
+                    <span className="bills-stub-opp">{game.opponentName}</span>
+                  </span>
+                  <span className="bills-stub-when">
+                    {scheduleWhenLabel(game)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </div>
-      ) : (
-        <p className="tiny bills-empty">Schedule updates when kickoff nears.</p>
       )}
 
-      <ScheduleTicker games={tickerGames} />
+      <footer className="bills-stub-footer">
+        <div className="bills-stub-barcode" aria-hidden="true" />
+        <p className="bills-stub-footer-text">
+          Highmark · JeremyOS · Season stub
+        </p>
+      </footer>
     </section>
   );
 }

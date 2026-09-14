@@ -1947,221 +1947,218 @@ h2 {
   opacity: 0.85;
 }
 
+
 .home-card-bills {
   gap: 0;
   overflow: hidden;
   position: relative;
-  border-color: color-mix(in srgb, #00338d 28%, var(--line));
+  padding: 0;
+  border-color: color-mix(in srgb, #00338d 35%, var(--line));
   background:
-    radial-gradient(
-      120% 80% at 100% 0%,
-      color-mix(in srgb, #c60c30 14%, transparent),
-      transparent 55%
-    ),
-    linear-gradient(
-      155deg,
-      color-mix(in srgb, #00338d 10%, var(--surface)) 0%,
-      var(--surface) 48%,
-      color-mix(in srgb, #c60c30 6%, var(--surface)) 100%
-    );
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4), transparent 24%),
+    #f7f1e4;
+  color: #1a2744;
 }
 
-.bills-bulletin-hero {
+.bills-stub-perforation {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 12px;
+  background:
+    radial-gradient(circle at 0 11px, transparent 5.5px, #f7f1e4 6.5px) 0 0 /
+      12px 16px repeat-y;
+  border-right: 1px dashed rgba(0, 51, 141, 0.28);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.bills-stub-header {
+  padding: 14px 14px 10px 22px;
+}
+
+.bills-stub-admit {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
-}
-
-.bills-buffalo-wrap {
-  flex-shrink: 0;
-  width: 88px;
-  height: 88px;
-  display: grid;
-  place-items: center;
-  color: #00338d;
-}
-
-.bills-buffalo {
-  width: 84px;
-  height: 84px;
-  object-fit: contain;
-  transform-origin: 50% 60%;
-  animation: bills-charge 1.8s ease-in-out infinite;
-  filter: drop-shadow(0 3px 0 color-mix(in srgb, #c60c30 40%, transparent));
-}
-
-@keyframes bills-charge {
-  0%,
-  100% {
-    transform: translateX(0) rotate(0deg);
-  }
-  35% {
-    transform: translateX(5px) rotate(-2deg);
-  }
-  55% {
-    transform: translateX(-2px) rotate(1deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bills-buffalo {
-    animation: none;
-  }
-  .bills-ticker-track {
-    animation: none !important;
-    transform: none !important;
-  }
-}
-
-.bills-bulletin-copy {
-  min-width: 0;
-  flex: 1;
-}
-
-.bills-bulletin-kicker {
-  margin: 0;
-  text-transform: uppercase;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 0.62rem;
+  font-weight: 800;
   letter-spacing: 0.14em;
-  font-size: 0.68rem;
-  font-weight: 700;
+  text-transform: uppercase;
   color: #c60c30;
 }
 
-.bills-bulletin-title {
-  margin: 2px 0 0;
-  font-size: 1.55rem;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  color: #00338d;
+.bills-stub-brand {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 4px;
 }
 
-.bills-bulletin-record {
-  margin: 6px 0 0;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: color-mix(in srgb, #00338d 75%, var(--text));
-  opacity: 0.92;
+.bills-stub-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  margin-bottom: 2px;
 }
 
-.bills-next {
+.bills-stub-title {
   margin: 0;
-  padding: 12px 0 10px;
-  border-top: 1px dashed color-mix(in srgb, #00338d 22%, var(--line));
-}
-
-.bills-next-kicker {
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: color-mix(in srgb, #00338d 70%, var(--muted));
-}
-
-.bills-next-matchup {
-  margin: 4px 0 0;
   font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: 1.45rem;
+  line-height: 1;
   letter-spacing: -0.02em;
   color: #00338d;
+  text-transform: uppercase;
 }
 
-.bills-next-opponent {
-  margin: 2px 0 0;
-  font-size: 0.88rem;
-  opacity: 0.8;
+.bills-stub-record {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: color-mix(in srgb, #00338d 82%, #1a2744);
 }
 
-.bills-next-bullets {
+.bills-stub-tear {
+  height: 0;
+  margin: 0 14px 0 22px;
+  border-top: 2px dashed rgba(0, 51, 141, 0.28);
+}
+
+.bills-stub-empty {
+  margin: 12px 14px 12px 22px;
+  opacity: 0.75;
+}
+
+.bills-stub-schedule-wrap {
+  padding: 8px 10px 4px 18px;
+}
+
+.bills-stub-cols {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 0 6px 6px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(0, 51, 141, 0.65);
+}
+
+.bills-stub-schedule {
   list-style: none;
-  margin: 10px 0 0;
+  margin: 0;
   padding: 0;
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid rgba(0, 51, 141, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.bills-stub-row {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 8px;
+  border-bottom: 1px dotted rgba(0, 51, 141, 0.16);
+  font-size: 0.82rem;
+}
+
+.bills-stub-row:last-child {
+  border-bottom: 0;
+}
+
+.bills-stub-row.is-done {
+  opacity: 0.62;
+}
+
+.bills-stub-row.is-next {
+  background: color-mix(in srgb, #c60c30 11%, transparent);
+  box-shadow: inset 3px 0 0 #c60c30;
+}
+
+.bills-stub-week {
+  font-weight: 800;
+  color: #00338d;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
+  align-items: flex-start;
 }
 
-.bills-next-bullets li {
-  position: relative;
-  padding-left: 14px;
-  font-size: 0.92rem;
-  line-height: 1.35;
+.bills-stub-stamp {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1.5px solid #c60c30;
+  color: #c60c30;
+  border-radius: 3px;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  text-transform: uppercase;
+  transform: rotate(-7deg);
+}
+
+.bills-stub-matchup {
+  min-width: 0;
+}
+
+.bills-stub-vs {
+  display: block;
+  font-weight: 750;
+  color: #00338d;
+}
+
+.bills-stub-opp {
+  display: block;
+  font-size: 0.72rem;
+  color: rgba(26, 39, 68, 0.62);
   font-weight: 500;
 }
 
-.bills-next-bullets li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.55em;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #c60c30;
-  box-shadow: 0 0 0 2px color-mix(in srgb, #c60c30 22%, transparent);
+.bills-stub-when {
+  text-align: right;
+  font-weight: 650;
+  font-size: 0.74rem;
+  white-space: nowrap;
+  color: #1a2744;
 }
 
-.bills-empty {
-  margin: 8px 0 0;
-  opacity: 0.8;
+.bills-stub-footer {
+  padding: 10px 14px 12px 22px;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
 }
 
-.bills-ticker {
-  margin: 4px -14px -14px;
-  padding: 10px 0;
-  border-top: 1px solid color-mix(in srgb, #00338d 18%, var(--line));
-  background: color-mix(in srgb, #00338d 8%, var(--surface));
-  overflow: hidden;
-  mask-image: linear-gradient(
+.bills-stub-barcode {
+  width: 72%;
+  height: 26px;
+  border-radius: 2px;
+  opacity: 0.82;
+  background: repeating-linear-gradient(
     90deg,
-    transparent,
-    #000 8%,
-    #000 92%,
-    transparent
+    #1a2744 0 2px,
+    transparent 2px 5px,
+    #1a2744 5px 7px,
+    transparent 7px 9px,
+    #1a2744 9px 10px,
+    transparent 10px 14px
   );
 }
 
-.bills-ticker-track {
-  display: flex;
-  width: max-content;
-  gap: 0;
-  animation: bills-ticker-scroll 28s linear infinite;
-}
-
-.bills-ticker-item {
-  flex-shrink: 0;
-  padding: 0 14px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+.bills-stub-footer-text {
+  margin: 0;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: color-mix(in srgb, #00338d 88%, var(--text));
-  white-space: nowrap;
-}
-
-.bills-ticker-item::after {
-  content: "·";
-  margin-left: 14px;
-  opacity: 0.45;
-}
-
-@keyframes bills-ticker-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-/* Legacy schedule list styles kept unused after bulletin redesign */
-.bills-stats,
-.bills-schedule,
-.bills-open-link,
-.home-card-bills .bills-logo {
-  display: none;
+  font-weight: 700;
+  color: rgba(26, 39, 68, 0.55);
 }
 
 .home-card-crossword {

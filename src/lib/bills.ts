@@ -95,9 +95,7 @@ type EspnTeamPayload = {
   };
 };
 
-function scoreDisplay(
-  score: EspnCompetitor["score"],
-): string | null {
+function scoreDisplay(score: EspnCompetitor["score"]): string | null {
   if (score == null) return null;
   if (typeof score === "string") return score || null;
   if (typeof score.displayValue === "string" && score.displayValue !== "") {
@@ -162,11 +160,13 @@ export function mapEspnEvent(event: EspnEvent): BillsGame | null {
   };
 }
 
-/** Last completed + next upcoming; prefer live game when in progress. */
+/** Optional window helper (tests). Full season = pass Infinity / omit. */
 export function selectScheduleWindow(
   games: BillsGame[],
-  upcomingCount = 6,
+  upcomingCount = Number.POSITIVE_INFINITY,
 ): BillsGame[] {
+  if (!Number.isFinite(upcomingCount)) return games;
+
   const live = games.filter((g) => g.status === "in");
   const completed = games.filter((g) => g.status === "post");
   const upcoming = games.filter((g) => g.status === "pre");
@@ -176,14 +176,13 @@ export function selectScheduleWindow(
   const nextUpcoming = upcoming.slice(0, Math.max(0, upcomingCount));
 
   if (live.length > 0) {
-    // Live replaces "last" when it is the current game; still show upcoming after.
     return [...live, ...nextUpcoming].slice(0, 1 + upcomingCount);
   }
 
   return [...lastCompleted, ...nextUpcoming];
 }
 
-/** Featured game for the Home bulletin: live → next kickoff → last result. */
+/** Next/live game for the NEXT stamp; falls back to last result. */
 export function pickFeaturedGame(games: BillsGame[]): BillsGame | null {
   const live = games.find((g) => g.status === "in");
   if (live) return live;
@@ -199,75 +198,68 @@ export function matchupLabel(game: BillsGame): string {
     : `@ ${game.opponentAbbr}`;
 }
 
-export function tickerLabel(game: BillsGame): string {
-  const shortWeek = game.weekLabel.replace(/^Week\s+/i, "Wk ");
-  return `${shortWeek} ${matchupLabel(game)}`;
+export function weekShortLabel(weekLabel: string): string {
+  return weekLabel.replace(/^Week\s+/i, "Wk ");
+}
+
+/** Three-letter weekday in Eastern Time (Sun, Mon, Tue, …). */
+export function weekdayAbbrev(
+  isoDate: string,
+  timeZone = "America/New_York",
+): string {
+  const d = new Date(isoDate);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    timeZone,
+  }).format(d);
 }
 
 /**
- * Three short bullets for the featured game bulletin.
- * Order: place (home/away + week), kickoff/live/final, streak/record vibe.
+ * Right-column schedule label:
+ * final → W/L score; live → Live score; upcoming → Thu · 9/17, 8:15 PM
  */
-export function featuredBullets(
+export function scheduleWhenLabel(
   game: BillsGame,
-  streak: string,
-  record: string,
-): string[] {
-  const place =
-    game.homeAway === "home"
-      ? `${game.weekLabel} · Home`
-      : `${game.weekLabel} · Away`;
-
-  let beat: string;
-  if (game.status === "in") {
-    const score =
-      game.billsScore != null && game.opponentScore != null
-        ? `${game.billsScore}–${game.opponentScore}`
-        : "";
-    beat = score
-      ? `Live ${score}${game.statusDetail ? ` · ${game.statusDetail}` : ""}`
-      : game.statusDetail || "Live now";
-  } else if (game.status === "post") {
+  timeZone = "America/New_York",
+): string {
+  if (game.status === "post") {
     if (game.billsScore != null && game.opponentScore != null) {
       const tag =
         game.billsWon === true ? "W" : game.billsWon === false ? "L" : "";
-      beat = tag
-        ? `Final ${tag} ${game.billsScore}–${game.opponentScore}`
-        : `Final ${game.billsScore}–${game.opponentScore}`;
-    } else {
-      beat = game.statusDetail || "Final";
+      return tag
+        ? `${tag} ${game.billsScore}–${game.opponentScore}`
+        : `${game.billsScore}–${game.opponentScore}`;
     }
-  } else {
-    beat = game.statusDetail || "Kickoff TBD";
+    return "Final";
   }
 
-  let vibe: string;
-  if (game.status === "pre") {
-    if (streak && streak !== "—") {
-      vibe = streak.startsWith("W")
-        ? `Riding a ${streak}`
-        : streak.startsWith("L")
-          ? `Looking to snap ${streak}`
-          : `Streak ${streak}`;
-    } else if (record && record !== "—") {
-      vibe = `Season ${record}`;
-    } else {
-      vibe = "Go Bills";
+  if (game.status === "in") {
+    if (game.billsScore != null && game.opponentScore != null) {
+      return `Live ${game.billsScore}–${game.opponentScore}`;
     }
-  } else if (game.status === "in") {
-    vibe = streak && streak !== "—" ? `Streak ${streak}` : "Go Bills";
-  } else {
-    vibe =
-      game.billsWon === true
-        ? "Bills win — keep rolling"
-        : game.billsWon === false
-          ? "Shake it off — next one"
-          : record && record !== "—"
-            ? `Season ${record}`
-            : "Go Bills";
+    return game.statusDetail || "Live";
   }
 
-  return [place, beat, vibe];
+  const d = new Date(game.date);
+  if (Number.isNaN(d.getTime())) {
+    return game.statusDetail || "TBD";
+  }
+
+  // ESPN placeholders for unscheduled finales often land at midnight + "TBD".
+  if (/tbd/i.test(game.statusDetail || "")) {
+    return "TBD";
+  }
+
+  const day = weekdayAbbrev(game.date, timeZone);
+  const rest = new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+  }).format(d);
+  return `${day} · ${rest}`;
 }
 
 function streakFromTeamPayload(payload: EspnTeamPayload): string {
@@ -292,7 +284,9 @@ async function fetchJson<T>(url: string): Promise<T> {
   }
 }
 
-export async function fetchBillsPanel(isoDate: string): Promise<BillsPanel | null> {
+export async function fetchBillsPanel(
+  isoDate: string,
+): Promise<BillsPanel | null> {
   if (!isBillsSeason(isoDate)) {
     return null;
   }
@@ -318,7 +312,7 @@ export async function fetchBillsPanel(isoDate: string): Promise<BillsPanel | nul
       record: schedule.team?.recordSummary || "—",
       standing: schedule.team?.standingSummary || "—",
       streak: streakFromTeamPayload(team),
-      games: selectScheduleWindow(mapped, 6),
+      games: mapped,
       clubhouseUrl: schedule.team?.clubhouse || BILLS_ESPN_CLUBHOUSE,
       logoUrl: logo,
     };

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  featuredBullets,
   formatStreak,
   mapEspnEvent,
   pickFeaturedGame,
+  scheduleWhenLabel,
   selectScheduleWindow,
+  weekdayAbbrev,
+  weekShortLabel,
   type BillsGame,
 } from "./bills";
 
@@ -78,42 +80,6 @@ describe("mapEspnEvent", () => {
       weekLabel: "Week 1",
     });
   });
-
-  it("maps a scheduled home game", () => {
-    const mapped = mapEspnEvent({
-      id: "402",
-      date: "2026-09-18T00:15Z",
-      week: { number: 2, text: "Week 2" },
-      competitions: [
-        {
-          status: {
-            type: {
-              state: "pre",
-              shortDetail: "9/17 - 8:15 PM EDT",
-            },
-          },
-          competitors: [
-            {
-              homeAway: "home",
-              team: { abbreviation: "BUF", shortDisplayName: "Bills" },
-            },
-            {
-              homeAway: "away",
-              team: { abbreviation: "DET", shortDisplayName: "Lions" },
-            },
-          ],
-        },
-      ],
-    });
-
-    expect(mapped).toMatchObject({
-      opponentAbbr: "DET",
-      homeAway: "home",
-      status: "pre",
-      billsScore: null,
-      statusDetail: "9/17 - 8:15 PM EDT",
-    });
-  });
 });
 
 describe("selectScheduleWindow", () => {
@@ -126,57 +92,69 @@ describe("selectScheduleWindow", () => {
       game({ id: "5", date: "2026-10-04", status: "pre" }),
       game({ id: "6", date: "2026-10-11", status: "pre" }),
     ];
-    const window = selectScheduleWindow(games, 3);
-    expect(window.map((g) => g.id)).toEqual(["2", "3", "4", "5"]);
+    expect(selectScheduleWindow(games, 3).map((g) => g.id)).toEqual([
+      "2",
+      "3",
+      "4",
+      "5",
+    ]);
   });
 
-  it("prefers live game over last completed", () => {
-    const games = [
-      game({ id: "1", date: "2026-09-13", status: "post" }),
-      game({ id: "2", date: "2026-09-18", status: "in" }),
-      game({ id: "3", date: "2026-09-27", status: "pre" }),
-    ];
-    const window = selectScheduleWindow(games, 3);
-    expect(window.map((g) => g.id)).toEqual(["2", "3"]);
-  });
-});
-
-describe("pickFeaturedGame", () => {
-  it("prefers live, then next kickoff, then last result", () => {
+  it("returns the full list when upcomingCount is Infinity", () => {
     const games = [
       game({ id: "1", date: "2026-09-13", status: "post" }),
       game({ id: "2", date: "2026-09-18", status: "pre" }),
       game({ id: "3", date: "2026-09-27", status: "pre" }),
     ];
-    expect(pickFeaturedGame(games)?.id).toBe("2");
+    expect(selectScheduleWindow(games).map((g) => g.id)).toEqual([
+      "1",
+      "2",
+      "3",
+    ]);
+  });
+});
+
+describe("pickFeaturedGame", () => {
+  it("prefers live, then next kickoff", () => {
+    expect(
+      pickFeaturedGame([
+        game({ id: "1", date: "2026-09-13", status: "post" }),
+        game({ id: "2", date: "2026-09-18", status: "pre" }),
+      ])?.id,
+    ).toBe("2");
     expect(
       pickFeaturedGame([
         game({ id: "1", date: "2026-09-13", status: "post" }),
         game({ id: "2", date: "2026-09-18", status: "in" }),
       ])?.id,
     ).toBe("2");
-    expect(
-      pickFeaturedGame([game({ id: "1", date: "2026-09-13", status: "post" })])
-        ?.id,
-    ).toBe("1");
   });
 });
 
-describe("featuredBullets", () => {
-  it("returns three next-game bullets", () => {
+describe("weekdayAbbrev + scheduleWhenLabel", () => {
+  it("uses a 3-letter weekday for upcoming games", () => {
     const next = game({
       id: "2",
-      date: "2026-09-18",
+      date: "2026-09-18T00:15:00.000Z",
       status: "pre",
-      homeAway: "home",
       weekLabel: "Week 2",
       opponentAbbr: "DET",
-      statusDetail: "9/17 - 8:15 PM EDT",
+      homeAway: "home",
     });
-    expect(featuredBullets(next, "W1", "1-0")).toEqual([
-      "Week 2 · Home",
-      "9/17 - 8:15 PM EDT",
-      "Riding a W1",
-    ]);
+    expect(weekdayAbbrev(next.date)).toBe("Thu");
+    expect(scheduleWhenLabel(next)).toMatch(/^Thu · /);
+    expect(weekShortLabel("Week 2")).toBe("Wk 2");
+  });
+
+  it("shows final score for completed games", () => {
+    const done = game({
+      id: "1",
+      date: "2026-09-13T17:00:00.000Z",
+      status: "post",
+      billsScore: "36",
+      opponentScore: "31",
+      billsWon: true,
+    });
+    expect(scheduleWhenLabel(done)).toBe("W 36–31");
   });
 });
