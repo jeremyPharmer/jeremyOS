@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bills ticket stub — UI sample</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,650;9..144,700&family=IBM+Plex+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bills-blue: #00338d;
+      --bills-red: #c60c30;
+      --ticket: #f7f1e4;
+      --ticket-ink: #1a2744;
+      --muted: #5b6478;
+      --line: rgba(0, 51, 141, 0.18);
+      --page: #d7e4f5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px 40px;
+      background:
+        radial-gradient(120% 80% at 50% 0%, #eef5ff, var(--page) 55%, #c9d9ef);
+      font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      color: var(--ticket-ink);
+    }
+    .frame { width: min(390px, 100%); }
+    .label {
+      margin: 0 0 10px;
+      text-align: center;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--bills-blue);
+      font-weight: 700;
+      opacity: 0.75;
+    }
+    .stub {
+      position: relative;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.35), transparent 28%),
+        var(--ticket);
+      border-radius: 14px;
+      box-shadow:
+        0 18px 40px rgba(17, 36, 78, 0.18),
+        0 1px 0 rgba(255,255,255,0.7) inset;
+      overflow: hidden;
+      border: 1px solid rgba(0,51,141,0.2);
+    }
+    .stub::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 14px;
+      background:
+        radial-gradient(circle at 0 12px, transparent 6px, var(--ticket) 7px) 0 0 / 14px 18px repeat-y;
+      border-right: 1px dashed rgba(0,51,141,0.25);
+      z-index: 2;
+    }
+    .stub-inner { padding: 16px 16px 14px 26px; }
+    .stub-top {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+    .badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--bills-blue);
+      border: 4px solid var(--bills-red);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 2px 0 rgba(198,12,48,0.35);
+      overflow: hidden;
+    }
+    .badge img { width: 48px; height: 48px; object-fit: contain; }
+    .kicker {
+      margin: 0;
+      color: var(--bills-red);
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .title {
+      margin: 2px 0 0;
+      font-family: Fraunces, Georgia, serif;
+      font-size: 1.7rem;
+      line-height: 0.95;
+      color: var(--bills-blue);
+      letter-spacing: -0.03em;
+    }
+    .meta {
+      margin: 6px 0 0;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: color-mix(in srgb, var(--bills-blue) 80%, #000);
+    }
+    .admit {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .tear {
+      height: 0;
+      margin: 12px 0;
+      border-top: 2px dashed rgba(0,51,141,0.28);
+    }
+    .section-label {
+      margin: 0 0 8px;
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 800;
+      color: var(--bills-blue);
+    }
+    .schedule {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 430px;
+      overflow: auto;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.35);
+    }
+    .game {
+      display: grid;
+      grid-template-columns: 52px 1fr auto;
+      gap: 8px;
+      align-items: baseline;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.84rem;
+    }
+    .game:last-child { border-bottom: 0; }
+    .game.is-done { opacity: 0.62; }
+    .game.is-next {
+      background: color-mix(in srgb, var(--bills-red) 10%, transparent);
+      box-shadow: inset 3px 0 0 var(--bills-red);
+    }
+    .week {
+      font-weight: 800;
+      color: var(--bills-blue);
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+    }
+    .matchup { font-weight: 700; }
+    .opp {
+      display: block;
+      font-weight: 500;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+    .when {
+      text-align: right;
+      font-weight: 650;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+    .stamp {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 5px;
+      border: 1.5px solid var(--bills-red);
+      color: var(--bills-red);
+      border-radius: 3px;
+      font-size: 0.58rem;
+      letter-spacing: 0.08em;
+      font-weight: 800;
+      transform: rotate(-6deg);
+      vertical-align: middle;
+    }
+    .footer {
+      margin-top: 12px;
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+    }
+    .barcode {
+      width: 70%;
+      height: 28px;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          #1a2744 0 2px,
+          transparent 2px 5px,
+          #1a2744 5px 7px,
+          transparent 7px 9px,
+          #1a2744 9px 10px,
+          transparent 10px 14px
+        );
+      opacity: 0.8;
+      border-radius: 2px;
+    }
+    .footer-text {
+      margin: 0;
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .note {
+      margin: 14px 0 0;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="label">UI sample · ticket stub · full schedule</p>
+    <article class="stub" aria-label="Buffalo Bills season ticket stub sample">
+      <div class="stub-inner">
+        <header class="stub-top">
+          <div class="badge">
+            <img src="/bills-classic.svg" alt="" width="48" height="48" />
+          </div>
+          <div>
+            <p class="kicker">Let&apos;s go</p>
+            <h1 class="title">Buffalo</h1>
+            <p class="meta">1-0 · 1st in AFC East · W1</p>
+          </div>
+        </header>
+        <div class="admit">
+          <span>2026 season</span>
+          <span>Admit one</span>
+          <span>Home stub</span>
+        </div>
+        <div class="tear" aria-hidden="true"></div>
+        <p class="section-label">Full schedule</p>
+        <ul class="schedule">
+          <li class="game is-done"><span class="week">Wk 1</span><span class="matchup">@ HOU<span class="opp">Texans</span></span><span class="when">W 36-31</span></li>
+          <li class="game is-next"><span class="week">Wk 2</span><span class="matchup">vs DET <span class="stamp">Next</span><span class="opp">Lions</span></span><span class="when">Thu 8:15 PM</span></li>
+          <li class="game"><span class="week">Wk 3</span><span class="matchup">vs LAC<span class="opp">Chargers</span></span><span class="when">9/27 1:00 PM</span></li>
+          <li class="game"><span class="week">Wk 4</span><span class="matchup">vs NE<span class="opp">Patriots</span></span><span class="when">10/4 1:00 PM</span></li>
+          <li class="game"><span class="week">Wk 5</span><span class="matchup">@ LAR<span class="opp">Rams</span></span><span class="when">10/12 8:15 PM</span></li>
+          <li class="game"><span class="week">Wk 6</span><span class="matchup">@ LV<span class="opp">Raiders</span></span><span class="when">10/18 4:25 PM</span></li>
+          <li class="game"><span class="week">Wk 8</span><span class="matchup">vs BAL<span class="opp">Ravens</span></span><span class="when">11/1 1:00 PM</span></li>
+          <li class="game"><span class="week">Wk 9</span><span class="matchup">@ MIN<span class="opp">Vikings</span></span><span class="when">11/9 8:15 PM</span></li>
+          <li class="game"><span class="week">Wk 10</span><span class="matchup">@ NYJ<span class="opp">Jets</span></span><span class="when">11/15 1:00 PM</span></li>
+          <li class="game"><span class="week">Wk 11</span><span class="matchup">vs MIA<span class="opp">Dolphins</span></span><span class="when">11/22 1:00 PM</span></li>
+          <li class="game"><span class="week">Wk 12</span><span class="matchup">vs KC<span class="opp">Chiefs</span></span><span class="when">11/26 8:20 PM</span></li>
+          <li class="game"><span class="week">Wk 13</span><span class="matchup">@ NE<span class="opp">Patriots</span></span><span class="when">12/6 4:25 PM</span></li>
+          <li class="game"><span class="week">Wk 14</span><span class="matchup">@ GB<span class="opp">Packers</span></span><span class="when">12/13 8:20 PM</span></li>
+          <li class="game"><span class="week">Wk 15</span><span class="matchup">vs CHI<span class="opp">Bears</span></span><span class="when">12/19 8:20 PM</span></li>
+          <li class="game"><span class="week">Wk 16</span><span class="matchup">@ DEN<span class="opp">Broncos</span></span><span class="when">12/25 4:30 PM</span></li>
+          <li class="game"><span class="week">Wk 17</span><span class="matchup">@ MIA<span class="opp">Dolphins</span></span><span class="when">1/3 1:00 PM</span></li>
+          <li class="game"><span class="week">Wk 18</span><span class="matchup">vs NYJ<span class="opp">Jets</span></span><span class="when">TBD</span></li>
+        </ul>
+        <footer class="footer">
+          <div class="barcode" aria-hidden="true"></div>
+          <p class="footer-text">Highmark · JeremyOS · Season stub</p>
+        </footer>
+      </div>
+    </article>
+    <p class="note">Sample only — not shipped yet. Scroll the schedule list inside the stub.</p>
+  </div>
+</body>
+</html>

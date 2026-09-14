@@ -8,6 +8,7 @@ import { TodayRebuildPanel } from "@/components/TodayRebuildPanel";
 import { DailyCrosswordCard } from "@/components/DailyCrosswordCard";
 import { MoveHubCard } from "@/components/MoveHubCard";
 import { WeekPlanPanel } from "@/components/WeekPlanPanel";
+import { BillsPanelCard } from "@/components/BillsPanelCard";
 import { useHomeLayout } from "@/components/LayoutProvider";
 import type { HomeLayoutId } from "@/lib/home-layouts";
 
@@ -194,6 +195,8 @@ export function HomeShell({
       data-home-layout={homeLayout}
     >
       {layoutBody(homeLayout, today, week)}
+      {/* Always the bottom Home card, every layout */}
+      <BillsPanelCard />
     </main>
   );
 }
