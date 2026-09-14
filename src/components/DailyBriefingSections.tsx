@@ -206,20 +206,22 @@ export function WorldHeadlines({
   );
 }
 
-/** Expanded task rows — no checkboxes (RB-032). */
+/** Expanded task rows — due today only, no checkboxes (RB-032). */
 export function BriefingTasks({
   tasks,
-  emptyLabel = "Nothing on the list for this day.",
+  emptyLabel = "Nothing due today.",
+  kicker = "Due today",
 }: {
   tasks: BriefingTaskRow[];
   emptyLabel?: string;
+  kicker?: string;
 }) {
   return (
     <section
       className="daily-briefing-section daily-briefing-tasks"
-      aria-label="Tasks"
+      aria-label={kicker}
     >
-      <p className="daily-briefing-kicker">Tasks</p>
+      <p className="daily-briefing-kicker">{kicker}</p>
       {tasks.length === 0 ? (
         <p className="muted tiny">{emptyLabel}</p>
       ) : (

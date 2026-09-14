@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emptyState } from "./journey";
 import { medicationAdherence } from "./medication-adherence";
-import type { RebuildState, SupportCompletion } from "./types";
+import type { DayProvision, RebuildState, SupportCompletion } from "./types";
 
 function withMed(
   dates: string[],
@@ -47,7 +47,6 @@ describe("medicationAdherence", () => {
   });
 
   it("computes days covered from first dose through today inclusive", () => {
-    // First dose Sep 1; taken Sep 1, 2, 4; today Sep 5 → 3/5 = 60%
     const state = withMed(["2026-09-01", "2026-09-02", "2026-09-04"]);
     const a = medicationAdherence(state, "2026-09-05");
     expect(a.firstDoseDate).toBe("2026-09-01");
@@ -78,5 +77,25 @@ describe("medicationAdherence", () => {
     expect(a.daysCovered).toBe(1);
     expect(a.daysElapsed).toBe(2);
     expect(a.percent).toBe(50);
+  });
+
+  it("counts Medication todo lastCompletedOn / completionDates toward coverage", () => {
+    const state = withMed(["2026-09-01", "2026-09-02"]);
+    state.dayProvisions = [
+      {
+        id: "todo_med",
+        date: "2026-09-05",
+        label: "Medication",
+        completed: false,
+        recurrence: { kind: "repeat", frequency: "day", interval: 1 },
+        lastCompletedOn: "2026-09-04",
+        completionDates: ["2026-09-03", "2026-09-04"],
+      } as DayProvision,
+    ];
+    const a = medicationAdherence(state, "2026-09-04");
+    expect(a.daysCovered).toBe(4);
+    expect(a.daysElapsed).toBe(4);
+    expect(a.percent).toBe(100);
+    expect(a.takenToday).toBe(true);
   });
 });

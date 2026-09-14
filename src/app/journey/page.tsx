@@ -13,10 +13,6 @@ import {
 } from "@/lib/trends";
 import type { RebuildState, VitalsPeriod } from "@/lib/types";
 import { medicationAdherence } from "@/lib/medication-adherence";
-import {
-  trackedTaskAdherenceList,
-  type TaskAdherence,
-} from "@/lib/task-adherence";
 import { formatVitalsReading, vitalsSorted } from "@/lib/vitals";
 
 type ChartAxis = "scale" | "hours";
@@ -355,49 +351,6 @@ function ConditionsChart({
 }
 
 
-function TaskAdherenceCard({ today }: { today: string }) {
-  const { state } = useApp();
-  const rows = useMemo(
-    () => trackedTaskAdherenceList(state, today),
-    [state, today],
-  );
-
-  if (rows.length === 0) {
-    return (
-      <p className="muted med-adherence-detail">
-        On a repeating task, set Track over time to Yes — completion % since you
-        started shows here.
-      </p>
-    );
-  }
-
-  return (
-    <ul className="task-adherence-list">
-      {rows.map((row) => (
-        <TaskAdherenceRow key={row.id} row={row} />
-      ))}
-    </ul>
-  );
-}
-
-function TaskAdherenceRow({ row }: { row: TaskAdherence }) {
-  return (
-    <li className="task-adherence-row">
-      <div className="task-adherence-row-top">
-        <span className="task-adherence-label">{row.label}</span>
-        <span className="task-adherence-pct-inline">
-          {row.percent != null ? `${row.percent}%` : "—"}
-        </span>
-      </div>
-      <p className="muted task-adherence-detail">
-        {row.percent != null
-          ? `${row.completed} of ${row.expected} scheduled since ${formatTrendDate(row.createdOn)}`
-          : `Tracking since ${formatTrendDate(row.createdOn)} — complete when due to build your %`}
-      </p>
-    </li>
-  );
-}
-
 function MedicationAdherenceCard({ today }: { today: string }) {
   const { post, state } = useApp();
   const [busy, setBusy] = useState(false);
@@ -433,8 +386,7 @@ function MedicationAdherenceCard({ today }: { today: string }) {
           </p>
           <p className="muted med-adherence-detail">
             {adherence.daysCovered} of {adherence.daysElapsed} days since{" "}
-            {formatTrendDate(adherence.firstDoseDate!)} — daily reminder to take
-            it.
+            {formatTrendDate(adherence.firstDoseDate!)} — tracking daily.
           </p>
         </>
       ) : (
@@ -645,15 +597,9 @@ export default function JourneyPage() {
       </header>
 
       <section className="panel">
-        <p className="eyebrow">Daily reminder</p>
+        <p className="eyebrow">Tracking</p>
         <h2 style={{ marginBottom: 10 }}>Medication adherence</h2>
         {today && <MedicationAdherenceCard today={today} />}
-      </section>
-
-      <section className="panel">
-        <p className="eyebrow">Adherence</p>
-        <h2 style={{ marginBottom: 10 }}>Tracked tasks</h2>
-        {today && <TaskAdherenceCard today={today} />}
       </section>
 
       <section className="panel">

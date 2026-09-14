@@ -3,6 +3,7 @@ import { parseTaskGroup, optionalTaskGroup } from "./task-groups";
 import type {
   DayProvision,
   RebuildState,
+  SupportCompletion,
   TodoRecurrence,
   TodoRepeatEnds,
 } from "./types";
@@ -10,6 +11,30 @@ import type { TaskGroup } from "./task-groups";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
+
+/** Daily Medication todo ↔ Journey support adherence. */
+export function isMedicationTodoLabel(label: string): boolean {
+  return /^\s*medication\s*$/i.test(label);
+}
+
+export function ensureMedicationSupportLogged(
+  state: RebuildState,
+  date: string,
+  completedAt: string,
+): RebuildState {
+  const supports = state.supports ?? [];
+  const already = supports.some(
+    (s) => s.supportType === "medication" && s.completed && s.date === date,
+  );
+  if (already) return state;
+  const row: SupportCompletion = {
+    date,
+    supportType: "medication",
+    completed: true,
+    completedAt,
+  };
+  return { ...state, supports: [...supports, row] };
+}
 
 function appendCompletionDate(item: DayProvision, day: string): string[] {
   const prev = item.completionDates ?? [];
@@ -304,6 +329,16 @@ export function isOpenOn(item: DayProvision, date: string): boolean {
 
 export function openTodosOn(items: DayProvision[], date: string): DayProvision[] {
   return items.filter((item) => isOpenOn(item, date));
+}
+
+/**
+ * Open todos due on this calendar day only (excludes undated / floating
+ * and future-dated). Used by Open briefing suggestions.
+ */
+export function dueTodosOn(items: DayProvision[], date: string): DayProvision[] {
+  return items.filter(
+    (item) => !item.completed && !item.undated && item.date === date,
+  );
 }
 
 /** One-off done today, or recurring completed today (date already advanced). */
@@ -623,7 +658,12 @@ export function applyTodoAction(
 
   if (action === "complete") {
     items[index] = completeTodo(current, today, nowIso);
-    return { ...next, dayProvisions: items };
+    let after: RebuildState = { ...next, dayProvisions: items };
+    // Medication todo completions also count for Journey adherence.
+    if (isMedicationTodoLabel(current.label)) {
+      after = ensureMedicationSupportLogged(after, today, nowIso);
+    }
+    return after;
   }
 
   if (action === "undo") {
