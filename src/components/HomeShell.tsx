@@ -80,7 +80,6 @@ function layoutBody(
           <AgendaBlock />
           <HubsPair />
           <WeekPlanPanel today={today} week={week} />
-          <BillsPanelCard />
         </>
       );
     case "split-day":
@@ -97,7 +96,6 @@ function layoutBody(
             <CrosswordRail />
           </div>
           <WeekPlanPanel today={today} week={week} />
-          <BillsPanelCard />
         </>
       );
     case "train-first":
@@ -112,7 +110,6 @@ function layoutBody(
           </div>
           <DailyCrosswordCard />
           <WeekPlanPanel today={today} week={week} />
-          <BillsPanelCard />
         </>
       );
     case "ritual":
@@ -130,7 +127,6 @@ function layoutBody(
           <AgendaBlock />
           <HubsPair />
           <WeekPlanPanel today={today} week={week} />
-          <BillsPanelCard />
         </>
       );
     case "command":
@@ -143,7 +139,6 @@ function layoutBody(
           <AgendaBlock />
           <MoveHubCard />
           <CommandBoard today={today} week={week} />
-          <BillsPanelCard />
         </>
       );
     case "wind-down":
@@ -157,7 +152,6 @@ function layoutBody(
           </div>
           <MoveHubCard />
           <WeekPlanPanel today={today} week={week} />
-          <BillsPanelCard />
         </>
       );
     case "dual-pillar":
@@ -169,7 +163,6 @@ function layoutBody(
           <AgendaBlock />
           <HubsPair hero />
           <WeekPlanPanel today={today} week={week} />
-          <BillsPanelCard />
         </>
       );
     case "classic":
@@ -182,7 +175,6 @@ function layoutBody(
           <AgendaBlock />
           <HubsPair />
           <WeekPlanPanel today={today} week={week} />
-          <BillsPanelCard />
         </>
       );
   }
@@ -203,6 +195,8 @@ export function HomeShell({
       data-home-layout={homeLayout}
     >
       {layoutBody(homeLayout, today, week)}
+      {/* Always the bottom Home card, every layout */}
+      <BillsPanelCard />
     </main>
   );
 }
