@@ -1948,102 +1948,220 @@ h2 {
 }
 
 .home-card-bills {
+  gap: 0;
+  overflow: hidden;
+  position: relative;
+  border-color: color-mix(in srgb, #00338d 28%, var(--line));
+  background:
+    radial-gradient(
+      120% 80% at 100% 0%,
+      color-mix(in srgb, #c60c30 14%, transparent),
+      transparent 55%
+    ),
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, #00338d 10%, var(--surface)) 0%,
+      var(--surface) 48%,
+      color-mix(in srgb, #c60c30 6%, var(--surface)) 100%
+    );
+}
+
+.bills-bulletin-hero {
+  display: flex;
+  align-items: center;
   gap: 12px;
+  padding-bottom: 12px;
 }
 
-.home-card-bills .bills-logo {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
+.bills-buffalo-wrap {
   flex-shrink: 0;
-  margin-top: 4px;
-}
-
-.bills-stats {
+  width: 88px;
+  height: 88px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  place-items: center;
+  color: #00338d;
 }
 
-.bills-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.bills-buffalo {
+  width: 84px;
+  height: 84px;
+  object-fit: contain;
+  transform-origin: 50% 60%;
+  animation: bills-charge 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 3px 0 color-mix(in srgb, #c60c30 40%, transparent));
+}
+
+@keyframes bills-charge {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  35% {
+    transform: translateX(5px) rotate(-2deg);
+  }
+  55% {
+    transform: translateX(-2px) rotate(1deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bills-buffalo {
+    animation: none;
+  }
+  .bills-ticker-track {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+.bills-bulletin-copy {
   min-width: 0;
+  flex: 1;
 }
 
-.bills-stat-label {
-  font-size: 0.65rem;
+.bills-bulletin-kicker {
+  margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.7;
+  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #c60c30;
 }
 
-.bills-stat-value {
-  font-size: 0.92rem;
+.bills-bulletin-title {
+  margin: 2px 0 0;
+  font-size: 1.55rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #00338d;
+}
+
+.bills-bulletin-record {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
   font-weight: 600;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
+  color: color-mix(in srgb, #00338d 75%, var(--text));
+  opacity: 0.92;
 }
 
-.bills-schedule {
-  list-style: none;
+.bills-next {
   margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  padding: 12px 0 10px;
+  border-top: 1px dashed color-mix(in srgb, #00338d 22%, var(--line));
 }
 
-.bills-game {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 0;
-  border-top: 1px solid var(--line);
-}
-
-.bills-game:first-child {
-  border-top: none;
-  padding-top: 0;
-}
-
-.bills-game-main,
-.bills-game-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-}
-
-.bills-game-matchup {
-  font-weight: 600;
-}
-
-.bills-game-week,
-.bills-game-when {
-  font-size: 0.78rem;
-  opacity: 0.75;
-  text-align: right;
-}
-
-.bills-game-score {
-  font-size: 0.9rem;
-}
-
-.bills-game-in .bills-game-score {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.bills-empty {
+.bills-next-kicker {
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: color-mix(in srgb, #00338d 70%, var(--muted));
+}
+
+.bills-next-matchup {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #00338d;
+}
+
+.bills-next-opponent {
+  margin: 2px 0 0;
+  font-size: 0.88rem;
   opacity: 0.8;
 }
 
-.bills-open-link {
-  width: 100%;
-  justify-content: center;
+.bills-next-bullets {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bills-next-bullets li {
+  position: relative;
+  padding-left: 14px;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+.bills-next-bullets li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c60c30;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #c60c30 22%, transparent);
+}
+
+.bills-empty {
+  margin: 8px 0 0;
+  opacity: 0.8;
+}
+
+.bills-ticker {
+  margin: 4px -14px -14px;
+  padding: 10px 0;
+  border-top: 1px solid color-mix(in srgb, #00338d 18%, var(--line));
+  background: color-mix(in srgb, #00338d 8%, var(--surface));
+  overflow: hidden;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 8%,
+    #000 92%,
+    transparent
+  );
+}
+
+.bills-ticker-track {
+  display: flex;
+  width: max-content;
+  gap: 0;
+  animation: bills-ticker-scroll 28s linear infinite;
+}
+
+.bills-ticker-item {
+  flex-shrink: 0;
+  padding: 0 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #00338d 88%, var(--text));
+  white-space: nowrap;
+}
+
+.bills-ticker-item::after {
+  content: "·";
+  margin-left: 14px;
+  opacity: 0.45;
+}
+
+@keyframes bills-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Legacy schedule list styles kept unused after bulletin redesign */
+.bills-stats,
+.bills-schedule,
+.bills-open-link,
+.home-card-bills .bills-logo {
+  display: none;
 }
 
 .home-card-crossword {

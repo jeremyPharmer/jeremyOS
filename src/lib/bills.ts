@@ -162,10 +162,10 @@ export function mapEspnEvent(event: EspnEvent): BillsGame | null {
   };
 }
 
-/** Last completed + next 2–3 upcoming; prefer live game when in progress. */
+/** Last completed + next upcoming; prefer live game when in progress. */
 export function selectScheduleWindow(
   games: BillsGame[],
-  upcomingCount = 3,
+  upcomingCount = 6,
 ): BillsGame[] {
   const live = games.filter((g) => g.status === "in");
   const completed = games.filter((g) => g.status === "post");
@@ -181,6 +181,93 @@ export function selectScheduleWindow(
   }
 
   return [...lastCompleted, ...nextUpcoming];
+}
+
+/** Featured game for the Home bulletin: live → next kickoff → last result. */
+export function pickFeaturedGame(games: BillsGame[]): BillsGame | null {
+  const live = games.find((g) => g.status === "in");
+  if (live) return live;
+  const next = games.find((g) => g.status === "pre");
+  if (next) return next;
+  const completed = games.filter((g) => g.status === "post");
+  return completed.length > 0 ? completed[completed.length - 1]! : null;
+}
+
+export function matchupLabel(game: BillsGame): string {
+  return game.homeAway === "home"
+    ? `vs ${game.opponentAbbr}`
+    : `@ ${game.opponentAbbr}`;
+}
+
+export function tickerLabel(game: BillsGame): string {
+  const shortWeek = game.weekLabel.replace(/^Week\s+/i, "Wk ");
+  return `${shortWeek} ${matchupLabel(game)}`;
+}
+
+/**
+ * Three short bullets for the featured game bulletin.
+ * Order: place (home/away + week), kickoff/live/final, streak/record vibe.
+ */
+export function featuredBullets(
+  game: BillsGame,
+  streak: string,
+  record: string,
+): string[] {
+  const place =
+    game.homeAway === "home"
+      ? `${game.weekLabel} · Home`
+      : `${game.weekLabel} · Away`;
+
+  let beat: string;
+  if (game.status === "in") {
+    const score =
+      game.billsScore != null && game.opponentScore != null
+        ? `${game.billsScore}–${game.opponentScore}`
+        : "";
+    beat = score
+      ? `Live ${score}${game.statusDetail ? ` · ${game.statusDetail}` : ""}`
+      : game.statusDetail || "Live now";
+  } else if (game.status === "post") {
+    if (game.billsScore != null && game.opponentScore != null) {
+      const tag =
+        game.billsWon === true ? "W" : game.billsWon === false ? "L" : "";
+      beat = tag
+        ? `Final ${tag} ${game.billsScore}–${game.opponentScore}`
+        : `Final ${game.billsScore}–${game.opponentScore}`;
+    } else {
+      beat = game.statusDetail || "Final";
+    }
+  } else {
+    beat = game.statusDetail || "Kickoff TBD";
+  }
+
+  let vibe: string;
+  if (game.status === "pre") {
+    if (streak && streak !== "—") {
+      vibe = streak.startsWith("W")
+        ? `Riding a ${streak}`
+        : streak.startsWith("L")
+          ? `Looking to snap ${streak}`
+          : `Streak ${streak}`;
+    } else if (record && record !== "—") {
+      vibe = `Season ${record}`;
+    } else {
+      vibe = "Go Bills";
+    }
+  } else if (game.status === "in") {
+    vibe = streak && streak !== "—" ? `Streak ${streak}` : "Go Bills";
+  } else {
+    vibe =
+      game.billsWon === true
+        ? "Bills win — keep rolling"
+        : game.billsWon === false
+          ? "Shake it off — next one"
+          : record && record !== "—"
+            ? `Season ${record}`
+            : "Go Bills";
+  }
+
+  return [place, beat, vibe];
 }
 
 function streakFromTeamPayload(payload: EspnTeamPayload): string {
@@ -231,7 +318,7 @@ export async function fetchBillsPanel(isoDate: string): Promise<BillsPanel | nul
       record: schedule.team?.recordSummary || "—",
       standing: schedule.team?.standingSummary || "—",
       streak: streakFromTeamPayload(team),
-      games: selectScheduleWindow(mapped, 3),
+      games: selectScheduleWindow(mapped, 6),
       clubhouseUrl: schedule.team?.clubhouse || BILLS_ESPN_CLUBHOUSE,
       logoUrl: logo,
     };

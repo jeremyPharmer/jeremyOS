@@ -1,47 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { isBillsSeason } from "@/lib/news";
-import type { BillsGame, BillsPanel } from "@/lib/bills";
+import {
+  featuredBullets,
+  matchupLabel,
+  pickFeaturedGame,
+  tickerLabel,
+  type BillsGame,
+  type BillsPanel,
+} from "@/lib/bills";
 
-function vsLine(game: BillsGame): string {
-  return game.homeAway === "home"
-    ? `vs ${game.opponentAbbr}`
-    : `@ ${game.opponentAbbr}`;
-}
+/** Classic charging buffalo primary mark (ESPN CDN). */
+const BILLS_CLASSIC_LOGO =
+  "https://a.espncdn.com/i/teamlogos/nfl/500/buf.png";
 
-function scoreLine(game: BillsGame): string {
-  if (game.status === "pre") {
-    return game.statusDetail || "Upcoming";
-  }
-  if (game.billsScore == null || game.opponentScore == null) {
-    return game.statusDetail || "TBD";
-  }
-  const ours = game.billsScore;
-  const theirs = game.opponentScore;
-  if (game.status === "in") {
-    return `${ours}–${theirs} · Live`;
-  }
-  if (game.billsWon === true) return `W ${ours}–${theirs}`;
-  if (game.billsWon === false) return `L ${ours}–${theirs}`;
-  return `${ours}–${theirs}`;
-}
-
-function GameRow({ game }: { game: BillsGame }) {
+function ScheduleTicker({ games }: { games: BillsGame[] }) {
+  if (games.length === 0) return null;
+  const labels = games.map(tickerLabel);
+  // Duplicate for a seamless marquee loop.
+  const loop = [...labels, ...labels];
   return (
-    <li className={`bills-game bills-game-${game.status}`}>
-      <div className="bills-game-main">
-        <span className="bills-game-matchup">{vsLine(game)}</span>
-        <span className="bills-game-week">{game.weekLabel}</span>
+    <div className="bills-ticker" aria-label="Upcoming schedule">
+      <div className="bills-ticker-track">
+        {loop.map((label, i) => (
+          <span key={`${label}-${i}`} className="bills-ticker-item">
+            {label}
+          </span>
+        ))}
       </div>
-      <div className="bills-game-meta">
-        <span className="bills-game-score">{scoreLine(game)}</span>
-        {game.status === "in" && game.statusDetail ? (
-          <span className="bills-game-when">{game.statusDetail}</span>
-        ) : null}
-      </div>
-    </li>
+    </div>
   );
 }
 
@@ -76,70 +65,79 @@ export function BillsPanelCard() {
     };
   }, [today]);
 
+  const featured = useMemo(
+    () => (panel ? pickFeaturedGame(panel.games) : null),
+    [panel],
+  );
+
+  const bullets = useMemo(() => {
+    if (!panel || !featured) return [];
+    return featuredBullets(featured, panel.streak, panel.record);
+  }, [panel, featured]);
+
+  const tickerGames = useMemo(() => {
+    if (!panel || !featured) return [];
+    return panel.games.filter(
+      (g) => g.status === "pre" && g.id !== featured.id,
+    );
+  }, [panel, featured]);
+
   if (!loaded || !panel || !isBillsSeason(today)) {
     return null;
   }
 
-  const empty = panel.games.length === 0;
+  const headline =
+    featured?.status === "in"
+      ? "Live"
+      : featured?.status === "post"
+        ? "Last out"
+        : "Next up";
+
+  const logoSrc = panel.logoUrl || BILLS_CLASSIC_LOGO;
 
   return (
-    <section className="home-card home-card-bills" aria-label="Buffalo Bills">
-      <div className="home-card-head-row">
-        <div className="home-card-head">
-          <p className="home-card-kicker">NFL</p>
-          <h2>Buffalo Bills</h2>
-          <p className="tiny home-card-sub">
+    <section
+      className="home-card home-card-bills bills-bulletin"
+      aria-label="Buffalo Bills"
+    >
+      <div className="bills-bulletin-hero">
+        <div className="bills-buffalo-wrap" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="bills-buffalo"
+            src={logoSrc}
+            alt=""
+            width={84}
+            height={84}
+          />
+        </div>
+        <div className="bills-bulletin-copy">
+          <p className="bills-bulletin-kicker">Let&apos;s go</p>
+          <h2 className="bills-bulletin-title">Buffalo</h2>
+          <p className="bills-bulletin-record">
             {panel.record}
             {panel.standing !== "—" ? ` · ${panel.standing}` : ""}
             {panel.streak !== "—" ? ` · ${panel.streak}` : ""}
           </p>
         </div>
-        {panel.logoUrl ? (
-          // ESPN CDN logo — decorative
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            className="bills-logo"
-            src={panel.logoUrl}
-            alt=""
-            width={40}
-            height={40}
-          />
-        ) : null}
       </div>
 
-      <div className="bills-stats" aria-label="Season stats">
-        <div className="bills-stat">
-          <span className="bills-stat-label">Record</span>
-          <span className="bills-stat-value">{panel.record}</span>
+      {featured ? (
+        <div className="bills-next">
+          <p className="bills-next-kicker">{headline}</p>
+          <p className="bills-next-matchup">{matchupLabel(featured)}</p>
+          <p className="bills-next-opponent">{featured.opponentName}</p>
+          <ul className="bills-next-bullets">
+            {bullets.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
         </div>
-        <div className="bills-stat">
-          <span className="bills-stat-label">Division</span>
-          <span className="bills-stat-value">{panel.standing}</span>
-        </div>
-        <div className="bills-stat">
-          <span className="bills-stat-label">Streak</span>
-          <span className="bills-stat-value">{panel.streak}</span>
-        </div>
-      </div>
-
-      {empty ? (
-        <p className="tiny bills-empty">Schedule updates when kickoff nears.</p>
       ) : (
-        <ul className="bills-schedule">
-          {panel.games.map((g) => (
-            <GameRow key={g.id} game={g} />
-          ))}
-        </ul>
+        <p className="tiny bills-empty">Schedule updates when kickoff nears.</p>
       )}
 
-      <a
-        className="btn ghost bills-open-link"
-        href={panel.clubhouseUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Open on ESPN →
-      </a>
+      <ScheduleTicker games={tickerGames} />
     </section>
   );
 }

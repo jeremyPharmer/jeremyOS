@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  featuredBullets,
   formatStreak,
   mapEspnEvent,
+  pickFeaturedGame,
   selectScheduleWindow,
   type BillsGame,
 } from "./bills";
@@ -136,5 +138,45 @@ describe("selectScheduleWindow", () => {
     ];
     const window = selectScheduleWindow(games, 3);
     expect(window.map((g) => g.id)).toEqual(["2", "3"]);
+  });
+});
+
+describe("pickFeaturedGame", () => {
+  it("prefers live, then next kickoff, then last result", () => {
+    const games = [
+      game({ id: "1", date: "2026-09-13", status: "post" }),
+      game({ id: "2", date: "2026-09-18", status: "pre" }),
+      game({ id: "3", date: "2026-09-27", status: "pre" }),
+    ];
+    expect(pickFeaturedGame(games)?.id).toBe("2");
+    expect(
+      pickFeaturedGame([
+        game({ id: "1", date: "2026-09-13", status: "post" }),
+        game({ id: "2", date: "2026-09-18", status: "in" }),
+      ])?.id,
+    ).toBe("2");
+    expect(
+      pickFeaturedGame([game({ id: "1", date: "2026-09-13", status: "post" })])
+        ?.id,
+    ).toBe("1");
+  });
+});
+
+describe("featuredBullets", () => {
+  it("returns three next-game bullets", () => {
+    const next = game({
+      id: "2",
+      date: "2026-09-18",
+      status: "pre",
+      homeAway: "home",
+      weekLabel: "Week 2",
+      opponentAbbr: "DET",
+      statusDetail: "9/17 - 8:15 PM EDT",
+    });
+    expect(featuredBullets(next, "W1", "1-0")).toEqual([
+      "Week 2 · Home",
+      "9/17 - 8:15 PM EDT",
+      "Riding a W1",
+    ]);
   });
 });
