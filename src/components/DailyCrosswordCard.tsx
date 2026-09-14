@@ -299,7 +299,7 @@ export function DailyCrosswordCard() {
     : revealed
       ? "Answers revealed"
       : started
-        ? "Tap a square, then type"
+        ? null
         : "One mini puzzle a day — shapes change";
 
   const clearLabel = "Clear";
@@ -309,7 +309,9 @@ export function DailyCrosswordCard() {
       <div className="home-card-head">
         <p className="home-card-kicker">Daily crossword</p>
         <h2>Today&apos;s puzzle</h2>
-        <p className="tiny home-card-sub">{statusLine}</p>
+        {statusLine ? (
+          <p className="tiny home-card-sub">{statusLine}</p>
+        ) : null}
       </div>
 
       {!started ? (
