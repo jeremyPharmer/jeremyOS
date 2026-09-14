@@ -2519,6 +2519,42 @@ h2 {
   padding-top: 4px;
 }
 
+.agenda-day-expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 2px 0 0;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+}
+
+.agenda-day-expand:hover,
+.agenda-day-expand:focus-visible {
+  background: color-mix(in srgb, var(--surface-strong) 70%, transparent);
+  color: var(--text);
+}
+
+.agenda-day-expand-dots {
+  letter-spacing: 0.18em;
+  font-size: 1.15rem;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.agenda-day-collapse {
+  margin-bottom: 2px;
+}
+
+.agenda-list-collapsed {
+  margin: 0;
+}
+
 .agenda-day-spine {
   display: flex;
   flex-direction: column;
