@@ -329,6 +329,8 @@ export function TodayAgendaCard() {
   const [stripCounts, setStripCounts] = useState<Record<string, number>>({});
   const [now, setNow] = useState(() => new Date());
   const [expandedGaps, setExpandedGaps] = useState<Record<string, boolean>>({});
+  /** Full day spine (8 AM bounds + open gaps). Default collapsed — event list + … */
+  const [timelineExpanded, setTimelineExpanded] = useState(false);
   const [peekEventId, setPeekEventId] = useState<string | null>(null);
   const cacheRef = useRef<Record<string, AgendaResponse>>({});
 
@@ -375,6 +377,7 @@ export function TodayAgendaCard() {
 
   useEffect(() => {
     setExpandedGaps({});
+    setTimelineExpanded(false);
   }, [viewDate]);
 
   useEffect(() => {
@@ -522,6 +525,14 @@ export function TodayAgendaCard() {
     !showLoading && !connected && !hasFeeds && events.length === 0;
   const showDaySpine =
     !showLoading && !showSetup && (connected || events.length > 0 || hasFeeds);
+
+  const timedEvents = useMemo(() => {
+    const allDayIds = new Set(timeline.allDay.map((e) => e.id));
+    return events
+      .filter((e) => !e.allDay && !allDayIds.has(e.id))
+      .slice()
+      .sort((a, b) => a.startTime.localeCompare(b.startTime) || a.title.localeCompare(b.title));
+  }, [events, timeline.allDay]);
 
   async function saveEvent(
     eventId: string,
@@ -726,10 +737,7 @@ export function TodayAgendaCard() {
       )}
 
       {showDaySpine && !adding && (
-        <div
-          className="agenda-day"
-          aria-label={`Day from 8 AM to ${dayEndLabel}`}
-        >
+        <div className="agenda-day">
           {timeline.allDay.length > 0 && (
             <div className="agenda-day-allday">
               <p className="agenda-day-allday-label">All day</p>
@@ -768,209 +776,277 @@ export function TodayAgendaCard() {
             </div>
           )}
 
-            <div className="agenda-day-spine">
-            <p className="agenda-day-bound agenda-day-bound-start" aria-hidden>
-              8 AM
-            </p>
-            {timeline.blocks.map((block) => {
-              if (block.kind === "gap") {
-                const key = `${block.startMin}-${block.endMin}`;
-                const expanded = Boolean(expandedGaps[key]);
-                const collapsed = block.collapsed && !expanded;
-                if (collapsed) {
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      className="agenda-day-gap-collapsed"
-                      onClick={() =>
-                        setExpandedGaps((prev) => ({ ...prev, [key]: true }))
-                      }
-                      aria-label={`Expand ${formatGapLabel(block.startMin, block.endMin)}`}
-                    >
-                      <span className="agenda-day-gap-dots" aria-hidden>
-                        …
-                      </span>
-                    </button>
-                  );
-                }
-                return (
-                  <div key={key} className="agenda-day-gap-open">
-                    <div className="agenda-day-gap-rail" aria-hidden />
-                    <div className="agenda-day-gap-meta">
-                      <span>{formatTimelineHour(block.startMin)}</span>
-                      <span className="agenda-day-gap-quiet">open</span>
-                      <span>{formatTimelineHour(block.endMin)}</span>
-                    </div>
-                    <div className="agenda-day-gap-actions">
-                      <button
-                        type="button"
-                        className="agenda-day-gap-add"
-                        onClick={() =>
-                          openAddInGap(block.startMin, block.endMin)
-                        }
-                      >
-                        Add
-                      </button>
-                      {block.collapsed ? (
-                        <button
-                          type="button"
-                          className="agenda-day-gap-collapse"
-                          onClick={() =>
-                            setExpandedGaps((prev) => ({
-                              ...prev,
-                              [key]: false,
-                            }))
-                          }
-                        >
-                          Collapse
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              }
-
-              if (block.kind === "cluster") {
-                const height = clusterBlockHeightPx(
-                  block.startMin,
-                  block.endMin,
-                );
-                const showNow =
-                  nowMinutes != null &&
-                  nowMinutes >= block.startMin &&
-                  nowMinutes < block.endMin;
-                return (
-                  <div
-                    key={`cluster-${block.startMin}-${block.endMin}`}
-                    className={`agenda-day-cluster${
-                      showNow ? " agenda-day-cluster-now" : ""
-                    }`}
-                    style={{ height }}
-                    aria-label={`${block.lanes.length} overlapping events`}
-                  >
-                    {block.lanes.map((lane) => {
-                      const full = events.find((e) => e.id === lane.event.id);
-                      if (!full) return null;
-                      const group = resolveEventGroup({
-                        eventId: full.id,
-                        source: full.source,
-                        extraIndex: full.extraIndex,
-                        customGroup: full.group,
-                        overrides: eventGroups,
-                        feedGroups,
-                      });
-                      const place = laneStyle(
-                        lane,
-                        block.startMin,
-                        block.endMin,
-                        height,
-                      );
-                      const density = laneDensity(place.height, lane.columns);
-                      const title = displayCalendarTitle(full, overrides);
-                      const compactTime = formatCompactRange(
-                        lane.startMin,
-                        lane.endMin,
-                      );
-                      const past = isAgendaEventPast(
-                        full,
-                        viewDate,
-                        today,
-                        now,
-                        timezone,
-                      );
+          {!timelineExpanded ? (
+            <>
+              {timedEvents.length > 0 ? (
+                <ul className="agenda-list agenda-list-collapsed">
+                  {timedEvents.map((full) => {
+                    const group = resolveEventGroup({
+                      eventId: full.id,
+                      source: full.source,
+                      extraIndex: full.extraIndex,
+                      customGroup: full.group,
+                      overrides: eventGroups,
+                      feedGroups,
+                    });
+                    return (
+                      <AgendaEventRow
+                        key={full.id}
+                        event={full}
+                        past={isAgendaEventPast(
+                          full,
+                          viewDate,
+                          today,
+                          now,
+                          timezone,
+                        )}
+                        displayTitle={displayCalendarTitle(full, overrides)}
+                        group={group}
+                        onSave={(next) => saveEvent(full.id, next)}
+                        onRemove={() => removeEvent(full.id)}
+                      />
+                    );
+                  })}
+                </ul>
+              ) : timeline.allDay.length === 0 ? (
+                <p className="muted agenda-status">Nothing on the calendar.</p>
+              ) : null}
+              <button
+                type="button"
+                className="agenda-day-expand"
+                onClick={() => setTimelineExpanded(true)}
+                aria-label="Expand day timeline"
+                aria-expanded={false}
+              >
+                <span className="agenda-day-expand-dots" aria-hidden>
+                  …
+                </span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="agenda-day-expand agenda-day-collapse"
+                onClick={() => {
+                  setTimelineExpanded(false);
+                  setExpandedGaps({});
+                }}
+                aria-label="Collapse day timeline"
+                aria-expanded={true}
+              >
+                <span className="agenda-day-expand-dots" aria-hidden>
+                  …
+                </span>
+              </button>
+              <div
+                className="agenda-day-spine"
+                aria-label={`Day from 8 AM to ${dayEndLabel}`}
+              >
+                <p className="agenda-day-bound agenda-day-bound-start" aria-hidden>
+                  8 AM
+                </p>
+                {timeline.blocks.map((block) => {
+                  if (block.kind === "gap") {
+                    const key = `${block.startMin}-${block.endMin}`;
+                    const expanded = Boolean(expandedGaps[key]);
+                    const collapsed = block.collapsed && !expanded;
+                    if (collapsed) {
                       return (
-                        <div
-                          key={full.id}
-                          className="agenda-day-lane"
-                          style={{
-                            top: place.top,
-                            height: place.height,
-                            left: place.left,
-                            width: place.width,
-                          }}
+                        <button
+                          key={key}
+                          type="button"
+                          className="agenda-day-gap-collapsed"
+                          onClick={() =>
+                            setExpandedGaps((prev) => ({ ...prev, [key]: true }))
+                          }
+                          aria-label={`Expand ${formatGapLabel(block.startMin, block.endMin)}`}
                         >
+                          <span className="agenda-day-gap-dots" aria-hidden>
+                            …
+                          </span>
+                        </button>
+                      );
+                    }
+                    return (
+                      <div key={key} className="agenda-day-gap-open">
+                        <div className="agenda-day-gap-rail" aria-hidden />
+                        <div className="agenda-day-gap-meta">
+                          <span>{formatTimelineHour(block.startMin)}</span>
+                          <span className="agenda-day-gap-quiet">open</span>
+                          <span>{formatTimelineHour(block.endMin)}</span>
+                        </div>
+                        <div className="agenda-day-gap-actions">
                           <button
                             type="button"
-                            className={`agenda-day-lane-chip${
-                              group ? " has-group-bar" : ""
-                            }${past ? " agenda-item-past" : ""}`}
-                            style={
-                              group
-                                ? {
-                                    ["--group-color" as string]:
-                                      TASK_GROUP_COLORS[group],
-                                  }
-                                : undefined
+                            className="agenda-day-gap-add"
+                            onClick={() =>
+                              openAddInGap(block.startMin, block.endMin)
                             }
-                            onClick={() => setPeekEventId(full.id)}
-                            aria-label={`${title}, ${compactTime}`}
                           >
-                            <span className="agenda-day-lane-chip-time">
-                              {compactTime}
-                            </span>
-                            {density === "time-title" ? (
-                              <span className="agenda-day-lane-chip-title">
-                                {title}
-                              </span>
-                            ) : null}
+                            Add
                           </button>
+                          {block.collapsed ? (
+                            <button
+                              type="button"
+                              className="agenda-day-gap-collapse"
+                              onClick={() =>
+                                setExpandedGaps((prev) => ({
+                                  ...prev,
+                                  [key]: false,
+                                }))
+                              }
+                            >
+                              Collapse
+                            </button>
+                          ) : null}
                         </div>
-                      );
-                    })}
-                  </div>
-                );
-              }
+                      </div>
+                    );
+                  }
 
-              const full = events.find((e) => e.id === block.event.id);
-              if (!full) return null;
-              const group = resolveEventGroup({
-                eventId: full.id,
-                source: full.source,
-                extraIndex: full.extraIndex,
-                customGroup: full.group,
-                overrides: eventGroups,
-                feedGroups,
-              });
-              const timeLabel =
-                full.endTime && full.endTime !== full.startTime
-                  ? `${full.startTime} – ${full.endTime}`
-                  : full.startTime;
-              const showNow =
-                nowMinutes != null &&
-                nowMinutes >= block.startMin &&
-                nowMinutes < block.endMin;
-              return (
-                <div
-                  key={full.id}
-                  className={`agenda-day-slot${showNow ? " agenda-day-slot-now" : ""}`}
-                  style={{
-                    minHeight: eventBlockHeightPx(block.startMin, block.endMin),
-                  }}
-                >
-                  <AgendaEventRow
-                    event={full}
-                    timeline
-                    timeLabel={timeLabel}
-                    past={isAgendaEventPast(
-                      full,
-                      viewDate,
-                      today,
-                      now,
-                      timezone,
-                    )}
-                    displayTitle={displayCalendarTitle(full, overrides)}
-                    group={group}
-                    onSave={(next) => saveEvent(full.id, next)}
-                    onRemove={() => removeEvent(full.id)}
-                  />
-                </div>
-              );
-            })}
-            <p className="agenda-day-bound agenda-day-bound-end" aria-hidden>
-              {dayEndLabel}
-            </p>
-          </div>
+                  if (block.kind === "cluster") {
+                    const height = clusterBlockHeightPx(
+                      block.startMin,
+                      block.endMin,
+                    );
+                    const showNow =
+                      nowMinutes != null &&
+                      nowMinutes >= block.startMin &&
+                      nowMinutes < block.endMin;
+                    return (
+                      <div
+                        key={`cluster-${block.startMin}-${block.endMin}`}
+                        className={`agenda-day-cluster${
+                          showNow ? " agenda-day-cluster-now" : ""
+                        }`}
+                        style={{ height }}
+                        aria-label={`${block.lanes.length} overlapping events`}
+                      >
+                        {block.lanes.map((lane) => {
+                          const full = events.find((e) => e.id === lane.event.id);
+                          if (!full) return null;
+                          const group = resolveEventGroup({
+                            eventId: full.id,
+                            source: full.source,
+                            extraIndex: full.extraIndex,
+                            customGroup: full.group,
+                            overrides: eventGroups,
+                            feedGroups,
+                          });
+                          const place = laneStyle(
+                            lane,
+                            block.startMin,
+                            block.endMin,
+                            height,
+                          );
+                          const density = laneDensity(place.height, lane.columns);
+                          const title = displayCalendarTitle(full, overrides);
+                          const compactTime = formatCompactRange(
+                            lane.startMin,
+                            lane.endMin,
+                          );
+                          const past = isAgendaEventPast(
+                            full,
+                            viewDate,
+                            today,
+                            now,
+                            timezone,
+                          );
+                          return (
+                            <div
+                              key={full.id}
+                              className="agenda-day-lane"
+                              style={{
+                                top: place.top,
+                                height: place.height,
+                                left: place.left,
+                                width: place.width,
+                              }}
+                            >
+                              <button
+                                type="button"
+                                className={`agenda-day-lane-chip${
+                                  group ? " has-group-bar" : ""
+                                }${past ? " agenda-item-past" : ""}`}
+                                style={
+                                  group
+                                    ? {
+                                        ["--group-color" as string]:
+                                          TASK_GROUP_COLORS[group],
+                                      }
+                                    : undefined
+                                }
+                                onClick={() => setPeekEventId(full.id)}
+                                aria-label={`${title}, ${compactTime}`}
+                              >
+                                <span className="agenda-day-lane-chip-time">
+                                  {compactTime}
+                                </span>
+                                {density === "time-title" ? (
+                                  <span className="agenda-day-lane-chip-title">
+                                    {title}
+                                  </span>
+                                ) : null}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  }
+
+                  const full = events.find((e) => e.id === block.event.id);
+                  if (!full) return null;
+                  const group = resolveEventGroup({
+                    eventId: full.id,
+                    source: full.source,
+                    extraIndex: full.extraIndex,
+                    customGroup: full.group,
+                    overrides: eventGroups,
+                    feedGroups,
+                  });
+                  const timeLabel =
+                    full.endTime && full.endTime !== full.startTime
+                      ? `${full.startTime} – ${full.endTime}`
+                      : full.startTime;
+                  const showNow =
+                    nowMinutes != null &&
+                    nowMinutes >= block.startMin &&
+                    nowMinutes < block.endMin;
+                  return (
+                    <div
+                      key={full.id}
+                      className={`agenda-day-slot${showNow ? " agenda-day-slot-now" : ""}`}
+                      style={{
+                        minHeight: eventBlockHeightPx(block.startMin, block.endMin),
+                      }}
+                    >
+                      <AgendaEventRow
+                        event={full}
+                        timeline
+                        timeLabel={timeLabel}
+                        past={isAgendaEventPast(
+                          full,
+                          viewDate,
+                          today,
+                          now,
+                          timezone,
+                        )}
+                        displayTitle={displayCalendarTitle(full, overrides)}
+                        group={group}
+                        onSave={(next) => saveEvent(full.id, next)}
+                        onRemove={() => removeEvent(full.id)}
+                      />
+                    </div>
+                  );
+                })}
+                <p className="agenda-day-bound agenda-day-bound-end" aria-hidden>
+                  {dayEndLabel}
+                </p>
+              </div>
+            </>
+          )}
         </div>
       )}
 
