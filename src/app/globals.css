@@ -1529,14 +1529,6 @@ h2 {
   border: 0;
 }
 
-.tasks-complete {
-  min-height: 28px;
-  padding: 2px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface-strong) 72%, transparent);
-}
-
 .tasks-schedule {
   display: flex;
   flex-direction: column;
