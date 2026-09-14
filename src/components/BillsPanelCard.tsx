@@ -12,9 +12,8 @@ import {
   type BillsPanel,
 } from "@/lib/bills";
 
-/** Classic charging buffalo primary mark (ESPN CDN). */
-const BILLS_CLASSIC_LOGO =
-  "https://a.espncdn.com/i/teamlogos/nfl/500/buf.png";
+/** Classic standing/charging buffalo badge (local old-school mark). */
+const BILLS_CLASSIC_LOGO = "/bills-classic.svg";
 
 function ScheduleTicker({ games }: { games: BillsGame[] }) {
   if (games.length === 0) return null;
@@ -93,7 +92,7 @@ export function BillsPanelCard() {
         ? "Last out"
         : "Next up";
 
-  const logoSrc = panel.logoUrl || BILLS_CLASSIC_LOGO;
+  const logoSrc = BILLS_CLASSIC_LOGO;
 
   return (
     <section
