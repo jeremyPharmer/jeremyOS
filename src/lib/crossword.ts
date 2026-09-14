@@ -529,14 +529,38 @@ export function entryHasLetters(
   });
 }
 
-/** Wipe letters for one clue entry (black cells untouched). */
+/**
+ * True when the entry has at least one letter that Clear would remove
+ * (ignores letters already locked by a fully correct crossing word).
+ */
+export function entryHasClearableLetters(
+  puzzle: MiniCrosswordPuzzle,
+  cells: string[],
+  indexes: number[],
+): boolean {
+  const keep = correctWordCellIndexes(puzzle, cells);
+  return indexes.some((i) => {
+    const ch = cells[i];
+    return Boolean(ch && ch !== "#" && !keep.has(i));
+  });
+}
+
+/**
+ * Wipe letters for one clue entry.
+ * Leaves black cells alone, and keeps letters already marked correct
+ * via a completed across/down word (so Clear won’t trash a good cross).
+ */
 export function clearEntryCells(
+  puzzle: MiniCrosswordPuzzle,
   cells: string[],
   indexes: number[],
 ): string[] {
+  const keep = correctWordCellIndexes(puzzle, cells);
   const next = [...cells];
   for (const i of indexes) {
-    if (next[i] !== "#") next[i] = "";
+    if (next[i] === "#") continue;
+    if (keep.has(i)) continue;
+    next[i] = "";
   }
   return next;
 }

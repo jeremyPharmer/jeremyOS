@@ -10,6 +10,7 @@ import {
   clueLeaksAnswer,
   correctWordCellIndexes,
   entryForCell,
+  entryHasClearableLetters,
   entryHasLetters,
   isGridSolved,
   isWordCorrect,
@@ -104,9 +105,41 @@ describe("clear entry helpers", () => {
     const entry = entryForCell(puzzle, indexes[0]!, "across");
     expect(entry?.num).toBe(across.num);
 
-    const cleared = clearEntryCells(cells, indexes);
+    const cleared = clearEntryCells(puzzle, cells, indexes);
     for (const i of indexes) expect(cleared[i]).toBe("");
     expect(cleared[other]).toBe("Z");
+  });
+
+  it("keeps letters that already belong to a correct crossing word", () => {
+    const puzzle = MINI_CROSSWORDS.find((p) => p.id === "glow-ideal")!;
+    const cells = emptyCellsForPuzzle(puzzle);
+    // Fill 1-Down correctly so those cells are locked as correct.
+    const downIndexes = wordCellIndexes(puzzle, 1, "down");
+    const downAnswer = answerAt(puzzle, 1, "down");
+    for (let i = 0; i < downIndexes.length; i++) {
+      cells[downIndexes[i]!] = downAnswer[i]!;
+    }
+    expect(isWordCorrect(puzzle, cells, 1, "down")).toBe(true);
+
+    // Fill 1-Across with a wrong letter on a non-crossing cell.
+    const acrossIndexes = wordCellIndexes(puzzle, 1, "across");
+    for (const i of acrossIndexes) {
+      if (!downIndexes.includes(i)) cells[i] = "X";
+    }
+    expect(isWordCorrect(puzzle, cells, 1, "across")).toBe(false);
+    expect(entryHasClearableLetters(puzzle, cells, acrossIndexes)).toBe(true);
+
+    const cleared = clearEntryCells(puzzle, cells, acrossIndexes);
+    // Crossing letters from the correct down word stay.
+    for (const i of downIndexes) {
+      if (acrossIndexes.includes(i)) {
+        expect(cleared[i]).toBe((cells[i] || "").toUpperCase());
+      }
+    }
+    // Non-crossing wrong letters are wiped.
+    for (const i of acrossIndexes) {
+      if (!downIndexes.includes(i)) expect(cleared[i]).toBe("");
+    }
   });
 
   it("moves along across/down, not flat grid order", () => {
