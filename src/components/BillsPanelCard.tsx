@@ -11,7 +11,7 @@ import {
   type BillsPanel,
 } from "@/lib/bills";
 
-const BILLS_CLASSIC_LOGO = "/bills-classic.png";
+const BILLS_CLASSIC_LOGO = "/bills-classic.svg";
 
 export function BillsPanelCard() {
   const { today } = useApp();
