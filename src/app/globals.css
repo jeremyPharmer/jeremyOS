@@ -1988,10 +1988,10 @@ h2 {
 }
 
 .bills-stub-logo {
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
   object-fit: contain;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .bills-stub-title {
