@@ -11,7 +11,7 @@ import {
   type BillsPanel,
 } from "@/lib/bills";
 
-const BILLS_CLASSIC_LOGO = "/bills-classic.svg";
+const BILLS_LOGO = "/bills-espn.png";
 
 export function BillsPanelCard() {
   const { today } = useApp();
@@ -69,7 +69,7 @@ export function BillsPanelCard() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             className="bills-stub-logo"
-            src={BILLS_CLASSIC_LOGO}
+            src={BILLS_LOGO}
             alt=""
             width={56}
             height={56}
