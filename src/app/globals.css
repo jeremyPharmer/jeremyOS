@@ -2153,6 +2153,235 @@ h2 {
   color: rgba(26, 39, 68, 0.55);
 }
 
+/* Schroeder Sabres soccer stub (RB-035) — same ticket language as Bills */
+.home-card-soccer {
+  gap: 0;
+  overflow: hidden;
+  position: relative;
+  padding: 0;
+  text-decoration: none;
+  color: inherit;
+  border-color: color-mix(in srgb, #0033a0 35%, var(--line));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4), transparent 24%),
+    #f4efe4;
+  color: #1a2744;
+}
+
+.soccer-stub-perforation {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 12px;
+  background:
+    radial-gradient(circle at 0 11px, transparent 5.5px, #f4efe4 6.5px) 0 0 /
+      12px 16px repeat-y;
+  border-right: 1px dashed rgba(0, 51, 160, 0.28);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.soccer-stub-flag {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 7;
+  object-fit: cover;
+  object-position: center 35%;
+  border-bottom: 3px solid #d4b483;
+}
+
+.soccer-stub-header {
+  padding: 14px 14px 10px 22px;
+}
+
+.soccer-stub-admit {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #b8925a;
+}
+
+.soccer-stub-brand {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 4px;
+}
+
+.soccer-stub-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  margin-bottom: 2px;
+  border-radius: 50%;
+  background: #0033a0;
+  border: 3px solid #d4b483;
+}
+
+.soccer-stub-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #0033a0;
+  text-transform: uppercase;
+}
+
+.soccer-stub-record {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: color-mix(in srgb, #0033a0 82%, #1a2744);
+}
+
+.soccer-stub-tear {
+  height: 0;
+  margin: 0 14px 0 22px;
+  border-top: 2px dashed rgba(0, 51, 160, 0.28);
+}
+
+.soccer-stub-empty {
+  margin: 12px 14px 12px 22px;
+  opacity: 0.75;
+}
+
+.soccer-stub-schedule-wrap {
+  padding: 8px 10px 4px 18px;
+}
+
+.soccer-stub-cols {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 0 6px 6px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(0, 51, 160, 0.65);
+}
+
+.soccer-stub-schedule {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid rgba(0, 51, 160, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.soccer-stub-row {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 8px;
+  border-bottom: 1px dotted rgba(0, 51, 160, 0.16);
+  font-size: 0.82rem;
+}
+
+.soccer-stub-row:last-child {
+  border-bottom: 0;
+}
+
+.soccer-stub-row.is-done {
+  opacity: 0.62;
+}
+
+.soccer-stub-row.is-next {
+  background: color-mix(in srgb, #d4b483 28%, transparent);
+  box-shadow: inset 3px 0 0 #b8925a;
+}
+
+.soccer-stub-week {
+  font-weight: 800;
+  color: #0033a0;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+}
+
+.soccer-stub-stamp {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1.5px solid #b8925a;
+  color: #b8925a;
+  border-radius: 3px;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  text-transform: uppercase;
+  transform: rotate(-7deg);
+}
+
+.soccer-stub-matchup {
+  min-width: 0;
+}
+
+.soccer-stub-vs {
+  display: block;
+  font-weight: 750;
+  color: #0033a0;
+}
+
+.soccer-stub-opp {
+  display: block;
+  font-size: 0.72rem;
+  color: rgba(26, 39, 68, 0.62);
+  font-weight: 500;
+}
+
+.soccer-stub-when {
+  text-align: right;
+  font-weight: 650;
+  font-size: 0.74rem;
+  white-space: nowrap;
+  color: #1a2744;
+}
+
+.soccer-stub-footer {
+  padding: 10px 14px 12px 22px;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.soccer-stub-barcode {
+  width: 72%;
+  height: 26px;
+  border-radius: 2px;
+  opacity: 0.82;
+  background: repeating-linear-gradient(
+    90deg,
+    #1a2744 0 2px,
+    transparent 2px 5px,
+    #1a2744 5px 7px,
+    transparent 7px 9px,
+    #1a2744 9px 10px,
+    transparent 10px 14px
+  );
+}
+
+.soccer-stub-footer-text {
+  margin: 0;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: rgba(26, 39, 68, 0.55);
+}
+
 .home-card-crossword {
   gap: 12px;
   position: relative;

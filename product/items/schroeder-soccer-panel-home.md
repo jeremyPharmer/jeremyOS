@@ -5,7 +5,7 @@
 | ID | RB-035 |
 | Rank | 21 |
 | Priority | P1 |
-| Status | Ready |
+| Status | In Progress |
 | Effort | M |
 | Target due | TBD |
 | Milestone | v1.x |

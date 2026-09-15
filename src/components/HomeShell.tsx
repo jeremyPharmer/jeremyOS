@@ -9,8 +9,18 @@ import { DailyCrosswordCard } from "@/components/DailyCrosswordCard";
 import { MoveHubCard } from "@/components/MoveHubCard";
 import { WeekPlanPanel } from "@/components/WeekPlanPanel";
 import { BillsPanelCard } from "@/components/BillsPanelCard";
+import { SoccerPanelCard } from "@/components/SoccerPanelCard";
 import { useHomeLayout } from "@/components/LayoutProvider";
 import type { HomeLayoutId } from "@/lib/home-layouts";
+
+function SportsPair() {
+  return (
+    <>
+      <BillsPanelCard />
+      <SoccerPanelCard />
+    </>
+  );
+}
 
 type WeekRow = {
   type: string;
@@ -79,7 +89,7 @@ function layoutBody(
           </div>
           <AgendaBlock />
           <HubsPair />
-          <BillsPanelCard />
+          <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
       );
@@ -96,7 +106,7 @@ function layoutBody(
             </div>
             <CrosswordRail />
           </div>
-          <BillsPanelCard />
+          <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
       );
@@ -111,7 +121,7 @@ function layoutBody(
             <MoveHubCard />
           </div>
           <DailyCrosswordCard />
-          <BillsPanelCard />
+          <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
       );
@@ -129,7 +139,7 @@ function layoutBody(
           </div>
           <AgendaBlock />
           <HubsPair />
-          <BillsPanelCard />
+          <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
       );
@@ -143,7 +153,7 @@ function layoutBody(
           <AgendaBlock />
           <MoveHubCard />
           <CommandBoard today={today} week={week} />
-          <BillsPanelCard />
+          <SportsPair />
         </>
       );
     case "wind-down":
@@ -155,7 +165,7 @@ function layoutBody(
           <div className="home-wind-hero">
             <DailyCrosswordCard />
           </div>
-          <BillsPanelCard />
+          <SportsPair />
           <MoveHubCard />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -168,7 +178,7 @@ function layoutBody(
           <TodayRebuildPanel />
           <AgendaBlock />
           <HubsPair hero />
-          <BillsPanelCard />
+          <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
       );
@@ -181,7 +191,7 @@ function layoutBody(
           <TodayRebuildPanel />
           <AgendaBlock />
           <HubsPair />
-          <BillsPanelCard />
+          <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
       );

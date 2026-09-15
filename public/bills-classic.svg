@@ -1,33 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Buffalo Bills classic logo">
-  <!-- Classic-era Bills mark: royal blue disc, scarlet ring, charging red buffalo -->
-  <circle cx="256" cy="256" r="250" fill="#00338D"/>
-  <circle cx="256" cy="256" r="228" fill="none" stroke="#C60C30" stroke-width="32"/>
-  <circle cx="256" cy="256" r="204" fill="none" stroke="#FFFFFF" stroke-width="5" opacity="0.18"/>
-
-  <!-- Left-facing charging buffalo (classic silhouette) -->
-  <g fill="#C60C30" transform="translate(42 78) scale(1.02)">
-    <!-- main body + hump -->
-    <path d="M168 210c6-54 48-92 102-98 12-36 52-62 94-58 22 2 40 12 52 30 16-12 40-14 58-2 22 14 32 40 26 66 34 18 56 56 52 98-2 14-8 28-18 38 12 16 8 40-10 50-10 6-22 8-34 8H196c-34 0-64-20-76-50-28-8-48-34-50-62-2-14 4-28 12-38 10-16 22-30 30-44z"/>
-    <!-- shoulder hump mass -->
-    <path d="M248 120c22-44 68-68 114-62 10 2 14 12 8 18-24 12-48 30-66 52-20 4-40 0-56-8z"/>
-    <!-- head -->
-    <path d="M142 148c-6-30 8-58 34-70 10-4 20 4 16 14-6 20-6 36-2 50 8 6 10 16 4 24l-22 10c-12 4-22-6-30-28z"/>
-    <!-- horns -->
-    <path d="M128 112c-24-12-36-38-28-60 4-10 16-10 18 0 6 22 16 38 28 50-6 4-14 8-18 10z"/>
-    <path d="M168 124c6-18 2-36-12-48-8-6-18-2-18 8 2 18 8 30 16 42 4 2 12 0 14-2z"/>
-    <!-- beard / chin -->
-    <path d="M108 188c-8 14-4 30 8 40 6 4 14 2 16-4 6-16 2-30-6-40-6-6-14-4-18 4z"/>
-    <!-- snout -->
-    <path d="M96 172c-28-6-52 12-62 36-4 10 6 16 12 10 18-10 36-20 52-26 0-8-2-16-2-20z"/>
-    <!-- eye -->
-    <circle cx="158" cy="168" r="8" fill="#00338D"/>
-    <!-- front legs -->
-    <path d="M188 268h28l10 64H196l-8-64z"/>
-    <path d="M236 268h32l8 64h-30l-10-64z"/>
-    <!-- rear legs -->
-    <path d="M296 266h34l6 66h-30l-10-66z"/>
-    <path d="M354 262h30l12 70h-32l-10-70z"/>
-    <!-- tail -->
-    <path d="M430 188c24-12 44-6 58 14 8 10-2 20-12 16-20-6-36-8-48-4-6-8-4-18 2-26z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Buffalo Bills classic logo">
+  <!-- Old-school circular Bills badge -->
+  <circle cx="100" cy="100" r="96" fill="#00338d"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#c60c30" stroke-width="8"/>
+  <circle cx="100" cy="100" r="78" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.35"/>
+  <!-- Standing / charging classic red buffalo -->
+  <g fill="#c60c30" transform="translate(28,42) scale(1.05)">
+    <path d="M28 78c4-18 16-32 34-38 6-14 20-24 36-24 10 0 18 4 24 12 6-4 14-4 20 0 8 4 12 14 10 24 14 6 24 20 24 36 0 6-2 12-6 16 4 6 4 14-2 20-4 4-10 6-16 6H52c-14 0-26-8-30-20-12-2-20-12-22-24-1-4 0-8 2-12 2-8 6-14 12-18z"/>
+    <path d="M86 28c6-14 20-22 34-22 4 0 6 4 4 8-8 4-16 10-22 18-6 2-12 0-16-4z"/>
+    <path d="M74 32c-4-10-2-20 6-26 4-2 8 0 8 4 0 8-4 14-8 20-2 2-6 2-6 2z"/>
+    <circle cx="72" cy="70" r="5" fill="#00338d"/>
+    <circle cx="128" cy="74" r="4" fill="#00338d"/>
+    <path d="M70 112h14l6 28H78l-8-28zm24 0h16l5 28H98l-4-28zm28 0h16l4 28h-14l-6-28z"/>
+    <path d="M36 70c-12-4-22 2-28 12-2 4 2 8 6 6 8-4 16-8 22-10v-8z"/>
   </g>
 </svg>
