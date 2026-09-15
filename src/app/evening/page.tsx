@@ -28,12 +28,22 @@ import {
   SUMMARY_SENTENCE_SOFT_LIMIT,
   bundleJournalsByDate,
   countSentences,
+  hasJournalContent,
+  isStarredDay,
 } from "@/lib/journal";
 import type { NewsHeadline } from "@/lib/news";
 import { completedTodosForUndo, openTodosOn } from "@/lib/todos";
 import type { DailyForecast } from "@/lib/weather";
 
 const COORDS_KEY = "rebuild-weather-coords";
+
+function StarIcon({ filled }: { filled: boolean }) {
+  return (
+    <span aria-hidden className={filled ? "fy-star-on" : "fy-star-off"}>
+      {filled ? "★" : "☆"}
+    </span>
+  );
+}
 
 type StoredCoords = {
   lat: number;
@@ -69,7 +79,7 @@ type ClosedSnapshot = {
 };
 
 function EveningPageInner() {
-  const { post, state, today, refresh } = useApp();
+  const { post, state, today } = useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
   const requested = searchParams.get("date") ?? "";
@@ -98,6 +108,8 @@ function EveningPageInner() {
   const [standOut, setStandOut] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [starBusy, setStarBusy] = useState(false);
+  const [starPending, setStarPending] = useState(false);
   const [result, setResult] = useState(false);
   const [closed, setClosed] = useState<ClosedSnapshot | null>(null);
   const [error, setError] = useState("");
@@ -119,6 +131,35 @@ function EveningPageInner() {
 
   const effectiveDate =
     closeDate && missing.includes(closeDate) ? closeDate : preferredDate;
+
+  const journalsByDate = useMemo(
+    () => bundleJournalsByDate(state.journals),
+    [state.journals],
+  );
+  const dayCanPersistStar =
+    Boolean(effectiveDate) &&
+    (state.evenings.some((e) => e.date === effectiveDate) ||
+      hasJournalContent(journalsByDate, effectiveDate) ||
+      isStarredDay(state.starredDays, effectiveDate));
+  const persistedStarred = Boolean(
+    effectiveDate && isStarredDay(state.starredDays, effectiveDate),
+  );
+  const composeStarred = dayCanPersistStar ? persistedStarred : starPending;
+  const closedStarred = Boolean(
+    closed && isStarredDay(state.starredDays, closed.date),
+  );
+
+  // Cancel pending star intent if the headline is cleared before close.
+  useEffect(() => {
+    if (!oneLine.trim() && starPending) {
+      setStarPending(false);
+    }
+  }, [oneLine, starPending]);
+
+  // Reset pending intent when switching which day we're closing.
+  useEffect(() => {
+    setStarPending(false);
+  }, [effectiveDate]);
 
   // Prefill from a journal entry already written for this day (e.g. from /journal)
   // so Close the day does not force a blank overwrite.
@@ -240,6 +281,27 @@ function EveningPageInner() {
 
   const tomorrowDate = today ? addDays(today, 1) : "";
 
+  async function toggleStarNow(date: string) {
+    setStarBusy(true);
+    setError("");
+    try {
+      await post("/api/journal", { action: "toggleStar", date });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update star");
+    } finally {
+      setStarBusy(false);
+    }
+  }
+
+  async function onComposeStarClick() {
+    if (!effectiveDate || !oneLine.trim() || starBusy || busy) return;
+    if (dayCanPersistStar) {
+      await toggleStarNow(effectiveDate);
+      return;
+    }
+    setStarPending((prev) => !prev);
+  }
+
   async function submit() {
     if (!oneLine.trim() || !effectiveDate) return;
     if (mood == null || stress == null) {
@@ -256,6 +318,7 @@ function EveningPageInner() {
       stress,
       photoDataUrl,
     };
+    const shouldStarAfterClose = starPending && !persistedStarred;
     try {
       await post("/api/evening", {
         date: effectiveDate,
@@ -265,9 +328,23 @@ function EveningPageInner() {
         expandedJournal: snapshot.summary || undefined,
         photoDataUrl: photoDataUrl || undefined,
       });
+      setStarPending(false);
       setClosed(snapshot);
       setResult(true);
-      await refresh();
+      if (shouldStarAfterClose) {
+        try {
+          await post("/api/journal", {
+            action: "toggleStar",
+            date: effectiveDate,
+          });
+        } catch (e) {
+          setError(
+            e instanceof Error
+              ? e.message
+              : "Day closed — star didn’t save; tap ★ to retry",
+          );
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     } finally {
@@ -314,15 +391,31 @@ function EveningPageInner() {
           <p className="muted">Backfilled {formatDisplayDate(closed.date)}</p>
         )}
 
-        <p className="daily-briefing-remember-line">
-          <strong>{closed.headline}</strong>
-          {closed.summary ? (
-            <span className="daily-briefing-remember-summary">
-              {" "}
-              — {closed.summary}
-            </span>
-          ) : null}
-        </p>
+        <div className="evening-remember-row">
+          <p className="daily-briefing-remember-line">
+            <strong>{closed.headline}</strong>
+            {closed.summary ? (
+              <span className="daily-briefing-remember-summary">
+                {" "}
+                — {closed.summary}
+              </span>
+            ) : null}
+          </p>
+          <button
+            type="button"
+            className="fy-star-btn"
+            aria-label={
+              closedStarred
+                ? "Unstar day to remember"
+                : "Star as day to remember"
+            }
+            disabled={starBusy}
+            onClick={() => void toggleStarNow(closed.date)}
+          >
+            <StarIcon filled={closedStarred} />
+          </button>
+        </div>
+        {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
         {closed.photoDataUrl ? (
           <div className="photo-subtle-preview">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -411,7 +504,29 @@ function EveningPageInner() {
       </section>
 
       <section className="panel">
-        <p className="eyebrow">Journal page</p>
+        <div className="evening-journal-head">
+          <p className="eyebrow">Journal page</p>
+          <button
+            type="button"
+            className="fy-star-btn"
+            aria-label={
+              composeStarred
+                ? "Unstar day to remember"
+                : "Star as day to remember"
+            }
+            title={
+              oneLine.trim()
+                ? composeStarred
+                  ? "Saved day"
+                  : "Mark as a saved day"
+                : "Add a headline to star this day"
+            }
+            disabled={busy || starBusy || !oneLine.trim()}
+            onClick={() => void onComposeStarClick()}
+          >
+            <StarIcon filled={composeStarred} />
+          </button>
+        </div>
         <label className="field">
           <span className="field-label">Headline</span>
           <input
