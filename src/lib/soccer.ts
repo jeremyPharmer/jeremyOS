@@ -146,11 +146,16 @@ export function mapMaxPrepsContest(contest: unknown): SoccerGame | null {
   };
 }
 
-/** Last completed + next `upcomingCount` (or live + upcoming). */
+/**
+ * Optional window helper (tests). Full season = pass Infinity / omit —
+ * same contract as Bills so Home can show past results + upcoming.
+ */
 export function selectScheduleWindow(
   games: SoccerGame[],
-  upcomingCount = 3,
+  upcomingCount = Number.POSITIVE_INFINITY,
 ): SoccerGame[] {
+  if (!Number.isFinite(upcomingCount)) return games;
+
   const live = games.filter((g) => g.status === "in");
   const completed = games.filter((g) => g.status === "post");
   const upcoming = games.filter((g) => g.status === "pre");
@@ -341,7 +346,7 @@ export async function fetchSoccerPanel(
       record,
       standing,
       streak,
-      games: selectScheduleWindow(mapped, 3),
+      games: mapped,
       clubhouseUrl: SCHROEDER_MAXPREPS_HOME,
     };
   } catch {

@@ -162,6 +162,14 @@ describe("schedule window helpers", () => {
     expect(window.map((g) => g.id)).toEqual(["1", "2", "3"]);
   });
 
+  it("returns the full season when upcomingCount is Infinite", () => {
+    expect(selectScheduleWindow(games).map((g) => g.id)).toEqual([
+      "1",
+      "2",
+      "3",
+    ]);
+  });
+
   it("features the next upcoming game", () => {
     expect(pickFeaturedGame(games)?.id).toBe("2");
   });
