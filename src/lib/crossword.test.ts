@@ -46,6 +46,52 @@ describe("mini crossword pack", () => {
     expect(lengths.has(4)).toBe(true);
   });
 
+  it("keeps today’s pin on a fresh 5×5 with unique clues", () => {
+    const p = puzzleForDate("2026-09-15");
+    expect(p.id).toBe("folk-liege");
+    expect(p.rows.length).toBe(5);
+    expect(answerAt(p, 1, "across")).toBe("FOLK");
+    expect(answerAt(p, 4, "across")).toBe("OPERA");
+    expect(answerAt(p, 5, "across")).toBe("NEST");
+    expect(answerAt(p, 1, "down")).toBe("FLOW");
+    expect(answerAt(p, 2, "down")).toBe("LIEGE");
+    expect(answerAt(p, 3, "down")).toBe("EAST");
+    const clues = [...p.across, ...p.down].map((c) => c.clue);
+    expect(new Set(clues).size).toBe(clues.length);
+  });
+
+  it("rejects duplicate clue text", () => {
+    const bad = {
+      id: "dupe-clues",
+      rows: ["AB#", "CDE", "#FG"],
+      across: [
+        { num: 1, clue: "Same text" },
+        { num: 3, clue: "Other" },
+      ],
+      down: [
+        { num: 1, clue: "Same text" },
+        { num: 2, clue: "Else" },
+      ],
+    };
+    // Use a valid 5×5 shape so size checks pass before clue uniqueness.
+    const puzzle = {
+      id: "dupe-clues",
+      rows: ["FOLK#", "L#I#E", "OPERA", "W#G#S", "#NEST"],
+      across: [
+        { num: 1, clue: "Same text" },
+        { num: 4, clue: "Other across" },
+        { num: 5, clue: "Third across" },
+      ],
+      down: [
+        { num: 1, clue: "Same text" },
+        { num: 2, clue: "Other down" },
+        { num: 3, clue: "Third down" },
+      ],
+    };
+    expect(() => assertPuzzleValid(puzzle)).toThrow(/duplicate clue/);
+    void bad;
+  });
+
   it("never puts the answer word inside its clue", () => {
     for (const p of MINI_CROSSWORDS) {
       for (const c of p.across) {

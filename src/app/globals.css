@@ -2440,9 +2440,9 @@ h2 {
 
 .crossword-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--crossword-n, 5), minmax(0, 1fr));
   gap: 4px;
-  width: min(100%, 272px);
+  width: min(100%, calc(var(--crossword-n, 5) * 52px));
   margin: 0;
   aspect-ratio: 1;
 }
