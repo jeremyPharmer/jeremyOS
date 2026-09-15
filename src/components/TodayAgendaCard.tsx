@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
+import { AgendaMonthCalendar } from "@/components/AgendaMonthCalendar";
 import {
   AgendaEventComposer,
   type AgendaEventComposerInitial,
@@ -17,15 +18,16 @@ import {
   filterHiddenCalendarEvents,
 } from "@/lib/calendar-overrides";
 import { isCustomAgendaId } from "@/lib/custom-agenda-shared";
-import { homeDaySecondary } from "@/lib/home-day-nav";
-import { addDays } from "@/lib/journey";
 import {
-  formatMonthDay,
   resolveEventGroup,
   TASK_GROUP_COLORS,
   type TaskGroup,
 } from "@/lib/task-groups";
-import { dayAbbrev } from "@/lib/weather";
+import {
+  buildMonthGrid,
+  monthKey as toMonthKey,
+  parseMonthKey,
+} from "@/lib/workouts";
 import {
   isAgendaEventPast,
   localMinutesInTz,
@@ -44,10 +46,6 @@ import {
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
 import { TaskGroupPicker } from "@/components/TaskGroupPicker";
 import { SecondaryButton, PrimaryButton, Sheet } from "@/components/ui";
-
-function threeDayWindow(start: string): [string, string, string] {
-  return [start, addDays(start, 1), addDays(start, 2)];
-}
 
 type AgendaResponse = {
   date: string;
@@ -291,13 +289,16 @@ function AgendaEventRow({
       }${past ? " agenda-item-past" : ""}${group ? " has-group-bar" : ""}`}
       style={barStyle}
     >
-      <AgendaTime event={event} />
       <div className="agenda-body">
         {titleBlock}
         {!editing && shouldShowLocation(event) ? (
-          <p className="agenda-loc">{event.location}</p>
+          <p className="agenda-loc">
+            <span className="agenda-loc-pin" aria-hidden />
+            {event.location}
+          </p>
         ) : null}
       </div>
+      <AgendaTime event={event} />
       {!editing ? (
         <button
           type="button"
@@ -319,14 +320,16 @@ function AgendaEventRow({
 export function TodayAgendaCard() {
   const { today, state, post } = useApp();
   const [viewDate, setViewDate] = useState(today);
-  const [windowStart, setWindowStart] = useState(today);
+  const [monthKey, setMonthKey] = useState(
+    () => toMonthKey(Number(today.slice(0, 4)), Number(today.slice(5, 7))),
+  );
   const [data, setData] = useState<AgendaResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
   const [addInitial, setAddInitial] =
     useState<AgendaEventComposerInitial | null>(null);
-  const [stripCounts, setStripCounts] = useState<Record<string, number>>({});
+  const [dayColors, setDayColors] = useState<Record<string, string[]>>({});
   const [now, setNow] = useState(() => new Date());
   const [expandedGaps, setExpandedGaps] = useState<Record<string, boolean>>({});
   /** Full day spine (8 AM bounds + open gaps). Default collapsed — event list + … */
@@ -359,10 +362,12 @@ export function TodayAgendaCard() {
     () => calendarHiddenEventIds(state),
     [state.calendarHiddenEventIds],
   );
-  const stripDays = useMemo(
-    () => threeDayWindow(windowStart),
-    [windowStart],
-  );
+  const monthDates = useMemo(() => {
+    const { year, month } = parseMonthKey(monthKey);
+    return buildMonthGrid(year, month)
+      .flat()
+      .filter((d): d is string => Boolean(d));
+  }, [monthKey]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 60_000);
@@ -371,7 +376,7 @@ export function TodayAgendaCard() {
 
   useEffect(() => {
     setViewDate(today);
-    setWindowStart(today);
+    setMonthKey(toMonthKey(Number(today.slice(0, 4)), Number(today.slice(5, 7))));
     cacheRef.current = {};
   }, [today]);
 
@@ -380,18 +385,13 @@ export function TodayAgendaCard() {
     setTimelineExpanded(false);
   }, [viewDate]);
 
-  useEffect(() => {
-    if (!stripDays.includes(viewDate)) {
-      setViewDate(stripDays[0]);
-    }
-  }, [stripDays, viewDate]);
+  function selectDate(date: string) {
+    setViewDate(date);
+    setMonthKey(toMonthKey(Number(date.slice(0, 4)), Number(date.slice(5, 7))));
+  }
 
-  function shiftWindow(deltaDays: number) {
-    setWindowStart((start) => {
-      const next = addDays(start, deltaDays);
-      setViewDate(next);
-      return next;
-    });
+  function jumpToToday() {
+    selectDate(today);
   }
 
   useEffect(() => {
@@ -420,11 +420,31 @@ export function TodayAgendaCard() {
     return (await res.json()) as AgendaResponse;
   }
 
-  function visibleCount(json: AgendaResponse): number {
-    return filterHiddenCalendarEvents(
+
+  function colorsForJson(json: AgendaResponse): string[] {
+    const visible = filterHiddenCalendarEvents(
       applyCalendarTitleOverrides(json.events ?? [], overrides),
       hidden,
-    ).length;
+    );
+    const colors: string[] = [];
+    const seen = new Set<string>();
+    for (const event of visible) {
+      const group = resolveEventGroup({
+        eventId: event.id,
+        source: event.source,
+        extraIndex: event.extraIndex,
+        customGroup: event.group,
+        overrides: eventGroups,
+        feedGroups,
+      });
+      if (!group) continue;
+      const color = TASK_GROUP_COLORS[group];
+      if (seen.has(color)) continue;
+      seen.add(color);
+      colors.push(color);
+      if (colors.length >= 4) break;
+    }
+    return colors;
   }
 
   useEffect(() => {
@@ -447,10 +467,17 @@ export function TodayAgendaCard() {
         if (cancelled) return;
         cacheRef.current[viewDate] = json;
         setData(json);
-        const count = visibleCount(json);
-        setStripCounts((prev) =>
-          prev[viewDate] === count ? prev : { ...prev, [viewDate]: count },
-        );
+        const colors = colorsForJson(json);
+        setDayColors((prev) => {
+          const prevColors = prev[viewDate] ?? [];
+          if (
+            prevColors.length === colors.length &&
+            prevColors.every((c, i) => c === colors[i])
+          ) {
+            return prev;
+          }
+          return { ...prev, [viewDate]: colors };
+        });
       } catch {
         if (cancelled) return;
         if (!cacheRef.current[viewDate]) {
@@ -473,26 +500,35 @@ export function TodayAgendaCard() {
 
   useEffect(() => {
     let cancelled = false;
-    async function loadStrip() {
-      const entries = await Promise.all(
-        stripDays.map(async (date) => {
-          try {
-            const cached = cacheRef.current[date];
-            const json = cached ?? (await fetchAgenda(date));
-            if (!cached) cacheRef.current[date] = json;
-            return [date, visibleCount(json)] as const;
-          } catch {
-            return [date, stripCounts[date] ?? 0] as const;
-          }
-        }),
-      );
-      if (!cancelled) {
-        setStripCounts((prev) => {
+    async function loadMonthMarkers() {
+      // Prefetch month days in small batches so bars fill in without flooding Google.
+      const batchSize = 5;
+      for (let i = 0; i < monthDates.length; i += batchSize) {
+        if (cancelled) return;
+        const batch = monthDates.slice(i, i + batchSize);
+        const entries = await Promise.all(
+          batch.map(async (date) => {
+            try {
+              const cached = cacheRef.current[date];
+              const json = cached ?? (await fetchAgenda(date));
+              if (!cached) cacheRef.current[date] = json;
+              return [date, colorsForJson(json)] as const;
+            } catch {
+              return [date, dayColors[date] ?? []] as const;
+            }
+          }),
+        );
+        if (cancelled) return;
+        setDayColors((prev) => {
           let changed = false;
           const next = { ...prev };
-          for (const [date, count] of entries) {
-            if (next[date] !== count) {
-              next[date] = count;
+          for (const [date, colors] of entries) {
+            const prevColors = next[date] ?? [];
+            if (
+              prevColors.length !== colors.length ||
+              prevColors.some((c, idx) => c !== colors[idx])
+            ) {
+              next[date] = colors;
               changed = true;
             }
           }
@@ -500,12 +536,12 @@ export function TodayAgendaCard() {
         });
       }
     }
-    void loadStrip();
+    void loadMonthMarkers();
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- stripCounts read only as fallback
-  }, [stripDays, personal, work, extrasKey, googleConnected, customSig, overrides, hidden]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dayColors read only as fallback
+  }, [monthDates, personal, work, extrasKey, googleConnected, customSig, overrides, hidden, eventGroups, feedGroups]);
 
   const dayReady = data?.date === viewDate;
   const rawEvents = dayReady ? (data?.events ?? []) : [];
@@ -614,55 +650,25 @@ export function TodayAgendaCard() {
           </div>
         </div>
 
-        <div className="tasks-day-strip-nav">
-          <button
-            type="button"
-            className="btn ghost workout-cal-arrow tasks-day-strip-arrow"
-            aria-label="Previous three days"
-            onClick={() => shiftWindow(-3)}
-          >
-            ‹
-          </button>
-          <div
-            className="tasks-day-strip"
-            role="tablist"
-            aria-label="Three-day window"
-          >
-            {stripDays.map((date) => {
-              const selected = date === viewDate;
-              const count = stripCounts[date] ?? 0;
-              const label = date === today ? "Today" : dayAbbrev(date);
-              const dayStatus = formatMonthDay(date);
-              return (
-                <button
-                  key={date}
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  className={`tasks-day-chip${selected ? " selected" : ""}`}
-                  onClick={() => setViewDate(date)}
-                >
-                  <span className="tasks-day-chip-label">{label}</span>
-                  <span className="tasks-day-chip-status" aria-hidden>
-                    {dayStatus}
-                  </span>
-                  <span className="sr-only">
-                    {homeDaySecondary(date)}
-                    {count === 0 ? ", no events" : `, ${count} events`}
-                  </span>
-                </button>
-              );
-            })}
+        <AgendaMonthCalendar
+          monthKey={monthKey}
+          today={today}
+          selectedDate={viewDate}
+          dayColors={dayColors}
+          onMonthChange={setMonthKey}
+          onSelectDate={selectDate}
+        />
+        {viewDate !== today ? (
+          <div className="agenda-today-row">
+            <button
+              type="button"
+              className="agenda-today-pill"
+              onClick={jumpToToday}
+            >
+              Today
+            </button>
           </div>
-          <button
-            type="button"
-            className="btn ghost workout-cal-arrow tasks-day-strip-arrow"
-            aria-label="Next three days"
-            onClick={() => shiftWindow(3)}
-          >
-            ›
-          </button>
-        </div>
+        ) : null}
       </header>
 
       {peekEventId && (() => {
