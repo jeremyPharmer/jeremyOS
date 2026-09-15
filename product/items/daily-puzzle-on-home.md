@@ -84,7 +84,7 @@ None blocking scope. Optional later polish only: whether to show light text labe
 - Follow-up **2026-09-04 (later):** lock **5×5**; replace On Air; open questions A–F posed.
 - Follow-up **2026-09-04 (share #1 / Complete÷attempts):** Start model **#1**; fraction **completed/attempts**; originally locked % as today’s fill; banner (in-block footer); podcasts (hide from Home). A–F resolved.
 - **Locked v1:** 5×5 Mini Crossword replacing Entertainment Home slot; Start → attempt; banner `completed/attempts · success%` — effort **M**.
-- **2026-09-15 founder:** today’s puzzle was a pack repeat; ship a fresh puzzle and **allow grids larger than 5×5** (e.g. 6×6) when useful — not 5×5-only.
+- **2026-09-15 founder:** today’s puzzle was a pack repeat; ship a fresh puzzle. Later same day: **prefer 5×5**, adjust word lengths as needed, and **do not duplicate clue text** (Across/Down must each get unique wording).
 - **2026-09-07 founder feedback (banner %):** screenshot `2/3 · 100%` with answers revealed; founder: “This should be 66% it's 2/3 correct.” **Decision: switch banner `%` from today’s fill progress → lifetime success rate** (`completed/attempts`, nearest-integer %; `2/3` → **67%**). Fill progress stays visible on the grid only — not in the banner. Keeps string shape `{completed}/{attempts} · {n}%`.
 - **Progressive shortlist** (alternatives; crossword remains locked):
 

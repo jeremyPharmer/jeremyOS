@@ -133,16 +133,17 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
-    id: "cable-bridge",
-    rows: ["CABLE#", "A#R#A#", "BRIDGE", "L#D#L#", "E#G#E#", "##E###"],
+    id: "folk-liege",
+    rows: ["FOLK#", "L#I#E", "OPERA", "W#G#S", "#NEST"],
     across: [
-      { num: 1, clue: "Undersea data line, or thick rope" },
-      { num: 4, clue: "River span, or whist partnership" },
+      { num: 1, clue: "Traditional tunes, collectively" },
+      { num: 4, clue: "La Scala spectacle" },
+      { num: 5, clue: "Robin’s twiggy home" },
     ],
     down: [
-      { num: 1, clue: "Undersea data line, or thick rope" },
-      { num: 2, clue: "River span, or whist partnership" },
-      { num: 3, clue: "Bald national bird" },
+      { num: 1, clue: "Go with the ___" },
+      { num: 2, clue: "Feudal lord" },
+      { num: 3, clue: "Toward sunrise" },
     ],
   },
   {
@@ -310,8 +311,8 @@ function dayOfYear(date: string): number {
 
 /** Pin a fresh puzzle to a calendar day without reshuffling the pack. */
 const DATE_PUZZLES: Record<string, MiniCrosswordPuzzle> = {
-  // 2026-09-15 — pack slot was a repeat of boost-logic; ship a new 6×6.
-  "2026-09-15": MINI_CROSSWORDS.find((p) => p.id === "cable-bridge")!,
+  // 2026-09-15 — pack slot was a repeat; founder wants a fresh 5×5, no clue dupes.
+  "2026-09-15": MINI_CROSSWORDS.find((p) => p.id === "folk-liege")!,
 };
 
 export function puzzleForDate(date: string): MiniCrosswordPuzzle {
@@ -820,5 +821,15 @@ export function assertPuzzleValid(puzzle: MiniCrosswordPuzzle): void {
     if (clueLeaksAnswer(c.clue, a)) {
       throw new Error(`${puzzle.id}: down ${c.num} clue leaks answer "${a}"`);
     }
+  }
+  const clueTexts = [...puzzle.across, ...puzzle.down].map((c) =>
+    c.clue.trim().toLowerCase(),
+  );
+  const seen = new Set<string>();
+  for (const text of clueTexts) {
+    if (seen.has(text)) {
+      throw new Error(`${puzzle.id}: duplicate clue "${text}"`);
+    }
+    seen.add(text);
   }
 }
