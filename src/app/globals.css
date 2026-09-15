@@ -1992,6 +1992,11 @@ h2 {
   height: 56px;
   object-fit: contain;
   margin-bottom: 2px;
+  padding: 4px;
+  border-radius: 50%;
+  background: #00338d;
+  border: 3px solid #c60c30;
+  box-sizing: border-box;
 }
 
 .bills-stub-title {
