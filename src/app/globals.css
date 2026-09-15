@@ -7074,6 +7074,13 @@ html.sheet-open .top-nav {
   margin: 0;
 }
 
+/* Partial calendar feed failures — keep agenda usable, avoid alarm-red */
+.agenda-feed-warn {
+  margin: 0.45rem 0 0;
+  color: color-mix(in srgb, var(--text-muted, var(--muted)) 72%, var(--danger));
+  line-height: 1.35;
+}
+
 .text-link {
   color: var(--accent);
   text-decoration: underline;

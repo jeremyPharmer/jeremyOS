@@ -9,10 +9,31 @@ import {
   parseIcsEventsForDay,
   resolveCalendarFeedUrls,
   assertIcsCalendar,
+  icsTimeoutMsForUrl,
+  humanizeFeedError,
   type WorkCalendarEvent,
 } from "./work-calendar";
 
 const TZ = "America/Los_Angeles";
+
+describe("icsTimeoutMsForUrl / humanizeFeedError", () => {
+  it("gives Apple CalDAV hosts a longer timeout", () => {
+    expect(
+      icsTimeoutMsForUrl("https://p49-caldav.icloud.com/published/1/abc"),
+    ).toBeGreaterThan(icsTimeoutMsForUrl("https://calendar.google.com/x.ics"));
+  });
+
+  it("shortens abort timeout messages", () => {
+    expect(
+      humanizeFeedError(
+        new Error("The operation was aborted due to timeout"),
+      ),
+    ).toMatch(/timed out/i);
+    expect(humanizeFeedError(new Error("Calendar feed failed (404)"))).toBe(
+      "Calendar feed failed (404)",
+    );
+  });
+});
 
 describe("normalizeIcalUrl", () => {
   it("converts webcal to https", () => {

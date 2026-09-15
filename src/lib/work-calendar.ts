@@ -223,9 +223,17 @@ export function parseIcsEventsForDay(
   return out;
 }
 
-/** Short in-memory ICS cache — day taps reparse instead of re-downloading. */
-const ICS_CACHE_TTL_MS = 90_000;
+/** In-memory ICS cache — day taps / month prefetch reparse instead of re-downloading. */
+const ICS_CACHE_TTL_MS = 5 * 60_000;
+/** After a timeout/failure, skip re-hitting the same URL briefly (month prefetch). */
+const ICS_FAIL_COOLDOWN_MS = 3 * 60_000;
+const ICS_TIMEOUT_DEFAULT_MS = 18_000;
+/** Apple shared/public links on *-caldav.icloud.com are often slow. */
+const ICS_TIMEOUT_ICLOUD_MS = 28_000;
+
 const icsTextCache = new Map<string, { text: string; at: number }>();
+const icsFailCache = new Map<string, { error: Error; at: number }>();
+const icsInflight = new Map<string, Promise<string>>();
 
 /** Reject HTML / CDN stub bodies that are not real calendars. */
 export function assertIcsCalendar(text: string): void {
@@ -259,30 +267,80 @@ function feedErrorLabel(
   return `${source} (${host})`;
 }
 
+/** Longer timeout for known-slow Apple / CalDAV hosts. */
+export function icsTimeoutMsForUrl(url: string): number {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (
+      host.includes("icloud.com") ||
+      host.includes("caldav") ||
+      host.endsWith(".apple.com")
+    ) {
+      return ICS_TIMEOUT_ICLOUD_MS;
+    }
+  } catch {
+    /* default */
+  }
+  return ICS_TIMEOUT_DEFAULT_MS;
+}
+
+/** Turn AbortTimeout noise into a short, user-facing line. */
+export function humanizeFeedError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : "Feed error";
+  if (/aborted due to timeout|TimeoutError|timed out/i.test(msg)) {
+    return "timed out (will retry shortly)";
+  }
+  return msg;
+}
+
 async function fetchIcsText(url: string): Promise<string> {
   const cached = icsTextCache.get(url);
   if (cached && Date.now() - cached.at < ICS_CACHE_TTL_MS) {
     return cached.text;
   }
-  const res = await fetch(url, {
-    headers: {
-      Accept: "text/calendar, text/plain, */*",
-      "User-Agent":
-        "Mozilla/5.0 (compatible; Google-Calendar; JeremyOS/1.0)",
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
-    },
-    cache: "no-store",
-    redirect: "follow",
-    signal: AbortSignal.timeout(12_000),
-  });
-  if (!res.ok) {
-    throw new Error(`Calendar feed failed (${res.status})`);
+  const failed = icsFailCache.get(url);
+  if (failed && Date.now() - failed.at < ICS_FAIL_COOLDOWN_MS) {
+    throw failed.error;
   }
-  const text = await res.text();
-  assertIcsCalendar(text);
-  icsTextCache.set(url, { text, at: Date.now() });
-  return text;
+  const existing = icsInflight.get(url);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          Accept: "text/calendar, text/plain, */*",
+          "User-Agent":
+            "Mozilla/5.0 (compatible; Google-Calendar; JeremyOS/1.0)",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+        cache: "no-store",
+        redirect: "follow",
+        signal: AbortSignal.timeout(icsTimeoutMsForUrl(url)),
+      });
+      if (!res.ok) {
+        throw new Error(`Calendar feed failed (${res.status})`);
+      }
+      const text = await res.text();
+      assertIcsCalendar(text);
+      icsFailCache.delete(url);
+      icsTextCache.set(url, { text, at: Date.now() });
+      return text;
+    } catch (e) {
+      const raw = e instanceof Error ? e : new Error("Feed error");
+      const err = /aborted due to timeout|TimeoutError/i.test(raw.message)
+        ? new Error("timed out")
+        : raw;
+      icsFailCache.set(url, { error: err, at: Date.now() });
+      throw err;
+    } finally {
+      icsInflight.delete(url);
+    }
+  })();
+
+  icsInflight.set(url, promise);
+  return promise;
 }
 
 /**
@@ -335,7 +393,16 @@ export async function fetchWorkCalendarEvents(
   });
 
   const googleConnected = googleCalendarStatus(feeds.googleCalendar).connected;
-  if (googleConnected && feeds.googleCalendar) {
+  if (!googleConnected && resolved.work) {
+    jobs.push({ source: "work", url: resolved.work });
+  }
+
+  if (jobs.length === 0 && !googleConnected) {
+    return { events: [], connected: false, errors: [] };
+  }
+
+  const runGoogle = async () => {
+    if (!googleConnected || !feeds.googleCalendar) return;
     try {
       collected.push(
         ...(await fetchGoogleCalendarEventsForDay(
@@ -348,27 +415,23 @@ export async function fetchWorkCalendarEvents(
       const msg = e instanceof Error ? e.message : "Google Calendar error";
       errors.push(`google: ${msg}`);
     }
-  } else if (resolved.work) {
-    jobs.push({ source: "work", url: resolved.work });
-  }
+  };
 
-  if (jobs.length === 0 && !googleConnected) {
-    return { events: [], connected: false, errors: [] };
-  }
-
-  await Promise.all(
-    jobs.map(async ({ source, url, extraIndex }) => {
+  await Promise.all([
+    runGoogle(),
+    ...jobs.map(async ({ source, url, extraIndex }) => {
       try {
         const text = await fetchIcsText(url);
         collected.push(
           ...parseIcsEventsForDay(text, date, timezone, source, extraIndex),
         );
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Feed error";
-        errors.push(`${feedErrorLabel(source, url, extraIndex)}: ${msg}`);
+        errors.push(
+          `${feedErrorLabel(source, url, extraIndex)}: ${humanizeFeedError(e)}`,
+        );
       }
     }),
-  );
+  ]);
 
   return {
     events: sortAgenda(collected),
