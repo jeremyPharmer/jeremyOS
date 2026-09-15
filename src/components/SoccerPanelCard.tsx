@@ -11,8 +11,7 @@ import {
   type SoccerPanel,
 } from "@/lib/soccer";
 
-const SABRE_LOGO = "/schroeder-sabre-logo.png";
-const SABRE_FLAG = "/schroeder-sabre-flag.png";
+const WARRIORS_LOGO = "/schroeder-warriors-logo.png";
 
 export function SoccerPanelCard() {
   const { today } = useApp();
@@ -59,21 +58,12 @@ export function SoccerPanelCard() {
   return (
     <a
       className="home-card home-card-soccer soccer-stub"
-      aria-label="Webster Schroeder soccer"
+      aria-label="Warriors soccer"
       href={panel.clubhouseUrl}
       target="_blank"
       rel="noopener noreferrer"
     >
       <div className="soccer-stub-perforation" aria-hidden="true" />
-
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        className="soccer-stub-flag"
-        src={SABRE_FLAG}
-        alt=""
-        width={960}
-        height={540}
-      />
 
       <header className="soccer-stub-header">
         <div className="soccer-stub-admit">
@@ -84,12 +74,12 @@ export function SoccerPanelCard() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             className="soccer-stub-logo"
-            src={SABRE_LOGO}
+            src={WARRIORS_LOGO}
             alt=""
             width={56}
             height={56}
           />
-          <h2 className="soccer-stub-title">Schroeder Sabres</h2>
+          <h2 className="soccer-stub-title">Warriors</h2>
           <p className="soccer-stub-record">
             {panel.record}
             {panel.standing !== "—" ? ` · ${panel.standing}` : ""}

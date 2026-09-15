@@ -2153,7 +2153,7 @@ h2 {
   color: rgba(26, 39, 68, 0.55);
 }
 
-/* Schroeder Sabres soccer stub (RB-035) — same ticket language as Bills */
+/* Warriors soccer stub (RB-035) — same ticket language as Bills */
 .home-card-soccer {
   gap: 0;
   overflow: hidden;
@@ -2161,7 +2161,7 @@ h2 {
   padding: 0;
   text-decoration: none;
   color: inherit;
-  border-color: color-mix(in srgb, #0033a0 35%, var(--line));
+  border-color: color-mix(in srgb, #1653ae 35%, var(--line));
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.4), transparent 24%),
     #f4efe4;
@@ -2219,8 +2219,9 @@ h2 {
   object-fit: contain;
   margin-bottom: 2px;
   border-radius: 50%;
-  background: #0033a0;
+  background: #fff;
   border: 3px solid #d4b483;
+  padding: 4px;
 }
 
 .soccer-stub-title {
