@@ -3756,6 +3756,31 @@ h2 {
   border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
 }
 
+.evening-journal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 8px;
+}
+
+.evening-journal-head .eyebrow {
+  margin: 0;
+}
+
+.evening-remember-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.evening-remember-row .daily-briefing-remember-line {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
 .daily-briefing-remember-line {
   margin: 0;
   font-size: 1.02rem;
