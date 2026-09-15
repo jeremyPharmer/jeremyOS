@@ -7,7 +7,7 @@ Recovery journey + fund/incentive tools remain **personal tools** when useful (n
 Maintained by the **Head of Product** agent (`.cursor/agents/head-of-product.md`).  
 **Priority ranking is the primary planning signal.** Due dates, effort, and timeline support rank — they do not override it.
 
-Last updated: 2026-09-13
+Last updated: 2026-09-15
 
 ## North star (locked 2026-08-29)
 
@@ -58,7 +58,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 
 ### Next
 
-1. **RB-022 — Journal edit, star & month calendar** — month view → tap day; edit existing (headline + summary + photos); star bookmark + starred list; `/journal` only; prose-only; missed days route to RB-010. Detail: [`items/journal-edit-star-calendar.md`](./items/journal-edit-star-calendar.md). After RB-016 / RB-021; does not steal RB-016’s In Progress slot. **Not** event calendar sync (that’s shipped [RB-023](./items/calendar-ical-google.md)).
+1. **RB-022 — Journal edit, star & month calendar** — month view → tap day; edit existing (headline + summary + photos); star bookmark + starred list; edit/calendar `/journal` only; **star also on `/evening`** (Journal page card header + post-close — locked 2026-09-15); prose-only; missed days route to RB-010. Detail: [`items/journal-edit-star-calendar.md`](./items/journal-edit-star-calendar.md). After RB-016 / RB-021; does not steal RB-016’s In Progress slot. **Not** event calendar sync (that’s shipped [RB-023](./items/calendar-ical-google.md)).
 2. **RB-002 — Email / Gmail** — elevated; founder “My Gmail obviously.” Detail: [`items/email-integration.md`](./items/email-integration.md). **Not** calendar — see RB-023 (Done).
 3. **RB-024 — Daily Puzzle on Home** — **In Progress.** Locked: **5×5 Mini Crossword** replaces On Air; **Start** → attempt; banner **`completed/attempts · success%`** (lifetime rate, e.g. `2/3 · 67%` — **not** today’s fill %); podcasts off Home. Effort **M**. Detail: [`items/daily-puzzle-on-home.md`](./items/daily-puzzle-on-home.md).
 4. **RB-005 — Podcast-first + regular recovery content** — **In Progress**; keep podcast useful + no-repeat off Home for now; founder still wants some regular recovery content (no duplicate item). Home On air **hidden** — slot is crossword (RB-024) / park RB-025. Detail: [`items/recovery-content-offers.md`](./items/recovery-content-offers.md).

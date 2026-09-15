@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-022 |
-| Rank | 9 |
+| Rank | 12 |
 | Priority | P0 |
 | Status | In Progress |
 | Effort | M |
@@ -17,7 +17,7 @@ After the five-year day page ([RB-016](./five-year-journal-ux.md)), Jeremy still
 
 ## Outcome
 
-From `/journal` only: a **month calendar** (tap a day → day page), **in-place edit** of existing entries (headline + summary + add photos), and a **personal star** (bookmark) on concrete `YYYY-MM-DD` days — surfaced on the month view, five-year day page, and a **starred list**. Prose/media only; no reclaim/milestone re-runs. No delete.
+From `/journal`: a **month calendar** (tap a day → day page), **in-place edit** of existing entries (headline + summary + add photos), and a **personal star** (bookmark) on concrete `YYYY-MM-DD` days — surfaced on the month view, five-year day page, and a **starred list**. **Star toggle also available on `/evening`** (Journal page card + post-close remember). Prose/media only; no reclaim/milestone re-runs. No delete.
 
 ## Scope (v1)
 
@@ -29,9 +29,25 @@ Thin slice with **all three** capabilities (calendar + edit + star):
 4. **Star:** personal bookmark only; no cap; same `YYYY-MM-DD` keying
 5. **Star surfaces:** month calendar, five-year day page, **and** a starred list
 6. **Calendar markers:** only what’s needed — closed / missing / starred (no extra data piled on)
-7. **Entry point:** `/journal` only
+7. **Entry points:**
+   - **Edit + month calendar + starred list:** `/journal` only (unchanged)
+   - **Star toggle:** `/journal` **and** `/evening` (expanded 2026-09-15 — founder annotation on Journal page card header)
 8. **Side effects:** prose (+ photo attach) only — **no** reclaim / milestone re-runs
 9. **Delete:** no — in-place edit only
+
+### Star on `/evening` (locked 2026-09-15)
+
+**Decision: ship with constraints.**
+
+| Rule | Detail |
+| --- | --- |
+| **Where** | Top-right of the **Journal page** card header on compose (`How did today go?` / Journal page). Also allow on **post-close** success/recap near the remember line (same day). |
+| **Not where** | Mood/stress panel; Home; Open/morning; inventing a second star model |
+| **Same API rules** | Reuse `toggleStar` / `starredDays` — `YYYY-MM-DD`, no cap; day must already have a **closed evening** or **journal content**, or already be starred (unstar). Do not invent a looser client-only star. |
+| **Compose before close** | Control may show on the Journal card. If the day is not yet closed / has no persisted content: treat star as **pending intent** — apply `toggleStar` **after successful evening close** for that date (or include in the close path). Do **not** call star on an empty unclosed day. Disable or no-op until headline is non-empty. |
+| **Headline gate** | Star intent on compose requires a non-empty headline (same bar as Close). Summary / photo **not** required. |
+| **Post-close** | Once closed, star/unstar immediately via existing API (day qualifies). |
+| **Semantics** | Same “day to remember” bookmark as `/journal` — not a separate favorite type |
 
 ## Out of scope / later
 
@@ -40,6 +56,7 @@ Thin slice with **all three** capabilities (calendar + edit + star):
 - Delete entry / hard wipe
 - Capture-time photo attach + paperclip-on-slot as a standalone slice — already **[RB-021](./journal-photos.md)**; this item **reuses** that model for **edit-path** add-photos (do not fork storage)
 - Widening RB-016 into calendar/star/edit — keep RB-016 as five-year presentation + capture model
+- Moving **edit** or **month calendar** onto `/evening` — star entry only expands; browse/edit stay on `/journal`
 
 ## Dependencies & risks
 
@@ -48,9 +65,11 @@ Thin slice with **all three** capabilities (calendar + edit + star):
 - Must not trigger evening/reclaim/milestone mutations on edit
 - Clear UX fork: **existing** → edit; **missing** → notify + route to RB-010 close (no silent create)
 - Star list + calendar markers must stay thin (closed / missing / starred only)
+- **Evening star:** pending-intent-before-close must not race or double-toggle; cancel pending if user clears headline before submit
 
 ## Notes
 
-- Intake **2026-08-31** founder (Jeremy) locked decisions: edit fields = headline + summary + add photos; existing-only edit; missed → notify/route to close (RB-010); prose-only side effects; no delete; month view → tap day; minimal markers; `/journal` only; star = personal bookmark, no cap; star on calendar + five-year day + starred list; thin slice with all three; star/edit keyed to `YYYY-MM-DD`.
-- Rank **6** / **P0** — founder-loved journal tooling; sits **Next after** RB-016 (In Progress) and RB-021 (photos), without stealing RB-016’s slot. Ahead of Gmail / podcast expansion in rank order.
-- Related: [RB-016](./five-year-journal-ux.md), [RB-021](./journal-photos.md), [RB-010](./backfill-missed-evening-journal-close.md). Journal **month browse** only — event calendar sync is **[RB-023](./calendar-ical-google.md)** (unrelated).
+- Intake **2026-08-31** founder (Jeremy) locked decisions: edit fields = headline + summary + add photos; existing-only edit; missed → notify/route to close (RB-010); prose-only side effects; no delete; month view → tap day; minimal markers; `/journal` only (then); star = personal bookmark, no cap; star on calendar + five-year day + starred list; thin slice with all three; star/edit keyed to `YYYY-MM-DD`.
+- **2026-09-15 product decision:** expand **star entry** to `/evening` Journal page card header (founder red-oval annotation) + post-close remember. **Ship with constraints** above. Edit/calendar stay `/journal`-only. Same API eligibility as `POST /api/journal` `toggleStar`.
+- Rank **12** / **P0** — founder-loved journal tooling; sits **Next after** RB-016 (In Progress) and RB-021 (photos), without stealing RB-016’s slot. Ahead of Gmail / podcast expansion in rank order.
+- Related: [RB-016](./five-year-journal-ux.md), [RB-021](./journal-photos.md), [RB-010](./backfill-missed-evening-journal-close.md), [RB-029](./evening-close-recap-news.md) / [RB-032](./daily-briefing-open-close-redesign.md) (evening shell). Journal **month browse** only — event calendar sync is **[RB-023](./calendar-ical-google.md)** (unrelated).
