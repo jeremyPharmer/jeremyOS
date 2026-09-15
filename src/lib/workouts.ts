@@ -383,10 +383,10 @@ export function buildMonthGrid(
   return weeks;
 }
 
+/** Month name only (no year) — matches Home calendar + workouts month headers. */
 export function monthLabel(year: number, month: number): string {
   return new Date(year, month - 1, 1).toLocaleDateString("en-US", {
     month: "long",
-    year: "numeric",
   });
 }
 
