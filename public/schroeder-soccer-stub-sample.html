@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Schroeder soccer ticket stub — UI sample</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,650;9..144,700&family=IBM+Plex+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --sabre-blue: #0033a0;
+      --sabre-gold: #d4b483;
+      --sabre-gold-deep: #b8925a;
+      --ticket: #f4efe4;
+      --ticket-ink: #1a2744;
+      --muted: #5b6478;
+      --line: rgba(0, 51, 160, 0.18);
+      --page: #d9e4f7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px 40px;
+      background:
+        radial-gradient(120% 80% at 50% 0%, #eef4ff, var(--page) 55%, #c4d4ef);
+      font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      color: var(--ticket-ink);
+    }
+    .frame { width: min(390px, 100%); }
+    .label {
+      margin: 0 0 10px;
+      text-align: center;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--sabre-blue);
+      font-weight: 700;
+      opacity: 0.75;
+    }
+    .stub {
+      position: relative;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.35), transparent 28%),
+        var(--ticket);
+      border-radius: 14px;
+      box-shadow:
+        0 18px 40px rgba(17, 36, 78, 0.18),
+        0 1px 0 rgba(255,255,255,0.7) inset;
+      overflow: hidden;
+      border: 1px solid rgba(0,51,160,0.22);
+    }
+    .stub::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 14px;
+      background:
+        radial-gradient(circle at 0 12px, transparent 6px, var(--ticket) 7px) 0 0 / 14px 18px repeat-y;
+      border-right: 1px dashed rgba(0,51,160,0.25);
+      z-index: 2;
+    }
+    .flag {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 7;
+      object-fit: cover;
+      object-position: center 35%;
+      border-bottom: 3px solid var(--sabre-gold);
+    }
+    .stub-inner { padding: 14px 16px 14px 26px; }
+    .stub-top {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+    .badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--sabre-blue);
+      border: 4px solid var(--sabre-gold);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 2px 0 rgba(184,146,90,0.45);
+      overflow: hidden;
+    }
+    .badge img { width: 52px; height: 52px; object-fit: contain; }
+    .kicker {
+      margin: 0;
+      color: var(--sabre-gold-deep);
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .title {
+      margin: 2px 0 0;
+      font-family: Fraunces, Georgia, serif;
+      font-size: 1.55rem;
+      line-height: 0.95;
+      color: var(--sabre-blue);
+      letter-spacing: -0.03em;
+    }
+    .meta {
+      margin: 6px 0 0;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: color-mix(in srgb, var(--sabre-blue) 80%, #000);
+    }
+    .admit {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .tear {
+      height: 0;
+      margin: 12px 0;
+      border-top: 2px dashed rgba(0,51,160,0.28);
+    }
+    .section-label {
+      margin: 0 0 8px;
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 800;
+      color: var(--sabre-blue);
+    }
+    .schedule {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 430px;
+      overflow: auto;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.35);
+    }
+    .game {
+      display: grid;
+      grid-template-columns: 52px 1fr auto;
+      gap: 8px;
+      align-items: baseline;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.84rem;
+    }
+    .game:last-child { border-bottom: 0; }
+    .game.is-done { opacity: 0.62; }
+    .game.is-next {
+      background: color-mix(in srgb, var(--sabre-gold) 22%, transparent);
+      box-shadow: inset 3px 0 0 var(--sabre-gold-deep);
+    }
+    .week {
+      font-weight: 800;
+      color: var(--sabre-blue);
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+    }
+    .matchup { font-weight: 700; }
+    .opp {
+      display: block;
+      font-weight: 500;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+    .when {
+      text-align: right;
+      font-weight: 650;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+    .stamp {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 5px;
+      border: 1.5px solid var(--sabre-gold-deep);
+      color: var(--sabre-gold-deep);
+      border-radius: 3px;
+      font-size: 0.58rem;
+      letter-spacing: 0.08em;
+      font-weight: 800;
+      transform: rotate(-6deg);
+      vertical-align: middle;
+    }
+    .footer {
+      margin-top: 12px;
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+    }
+    .barcode {
+      width: 70%;
+      height: 28px;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          #1a2744 0 2px,
+          transparent 2px 5px,
+          #1a2744 5px 7px,
+          transparent 7px 9px,
+          #1a2744 9px 10px,
+          transparent 10px 14px
+        );
+      opacity: 0.8;
+      border-radius: 2px;
+    }
+    .footer-text {
+      margin: 0;
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .note {
+      margin: 14px 0 0;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .source {
+      margin: 6px 0 0;
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .source a { color: var(--sabre-blue); }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="label">UI sample · ticket stub · varsity soccer</p>
+    <article class="stub" aria-label="Webster Schroeder varsity soccer ticket stub sample">
+      <img
+        class="flag"
+        src="/schroeder-sabre-flag.png"
+        alt="Webster Schroeder Sabres flag"
+        width="1280"
+        height="720"
+      />
+      <div class="stub-inner">
+        <header class="stub-top">
+          <div class="badge">
+            <img src="/schroeder-sabre-logo.png" alt="" width="52" height="52" />
+          </div>
+          <div>
+            <p class="kicker">Go Sabres</p>
+            <h1 class="title">Schroeder</h1>
+            <p class="meta">1-2 · 3rd Monroe I · L1</p>
+          </div>
+        </header>
+        <div class="admit">
+          <span>Fall 2025</span>
+          <span>Admit one</span>
+          <span>Varsity boys</span>
+        </div>
+        <div class="tear" aria-hidden="true"></div>
+        <p class="section-label">Full schedule</p>
+        <ul class="schedule">
+          <li class="game is-done"><span class="week">8/26</span><span class="matchup">vs BRO<span class="opp">Brockport</span></span><span class="when">—</span></li>
+          <li class="game is-done"><span class="week">8/29</span><span class="matchup">@ FPT<span class="opp">Fairport</span></span><span class="when">L 1-0</span></li>
+          <li class="game is-done"><span class="week">9/4</span><span class="matchup">@ WT<span class="opp">Webster Thomas</span></span><span class="when">W 2-1</span></li>
+          <li class="game is-done"><span class="week">9/6</span><span class="matchup">vs PEN<span class="opp">Penfield</span></span><span class="when">L 1-0</span></li>
+          <li class="game is-next"><span class="week">9/10</span><span class="matchup">vs FPT <span class="stamp">Next</span><span class="opp">Fairport</span></span><span class="when">Wed 7:00 PM</span></li>
+          <li class="game"><span class="week">9/13</span><span class="matchup">vs RH<span class="opp">Rush-Henrietta</span></span><span class="when">Sat 6:00 PM</span></li>
+          <li class="game"><span class="week">9/16</span><span class="matchup">vs HIL<span class="opp">Hilton</span></span><span class="when">Tue 7:00 PM</span></li>
+          <li class="game"><span class="week">9/18</span><span class="matchup">vs VIC<span class="opp">Victor</span></span><span class="when">Thu 7:00 PM</span></li>
+          <li class="game"><span class="week">9/20</span><span class="matchup">@ MCQ<span class="opp">McQuaid Jesuit</span></span><span class="when">Sat 7:00 PM</span></li>
+          <li class="game"><span class="week">9/26</span><span class="matchup">@ PEN<span class="opp">Penfield</span></span><span class="when">Fri 7:00 PM</span></li>
+          <li class="game"><span class="week">9/30</span><span class="matchup">@ WAY<span class="opp">Wayne</span></span><span class="when">Tue 7:00 PM</span></li>
+          <li class="game"><span class="week">10/4</span><span class="matchup">@ RH<span class="opp">Rush-Henrietta</span></span><span class="when">Sat 5:30 PM</span></li>
+          <li class="game"><span class="week">10/8</span><span class="matchup">@ HIL<span class="opp">Hilton</span></span><span class="when">Wed 7:00 PM</span></li>
+          <li class="game"><span class="week">10/10</span><span class="matchup">@ VIC<span class="opp">Victor</span></span><span class="when">Fri 7:00 PM</span></li>
+          <li class="game"><span class="week">10/14</span><span class="matchup">vs BRI<span class="opp">Brighton</span></span><span class="when">Tue 7:00 PM</span></li>
+          <li class="game"><span class="week">10/16</span><span class="matchup">vs GC<span class="opp">Gates Chili</span></span><span class="when">Thu 6:30 PM</span></li>
+        </ul>
+        <footer class="footer">
+          <div class="barcode" aria-hidden="true"></div>
+          <p class="footer-text">Ridge Rd · JeremyOS · Season stub</p>
+        </footer>
+      </div>
+    </article>
+    <p class="note">Sample only — mirrors the Bills ticket stub. Scroll the schedule list inside the stub.</p>
+    <p class="source">Schedule: MaxPreps Webster Schroeder varsity boys soccer (Fall 2025–26). Fall 2026 not published yet.</p>
+  </div>
+</body>
+</html>
