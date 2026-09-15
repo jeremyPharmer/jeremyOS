@@ -15,6 +15,7 @@ const PUBLIC_PREFIXES = [
   "/layouts",
   "/favicons",
   "/icon-options",
+  "/bills-looks",
   "/api/auth",
   "/api/cron",
   "/api/calendar/google/callback",
