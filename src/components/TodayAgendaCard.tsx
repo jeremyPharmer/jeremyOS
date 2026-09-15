@@ -31,6 +31,7 @@ import {
 import {
   isAgendaEventPast,
   localMinutesInTz,
+  parseAgendaDisplayTimeToMinutes,
 } from "@/lib/agenda-past";
 import {
   buildDayTimeline,
@@ -567,7 +568,11 @@ export function TodayAgendaCard() {
     return events
       .filter((e) => !e.allDay && !allDayIds.has(e.id))
       .slice()
-      .sort((a, b) => a.startTime.localeCompare(b.startTime) || a.title.localeCompare(b.title));
+      .sort((a, b) => {
+        const am = parseAgendaDisplayTimeToMinutes(a.startTime) ?? 0;
+        const bm = parseAgendaDisplayTimeToMinutes(b.startTime) ?? 0;
+        return am - bm || a.title.localeCompare(b.title);
+      });
   }, [events, timeline.allDay]);
 
   async function saveEvent(
