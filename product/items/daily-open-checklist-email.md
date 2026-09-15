@@ -34,7 +34,7 @@ After the day is closed (or at a configured end-of-day moment), the user receive
 
 ## Dependencies & risks
 
-- Depends on **RB-002 Email integration**
+- Depends on **RB-002** — specifically the **phase 1b outbound send** slice (inbox-only centralization does **not** unblock this digest)
 - Needs a stable checklist / open-item model from daily journal or day tasks
 - Timezone handling for “end of day”
 
@@ -44,3 +44,4 @@ After the day is closed (or at a configured end-of-day moment), the user receive
 - **2026-08-29 JeremyOS:** rank **8**; **2026-08-29** → rank **11** after cameras/workout/recipes intake. Ties elevated email (RB-002) + to-dos (RB-014). Prefer RB-014 list model as source of “open items” when that ships; until then, existing checklist leftovers OK.
 - Related surface: daily journal / checklist leftovers + RB-014 todos.
 - RB-009 Sunday recap is a later consumer of this channel — do not block recovery patterns (now demoted) on email.
+- **2026-09-15:** RB-002 pivoted to **Gmail inbox centralization** (rank 6 Ready). Keep this item after inbox v1; start only once RB-002 send path exists.

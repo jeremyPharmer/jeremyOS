@@ -2,11 +2,11 @@
 
 Index of all product items. Canonical detail lives in `product/items/`.
 
-Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Journey nav label kept; craving stats / Home craving CTA cut (**RB-020**; was briefly RB-017 on the EA branch — remapped after main assigned RB-017–019 to cameras/workout/recipes); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done). **Task groups + calendar M/D** locked (**RB-026**). **Morning day-start briefing** Done (**RB-027**). **Journey vitals BP+HR** Done (**RB-028**). **Evening close recap + world news** Done (**RB-029**). **Conversational calendar-first morning briefing** Done (**RB-030**). **Journey med adherence + drop vitals chart** Ready (**RB-031**). **Daily briefing Open/Close redesign** Done (**RB-032**). **Track over time (task adherence on Journey)** In Progress (**RB-033**). **Bills panel on Home** Done (**RB-034** — Buffalo Bills / NFL; Home bottom card shipped 2026-09-13: schedule, W–L, division, streak; Aug 1–Mar 1; ESPN tap-out).
+Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Journey nav label kept; craving stats / Home craving CTA cut (**RB-020**; was briefly RB-017 on the EA branch — remapped after main assigned RB-017–019 to cameras/workout/recipes); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done). **Task groups + calendar M/D** locked (**RB-026**). **Morning day-start briefing** Done (**RB-027**). **Journey vitals BP+HR** Done (**RB-028**). **Evening close recap + world news** Done (**RB-029**). **Conversational calendar-first morning briefing** Done (**RB-030**). **Journey med adherence + drop vitals chart** Ready (**RB-031**). **Daily briefing Open/Close redesign** Done (**RB-032**). **Track over time (task adherence on Journey)** In Progress (**RB-033**). **Bills panel on Home** Done (**RB-034** — Buffalo Bills / NFL; Home bottom card shipped 2026-09-13: schedule, W–L, division, streak; Aug 1–Mar 1; ESPN tap-out). **Gmail inbox centralization** Ready (**RB-002** — elevated 2026-09-15; inbox OAuth + read v1; send = phase 1b).
 
 **Ranking rule:** lower rank number = higher priority. Rank is the source of truth.
 
-Last updated: 2026-09-13
+Last updated: 2026-09-15
 
 | Rank | ID | Item | Priority | Status | Effort | Target due | Milestone | File |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -15,14 +15,14 @@ Last updated: 2026-09-13
 | 3 | RB-014 | To-do lists (first-class) | P0 | Ready | L | TBD | v1 | [items/todo-lists.md](./items/todo-lists.md) |
 | 4 | RB-026 | Task groups + colors & calendar M/D | P0 | In Progress | M | TBD | v1 | [items/task-groups-calendar-md-labels.md](./items/task-groups-calendar-md-labels.md) |
 | 5 | RB-033 | Track over time (task adherence on Journey) | P0 | In Progress | S | TBD | v1 | [items/task-track-over-time-adherence.md](./items/task-track-over-time-adherence.md) |
-| 6 | RB-032 | Daily briefing: Open / Close redesign | P0 | Done | L | TBD | v1.x | [items/daily-briefing-open-close-redesign.md](./items/daily-briefing-open-close-redesign.md) |
-| 7 | RB-027 | Redesigned morning day-start (check-in + briefing) | P0 | Done | M | TBD | v1 | [items/morning-day-start-briefing.md](./items/morning-day-start-briefing.md) |
-| 8 | RB-029 | Evening close success: day recap + world news | P0 | Done | M | TBD | v1 | [items/evening-close-recap-news.md](./items/evening-close-recap-news.md) |
-| 9 | RB-030 | Conversational morning briefing (calendar-first) | P0 | Done | S | TBD | v1.x | [items/morning-briefing-conversational.md](./items/morning-briefing-conversational.md) |
-| 10 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD | v1 | [items/five-year-journal-ux.md](./items/five-year-journal-ux.md) |
-| 11 | RB-021 | Journal photos (attach + paperclip) | P1 | Backlog | S | TBD | v1.x | [items/journal-photos.md](./items/journal-photos.md) |
-| 12 | RB-022 | Journal edit, star & month calendar | P0 | In Progress | M | TBD | v1.x | [items/journal-edit-star-calendar.md](./items/journal-edit-star-calendar.md) |
-| 13 | RB-002 | Email integration (Gmail) | P0 | Backlog | M | TBD | v1 | [items/email-integration.md](./items/email-integration.md) |
+| 6 | RB-002 | Gmail inbox centralization | P0 | Ready | L | TBD | v1 | [items/email-integration.md](./items/email-integration.md) |
+| 7 | RB-032 | Daily briefing: Open / Close redesign | P0 | Done | L | TBD | v1.x | [items/daily-briefing-open-close-redesign.md](./items/daily-briefing-open-close-redesign.md) |
+| 8 | RB-027 | Redesigned morning day-start (check-in + briefing) | P0 | Done | M | TBD | v1 | [items/morning-day-start-briefing.md](./items/morning-day-start-briefing.md) |
+| 9 | RB-029 | Evening close success: day recap + world news | P0 | Done | M | TBD | v1 | [items/evening-close-recap-news.md](./items/evening-close-recap-news.md) |
+| 10 | RB-030 | Conversational morning briefing (calendar-first) | P0 | Done | S | TBD | v1.x | [items/morning-briefing-conversational.md](./items/morning-briefing-conversational.md) |
+| 11 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD | v1 | [items/five-year-journal-ux.md](./items/five-year-journal-ux.md) |
+| 12 | RB-021 | Journal photos (attach + paperclip) | P1 | Backlog | S | TBD | v1.x | [items/journal-photos.md](./items/journal-photos.md) |
+| 13 | RB-022 | Journal edit, star & month calendar | P0 | In Progress | M | TBD | v1.x | [items/journal-edit-star-calendar.md](./items/journal-edit-star-calendar.md) |
 | 14 | RB-024 | Daily Puzzle on Home | P1 | In Progress | M | TBD | v1.x | [items/daily-puzzle-on-home.md](./items/daily-puzzle-on-home.md) |
 | 15 | RB-005 | Podcast-first + regular recovery content | P0 | In Progress | M | TBD | v1 | [items/recovery-content-offers.md](./items/recovery-content-offers.md) |
 | 16 | RB-017 | Home cameras via Reolink | P1 | Backlog | M | TBD | v1.x | [items/home-cameras-reolink.md](./items/home-cameras-reolink.md) |
@@ -49,11 +49,11 @@ Last updated: 2026-09-13
 
 | Status | Count |
 | --- | --- |
-| Backlog | 12 |
+| Backlog | 11 |
 | Ready | 5 |
 | In Progress | 8 |
 | Blocked | 0 |
-| Done | 8 |
+| Done | 9 |
 | Won't Do | 1 |
 
 ## Intake

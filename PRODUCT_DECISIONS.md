@@ -1,7 +1,7 @@
 # JeremyOS — Product decisions (locked)
 
-Last updated: 2026-08-29  
-Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening mood ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
+Last updated: 2026-09-15  
+Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening mood ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). **2026-09-15:** Gmail **inbox** centralization elevated (**RB-002** Ready / rank 6) — connect + read inbox in JeremyOS; outbound send = phase 1b. Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
 
 ---
 
@@ -163,6 +163,19 @@ projected = alreadyReclaimed + waitingReclaim + daysToGo × historicalDailySpend
 Money integrity items already In Progress (e.g. end-of-day reclaim auto-credit) may finish as thin personal-tool fixes. New money-OS expansion does not outrank todos, email/Gmail, podcasts, cameras, workout/recipes, or Jeremy’s app hub. See `product/ROADMAP.md`.
 
 **Personal tools intake (same day):** RB-017 home cameras (Reolink, ~founder priority 5), RB-018 workout tracker, RB-019 favorite recipes. Gmail folds into RB-002; regular recovery content stays on RB-005.
+
+## Gmail inbox centralization (locked 2026-09-15)
+
+| Decision | Detail |
+| --- | --- |
+| **Ask** | Founder: connect Gmail inbox now; centralize email in JeremyOS — “it’s time” |
+| **ID** | **RB-002** (extend existing item — no duplicate Gmail mega-item) |
+| **v1** | Settings Google OAuth → **read-only** inbox list + message read; single Gmail account; prefer `gmail.readonly` |
+| **Out of v1** | Full client (compose/labels/archive), multi-mailbox, AI triage, replacing Gmail app |
+| **Phase 1b** | Outbound transactional send (unblocks forgot-password + RB-003 digest) — same ID, after inbox |
+| **Rank / status** | **Rank 6 / P0 / Ready / Effort L** — Now queue after framing + todos + mid-flight task IP |
+| **Start eng?** | **Not full ship yet** — finish or free-lane around In Progress RB-026 / RB-033 / journal; **OAuth/consent spike OK early** (restricted Gmail scopes) |
+| **≠ calendar** | Google Calendar OAuth remains **RB-023** (Done); separate grant from Gmail |
 
 ## Trail metaphor retirement (locked 2026-08-29)
 
