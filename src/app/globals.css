@@ -2440,9 +2440,9 @@ h2 {
 
 .crossword-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--crossword-n, 5), minmax(0, 1fr));
   gap: 4px;
-  width: min(100%, 272px);
+  width: min(100%, calc(var(--crossword-n, 5) * 52px));
   margin: 0;
   aspect-ratio: 1;
 }
@@ -7072,6 +7072,13 @@ html.sheet-open .top-nav {
 .form-error {
   color: var(--danger);
   margin: 0;
+}
+
+/* Partial calendar feed failures — keep agenda usable, avoid alarm-red */
+.agenda-feed-warn {
+  margin: 0.45rem 0 0;
+  color: color-mix(in srgb, var(--text-muted, var(--muted)) 72%, var(--danger));
+  line-height: 1.35;
 }
 
 .text-link {

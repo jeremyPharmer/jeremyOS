@@ -22,6 +22,7 @@ import {
   nextCellInDirection,
   normalizeDailyCrossword,
   puzzleForDate,
+  puzzleSize,
   type CrosswordCell,
   type CrosswordDir,
   type CrosswordEntry,
@@ -31,6 +32,7 @@ export function DailyCrosswordCard() {
   const { state, today, post } = useApp();
   const puzzle = useMemo(() => puzzleForDate(today), [today]);
   const grid = useMemo(() => buildGrid(puzzle), [puzzle]);
+  const size = puzzleSize(puzzle);
   const dc = normalizeDailyCrossword(state.dailyCrossword);
   const progress =
     dc.current?.date === today ? dc.current : undefined;
@@ -51,7 +53,7 @@ export function DailyCrosswordCard() {
   const lastTap = useRef<{ index: number; at: number } | null>(null);
 
   useEffect(() => {
-    if (progress?.cells?.length) {
+    if (progress?.cells?.length === grid.length) {
       setCells(progress.cells);
     } else {
       setCells(grid.map((c) => (c.black ? "#" : "")));
@@ -342,6 +344,7 @@ export function DailyCrosswordCard() {
 
             <div
               className={`crossword-grid${locked ? " locked" : ""}${solved ? " solved" : ""}${revealed ? " revealed" : ""}`}
+              style={{ ["--crossword-n" as string]: String(size) }}
               role="grid"
               aria-label="Crossword grid"
               aria-readonly={locked || undefined}

@@ -1062,7 +1062,9 @@ export function TodayAgendaCard() {
       )}
 
       {!showLoading && dayReady && data?.errors && data.errors.length > 0 && (
-        <p className="tiny form-error">{data.errors.join(" · ")}</p>
+        <p className="tiny agenda-feed-warn" role="status">
+          {data.errors.join(" · ")}
+        </p>
       )}
     </section>
   );
