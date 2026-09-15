@@ -46,6 +46,21 @@ describe("mini crossword pack", () => {
     expect(lengths.has(4)).toBe(true);
   });
 
+  it("allows grids larger than 5×5", () => {
+    const sizes = new Set(MINI_CROSSWORDS.map((p) => p.rows.length));
+    expect(sizes.has(5)).toBe(true);
+    expect([...sizes].some((n) => n > 5)).toBe(true);
+  });
+
+  it("pins a fresh 6×6 for 2026-09-15 instead of the old repeat", () => {
+    const p = puzzleForDate("2026-09-15");
+    expect(p.id).toBe("cable-bridge");
+    expect(p.rows.length).toBe(6);
+    expect(answerAt(p, 1, "across")).toBe("CABLE");
+    expect(answerAt(p, 4, "across")).toBe("BRIDGE");
+    expect(answerAt(p, 3, "down")).toBe("EAGLE");
+  });
+
   it("never puts the answer word inside its clue", () => {
     for (const p of MINI_CROSSWORDS) {
       for (const c of p.across) {

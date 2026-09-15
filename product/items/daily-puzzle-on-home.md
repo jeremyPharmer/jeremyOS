@@ -25,7 +25,7 @@ Home’s former Entertainment / On Air slot is a **5×5 mini crossword** Jeremy 
 
 | Decision | Value |
 | --- | --- |
-| Grid | **5×5** mini crossword with Across/Down clues on the card (~3–5 clues) |
+| Grid | **Square mini** (typically **5×5**, occasionally larger e.g. 6×6) with Across/Down clues on the card (~3–5 clues). Founder: not locked to 5×5 only. |
 | Placement | **Replaces** On Air / Today’s Entertainment (`TodaysEntertainmentCard` / `home-layouts` `entertainment`) — not a second card. See [RB-025](./park-home-entertainment.md). |
 | Podcasts on Home | **Hide** — Entertainment / On Air slot fully replaced; RB-005 content **not** on Home for now |
 | Chip-through-day | Persist in-progress grid + answers for the calendar day; mark **Solved** when complete |
@@ -84,12 +84,13 @@ None blocking scope. Optional later polish only: whether to show light text labe
 - Follow-up **2026-09-04 (later):** lock **5×5**; replace On Air; open questions A–F posed.
 - Follow-up **2026-09-04 (share #1 / Complete÷attempts):** Start model **#1**; fraction **completed/attempts**; originally locked % as today’s fill; banner (in-block footer); podcasts (hide from Home). A–F resolved.
 - **Locked v1:** 5×5 Mini Crossword replacing Entertainment Home slot; Start → attempt; banner `completed/attempts · success%` — effort **M**.
+- **2026-09-15 founder:** today’s puzzle was a pack repeat; ship a fresh puzzle and **allow grids larger than 5×5** (e.g. 6×6) when useful — not 5×5-only.
 - **2026-09-07 founder feedback (banner %):** screenshot `2/3 · 100%` with answers revealed; founder: “This should be 66% it's 2/3 correct.” **Decision: switch banner `%` from today’s fill progress → lifetime success rate** (`completed/attempts`, nearest-integer %; `2/3` → **67%**). Fill progress stays visible on the grid only — not in the banner. Keeps string shape `{completed}/{attempts} · {n}%`.
 - **Progressive shortlist** (alternatives; crossword remains locked):
 
 | Idea | Mechanic | Why it chips well | Effort | Home fit / risk |
 | --- | --- | --- | --- | --- |
-| **Mini Crossword** *(locked)* | **5×5** + 3–5 clues; Start then chip letters | Multi-session; leave half-filled | M | Founder lock; takes Entertainment slot |
+| **Mini Crossword** *(locked)* | Square mini (often **5×5**, sometimes larger) + 3–5 clues; Start then chip letters | Multi-session; leave half-filled | M | Founder lock; takes Entertainment slot |
 | **Micro Number Place** | 4×4 or 6×6 sudoku-lite | Grid state progressive | M | Parked |
 | **Daily Cryptogram** | Letter-substitution phrase | Chip letters over sessions | S–M | Not selected |
 | **Mini Nonogram** | Tiny picross | Session-friendly painting | M | Not selected |

@@ -1,15 +1,21 @@
 import type { RebuildState } from "./types";
 
+/** Default / legacy mini size. Prefer `puzzleSize(puzzle)`. */
 export const CROSSWORD_SIZE = 5;
 
-/** One curated 5×5 mini — `#` = black cell. */
+/** Curated mini crossword — `#` = black cell. Square grids, typically 5–7. */
 export type MiniCrosswordPuzzle = {
   id: string;
-  /** Five strings of length 5; letters = solution, `#` = block */
-  rows: [string, string, string, string, string];
+  /** Square rows; letters = solution, `#` = block. Length = grid size. */
+  rows: string[];
   across: { num: number; clue: string }[];
   down: { num: number; clue: string }[];
 };
+
+/** Side length of a square puzzle. */
+export function puzzleSize(puzzle: MiniCrosswordPuzzle): number {
+  return puzzle.rows.length;
+}
 
 export type CrosswordCell = {
   row: number;
@@ -26,7 +32,7 @@ export type CrosswordDayProgress = {
   solved: boolean;
   /** Gave up via Solve — answers shown; grid locked; not a win */
   revealed?: boolean;
-  /** Length 25; `""` empty, letter, or `"#"` for black */
+  /** Length `size²`; `""` empty, letter, or `"#"` for black */
   cells: string[];
 };
 
@@ -37,11 +43,9 @@ export type DailyCrosswordState = {
 };
 
 /**
- * Hand-authored pack — mix of grid shapes so days aren’t always the same
- * five-letter-across pattern:
- *   classic  XXXXX / X#X#X / XXXXX / X#X#X / XXXXX
- *   ladder   XXXX# / X#X#X / XXXXX / X#X#X / #XXXX  (4- and 5-letter mix)
- * Rotate by day-of-year.
+ * Hand-authored pack — mix of sizes (5–7) and black patterns so days
+ * aren’t always the same five-letter-across mini.
+ * Rotate by day-of-year; optional DATE_PUZZLES overrides for a given day.
  */
 export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
   {
@@ -129,17 +133,16 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
-    id: "boost-logic",
-    rows: ["BOOST", "E#U#A", "LOGIC", "L#H#K", "ENTRY"],
+    id: "cable-bridge",
+    rows: ["CABLE#", "A#R#A#", "BRIDGE", "L#D#L#", "E#G#E#", "##E###"],
     across: [
-      { num: 1, clue: "Give a leg up" },
-      { num: 4, clue: "Spock’s strong suit" },
-      { num: 5, clue: "Doorway or ledger line" },
+      { num: 1, clue: "Undersea data line, or thick rope" },
+      { num: 4, clue: "River span, or whist partnership" },
     ],
     down: [
-      { num: 1, clue: "Scarlett of Tara, for one" },
-      { num: 2, clue: "Should, biblically" },
-      { num: 3, clue: "Gaudy or sticky, slangily" },
+      { num: 1, clue: "Undersea data line, or thick rope" },
+      { num: 2, clue: "River span, or whist partnership" },
+      { num: 3, clue: "Bald national bird" },
     ],
   },
   {
@@ -305,7 +308,15 @@ function dayOfYear(date: string): number {
   return Math.floor((now - start) / 86_400_000);
 }
 
+/** Pin a fresh puzzle to a calendar day without reshuffling the pack. */
+const DATE_PUZZLES: Record<string, MiniCrosswordPuzzle> = {
+  // 2026-09-15 — pack slot was a repeat of boost-logic; ship a new 6×6.
+  "2026-09-15": MINI_CROSSWORDS.find((p) => p.id === "cable-bridge")!,
+};
+
 export function puzzleForDate(date: string): MiniCrosswordPuzzle {
+  const pinned = DATE_PUZZLES[date];
+  if (pinned) return pinned;
   const pack = MINI_CROSSWORDS;
   const idx = ((dayOfYear(date) % pack.length) + pack.length) % pack.length;
   return pack[idx]!;
@@ -325,21 +336,22 @@ export function emptyCellsForPuzzle(puzzle: MiniCrosswordPuzzle): string[] {
 export function startNumberMap(
   puzzle: MiniCrosswordPuzzle,
 ): Map<number, number> {
+  const size = puzzleSize(puzzle);
   const map = new Map<number, number>();
   let next = 1;
-  for (let r = 0; r < CROSSWORD_SIZE; r++) {
-    for (let c = 0; c < CROSSWORD_SIZE; c++) {
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
       if (puzzle.rows[r]![c] === "#") continue;
       const isAcross =
         (c === 0 || puzzle.rows[r]![c - 1] === "#") &&
-        c + 1 < CROSSWORD_SIZE &&
+        c + 1 < size &&
         puzzle.rows[r]![c + 1] !== "#";
       const isDown =
         (r === 0 || puzzle.rows[r - 1]![c] === "#") &&
-        r + 1 < CROSSWORD_SIZE &&
+        r + 1 < size &&
         puzzle.rows[r + 1]![c] !== "#";
       if (!isAcross && !isDown) continue;
-      map.set(r * CROSSWORD_SIZE + c, next);
+      map.set(r * size + c, next);
       next += 1;
     }
   }
@@ -347,11 +359,12 @@ export function startNumberMap(
 }
 
 export function buildGrid(puzzle: MiniCrosswordPuzzle): CrosswordCell[] {
+  const size = puzzleSize(puzzle);
   const starts = startNumberMap(puzzle);
   const cells: CrosswordCell[] = [];
-  for (let row = 0; row < CROSSWORD_SIZE; row++) {
-    for (let col = 0; col < CROSSWORD_SIZE; col++) {
-      const index = row * CROSSWORD_SIZE + col;
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      const index = row * size + col;
       const ch = puzzle.rows[row]![col]!;
       cells.push({
         row,
@@ -381,19 +394,20 @@ export function answerAt(
   num: number,
   dir: "across" | "down",
 ): string {
+  const size = puzzleSize(puzzle);
   const start = clueStartIndex(puzzle, num);
   if (start == null) return "";
-  const row = Math.floor(start / CROSSWORD_SIZE);
-  const col = start % CROSSWORD_SIZE;
+  const row = Math.floor(start / size);
+  const col = start % size;
   let out = "";
   if (dir === "across") {
-    for (let c = col; c < CROSSWORD_SIZE; c++) {
+    for (let c = col; c < size; c++) {
       const ch = puzzle.rows[row]![c]!;
       if (ch === "#") break;
       out += ch;
     }
   } else {
-    for (let r = row; r < CROSSWORD_SIZE; r++) {
+    for (let r = row; r < size; r++) {
       const ch = puzzle.rows[r]![col]!;
       if (ch === "#") break;
       out += ch;
@@ -433,10 +447,11 @@ export function isGridSolved(
   puzzle: MiniCrosswordPuzzle,
   cells: string[],
 ): boolean {
-  if (cells.length !== CROSSWORD_SIZE * CROSSWORD_SIZE) return false;
+  const size = puzzleSize(puzzle);
+  if (cells.length !== size * size) return false;
   for (let i = 0; i < cells.length; i++) {
-    const row = Math.floor(i / CROSSWORD_SIZE);
-    const col = i % CROSSWORD_SIZE;
+    const row = Math.floor(i / size);
+    const col = i % size;
     const sol = puzzle.rows[row]![col]!;
     if (sol === "#") continue;
     if ((cells[i] || "").toUpperCase() !== sol.toUpperCase()) return false;
@@ -469,20 +484,21 @@ export function wordCellIndexes(
   num: number,
   dir: CrosswordDir,
 ): number[] {
+  const size = puzzleSize(puzzle);
   const start = clueStartIndex(puzzle, num);
   if (start == null) return [];
-  const row = Math.floor(start / CROSSWORD_SIZE);
-  const col = start % CROSSWORD_SIZE;
+  const row = Math.floor(start / size);
+  const col = start % size;
   const indexes: number[] = [];
   if (dir === "across") {
-    for (let c = col; c < CROSSWORD_SIZE; c++) {
+    for (let c = col; c < size; c++) {
       if (puzzle.rows[row]![c] === "#") break;
-      indexes.push(row * CROSSWORD_SIZE + c);
+      indexes.push(row * size + c);
     }
   } else {
-    for (let r = row; r < CROSSWORD_SIZE; r++) {
+    for (let r = row; r < size; r++) {
       if (puzzle.rows[r]![col] === "#") break;
-      indexes.push(r * CROSSWORD_SIZE + col);
+      indexes.push(r * size + col);
     }
   }
   return indexes;
@@ -572,17 +588,18 @@ export function nextCellInDirection(
   dir: CrosswordDir,
   step: 1 | -1,
 ): number | null {
-  const row = Math.floor(index / CROSSWORD_SIZE);
-  const col = index % CROSSWORD_SIZE;
+  const size = puzzleSize(puzzle);
+  const row = Math.floor(index / size);
+  const col = index % size;
   let r = row;
   let c = col;
   if (dir === "across") c += step;
   else r += step;
-  if (r < 0 || r >= CROSSWORD_SIZE || c < 0 || c >= CROSSWORD_SIZE) {
+  if (r < 0 || r >= size || c < 0 || c >= size) {
     return null;
   }
   if (puzzle.rows[r]![c] === "#") return null;
-  return r * CROSSWORD_SIZE + c;
+  return r * size + c;
 }
 
 /** True when every letter of that entry is filled and matches the solution. */
@@ -594,9 +611,10 @@ export function isWordCorrect(
 ): boolean {
   const indexes = wordCellIndexes(puzzle, num, dir);
   if (indexes.length < 2) return false;
+  const size = puzzleSize(puzzle);
   for (const i of indexes) {
-    const row = Math.floor(i / CROSSWORD_SIZE);
-    const col = i % CROSSWORD_SIZE;
+    const row = Math.floor(i / size);
+    const col = i % size;
     const sol = puzzle.rows[row]![col]!;
     const got = (cells[i] || "").toUpperCase();
     if (!got || got !== sol.toUpperCase()) return false;
@@ -671,8 +689,19 @@ export function applyCrosswordAction(
   payload: CrosswordAction,
 ): RebuildState {
   const puzzle = puzzleForDate(payload.date);
-  const dc = normalizeDailyCrossword(state.dailyCrossword);
-  const sameDay = dc.current?.date === payload.date ? dc.current : undefined;
+  let dc = normalizeDailyCrossword(state.dailyCrossword);
+  const expectedLen = puzzleSize(puzzle) * puzzleSize(puzzle);
+  let sameDay = dc.current?.date === payload.date ? dc.current : undefined;
+  // Pack/size can change for a date mid-day — drop incompatible fills.
+  if (sameDay && sameDay.cells.length !== expectedLen) {
+    sameDay = {
+      ...sameDay,
+      solved: false,
+      revealed: false,
+      cells: emptyCellsForPuzzle(puzzle),
+    };
+    dc = { ...dc, current: sameDay };
+  }
 
   if (payload.action === "start") {
     if (sameDay?.started) {
@@ -760,12 +789,13 @@ export function clueLeaksAnswer(clue: string, answer: string): boolean {
 
 /** Validate pack integrity (tests). */
 export function assertPuzzleValid(puzzle: MiniCrosswordPuzzle): void {
-  if (puzzle.rows.length !== CROSSWORD_SIZE) {
-    throw new Error(`${puzzle.id}: need 5 rows`);
+  const size = puzzleSize(puzzle);
+  if (size < 5 || size > 9) {
+    throw new Error(`${puzzle.id}: size ${size} out of range 5–9`);
   }
   for (const row of puzzle.rows) {
-    if (row.length !== CROSSWORD_SIZE) {
-      throw new Error(`${puzzle.id}: row length ${row}`);
+    if (row.length !== size) {
+      throw new Error(`${puzzle.id}: row length ${row.length} ≠ ${size}`);
     }
   }
   const nums = startNumberMap(puzzle);
