@@ -130,7 +130,7 @@ export function ThisDayInHistory({
   return (
     <section
       className="daily-briefing-section daily-briefing-history"
-      aria-label="This day in history"
+      aria-label="On this date"
     >
       <p className="daily-briefing-kicker">{thisDayInHistoryTitle(today)}</p>
       {entries.length === 0 ? (

@@ -51,7 +51,7 @@ export function thisDayInHistory(
 }
 
 export function thisDayInHistoryTitle(today: string): string {
-  return `This day in history · ${formatMonthDayLong(today)}`;
+  return `On this date · ${formatMonthDayLong(today)}`;
 }
 
 export type WorkoutGapInsight = {
