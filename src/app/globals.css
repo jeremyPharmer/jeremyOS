@@ -2072,6 +2072,11 @@ h2 {
   box-shadow: inset 3px 0 0 #c60c30;
 }
 
+.bills-stub-row.is-gameday-row {
+  background: color-mix(in srgb, #1b7a3d 14%, transparent);
+  box-shadow: inset 3px 0 0 #1b7a3d;
+}
+
 .bills-stub-week {
   font-weight: 800;
   color: #00338d;
@@ -2094,6 +2099,15 @@ h2 {
   font-weight: 800;
   text-transform: uppercase;
   transform: rotate(-7deg);
+}
+
+.bills-stub-stamp.is-gameday {
+  border-color: #1b7a3d;
+  color: #1b7a3d;
+  border-width: 2px;
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  letter-spacing: 0.1em;
 }
 
 .bills-stub-matchup {
@@ -2151,6 +2165,37 @@ h2 {
   text-transform: uppercase;
   font-weight: 700;
   color: rgba(26, 39, 68, 0.55);
+}
+
+/* Shared rubber-stamp mark when Bills / Warriors play today */
+.ticket-gameday-stamp {
+  position: absolute;
+  z-index: 4;
+  top: 38%;
+  right: 10%;
+  padding: 10px 18px;
+  border: 3.5px solid #1b7a3d;
+  border-radius: 6px;
+  color: #1b7a3d;
+  background: color-mix(in srgb, #1b7a3d 8%, transparent);
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 6vw, 2.15rem);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+  transform: rotate(-18deg);
+  pointer-events: none;
+  user-select: none;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #1b7a3d 35%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, #1b7a3d 25%, transparent);
+  opacity: 0.9;
+}
+
+.bills-stub.is-gameday,
+.soccer-stub.is-gameday {
+  overflow: hidden;
 }
 
 /* Warriors soccer stub (RB-035) — same ticket language as Bills */
@@ -2302,6 +2347,11 @@ h2 {
   box-shadow: inset 3px 0 0 #b8925a;
 }
 
+.soccer-stub-row.is-gameday-row {
+  background: color-mix(in srgb, #1b7a3d 14%, transparent);
+  box-shadow: inset 3px 0 0 #1b7a3d;
+}
+
 .soccer-stub-week {
   font-weight: 800;
   color: #0033a0;
@@ -2324,6 +2374,15 @@ h2 {
   font-weight: 800;
   text-transform: uppercase;
   transform: rotate(-7deg);
+}
+
+.soccer-stub-stamp.is-gameday {
+  border-color: #1b7a3d;
+  color: #1b7a3d;
+  border-width: 2px;
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  letter-spacing: 0.1em;
 }
 
 .soccer-stub-matchup {

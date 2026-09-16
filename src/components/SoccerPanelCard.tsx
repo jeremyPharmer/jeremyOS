@@ -10,6 +10,7 @@ import {
   scheduleWhenLabel,
   type SoccerPanel,
 } from "@/lib/soccer";
+import { calendarDayInTz } from "@/lib/journey";
 
 const WARRIORS_LOGO = "/schroeder-warriors-logo.png";
 
@@ -51,19 +52,38 @@ export function SoccerPanelCard() {
     return pickFeaturedGame(panel.games)?.id ?? null;
   }, [panel]);
 
+  const isGameday = useMemo(() => {
+    if (!panel || !today) return false;
+    return panel.games.some(
+      (g) =>
+        g.status !== "post" && calendarDayInTz(g.date) === today,
+    );
+  }, [panel, today]);
+
   if (!loaded || !panel || !isSoccerSeason(today)) {
     return null;
   }
 
   return (
     <a
-      className="home-card home-card-soccer soccer-stub"
+      className={[
+        "home-card home-card-soccer soccer-stub",
+        isGameday ? "is-gameday" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       aria-label="Warriors soccer"
       href={panel.clubhouseUrl}
       target="_blank"
       rel="noopener noreferrer"
     >
       <div className="soccer-stub-perforation" aria-hidden="true" />
+
+      {isGameday ? (
+        <span className="ticket-gameday-stamp" aria-hidden="true">
+          Gameday
+        </span>
+      ) : null}
 
       <header className="soccer-stub-header">
         <div className="soccer-stub-admit">
@@ -104,6 +124,9 @@ export function SoccerPanelCard() {
           <ul className="soccer-stub-schedule">
             {panel.games.map((game) => {
               const isLive = game.status === "in";
+              const isToday =
+                game.status !== "post" &&
+                calendarDayInTz(game.date) === today;
               const isNext = game.id === featuredId && game.status !== "post";
               return (
                 <li
@@ -111,7 +134,11 @@ export function SoccerPanelCard() {
                   className={[
                     "soccer-stub-row",
                     game.status === "post" ? "is-done" : "",
-                    isNext || isLive ? "is-next" : "",
+                    isToday
+                      ? "is-gameday-row"
+                      : isNext || isLive
+                        ? "is-next"
+                        : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -119,9 +146,14 @@ export function SoccerPanelCard() {
                   <span className="soccer-stub-week">
                     {dateShortLabel(game.date)}
                     {isLive ? (
-                      <span className="soccer-stub-stamp">Live</span>
+                      <span className="soccer-stub-stamp is-gameday">Live</span>
                     ) : null}
-                    {isNext && !isLive ? (
+                    {isToday && !isLive ? (
+                      <span className="soccer-stub-stamp is-gameday">
+                        Gameday
+                      </span>
+                    ) : null}
+                    {isNext && !isLive && !isToday ? (
                       <span className="soccer-stub-stamp">Next</span>
                     ) : null}
                   </span>

@@ -12,6 +12,21 @@ export function todayInTz(timezone = "America/Los_Angeles"): string {
   }).format(new Date());
 }
 
+/** Calendar YYYY-MM-DD for an instant in a timezone (kickoff → local gameday). */
+export function calendarDayInTz(
+  isoInstant: string,
+  timeZone = "America/New_York",
+): string {
+  const d = new Date(isoInstant);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
 export function parseDate(date: string): Date {
   const [y, m, d] = date.split("-").map(Number);
   return new Date(y, m - 1, d);

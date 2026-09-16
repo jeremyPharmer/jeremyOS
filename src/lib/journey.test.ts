@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDashboard,
+  calendarDayInTz,
   cleanDaysThisRun,
   formatSinceDate,
   isValidEveningDate,
@@ -35,6 +36,17 @@ function baseState(): RebuildState {
   };
   return state;
 }
+
+describe("calendarDayInTz", () => {
+  it("maps an Eastern kickoff to the local calendar day", () => {
+    // 2026-09-16 7:00 PM ET = 2026-09-16T23:00:00.000Z
+    expect(calendarDayInTz("2026-09-16T23:00:00.000Z")).toBe("2026-09-16");
+  });
+
+  it("returns empty string for invalid input", () => {
+    expect(calendarDayInTz("not-a-date")).toBe("");
+  });
+});
 
 describe("lastActiveDay", () => {
   it("returns null with no mornings or evenings", () => {
