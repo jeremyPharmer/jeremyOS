@@ -175,9 +175,19 @@ export async function exchangeGoogleAuthCode(code: string): Promise<{
   };
 }
 
+const googleAccessTokenCache = new Map<
+  string,
+  { token: string; expiresAtMs: number }
+>();
+
 export async function refreshGoogleAccessToken(
   refreshToken: string,
 ): Promise<string> {
+  const cached = googleAccessTokenCache.get(refreshToken);
+  if (cached && Date.now() < cached.expiresAtMs - 60_000) {
+    return cached.token;
+  }
+
   const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID?.trim();
   const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET?.trim();
   if (!clientId || !clientSecret) {
@@ -198,8 +208,15 @@ export async function refreshGoogleAccessToken(
 
   const data = (await res.json()) as GoogleTokenResponse;
   if (!res.ok || !data.access_token) {
+    googleAccessTokenCache.delete(refreshToken);
     throw new Error(data.error_description || data.error || "Token refresh failed");
   }
+
+  const expiresInSec = Math.max(60, Number(data.expires_in) || 3600);
+  googleAccessTokenCache.set(refreshToken, {
+    token: data.access_token,
+    expiresAtMs: Date.now() + expiresInSec * 1000,
+  });
   return data.access_token;
 }
 

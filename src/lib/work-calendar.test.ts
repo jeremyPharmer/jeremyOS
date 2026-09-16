@@ -17,10 +17,17 @@ import {
 const TZ = "America/Los_Angeles";
 
 describe("icsTimeoutMsForUrl / humanizeFeedError", () => {
-  it("gives Apple CalDAV hosts a longer timeout", () => {
+  it("gives Apple CalDAV hosts a longer timeout than generic ICS", () => {
     expect(
       icsTimeoutMsForUrl("https://p49-caldav.icloud.com/published/1/abc"),
     ).toBeGreaterThan(icsTimeoutMsForUrl("https://calendar.google.com/x.ics"));
+  });
+
+  it("keeps extra feeds on a shorter timeout than primary Apple", () => {
+    const apple = "https://p49-caldav.icloud.com/published/1/abc";
+    expect(icsTimeoutMsForUrl(apple, "extra")).toBeLessThan(
+      icsTimeoutMsForUrl(apple, "personal"),
+    );
   });
 
   it("shortens abort timeout messages", () => {

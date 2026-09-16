@@ -152,6 +152,16 @@ export function parseIcsEventsForDay(
   extraIndex?: number,
 ): WorkCalendarEvent[] {
   const parsed = ical.sync.parseICS(icsText);
+  return eventsFromParsedIcs(parsed, date, timezone, source, extraIndex);
+}
+
+function eventsFromParsedIcs(
+  parsed: ReturnType<typeof ical.sync.parseICS>,
+  date: string,
+  timezone: string,
+  source: CalendarFeedSource,
+  extraIndex?: number,
+): WorkCalendarEvent[] {
   const from = new Date(`${addDays(date, -1)}T00:00:00Z`);
   const to = new Date(`${addDays(date, 2)}T00:00:00Z`);
   const out: WorkCalendarEvent[] = [];
@@ -227,13 +237,36 @@ export function parseIcsEventsForDay(
 const ICS_CACHE_TTL_MS = 5 * 60_000;
 /** After a timeout/failure, skip re-hitting the same URL briefly (month prefetch). */
 const ICS_FAIL_COOLDOWN_MS = 3 * 60_000;
-const ICS_TIMEOUT_DEFAULT_MS = 18_000;
+const ICS_TIMEOUT_DEFAULT_MS = 15_000;
 /** Apple shared/public links on *-caldav.icloud.com are often slow. */
-const ICS_TIMEOUT_ICLOUD_MS = 28_000;
+const ICS_TIMEOUT_ICLOUD_MS = 22_000;
+/** Extras must not block Home open — fail faster than primary Apple feeds. */
+const ICS_TIMEOUT_EXTRA_MS = 10_000;
+/** How long today's response waits for extras after primaries finish. */
+const EXTRA_WAIT_BUDGET_MS = 3_000;
 
 const icsTextCache = new Map<string, { text: string; at: number }>();
+const icsParsedCache = new Map<
+  string,
+  { parsed: ReturnType<typeof ical.sync.parseICS>; at: number }
+>();
+const icsDayCache = new Map<string, { events: WorkCalendarEvent[]; at: number }>();
 const icsFailCache = new Map<string, { error: Error; at: number }>();
 const icsInflight = new Map<string, Promise<string>>();
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function dayCacheKey(
+  url: string,
+  date: string,
+  timezone: string,
+  source: CalendarFeedSource,
+  extraIndex?: number,
+): string {
+  return `${url}|${date}|${timezone}|${source}|${extraIndex ?? ""}`;
+}
 
 /** Reject HTML / CDN stub bodies that are not real calendars. */
 export function assertIcsCalendar(text: string): void {
@@ -267,8 +300,12 @@ function feedErrorLabel(
   return `${source} (${host})`;
 }
 
-/** Longer timeout for known-slow Apple / CalDAV hosts. */
-export function icsTimeoutMsForUrl(url: string): number {
+/** Timeout for an ICS URL; extras stay shorter so Home can paint sooner. */
+export function icsTimeoutMsForUrl(
+  url: string,
+  source?: CalendarFeedSource,
+): number {
+  if (source === "extra") return ICS_TIMEOUT_EXTRA_MS;
   try {
     const host = new URL(url).hostname.toLowerCase();
     if (
@@ -293,7 +330,10 @@ export function humanizeFeedError(err: unknown): string {
   return msg;
 }
 
-async function fetchIcsText(url: string): Promise<string> {
+async function fetchIcsText(
+  url: string,
+  source?: CalendarFeedSource,
+): Promise<string> {
   const cached = icsTextCache.get(url);
   if (cached && Date.now() - cached.at < ICS_CACHE_TTL_MS) {
     return cached.text;
@@ -317,7 +357,7 @@ async function fetchIcsText(url: string): Promise<string> {
         },
         cache: "no-store",
         redirect: "follow",
-        signal: AbortSignal.timeout(icsTimeoutMsForUrl(url)),
+        signal: AbortSignal.timeout(icsTimeoutMsForUrl(url, source)),
       });
       if (!res.ok) {
         throw new Error(`Calendar feed failed (${res.status})`);
@@ -326,6 +366,7 @@ async function fetchIcsText(url: string): Promise<string> {
       assertIcsCalendar(text);
       icsFailCache.delete(url);
       icsTextCache.set(url, { text, at: Date.now() });
+      icsParsedCache.delete(url);
       return text;
     } catch (e) {
       const raw = e instanceof Error ? e : new Error("Feed error");
@@ -341,6 +382,65 @@ async function fetchIcsText(url: string): Promise<string> {
 
   icsInflight.set(url, promise);
   return promise;
+}
+
+function parseIcsEventsForUrl(
+  url: string,
+  text: string,
+  date: string,
+  timezone: string,
+  source: CalendarFeedSource,
+  extraIndex?: number,
+): WorkCalendarEvent[] {
+  const key = dayCacheKey(url, date, timezone, source, extraIndex);
+  const dayHit = icsDayCache.get(key);
+  if (dayHit && Date.now() - dayHit.at < ICS_CACHE_TTL_MS) {
+    return dayHit.events;
+  }
+
+  let parsedHit = icsParsedCache.get(url);
+  if (!parsedHit || Date.now() - parsedHit.at >= ICS_CACHE_TTL_MS) {
+    parsedHit = { parsed: ical.sync.parseICS(text), at: Date.now() };
+    icsParsedCache.set(url, parsedHit);
+  }
+
+  const events = eventsFromParsedIcs(
+    parsedHit.parsed,
+    date,
+    timezone,
+    source,
+    extraIndex,
+  );
+  icsDayCache.set(key, { events, at: Date.now() });
+  return events;
+}
+
+async function loadIcsJob(job: {
+  source: CalendarFeedSource;
+  url: string;
+  extraIndex?: number;
+}, date: string, timezone: string): Promise<{
+  events: WorkCalendarEvent[];
+  error?: string;
+}> {
+  try {
+    const text = await fetchIcsText(job.url, job.source);
+    return {
+      events: parseIcsEventsForUrl(
+        job.url,
+        text,
+        date,
+        timezone,
+        job.source,
+        job.extraIndex,
+      ),
+    };
+  } catch (e) {
+    return {
+      events: [],
+      error: `${feedErrorLabel(job.source, job.url, job.extraIndex)}: ${humanizeFeedError(e)}`,
+    };
+  }
 }
 
 /**
@@ -366,6 +466,9 @@ export function resolveCalendarFeedUrls(
 /**
  * Personal iCal + work Google Calendar events for a day (combined agenda).
  * RB-023 — read-only ICS; Settings URLs preferred (≠ todos).
+ *
+ * Primaries (personal / work / Google) block the response. Extras get a short
+ * budget after primaries so a slow Apple share does not hold Home open.
  */
 export async function fetchWorkCalendarEvents(
   date: string,
@@ -401,6 +504,9 @@ export async function fetchWorkCalendarEvents(
     return { events: [], connected: false, errors: [] };
   }
 
+  const primaryJobs = jobs.filter((j) => j.source !== "extra");
+  const extraJobs = jobs.filter((j) => j.source === "extra");
+
   const runGoogle = async () => {
     if (!googleConnected || !feeds.googleCalendar) return;
     try {
@@ -417,21 +523,46 @@ export async function fetchWorkCalendarEvents(
     }
   };
 
-  await Promise.all([
-    runGoogle(),
-    ...jobs.map(async ({ source, url, extraIndex }) => {
-      try {
-        const text = await fetchIcsText(url);
-        collected.push(
-          ...parseIcsEventsForDay(text, date, timezone, source, extraIndex),
-        );
-      } catch (e) {
-        errors.push(
-          `${feedErrorLabel(source, url, extraIndex)}: ${humanizeFeedError(e)}`,
-        );
-      }
-    }),
+  const mergeResults = (
+    results: { events: WorkCalendarEvent[]; error?: string }[],
+  ) => {
+    for (const r of results) {
+      collected.push(...r.events);
+      if (r.error) errors.push(r.error);
+    }
+  };
+
+  // Google + personal/work ICS — what Home should show first.
+  const primaryResults = await Promise.all([
+    runGoogle().then(() => null),
+    ...primaryJobs.map((job) => loadIcsJob(job, date, timezone)),
   ]);
+  mergeResults(
+    primaryResults.filter(
+      (r): r is { events: WorkCalendarEvent[]; error?: string } => r != null,
+    ),
+  );
+
+  if (extraJobs.length > 0) {
+    const extraResults = await Promise.all(
+      extraJobs.map(async (job) => {
+        const pending = loadIcsJob(job, date, timezone);
+        const raced = await Promise.race([
+          pending.then((r) => ({ kind: "done" as const, r })),
+          delay(EXTRA_WAIT_BUDGET_MS).then(() => ({ kind: "budget" as const })),
+        ]);
+        if (raced.kind === "done") return raced.r;
+        // Keep downloading so month markers / next tap hit cache.
+        void pending;
+        return null;
+      }),
+    );
+    mergeResults(
+      extraResults.filter(
+        (r): r is { events: WorkCalendarEvent[]; error?: string } => r != null,
+      ),
+    );
+  }
 
   return {
     events: sortAgenda(collected),

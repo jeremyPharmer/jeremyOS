@@ -450,8 +450,10 @@ export function TodayAgendaCard() {
 
   useEffect(() => {
     // Feeds / custom events changed — drop client cache.
+    // Note: googleConnected is intentionally omitted — server already includes
+    // Google from the session; flipping the status flag must not refill today.
     cacheRef.current = {};
-  }, [personal, work, extrasKey, googleConnected, customSig]);
+  }, [personal, work, extrasKey, customSig]);
 
   useEffect(() => {
     let cancelled = false;
@@ -468,6 +470,7 @@ export function TodayAgendaCard() {
         if (cancelled) return;
         cacheRef.current[viewDate] = json;
         setData(json);
+        if (json.connected) setGoogleConnected(true);
         const colors = colorsForJson(json);
         setDayColors((prev) => {
           const prevColors = prev[viewDate] ?? [];
@@ -497,22 +500,39 @@ export function TodayAgendaCard() {
     return () => {
       cancelled = true;
     };
-  }, [viewDate, personal, work, extrasKey, googleConnected, customSig, overrides, hidden]);
+  }, [viewDate, personal, work, extrasKey, customSig, overrides, hidden]);
 
   useEffect(() => {
+    // Wait until today's (or selected day's) agenda is on screen before
+    // flooding /api/calendar/work for month color bars.
+    if (loading || data?.date !== viewDate) return;
+
     let cancelled = false;
     async function loadMonthMarkers() {
-      // Prefetch month days in small batches so bars fill in without flooding Google.
-      const batchSize = 5;
-      for (let i = 0; i < monthDates.length; i += batchSize) {
+      // Prefer days near the selected date so nearby taps feel warm first.
+      const ordered = [...monthDates].sort((a, b) => {
+        if (a === viewDate) return -1;
+        if (b === viewDate) return 1;
+        const da = Math.abs(
+          Date.parse(`${a}T12:00:00Z`) - Date.parse(`${viewDate}T12:00:00Z`),
+        );
+        const db = Math.abs(
+          Date.parse(`${b}T12:00:00Z`) - Date.parse(`${viewDate}T12:00:00Z`),
+        );
+        return da - db;
+      });
+
+      const batchSize = 4;
+      for (let i = 0; i < ordered.length; i += batchSize) {
         if (cancelled) return;
-        const batch = monthDates.slice(i, i + batchSize);
+        const batch = ordered.slice(i, i + batchSize);
         const entries = await Promise.all(
           batch.map(async (date) => {
             try {
               const cached = cacheRef.current[date];
-              const json = cached ?? (await fetchAgenda(date));
-              if (!cached) cacheRef.current[date] = json;
+              if (cached) return [date, colorsForJson(cached)] as const;
+              const json = await fetchAgenda(date);
+              cacheRef.current[date] = json;
               return [date, colorsForJson(json)] as const;
             } catch {
               return [date, dayColors[date] ?? []] as const;
@@ -535,6 +555,8 @@ export function TodayAgendaCard() {
           }
           return changed ? next : prev;
         });
+        // Yield between batches so today stays interactive.
+        await new Promise((r) => window.setTimeout(r, 50));
       }
     }
     void loadMonthMarkers();
@@ -542,7 +564,42 @@ export function TodayAgendaCard() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- dayColors read only as fallback
-  }, [monthDates, personal, work, extrasKey, googleConnected, customSig, overrides, hidden, eventGroups, feedGroups]);
+  }, [
+    loading,
+    data?.date,
+    viewDate,
+    monthDates,
+    personal,
+    work,
+    extrasKey,
+    customSig,
+    overrides,
+    hidden,
+    eventGroups,
+    feedGroups,
+  ]);
+
+  // Slow extras are skipped on the first response so Home paints fast —
+  // quietly refresh today once so they appear when the feed finishes.
+  useEffect(() => {
+    if (!extrasKey) return;
+    if (loading || data?.date !== viewDate) return;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const json = await fetchAgenda(viewDate);
+          cacheRef.current[viewDate] = json;
+          setData(json);
+          const colors = colorsForJson(json);
+          setDayColors((prev) => ({ ...prev, [viewDate]: colors }));
+        } catch {
+          /* keep first paint */
+        }
+      })();
+    }, 4_500);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one delayed refresh per day load
+  }, [extrasKey, loading, data?.date, viewDate]);
 
   const dayReady = data?.date === viewDate;
   const rawEvents = dayReady ? (data?.events ?? []) : [];
