@@ -6,9 +6,9 @@ import { useApp } from "@/components/AppProvider";
 import {
   BodyMind,
   BriefingTasks,
+  PaperTimetable,
   ThisDayInHistory,
   WeatherExpanded,
-  WorldHeadlines,
   type BriefingTaskRow,
 } from "@/components/DailyBriefingSections";
 import { PrimaryButton, SecondaryButton, TapScale } from "@/components/ui";
@@ -25,7 +25,6 @@ import {
   type BriefingTask,
   type BriefingWeather,
 } from "@/lib/morning-briefing";
-import type { NewsHeadline } from "@/lib/news";
 import { quoteById } from "@/lib/quotes";
 import { dueTodosOn } from "@/lib/todos";
 import type { DailyForecast } from "@/lib/weather";
@@ -91,7 +90,6 @@ export default function MorningPage() {
   const [weatherDays, setWeatherDays] = useState<DailyForecast[]>([]);
   const [weatherLocation, setWeatherLocation] = useState("");
   const [events, setEvents] = useState<BriefingEvent[]>([]);
-  const [news, setNews] = useState<NewsHeadline[]>([]);
   const [briefingLoading, setBriefingLoading] = useState(false);
 
   const todayMorning = state.mornings.find((m) => m.date === today);
@@ -202,10 +200,9 @@ export default function MorningPage() {
             weatherQs.set("label", coords.label);
           }
         }
-        const [weatherRes, calRes, newsRes] = await Promise.all([
+        const [weatherRes, calRes] = await Promise.all([
           fetch(`/api/weather?${weatherQs.toString()}`),
           fetch(`/api/calendar/work?date=${encodeURIComponent(today)}`),
-          fetch(`/api/news?date=${encodeURIComponent(today)}`),
         ]);
         if (cancelled) return;
 
@@ -231,13 +228,6 @@ export default function MorningPage() {
               allDay: e.allDay,
             })),
           );
-        }
-
-        if (newsRes.ok) {
-          const data = (await newsRes.json()) as {
-            headlines?: NewsHeadline[];
-          };
-          setNews((data.headlines ?? []).slice(0, 5));
         }
       } catch {
         /* briefing still works with partial context */
@@ -337,22 +327,15 @@ export default function MorningPage() {
             ) : (
               <>
                 <p className="paper-lead">{briefing.calendarStory.lead}</p>
-                {briefing.calendarStory.items.length > 0 ? (
-                  <ul className="paper-bullets">
-                    {briefing.calendarStory.items.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                ) : null}
+                <PaperTimetable rows={briefing.calendarStory.rows} />
 
-                <p className="paper-subhead">Open windows</p>
-                <p className="paper-copy">{briefing.planStory.lead}</p>
-                {briefing.planStory.items.length > 0 ? (
-                  <ul className="paper-bullets paper-bullets-plan">
-                    {briefing.planStory.items.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+                {briefing.planStory.rows.length > 0 ? (
+                  <>
+                    <p className="paper-subhead">Open windows</p>
+                    <PaperTimetable rows={briefing.planStory.rows} />
+                  </>
+                ) : briefing.planStory.lead ? (
+                  <p className="paper-byline">{briefing.planStory.lead}</p>
                 ) : null}
 
                 {briefing.leftoverNote ? (
@@ -364,17 +347,26 @@ export default function MorningPage() {
             )}
           </section>
 
-          <WeatherExpanded
-            mode="today"
-            locationLabel={weatherLocation}
-            days={weatherDays}
-            focusDate={today}
-            loading={briefingLoading}
-          />
+          {(briefingLoading || weatherDays.length > 0) && (
+            <WeatherExpanded
+              mode="today"
+              locationLabel={weatherLocation}
+              days={weatherDays}
+              focusDate={today}
+              loading={briefingLoading}
+            />
+          )}
 
-          <BriefingTasks tasks={expandedTasks} kicker="The list" />
-          <ThisDayInHistory today={today} entries={historyEntries} />
-          <WorldHeadlines headlines={news} loading={briefingLoading} />
+          <BriefingTasks
+            tasks={expandedTasks}
+            kicker="The list"
+            hideWhenEmpty
+          />
+          <ThisDayInHistory
+            today={today}
+            entries={historyEntries}
+            hideWhenEmpty
+          />
           <BodyMind workouts={workoutGaps} trends={trends} />
         </div>
 

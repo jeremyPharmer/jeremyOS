@@ -461,11 +461,17 @@ function EveningPageInner() {
           <ThisDayInHistory
             today={editionClosed.date}
             entries={historyEntries}
+            hideWhenEmpty
           />
-          <WorldHeadlines headlines={news} loading={newsLoading} />
+          <WorldHeadlines
+            headlines={news}
+            loading={newsLoading}
+            hideWhenEmpty
+          />
           <BriefingTasks
             tasks={briefingTasks}
             emptyLabel="No tasks logged for this day."
+            hideWhenEmpty
           />
           <BodyMind workouts={workoutGaps} trends={trends} />
         </div>

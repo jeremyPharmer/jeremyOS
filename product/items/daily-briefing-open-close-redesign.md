@@ -39,10 +39,12 @@ Open and Close are **matching Daily briefing rituals**: same shell and check-in-
 
 - **Expanded weather** — today + context
 - **This day in history** (journal) — show **ALL** past entries for this month-day across years; cleaner, more telling presentation (not sparse)
-- **Top 5 headlines**, no duplicates; if today is in the **Bills season window** (Aug 1 through March 1 inclusive, spanning year boundary), always include **1 recent Buffalo Bills** story (as one of the 5 or replace)
-- **Tasks with expanded details** (titles etc.) — **no** lumping by category counts only; **no** checkboxes in the briefing
-- **Workout** — both longest gap since any workout **and** which type (run / hiit / lift / stretch) hasn’t been done in a while
-- **Sleep / mood trends** — last 7 days insights
+- **Top 5 headlines**, no duplicates; if today is in the **Bills season window** (Aug 1 through March 1 inclusive, spanning year boundary), always include **1 recent Buffalo Bills** story (as one of the 5 or replace) — **Close only** (Open omits World)
+- **Tasks with expanded details** (titles etc.) — **no** lumping by category counts only; **no** checkboxes in the briefing; **hide the section when empty**
+- **This day in history** — hide when no past entries
+- **Day Ahead** — newspaper **timetable** (time left / title right), short “N on the books” lead
+- **Workout** — days since any workout only (drop longest-type-gap line)
+- **Sleep / mood trends** — last 7 days text insights only (no sparklines)
 
 ### 4. Close briefing twin
 

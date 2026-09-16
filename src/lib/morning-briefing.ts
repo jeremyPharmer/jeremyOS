@@ -51,6 +51,13 @@ export type BriefingSection = {
   items?: string[];
 };
 
+export type BriefingTimetableRow = {
+  when: string;
+  title: string;
+  /** Softer row for overflow / all-day grouping labels. */
+  muted?: boolean;
+};
+
 export type MorningBriefing = {
   feeling: string;
   weather: string;
@@ -60,10 +67,18 @@ export type MorningBriefing = {
   suggestions: GapSuggestion[];
   /** Soft one-liner: how you feel + weather (secondary). */
   opener: string;
-  /** Conversational calendar lead + event lines. */
-  calendarStory: { lead: string; items: string[] };
+  /** Conversational calendar lead + timetable rows. */
+  calendarStory: {
+    lead: string;
+    items: string[];
+    rows: BriefingTimetableRow[];
+  };
   /** Open windows + task placement — co-primary with calendar. */
-  planStory: { lead: string; items: string[] };
+  planStory: {
+    lead: string;
+    items: string[];
+    rows: BriefingTimetableRow[];
+  };
   /** Light aside for leftover tasks not placed into a window. */
   leftoverNote?: string;
   sections: BriefingSection[];
@@ -126,23 +141,35 @@ function weatherBody(weather: BriefingWeather): string {
 function calendarItems(events: BriefingEvent[]): {
   body?: string;
   items?: string[];
+  rows: BriefingTimetableRow[];
 } {
   if (events.length === 0) {
-    return { body: "Clear — nothing timed on the books." };
+    return { body: "Clear — nothing timed on the books.", rows: [] };
   }
   const allDay = events.filter((e) => e.allDay || e.startTime === "All day");
   const timed = events.filter((e) => !e.allDay && e.startTime !== "All day");
   const items: string[] = [];
+  const rows: BriefingTimetableRow[] = [];
   for (const e of timed.slice(0, 6)) {
     const when = e.endTime ? `${e.startTime}–${e.endTime}` : e.startTime;
     items.push(`${when} · ${e.title}`);
+    rows.push({ when, title: e.title });
   }
-  if (timed.length > 6) items.push(`+${timed.length - 6} more`);
+  if (timed.length > 6) {
+    const more = `+${timed.length - 6} more`;
+    items.push(more);
+    rows.push({ when: "", title: more, muted: true });
+  }
   for (const e of allDay.slice(0, 3)) {
     items.push(`All day · ${e.title}`);
+    rows.push({ when: "All day", title: e.title });
   }
-  if (allDay.length > 3) items.push(`+${allDay.length - 3} more all-day`);
-  return { items };
+  if (allDay.length > 3) {
+    const more = `+${allDay.length - 3} more all-day`;
+    items.push(more);
+    rows.push({ when: "", title: more, muted: true });
+  }
+  return { items, rows };
 }
 
 function tasksSection(tasks: BriefingTask[]): {
@@ -247,12 +274,13 @@ export function suggestTasksForGaps(
 
 function calendarStoryFrom(
   events: BriefingEvent[],
-  cal: { body?: string; items?: string[] },
-): { lead: string; items: string[] } {
+  cal: { body?: string; items?: string[]; rows: BriefingTimetableRow[] },
+): { lead: string; items: string[]; rows: BriefingTimetableRow[] } {
   if (events.length === 0) {
     return {
       lead: "The calendar is clear — the day is yours to shape.",
       items: [],
+      rows: [],
     };
   }
   const timed = events.filter((e) => !e.allDay && e.startTime !== "All day");
@@ -260,49 +288,62 @@ function calendarStoryFrom(
   const n = timed.length + allDay.length;
   const lead =
     n === 1
-      ? "One thing anchors the day:"
-      : n <= 3
-        ? `A few anchors on the calendar (${n}):`
-        : `Here’s the spine of the day — ${n} things on the books:`;
-  return { lead, items: cal.items ?? [] };
+      ? "One on the books."
+      : `${n} on the books.`;
+  return { lead, items: cal.items ?? [], rows: cal.rows };
 }
 
 function planStoryFrom(
   gaps: OpenGap[],
   suggestions: GapSuggestion[],
-): { lead: string; items: string[] } {
+): { lead: string; items: string[]; rows: BriefingTimetableRow[] } {
   if (suggestions.length > 0) {
     const lead =
       suggestions.length === 1
         ? "One open window looks useful:"
-        : "Here’s where you could fit the other work:";
-    return {
-      lead,
-      items: suggestions.map((s) => {
-        const gap = gaps.find(
-          (g) =>
-            `${formatTimelineHour(g.startMin)}–${formatTimelineHour(g.endMin)}` ===
-            s.gapLabel,
-        );
-        const feel = gap ? gapSpanWords(gap.minutes) : "open time";
-        return `${s.gapLabel} — ${feel} for “${s.taskLabel}”.`;
-      }),
-    };
+        : "Open windows — where the other work could fit:";
+    const items = suggestions.map((s) => {
+      const gap = gaps.find(
+        (g) =>
+          `${formatTimelineHour(g.startMin)}–${formatTimelineHour(g.endMin)}` ===
+          s.gapLabel,
+      );
+      const feel = gap ? gapSpanWords(gap.minutes) : "open time";
+      return `${s.gapLabel} — ${feel} for “${s.taskLabel}”.`;
+    });
+    const rows = suggestions.map((s) => {
+      const gap = gaps.find(
+        (g) =>
+          `${formatTimelineHour(g.startMin)}–${formatTimelineHour(g.endMin)}` ===
+          s.gapLabel,
+      );
+      const feel = gap ? gapSpanWords(gap.minutes) : "open time";
+      return {
+        when: s.gapLabel,
+        title: `${feel} for “${s.taskLabel}”`,
+      };
+    });
+    return { lead, items, rows };
   }
   if (gaps.length === 0) {
     return {
       lead: "The day is packed — protect the seams between meetings.",
       items: [],
+      rows: [],
     };
   }
   return {
-    lead: "Open air on the clock — nothing assigned yet:",
+    lead: "Open air on the clock.",
     items: gaps
       .slice(0, 4)
       .map(
         (g) =>
           `${formatTimelineHour(g.startMin)}–${formatTimelineHour(g.endMin)} — ${gapSpanWords(g.minutes)}.`,
       ),
+    rows: gaps.slice(0, 4).map((g) => ({
+      when: `${formatTimelineHour(g.startMin)}–${formatTimelineHour(g.endMin)}`,
+      title: gapSpanWords(g.minutes),
+    })),
   };
 }
 

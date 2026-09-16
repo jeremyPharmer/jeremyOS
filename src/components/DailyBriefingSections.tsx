@@ -123,10 +123,14 @@ export function WeatherExpanded({
 export function ThisDayInHistory({
   today,
   entries,
+  hideWhenEmpty = false,
 }: {
   today: string;
   entries: ThisDayHistoryEntry[];
+  /** Skip the whole section when there are no past entries. */
+  hideWhenEmpty?: boolean;
 }) {
+  if (hideWhenEmpty && entries.length === 0) return null;
   return (
     <section
       className="daily-briefing-section daily-briefing-history"
@@ -165,10 +169,14 @@ export function ThisDayInHistory({
 export function WorldHeadlines({
   headlines,
   loading,
+  hideWhenEmpty = false,
 }: {
   headlines: NewsHeadline[];
   loading?: boolean;
+  /** Skip the section when there is nothing to show (and not loading). */
+  hideWhenEmpty?: boolean;
 }) {
+  if (hideWhenEmpty && !loading && headlines.length === 0) return null;
   return (
     <section
       className="daily-briefing-section daily-briefing-news"
@@ -211,11 +219,15 @@ export function BriefingTasks({
   tasks,
   emptyLabel = "Nothing due today.",
   kicker = "The list",
+  hideWhenEmpty = false,
 }: {
   tasks: BriefingTaskRow[];
   emptyLabel?: string;
   kicker?: string;
+  /** Skip the whole section when there is nothing to show. */
+  hideWhenEmpty?: boolean;
 }) {
+  if (hideWhenEmpty && tasks.length === 0) return null;
   return (
     <section
       className="daily-briefing-section daily-briefing-tasks"
@@ -266,27 +278,33 @@ export function BriefingTasks({
   );
 }
 
-function Sparkline({
-  series,
-  label,
+/** Newspaper timetable — time left, title right (Option A). */
+export function PaperTimetable({
+  rows,
 }: {
-  series: (number | undefined)[];
-  label: string;
+  rows: { when: string; title: string; muted?: boolean }[];
 }) {
+  if (rows.length === 0) return null;
   return (
-    <div className="daily-briefing-spark" aria-label={label}>
-      {series.map((v, i) => {
-        const h = v == null ? 2 : Math.max(4, Math.round((v / 10) * 28));
-        return (
-          <span
-            key={`${label}-${i}`}
-            className={`daily-briefing-spark-bar${v == null ? " empty" : ""}`}
-            style={{ height: h }}
-            title={v == null ? "—" : String(v)}
-          />
-        );
-      })}
-    </div>
+    <ul className="paper-timetable">
+      {rows.map((row, i) => (
+        <li
+          key={`${row.when}-${row.title}-${i}`}
+          className={
+            row.muted
+              ? "paper-timetable-row paper-timetable-row-muted"
+              : "paper-timetable-row"
+          }
+        >
+          {row.when ? (
+            <span className="paper-timetable-when">{row.when}</span>
+          ) : (
+            <span className="paper-timetable-when" aria-hidden />
+          )}
+          <span className="paper-timetable-title">{row.title}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -305,7 +323,6 @@ export function BodyMind({
       <p className="daily-briefing-kicker">Body & mind</p>
       <div className="daily-briefing-bodymind-block">
         <p className="daily-briefing-bodymind-line">{workouts.anyLabel}</p>
-        <p className="daily-briefing-bodymind-line">{workouts.typeLabel}</p>
       </div>
       <div className="daily-briefing-bodymind-block">
         {trends.lines.map((line) => (
@@ -313,19 +330,6 @@ export function BodyMind({
             {line}
           </p>
         ))}
-        <div className="daily-briefing-sparks">
-          <div>
-            <p className="tiny muted">Mood · 7d</p>
-            <Sparkline series={trends.moodSeries} label="Mood sparkline" />
-          </div>
-          <div>
-            <p className="tiny muted">Sleep quality · 7d</p>
-            <Sparkline
-              series={trends.sleepQualitySeries}
-              label="Sleep quality sparkline"
-            />
-          </div>
-        </div>
       </div>
     </section>
   );
