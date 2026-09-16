@@ -38,13 +38,14 @@ export function ScaleInput({
   );
 }
 
-/** Discrete 1–10 (or custom) tap line — morning check-in (RB-027). */
+/** Discrete tap line — morning check-in (RB-027). Supports half-step hours. */
 export function TapScale({
   label,
   value,
   onChange,
   min = 1,
   max = 10,
+  step = 1,
 }: {
   label: string;
   /** null = nothing chosen yet (no preselect). */
@@ -52,21 +53,24 @@ export function TapScale({
   onChange: (n: number) => void;
   min?: number;
   max?: number;
+  step?: number;
 }) {
   const ticks: number[] = [];
-  for (let n = min; n <= max; n += 1) ticks.push(n);
+  const stepSafe = step > 0 ? step : 1;
+  for (let n = min; n <= max + 1e-9; n += stepSafe) {
+    ticks.push(Math.round(n * 1000) / 1000);
+  }
+  const dense = stepSafe < 1 || ticks.length > 11;
   return (
-    <div className="field tap-scale">
+    <div className={`field tap-scale${dense ? " tap-scale-dense" : ""}`}>
       <div className="field-label">
         <span>{label}</span>
       </div>
-      <div
-        className="tap-scale-line"
-        role="radiogroup"
-        aria-label={label}
-      >
+      <div className="tap-scale-line" role="radiogroup" aria-label={label}>
         {ticks.map((n) => {
-          const selected = value === n;
+          const selected = value != null && Math.abs(value - n) < stepSafe / 2;
+          const labelText =
+            stepSafe < 1 && !Number.isInteger(n) ? n.toFixed(1) : String(n);
           return (
             <button
               key={n}
@@ -76,7 +80,7 @@ export function TapScale({
               className={`tap-scale-tick${selected ? " selected" : ""}`}
               onClick={() => onChange(n)}
             >
-              {n}
+              {labelText}
             </button>
           );
         })}

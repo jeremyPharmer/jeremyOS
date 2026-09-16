@@ -92,13 +92,20 @@ export function clampMorningScore(n: number): number {
   return Math.min(10, Math.max(1, Math.round(n)));
 }
 
+/** Clock hours slept — half-hour steps from 0 to 14. */
+export function clampSleepHours(n: number): number {
+  if (!Number.isFinite(n)) return 7;
+  const stepped = Math.round(n * 2) / 2;
+  return Math.min(14, Math.max(0, stepped));
+}
+
 function feelingBody(scores: BriefingScores): string {
   const { sleepHours, sleepQuality, mood, energy, stress } = scores;
-  const rested = (sleepHours + sleepQuality) / 2;
   const bits: string[] = [];
 
-  if (rested >= 7) bits.push("Sleep looks solid");
-  else if (rested <= 4) bits.push("Sleep was thin");
+  // sleepHours is clock hours (half-hour steps); quality stays 1–10.
+  if (sleepHours >= 7 && sleepQuality >= 6) bits.push("Sleep looks solid");
+  else if (sleepHours <= 5 || sleepQuality <= 4) bits.push("Sleep was thin");
   else bits.push("Sleep was okay");
 
   if (mood >= 7 && energy >= 7) {
@@ -214,7 +221,7 @@ function openGapsFromEvents(events: BriefingEvent[]): OpenGap[] {
       endMin: b.endMin,
       minutes: b.endMin - b.startMin,
     }))
-    .filter((g) => g.minutes >= 30)
+    .filter((g) => g.minutes >= 60)
     .sort((a, b) => b.minutes - a.minutes);
 }
 

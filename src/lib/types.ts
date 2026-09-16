@@ -33,7 +33,10 @@ export type RewardCategory =
 
 export type MorningCheckIn = {
   date: string;
-  /** Subjective sleep amount 1–10 (legacy rows may be clock hours). */
+  /**
+   * Hours slept (clock hours, half-hour steps). Legacy rows may be 1–10
+   * subjective scores from before the hours redesign.
+   */
   sleepHours: number;
   sleepQuality: number;
   mood: number;

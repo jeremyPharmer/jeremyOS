@@ -62,7 +62,10 @@ export function WeatherExpanded({
     (mode === "tomorrow" ? days[1] : days[0]);
   const contextDays =
     mode === "today"
-      ? days.filter((d) => d.date !== focus?.date).slice(0, 3)
+      ? days
+          .filter((d) => d.date !== focus?.date)
+          // Skip tomorrow — today hero already covers the near term.
+          .slice(1, 3)
       : [];
 
   return (
@@ -318,18 +321,16 @@ export function BodyMind({
   return (
     <section
       className="daily-briefing-section daily-briefing-bodymind"
-      aria-label="Body and mind"
+      aria-label="Last 7 days"
     >
-      <p className="daily-briefing-kicker">Body & mind</p>
-      <div className="daily-briefing-bodymind-block">
-        <p className="daily-briefing-bodymind-line">{workouts.anyLabel}</p>
-      </div>
+      <p className="daily-briefing-kicker">Last 7 days</p>
       <div className="daily-briefing-bodymind-block">
         {trends.lines.map((line) => (
           <p key={line} className="daily-briefing-bodymind-line">
             {line}
           </p>
         ))}
+        <p className="daily-briefing-bodymind-line">{workouts.anyLabel}</p>
       </div>
     </section>
   );

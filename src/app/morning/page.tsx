@@ -341,8 +341,6 @@ export default function MorningPage() {
                 {briefing.leftoverNote ? (
                   <p className="paper-aside">{briefing.leftoverNote}</p>
                 ) : null}
-
-                <p className="paper-byline">{briefing.opener}</p>
               </>
             )}
           </section>
@@ -401,6 +399,9 @@ export default function MorningPage() {
           label="Hours slept"
           value={sleepHours}
           onChange={setSleepHours}
+          min={4}
+          max={12}
+          step={0.5}
         />
         <TapScale
           label="Sleep quality"

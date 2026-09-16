@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getMorning, todayInTz } from "@/lib/journey";
-import { clampMorningScore } from "@/lib/morning-briefing";
+import { clampMorningScore, clampSleepHours } from "@/lib/morning-briefing";
 import { pickMorningQuote } from "@/lib/quotes";
 import { updateState } from "@/lib/store";
 import type { MorningCheckIn } from "@/lib/types";
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
       const quote = pickMorningQuote(prev.quoteLog, date);
       const morning: MorningCheckIn = {
         date,
-        sleepHours: clampMorningScore(Number(body.sleepHours)),
+        sleepHours: clampSleepHours(Number(body.sleepHours)),
         sleepQuality: clampMorningScore(Number(body.sleepQuality)),
         mood: clampMorningScore(Number(body.mood)),
         energy: clampMorningScore(Number(body.energy)),

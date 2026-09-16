@@ -3863,6 +3863,25 @@ h2 {
   transform: translateY(-1px);
 }
 
+.tap-scale-dense .tap-scale-line {
+  flex-wrap: wrap;
+  gap: 4px 2px;
+  justify-content: flex-start;
+}
+
+.tap-scale-dense .tap-scale-line::before {
+  display: none;
+}
+
+.tap-scale-dense .tap-scale-tick {
+  flex: 0 0 calc(12.5% - 2px);
+  min-width: 2.1rem;
+  height: 32px;
+  font-size: 0.68rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-strong) 70%, transparent);
+}
+
 .morning-briefing {
   display: flex;
   flex-direction: column;

@@ -144,6 +144,10 @@ describe("sevenDayTrendInsight", () => {
     expect(insight.moodSeries).toHaveLength(7);
     expect(insight.moodAvg).not.toBeNull();
     expect(insight.lines.some((l) => /Mood averaging/.test(l))).toBe(true);
-    expect(insight.lines.some((l) => /Sleep/.test(l))).toBe(true);
+    expect(insight.lines.some((l) => /Sleep over 7 days|sleep avg/i.test(l))).toBe(
+      true,
+    );
+    expect(insight.lines.some((l) => /Energy averaging/.test(l))).toBe(true);
+    expect(insight.lines.some((l) => /Stress averaging/.test(l))).toBe(true);
   });
 });

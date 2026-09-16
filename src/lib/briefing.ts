@@ -134,10 +134,15 @@ export function workoutGapInsight(
 
 export type SevenDayTrendInsight = {
   moodAvg: number | null;
+  energyAvg: number | null;
+  stressAvg: number | null;
   sleepQualityAvg: number | null;
   sleepHoursAvg: number | null;
   moodDelta: number | null;
+  energyDelta: number | null;
+  stressDelta: number | null;
   sleepQualityDelta: number | null;
+  sleepHoursDelta: number | null;
   lines: string[];
   moodSeries: (number | undefined)[];
   sleepQualitySeries: (number | undefined)[];
@@ -157,6 +162,18 @@ function trendWord(
   return delta > 0 ? up : down;
 }
 
+function seriesDelta(values: number[]): number | null {
+  const recent = values.slice(-3);
+  const prior = values.slice(0, Math.max(0, values.length - 3));
+  if (recent.length < 2 || prior.length < 2) return null;
+  return (avg(recent) ?? 0) - (avg(prior) ?? 0);
+}
+
+function hoursLabel(n: number): string {
+  const rounded = Math.round(n * 2) / 2;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
 /** Last 7 calendar days through today (inclusive). */
 export function sevenDayTrendInsight(
   state: RebuildState,
@@ -169,6 +186,8 @@ export function sevenDayTrendInsight(
   const moodSeries: (number | undefined)[] = [];
   const sleepQualitySeries: (number | undefined)[] = [];
   const moods: number[] = [];
+  const energies: number[] = [];
+  const stresses: number[] = [];
   const qualities: number[] = [];
   const hours: number[] = [];
 
@@ -178,60 +197,95 @@ export function sevenDayTrendInsight(
     moodSeries.push(p?.mood);
     sleepQualitySeries.push(p?.sleepQuality);
     if (p?.mood != null) moods.push(p.mood);
+    if (p?.energy != null) energies.push(p.energy);
+    if (p?.stress != null) stresses.push(p.stress);
     if (p?.sleepQuality != null) qualities.push(p.sleepQuality);
     if (p?.sleepHours != null) hours.push(p.sleepHours);
   }
 
   const moodAvg = avg(moods);
+  const energyAvg = avg(energies);
+  const stressAvg = avg(stresses);
   const sleepQualityAvg = avg(qualities);
   const sleepHoursAvg = avg(hours);
 
-  const recentMood = moods.slice(-3);
-  const priorMood = moods.slice(0, Math.max(0, moods.length - 3));
-  const recentSq = qualities.slice(-3);
-  const priorSq = qualities.slice(0, Math.max(0, qualities.length - 3));
-  const moodDelta =
-    recentMood.length >= 2 && priorMood.length >= 2
-      ? (avg(recentMood) ?? 0) - (avg(priorMood) ?? 0)
-      : null;
-  const sleepQualityDelta =
-    recentSq.length >= 2 && priorSq.length >= 2
-      ? (avg(recentSq) ?? 0) - (avg(priorSq) ?? 0)
-      : null;
+  const moodDelta = seriesDelta(moods);
+  const energyDelta = seriesDelta(energies);
+  const stressDelta = seriesDelta(stresses);
+  const sleepQualityDelta = seriesDelta(qualities);
+  const sleepHoursDelta = seriesDelta(hours);
 
   const lines: string[] = [];
+
+  if (sleepHoursAvg != null || sleepQualityAvg != null) {
+    const bits: string[] = [];
+    if (sleepHoursAvg != null) {
+      const tw = trendWord(sleepHoursDelta, "up a bit", "down a bit");
+      bits.push(
+        tw
+          ? `${hoursLabel(sleepHoursAvg)}h sleep avg — ${tw}`
+          : `${hoursLabel(sleepHoursAvg)}h sleep avg`,
+      );
+    }
+    if (sleepQualityAvg != null) {
+      const tw = trendWord(sleepQualityDelta, "trending up", "softening");
+      bits.push(
+        tw
+          ? `quality ${sleepQualityAvg.toFixed(1)} — ${tw}`
+          : `quality ${sleepQualityAvg.toFixed(1)}`,
+      );
+    }
+    lines.push(`Sleep over 7 days: ${bits.join("; ")}.`);
+  }
+
   if (moodAvg != null) {
     const tw = trendWord(
       moodDelta,
-      "up vs earlier this week",
-      "down vs earlier this week",
+      "lifting vs earlier this week",
+      "softer vs earlier this week",
     );
     lines.push(
       tw
-        ? `Mood averaging ${moodAvg.toFixed(1)} this week — ${tw}.`
+        ? `Mood averaging ${moodAvg.toFixed(1)} — ${tw}.`
         : `Mood averaging ${moodAvg.toFixed(1)} over the last 7 days.`,
     );
   } else {
     lines.push("Not enough mood check-ins yet for a 7-day read.");
   }
-  if (sleepQualityAvg != null) {
-    const tw = trendWord(sleepQualityDelta, "trending up", "softening a bit");
+
+  if (energyAvg != null) {
+    const tw = trendWord(energyDelta, "building", "fading");
     lines.push(
       tw
-        ? `Sleep quality averaging ${sleepQualityAvg.toFixed(1)} — ${tw}.`
-        : `Sleep quality averaging ${sleepQualityAvg.toFixed(1)} over the last 7 days.`,
+        ? `Energy averaging ${energyAvg.toFixed(1)} — ${tw}.`
+        : `Energy averaging ${energyAvg.toFixed(1)} over the last 7 days.`,
     );
   }
-  if (sleepHoursAvg != null) {
-    lines.push(`Sleep amount averaging ${sleepHoursAvg.toFixed(1)} / 10.`);
+
+  if (stressAvg != null) {
+    const tw = trendWord(
+      stressDelta,
+      "creeping up",
+      "easing vs earlier this week",
+    );
+    lines.push(
+      tw
+        ? `Stress averaging ${stressAvg.toFixed(1)} — ${tw}.`
+        : `Stress averaging ${stressAvg.toFixed(1)} over the last 7 days.`,
+    );
   }
 
   return {
     moodAvg,
+    energyAvg,
+    stressAvg,
     sleepQualityAvg,
     sleepHoursAvg,
     moodDelta,
+    energyDelta,
+    stressDelta,
     sleepQualityDelta,
+    sleepHoursDelta,
     lines,
     moodSeries,
     sleepQualitySeries,

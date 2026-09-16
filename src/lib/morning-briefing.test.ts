@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildMorningBriefing,
   clampMorningScore,
+  clampSleepHours,
   suggestTasksForGaps,
 } from "./morning-briefing";
 
@@ -11,6 +12,16 @@ describe("clampMorningScore", () => {
     expect(clampMorningScore(11)).toBe(10);
     expect(clampMorningScore(7.4)).toBe(7);
     expect(clampMorningScore(7.6)).toBe(8);
+  });
+});
+
+describe("clampSleepHours", () => {
+  it("snaps to half-hour steps", () => {
+    expect(clampSleepHours(7.2)).toBe(7);
+    expect(clampSleepHours(7.3)).toBe(7.5);
+    expect(clampSleepHours(7.75)).toBe(8);
+    expect(clampSleepHours(20)).toBe(14);
+    expect(clampSleepHours(-1)).toBe(0);
   });
 });
 
