@@ -10,7 +10,7 @@ import {
   monthDayKey,
   type DayBundle,
 } from "./journal";
-import { trendPointsInRange } from "./trends";
+import { trendPointsInRange, type TrendPoint } from "./trends";
 import type {
   JournalEntry,
   RebuildState,
@@ -138,11 +138,12 @@ export type SevenDayTrendInsight = {
   stressAvg: number | null;
   sleepQualityAvg: number | null;
   sleepHoursAvg: number | null;
-  moodDelta: number | null;
-  energyDelta: number | null;
-  stressDelta: number | null;
-  sleepQualityDelta: number | null;
-  sleepHoursDelta: number | null;
+  /** 7-day avg minus all-time (or prior) avg — positive = this week higher. */
+  moodVsAllTime: number | null;
+  energyVsAllTime: number | null;
+  stressVsAllTime: number | null;
+  sleepQualityVsAllTime: number | null;
+  sleepHoursVsAllTime: number | null;
   lines: string[];
   moodSeries: (number | undefined)[];
   sleepQualitySeries: (number | undefined)[];
@@ -153,35 +154,88 @@ function avg(nums: number[]): number | null {
   return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
 
-function trendWord(
-  delta: number | null,
-  up: string,
-  down: string,
-): string | null {
-  if (delta == null || Math.abs(delta) < 0.35) return null;
-  return delta > 0 ? up : down;
-}
-
-function seriesDelta(values: number[]): number | null {
-  const recent = values.slice(-3);
-  const prior = values.slice(0, Math.max(0, values.length - 3));
-  if (recent.length < 2 || prior.length < 2) return null;
-  return (avg(recent) ?? 0) - (avg(prior) ?? 0);
-}
-
 function hoursLabel(n: number): string {
   const rounded = Math.round(n * 2) / 2;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
-/** Last 7 calendar days through today (inclusive). */
+function collectMetric(
+  points: TrendPoint[],
+  key: keyof Omit<TrendPoint, "date">,
+): number[] {
+  const out: number[] = [];
+  for (const p of points) {
+    const v = p[key];
+    if (typeof v === "number") out.push(v);
+  }
+  return out;
+}
+
+/**
+ * Compare this week's average to the baseline (prefer history before this week).
+ * Returns delta (week − baseline) or null if not enough data.
+ */
+function vsBaseline(
+  weekAvg: number | null,
+  weekValues: number[],
+  allPoints: TrendPoint[],
+  weekStart: string,
+  key: keyof Omit<TrendPoint, "date">,
+  minDelta: number,
+): { delta: number | null; baselineAvg: number | null } {
+  if (weekAvg == null) return { delta: null, baselineAvg: null };
+
+  const prior = allPoints.filter((p) => p.date < weekStart);
+  let baselineVals = collectMetric(prior, key);
+  // Fall back to full history when there isn't a prior baseline yet.
+  if (baselineVals.length < 3) {
+    baselineVals = collectMetric(allPoints, key);
+  }
+  // Need a broader sample than this week alone.
+  if (baselineVals.length < 3 || baselineVals.length <= weekValues.length) {
+    return { delta: null, baselineAvg: avg(baselineVals) };
+  }
+
+  const baselineAvg = avg(baselineVals);
+  if (baselineAvg == null) return { delta: null, baselineAvg: null };
+  const delta = weekAvg - baselineAvg;
+  if (Math.abs(delta) < minDelta) {
+    return { delta: 0, baselineAvg };
+  }
+  return { delta, baselineAvg };
+}
+
+function comparePhrase(
+  delta: number | null,
+  baselineAvg: number | null,
+  opts: {
+    up: string;
+    down: string;
+    even: string;
+    formatBaseline?: (n: number) => string;
+  },
+): string | null {
+  if (delta == null || baselineAvg == null) return null;
+  const base =
+    opts.formatBaseline?.(baselineAvg) ?? baselineAvg.toFixed(1);
+  if (delta === 0) return `${opts.even} (all-time ${base})`;
+  if (delta > 0) return `${opts.up} all-time ${base}`;
+  return `${opts.down} all-time ${base}`;
+}
+
+/** Last 7 calendar days through today, compared to all-time baseline. */
 export function sevenDayTrendInsight(
   state: RebuildState,
   today: string,
 ): SevenDayTrendInsight {
   const start = addDays(today, -6);
-  const points = trendPointsInRange(state, start, today);
-  const byDate = new Map(points.map((p) => [p.date, p]));
+  const journeyStart =
+    state.profile?.startDate ??
+    state.mornings.map((m) => m.date).sort()[0] ??
+    start;
+  const allPoints = trendPointsInRange(state, journeyStart, today);
+  const weekPoints = trendPointsInRange(state, start, today);
+  const byDate = new Map(weekPoints.map((p) => [p.date, p]));
 
   const moodSeries: (number | undefined)[] = [];
   const sleepQualitySeries: (number | undefined)[] = [];
@@ -209,44 +263,89 @@ export function sevenDayTrendInsight(
   const sleepQualityAvg = avg(qualities);
   const sleepHoursAvg = avg(hours);
 
-  const moodDelta = seriesDelta(moods);
-  const energyDelta = seriesDelta(energies);
-  const stressDelta = seriesDelta(stresses);
-  const sleepQualityDelta = seriesDelta(qualities);
-  const sleepHoursDelta = seriesDelta(hours);
+  const moodCmp = vsBaseline(moodAvg, moods, allPoints, start, "mood", 0.35);
+  const energyCmp = vsBaseline(
+    energyAvg,
+    energies,
+    allPoints,
+    start,
+    "energy",
+    0.35,
+  );
+  const stressCmp = vsBaseline(
+    stressAvg,
+    stresses,
+    allPoints,
+    start,
+    "stress",
+    0.35,
+  );
+  const sleepQualityCmp = vsBaseline(
+    sleepQualityAvg,
+    qualities,
+    allPoints,
+    start,
+    "sleepQuality",
+    0.35,
+  );
+  const sleepHoursCmp = vsBaseline(
+    sleepHoursAvg,
+    hours,
+    allPoints,
+    start,
+    "sleepHours",
+    0.25,
+  );
 
   const lines: string[] = [];
 
   if (sleepHoursAvg != null || sleepQualityAvg != null) {
     const bits: string[] = [];
     if (sleepHoursAvg != null) {
-      const tw = trendWord(sleepHoursDelta, "up a bit", "down a bit");
+      const cmp = comparePhrase(
+        sleepHoursCmp.delta,
+        sleepHoursCmp.baselineAvg,
+        {
+          up: "up vs",
+          down: "down vs",
+          even: "even with all-time",
+          formatBaseline: (n) => `${hoursLabel(n)}h`,
+        },
+      );
       bits.push(
-        tw
-          ? `${hoursLabel(sleepHoursAvg)}h sleep avg — ${tw}`
+        cmp
+          ? `${hoursLabel(sleepHoursAvg)}h sleep — ${cmp}`
           : `${hoursLabel(sleepHoursAvg)}h sleep avg`,
       );
     }
     if (sleepQualityAvg != null) {
-      const tw = trendWord(sleepQualityDelta, "trending up", "softening");
+      const cmp = comparePhrase(
+        sleepQualityCmp.delta,
+        sleepQualityCmp.baselineAvg,
+        {
+          up: "up vs",
+          down: "down vs",
+          even: "even with all-time",
+        },
+      );
       bits.push(
-        tw
-          ? `quality ${sleepQualityAvg.toFixed(1)} — ${tw}`
+        cmp
+          ? `quality ${sleepQualityAvg.toFixed(1)} — ${cmp}`
           : `quality ${sleepQualityAvg.toFixed(1)}`,
       );
     }
-    lines.push(`Sleep over 7 days: ${bits.join("; ")}.`);
+    lines.push(`Sleep this week: ${bits.join("; ")}.`);
   }
 
   if (moodAvg != null) {
-    const tw = trendWord(
-      moodDelta,
-      "lifting vs earlier this week",
-      "softer vs earlier this week",
-    );
+    const cmp = comparePhrase(moodCmp.delta, moodCmp.baselineAvg, {
+      up: "up vs",
+      down: "down vs",
+      even: "even with all-time",
+    });
     lines.push(
-      tw
-        ? `Mood averaging ${moodAvg.toFixed(1)} — ${tw}.`
+      cmp
+        ? `Mood averaging ${moodAvg.toFixed(1)} — ${cmp}.`
         : `Mood averaging ${moodAvg.toFixed(1)} over the last 7 days.`,
     );
   } else {
@@ -254,23 +353,28 @@ export function sevenDayTrendInsight(
   }
 
   if (energyAvg != null) {
-    const tw = trendWord(energyDelta, "building", "fading");
+    const cmp = comparePhrase(energyCmp.delta, energyCmp.baselineAvg, {
+      up: "up vs",
+      down: "down vs",
+      even: "even with all-time",
+    });
     lines.push(
-      tw
-        ? `Energy averaging ${energyAvg.toFixed(1)} — ${tw}.`
+      cmp
+        ? `Energy averaging ${energyAvg.toFixed(1)} — ${cmp}.`
         : `Energy averaging ${energyAvg.toFixed(1)} over the last 7 days.`,
     );
   }
 
   if (stressAvg != null) {
-    const tw = trendWord(
-      stressDelta,
-      "creeping up",
-      "easing vs earlier this week",
-    );
+    // For stress, "up" means higher stress (worse) — still say up/down vs all-time clearly.
+    const cmp = comparePhrase(stressCmp.delta, stressCmp.baselineAvg, {
+      up: "up vs",
+      down: "down vs",
+      even: "even with all-time",
+    });
     lines.push(
-      tw
-        ? `Stress averaging ${stressAvg.toFixed(1)} — ${tw}.`
+      cmp
+        ? `Stress averaging ${stressAvg.toFixed(1)} — ${cmp}.`
         : `Stress averaging ${stressAvg.toFixed(1)} over the last 7 days.`,
     );
   }
@@ -281,11 +385,11 @@ export function sevenDayTrendInsight(
     stressAvg,
     sleepQualityAvg,
     sleepHoursAvg,
-    moodDelta,
-    energyDelta,
-    stressDelta,
-    sleepQualityDelta,
-    sleepHoursDelta,
+    moodVsAllTime: moodCmp.delta,
+    energyVsAllTime: energyCmp.delta,
+    stressVsAllTime: stressCmp.delta,
+    sleepQualityVsAllTime: sleepQualityCmp.delta,
+    sleepHoursVsAllTime: sleepHoursCmp.delta,
     lines,
     moodSeries,
     sleepQualitySeries,

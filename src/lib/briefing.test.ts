@@ -144,10 +144,61 @@ describe("sevenDayTrendInsight", () => {
     expect(insight.moodSeries).toHaveLength(7);
     expect(insight.moodAvg).not.toBeNull();
     expect(insight.lines.some((l) => /Mood averaging/.test(l))).toBe(true);
-    expect(insight.lines.some((l) => /Sleep over 7 days|sleep avg/i.test(l))).toBe(
+    expect(insight.lines.some((l) => /Sleep this week|sleep/i.test(l))).toBe(
       true,
     );
     expect(insight.lines.some((l) => /Energy averaging/.test(l))).toBe(true);
     expect(insight.lines.some((l) => /Stress averaging/.test(l))).toBe(true);
+  });
+
+  it("compares this week to all-time when prior history exists", () => {
+    const mornings = [];
+    // Low baseline history before the week window (before 2026-09-06)
+    for (const date of [
+      "2026-08-20",
+      "2026-08-22",
+      "2026-08-25",
+      "2026-08-28",
+      "2026-09-01",
+      "2026-09-03",
+    ]) {
+      mornings.push({
+        date,
+        sleepHours: 6,
+        sleepQuality: 5,
+        mood: 4,
+        energy: 4,
+        stress: 7,
+        intention: "base",
+        completedAt: `${date}T08:00:00.000Z`,
+      });
+    }
+    // Stronger week
+    for (const date of ["2026-09-08", "2026-09-10", "2026-09-12"]) {
+      mornings.push({
+        date,
+        sleepHours: 8,
+        sleepQuality: 8,
+        mood: 8,
+        energy: 8,
+        stress: 3,
+        intention: "week",
+        completedAt: `${date}T08:00:00.000Z`,
+      });
+    }
+
+    const state = {
+      mornings,
+      evenings: [],
+      journals: [],
+      profile: { startDate: "2026-08-01" },
+    } as unknown as RebuildState;
+
+    const insight = sevenDayTrendInsight(state, "2026-09-12");
+    expect(insight.moodVsAllTime).not.toBeNull();
+    expect(insight.moodVsAllTime!).toBeGreaterThan(0);
+    expect(insight.lines.some((l) => /up vs all-time/.test(l))).toBe(true);
+    expect(insight.stressVsAllTime).not.toBeNull();
+    expect(insight.stressVsAllTime!).toBeLessThan(0);
   });
 });
