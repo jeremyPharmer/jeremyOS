@@ -20,6 +20,7 @@ import {
 } from "@/lib/briefing";
 import {
   formatDisplayDate,
+  formatHomeHeaderDate,
   isValidEveningDate,
   missingEveningDates,
   addDays,
@@ -145,8 +146,31 @@ function EveningPageInner() {
     effectiveDate && isStarredDay(state.starredDays, effectiveDate),
   );
   const composeStarred = dayCanPersistStar ? persistedStarred : starPending;
+
+  const alreadyClosedToday =
+    Boolean(today) && state.evenings.some((e) => e.date === today);
+  const requestedAlreadyClosed =
+    Boolean(requested) && state.evenings.some((e) => e.date === requested);
+
+  /** Session snapshot, or reopen today's Close from persisted evening. */
+  const editionClosed = useMemo((): ClosedSnapshot | null => {
+    if (closed) return closed;
+    if (!alreadyClosedToday || missing.length > 0) return null;
+    if (!today) return null;
+    const evening = state.evenings.find((e) => e.date === today);
+    if (!evening) return null;
+    return {
+      date: evening.date,
+      headline: evening.oneLine,
+      summary: evening.expandedJournal?.trim() ?? "",
+      mood: evening.mood,
+      stress: evening.stress ?? 5,
+      photoDataUrl: null,
+    };
+  }, [closed, alreadyClosedToday, missing.length, today, state.evenings]);
+
   const closedStarred = Boolean(
-    closed && isStarredDay(state.starredDays, closed.date),
+    editionClosed && isStarredDay(state.starredDays, editionClosed.date),
   );
 
   // Cancel pending star intent if the headline is cleared before close.
@@ -166,7 +190,7 @@ function EveningPageInner() {
   // Skip while showing success — refresh clears missing dates and would wipe
   // the local fields that used to drive the Remember headline (empty quotes).
   useEffect(() => {
-    if (result) return;
+    if (result || editionClosed) return;
     if (!effectiveDate) {
       setOneLine("");
       setStandOut("");
@@ -179,11 +203,11 @@ function EveningPageInner() {
     setPhotoDataUrl(null);
     // Only re-seed when the close date changes — not on every journals refresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
-  }, [effectiveDate, result]);
+  }, [effectiveDate, result, editionClosed]);
 
-  // On success: pull news + tomorrow weather for the Daily briefing twin.
+  // Pull news + tomorrow weather whenever the Close edition is on screen.
   useEffect(() => {
-    if (!result || !closed || !today) return;
+    if (!editionClosed || !today) return;
     let cancelled = false;
     setNewsLoading(true);
     setWeatherLoading(true);
@@ -200,7 +224,7 @@ function EveningPageInner() {
           }
         }
         const [newsRes, weatherRes] = await Promise.all([
-          fetch(`/api/news?date=${encodeURIComponent(closed.date)}`),
+          fetch(`/api/news?date=${encodeURIComponent(editionClosed.date)}`),
           fetch(`/api/weather?${weatherQs.toString()}`),
         ]);
         if (cancelled) return;
@@ -231,18 +255,13 @@ function EveningPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [result, closed, today]);
-
-  const alreadyClosedToday =
-    Boolean(today) && state.evenings.some((e) => e.date === today);
-  const requestedAlreadyClosed =
-    Boolean(requested) && state.evenings.some((e) => e.date === requested);
+  }, [editionClosed, today]);
 
   const briefingTasks: BriefingTaskRow[] = useMemo(() => {
-    if (!closed) return [];
+    if (!editionClosed) return [];
     const done = completedTodosForUndo(
       state.dayProvisions ?? [],
-      closed.date,
+      editionClosed.date,
     ).map((t) => ({
       id: t.id,
       label: t.label,
@@ -250,7 +269,7 @@ function EveningPageInner() {
       group: t.group,
       status: "done" as const,
     }));
-    const open = openTodosOn(state.dayProvisions ?? [], closed.date).map(
+    const open = openTodosOn(state.dayProvisions ?? [], editionClosed.date).map(
       (t) => ({
         id: t.id,
         label: t.label,
@@ -260,24 +279,24 @@ function EveningPageInner() {
       }),
     );
     return [...done, ...open];
-  }, [closed, state.dayProvisions]);
+  }, [editionClosed, state.dayProvisions]);
 
   const historyEntries = useMemo(() => {
-    if (!closed) return [];
-    return thisDayInHistory(state.journals ?? [], closed.date);
-  }, [closed, state.journals]);
+    if (!editionClosed) return [];
+    return thisDayInHistory(state.journals ?? [], editionClosed.date);
+  }, [editionClosed, state.journals]);
 
   const workoutGaps = useMemo(() => {
-    if (!closed) return workoutGapInsight([], today || "");
-    return workoutGapInsight(state.workouts, closed.date);
-  }, [closed, state.workouts, today]);
+    if (!editionClosed) return workoutGapInsight([], today || "");
+    return workoutGapInsight(state.workouts, editionClosed.date);
+  }, [editionClosed, state.workouts, today]);
 
   const trends = useMemo(() => {
-    if (!closed) {
+    if (!editionClosed) {
       return sevenDayTrendInsight(state, today || "");
     }
-    return sevenDayTrendInsight(state, closed.date);
-  }, [closed, state, today]);
+    return sevenDayTrendInsight(state, editionClosed.date);
+  }, [editionClosed, state, today]);
 
   const tomorrowDate = today ? addDays(today, 1) : "";
 
@@ -352,11 +371,13 @@ function EveningPageInner() {
     }
   }
 
-  if (requestedAlreadyClosed && !result) {
+  if (requestedAlreadyClosed && !result && requested !== today) {
     return (
-      <main className="stack daily-briefing">
-        <p className="eyebrow">Daily briefing</p>
-        <h1>Already complete</h1>
+      <main className="stack daily-briefing paper-edition">
+        <header className="paper-masthead paper-masthead-compact">
+          <p className="paper-masthead-flag">Evening edition</p>
+          <h1 className="paper-masthead-title">The Daily Close</h1>
+        </header>
         <p className="muted">
           {formatDisplayDate(requested)} already has a close.
         </p>
@@ -370,74 +391,84 @@ function EveningPageInner() {
     );
   }
 
-  if (alreadyClosedToday && missing.length === 0 && !result) {
+  if (editionClosed) {
+    const editionDate = formatHomeHeaderDate(editionClosed.date);
     return (
-      <main className="stack daily-briefing">
-        <p className="eyebrow">Daily briefing</p>
-        <h1>Already complete</h1>
-        <PrimaryButton onClick={() => router.push("/")}>Home</PrimaryButton>
-      </main>
-    );
-  }
-
-  if (result && closed) {
-    return (
-      <main className="stack success-pop daily-briefing evening-recap">
-        <header className="daily-briefing-header">
-          <p className="eyebrow">Daily briefing</p>
-          <h1 className="daily-briefing-title">Close</h1>
+      <main
+        className={`stack daily-briefing evening-recap paper-edition${
+          result ? " success-pop" : " fade-in"
+        }`}
+      >
+        <header className="paper-masthead">
+          <p className="paper-masthead-flag">Evening edition</p>
+          <h1 className="paper-masthead-title">The Daily Close</h1>
+          <div className="paper-masthead-rule" aria-hidden />
+          <p className="paper-masthead-dateline">
+            <span>{editionDate}</span>
+            <span className="paper-masthead-dot" aria-hidden>
+              ·
+            </span>
+            <span>Day put to bed</span>
+          </p>
         </header>
-        {closed.date !== today && (
-          <p className="muted">Backfilled {formatDisplayDate(closed.date)}</p>
+        {editionClosed.date !== today && (
+          <p className="muted paper-checkin-note">
+            Backfilled {formatDisplayDate(editionClosed.date)}
+          </p>
         )}
 
-        <div className="evening-remember-row">
-          <p className="daily-briefing-remember-line">
-            <strong>{closed.headline}</strong>
-            {closed.summary ? (
-              <span className="daily-briefing-remember-summary">
-                {" "}
-                — {closed.summary}
-              </span>
-            ) : null}
-          </p>
-          <button
-            type="button"
-            className="fy-star-btn"
-            aria-label={
-              closedStarred
-                ? "Unstar day to remember"
-                : "Star as day to remember"
-            }
-            disabled={starBusy}
-            onClick={() => void toggleStarNow(closed.date)}
-          >
-            <StarIcon filled={closedStarred} />
-          </button>
-        </div>
+        <section className="paper-front" aria-label="Remember">
+          <div className="evening-remember-row">
+            <div>
+              <p className="paper-kicker">Remember</p>
+              <h2 className="paper-headline">{editionClosed.headline}</h2>
+              {editionClosed.summary ? (
+                <p className="paper-deck">{editionClosed.summary}</p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              className="fy-star-btn"
+              aria-label={
+                closedStarred
+                  ? "Unstar day to remember"
+                  : "Star as day to remember"
+              }
+              disabled={starBusy}
+              onClick={() => void toggleStarNow(editionClosed.date)}
+            >
+              <StarIcon filled={closedStarred} />
+            </button>
+          </div>
+        </section>
         {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-        {closed.photoDataUrl ? (
+        {editionClosed.photoDataUrl ? (
           <div className="photo-subtle-preview">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={closed.photoDataUrl} alt="Attached photo" />
+            <img src={editionClosed.photoDataUrl} alt="Attached photo" />
           </div>
         ) : null}
 
-        <WeatherExpanded
-          mode="tomorrow"
-          locationLabel={weatherLocation}
-          days={weatherDays}
-          focusDate={tomorrowDate}
-          loading={weatherLoading}
-        />
+        <div className="paper-pages">
+          <WeatherExpanded
+            mode="tomorrow"
+            locationLabel={weatherLocation}
+            days={weatherDays}
+            focusDate={tomorrowDate}
+            loading={weatherLoading}
+          />
 
-        <ThisDayInHistory today={closed.date} entries={historyEntries} />
-        <WorldHeadlines headlines={news} loading={newsLoading} />
-        <BriefingTasks
-          tasks={briefingTasks}
-          emptyLabel="No tasks logged for this day."
-        />
-        <BodyMind workouts={workoutGaps} trends={trends} />
+          <ThisDayInHistory
+            today={editionClosed.date}
+            entries={historyEntries}
+          />
+          <WorldHeadlines headlines={news} loading={newsLoading} />
+          <BriefingTasks
+            tasks={briefingTasks}
+            emptyLabel="No tasks logged for this day."
+          />
+          <BodyMind workouts={workoutGaps} trends={trends} />
+        </div>
 
         <PrimaryButton onClick={() => router.push("/journal")}>
           Open journal
@@ -450,9 +481,12 @@ function EveningPageInner() {
 
   if (!effectiveDate) {
     return (
-      <main className="stack daily-briefing">
-        <p className="eyebrow">Daily briefing</p>
-        <h1>Nothing to close</h1>
+      <main className="stack daily-briefing paper-edition">
+        <header className="paper-masthead paper-masthead-compact">
+          <p className="paper-masthead-flag">Evening edition</p>
+          <h1 className="paper-masthead-title">The Daily Close</h1>
+        </header>
+        <p className="muted">Nothing to close.</p>
         <SecondaryButton onClick={() => router.push("/")}>Home</SecondaryButton>
       </main>
     );
@@ -464,17 +498,24 @@ function EveningPageInner() {
   const scalesReady = mood != null && stress != null;
 
   return (
-    <main className="stack fade-in daily-briefing">
-      <p className="eyebrow">{isBackfill ? "Catch up" : "Daily briefing"}</p>
-      <h1>{isBackfill ? "Add a missed close" : "Close"}</h1>
+    <main className="stack fade-in daily-briefing paper-edition">
+      <header className="paper-masthead paper-masthead-compact">
+        <p className="paper-masthead-flag">
+          {isBackfill ? "Catch up" : "Evening edition"}
+        </p>
+        <h1 className="paper-masthead-title">
+          {isBackfill ? "Missed close" : "The Daily Close"}
+        </h1>
+        <div className="paper-masthead-rule" aria-hidden />
+      </header>
       {isBackfill ? (
-        <p className="muted">
+        <p className="muted paper-checkin-note">
           Closing {formatDisplayDate(effectiveDate)} — same mood, stress,
           headline, and summary as tonight.
         </p>
       ) : (
-        <p className="muted">
-          Check in first — then your evening briefing.
+        <p className="muted paper-checkin-note">
+          Check in first — then tonight&apos;s edition.
         </p>
       )}
 

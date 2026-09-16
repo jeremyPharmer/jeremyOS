@@ -17,22 +17,22 @@ Open (`/morning`) and Close (`/evening`) shipped as separate rituals ([RB-027](.
 
 ## Outcome
 
-Open and Close are **matching Daily briefing rituals**: same shell and check-in-first flow, launched from **Home header** Open / Close buttons (grey out when done — never dismiss/skip). Morning and evening briefings are rich, scrollable newsletters with the locked content modules below — rules-based, not LLM.
+Open and Close are **matching Daily briefing rituals**: same shell and check-in-first flow, launched from **Home header** Open / Close buttons. When done for the day, buttons stay visible and **muted but clickable** so you can reopen today's edition (no dismiss/skip). Morning and evening briefings read as a clean **daily newspaper** — rules-based, not LLM.
 
 ## Scope (v1) — locked 2026-09-12 (full ship, not phased)
 
 ### 1. Home header entry (not Tasks)
 
 - Single **Open** and **Close** buttons beside the greeting on Home
-- When that ritual is done for the day: **grey out + inactive** (do **not** hide)
+- When that ritual is done for the day: **muted but still clickable** to reopen the edition (do **not** hide; do **not** disable)
 - Remove Open / Close from the Tasks Home group
 - **No “Not today” / dismiss** for open or close — cannot skip
 
 ### 2. Shared Daily briefing shell
 
 - Shared look/feel across Open (`/morning`) and Close (`/evening`)
-- Framing: **Daily briefing**
-- Flow: **check-in FIRST**, then newsletter body
+- Framing: **newspaper morning/evening edition** (masthead + clean sections)
+- Flow: **check-in FIRST**, then newspaper body
 - Unify mood / scale UI: evening uses **tap chips** like morning (same patterns)
 
 ### 3. Open briefing (after check-in)
@@ -70,13 +70,14 @@ Open and Close are **matching Daily briefing rituals**: same shell and check-in-
 - **Journal history:** this-day-in-history density depends on journal data quality ([RB-016](./five-year-journal-ux.md), [RB-010](./backfill-missed-evening-journal-close.md)); presentation must stay readable when years are sparse or dense
 - **News + Bills rule:** need a thin feed with dedupe + seasonal Bills injection; fail soft if feed unavailable; never invent headlines
 - **Workout signals:** may lean on existing workout log ([RB-018](./workout-tracker.md)) or whatever is already persisted — eng confirms source; gaps/types must be honest when data is thin
-- **Home chrome:** Open/Close beside greeting must not fight other Home CTAs; grey-out state must stay clear without looking broken
+- **Home chrome:** Open/Close beside greeting must not fight other Home CTAs; done state stays muted but reopenable without looking broken
 - **Effort L:** shared shell + Home move + dual rich briefings + news/history/trends/workout modules in one full ship (founder: not phased)
 
 ## Notes
 
 - Intake / lock: **2026-09-12** founder-approved Daily briefing redesign of Open/Close.
 - **2026-09-12:** Implementation in progress — Home Open/Close header, shared Daily briefing sections, morning/evening twin rewrite, news `date` + Bills season, briefing helpers/tests.
+- **2026-09-16:** Founder follow-up — reopen Open/Close when done; quieter newspaper edition (masthead, cleaner sections) in honor of paperboy roots.
 - Why rank **5 / P0:** founder-locked daily-loop twin; sits after framing / todos / task groups (**RB-012–014**, **RB-026**); ahead of journal polish cluster so Open/Close stop living under Tasks and feel like one ritual. Done parents **RB-027 / RB-029 / RB-030** renumbered below this active iterate.
 - Effort **L:** full ship across Home header, shared shell, Open + Close content parity — not a thin copy pass.
 - Related Later: LLM generative morning/evening briefing still deferred until after this rules-based twin.

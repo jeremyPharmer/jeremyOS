@@ -68,7 +68,7 @@ export function WeatherExpanded({
   return (
     <section className="daily-briefing-section daily-briefing-weather" aria-label="Weather">
       <p className="daily-briefing-kicker">
-        {mode === "tomorrow" ? "Tomorrow" : "Weather"}
+        {mode === "tomorrow" ? "Tomorrow's forecast" : "Forecast"}
       </p>
       {loading && !focus ? (
         <p className="muted tiny">Loading forecast…</p>
@@ -174,7 +174,7 @@ export function WorldHeadlines({
       className="daily-briefing-section daily-briefing-news"
       aria-label="Headlines"
     >
-      <p className="daily-briefing-kicker">In the world</p>
+      <p className="daily-briefing-kicker">World</p>
       {loading && headlines.length === 0 ? (
         <p className="muted tiny">Gathering headlines…</p>
       ) : headlines.length === 0 ? (
@@ -210,7 +210,7 @@ export function WorldHeadlines({
 export function BriefingTasks({
   tasks,
   emptyLabel = "Nothing due today.",
-  kicker = "Due today",
+  kicker = "The list",
 }: {
   tasks: BriefingTaskRow[];
   emptyLabel?: string;
@@ -302,7 +302,7 @@ export function BodyMind({
       className="daily-briefing-section daily-briefing-bodymind"
       aria-label="Body and mind"
     >
-      <p className="daily-briefing-kicker">Body &amp; mind</p>
+      <p className="daily-briefing-kicker">Body & mind</p>
       <div className="daily-briefing-bodymind-block">
         <p className="daily-briefing-bodymind-line">{workouts.anyLabel}</p>
         <p className="daily-briefing-bodymind-line">{workouts.typeLabel}</p>

@@ -17,6 +17,7 @@ import {
   thisDayInHistory,
   workoutGapInsight,
 } from "@/lib/briefing";
+import { formatHomeHeaderDate } from "@/lib/journey";
 import {
   buildMorningBriefing,
   type BriefingEvent,
@@ -102,6 +103,7 @@ export default function MorningPage() {
     intention.trim() || todayMorning?.intention?.trim() || "";
   /** Morning already saved for today (or just submitted this session). */
   const morningDone = Boolean(todayMorning) || done;
+  const editionDate = formatHomeHeaderDate(today);
 
   const briefingTasks: BriefingTask[] = useMemo(() => {
     return dueTodosOn(state.dayProvisions ?? [], today).map((t) => ({
@@ -290,27 +292,78 @@ export default function MorningPage() {
 
   if (morningDone) {
     return (
-      <main className="stack fade-in daily-briefing morning-brief">
-        <header className="daily-briefing-header">
-          <p className="eyebrow">Daily briefing</p>
-          <h1 className="daily-briefing-title">Open</h1>
-          {shownIntention ? (
-            <p className="daily-briefing-lede">
-              Aim for today: <strong>{shownIntention}</strong>
-            </p>
-          ) : null}
+      <main className="stack fade-in daily-briefing morning-brief paper-edition">
+        <header className="paper-masthead">
+          <p className="paper-masthead-flag">Morning edition</p>
+          <h1 className="paper-masthead-title">The Daily Open</h1>
+          <div className="paper-masthead-rule" aria-hidden />
+          <p className="paper-masthead-dateline">
+            <span>{editionDate}</span>
+            <span className="paper-masthead-dot" aria-hidden>
+              ·
+            </span>
+            <span>Your day, delivered</span>
+          </p>
         </header>
 
-        {quote ? (
-          <blockquote className="morning-brief-quote morning-brief-quote-soft">
-            <p className="morning-brief-quote-text">&ldquo;{quote.text}&rdquo;</p>
-            <footer className="morning-brief-quote-attr">
-              — {quote.attribution}
-            </footer>
-          </blockquote>
+        {shownIntention ? (
+          <section className="paper-front" aria-label="Today's aim">
+            <p className="paper-kicker">Above the fold</p>
+            <h2 className="paper-headline">{shownIntention}</h2>
+            {quote ? (
+              <p className="paper-deck">
+                &ldquo;{quote.text}&rdquo;
+                <cite className="paper-deck-attr"> — {quote.attribution}</cite>
+              </p>
+            ) : null}
+          </section>
+        ) : quote ? (
+          <section className="paper-front" aria-label="Quote">
+            <p className="paper-kicker">Morning line</p>
+            <blockquote className="paper-quote">
+              <p>&ldquo;{quote.text}&rdquo;</p>
+              <footer>— {quote.attribution}</footer>
+            </blockquote>
+          </section>
         ) : null}
 
-        <div className="daily-briefing-issue">
+        <div className="paper-pages">
+          <section className="paper-section" aria-live="polite">
+            <p className="paper-kicker">The day ahead</p>
+            {briefingLoading && events.length === 0 && !thinWeather ? (
+              <p className="muted paper-loading">
+                Pulling calendar and open windows…
+              </p>
+            ) : (
+              <>
+                <p className="paper-lead">{briefing.calendarStory.lead}</p>
+                {briefing.calendarStory.items.length > 0 ? (
+                  <ul className="paper-bullets">
+                    {briefing.calendarStory.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                <p className="paper-subhead">Open windows</p>
+                <p className="paper-copy">{briefing.planStory.lead}</p>
+                {briefing.planStory.items.length > 0 ? (
+                  <ul className="paper-bullets paper-bullets-plan">
+                    {briefing.planStory.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {briefing.leftoverNote ? (
+                  <p className="paper-aside">{briefing.leftoverNote}</p>
+                ) : null}
+
+                <p className="paper-byline">{briefing.opener}</p>
+              </>
+            )}
+          </section>
+
           <WeatherExpanded
             mode="today"
             locationLabel={weatherLocation}
@@ -319,47 +372,7 @@ export default function MorningPage() {
             loading={briefingLoading}
           />
 
-          <section className="morning-brief-letter" aria-live="polite">
-            {briefingLoading && events.length === 0 && !thinWeather ? (
-              <p className="muted morning-brief-loading">
-                Pulling calendar and open windows…
-              </p>
-            ) : (
-              <>
-                <article className="morning-brief-chapter">
-                  <p className="morning-brief-lead">
-                    {briefing.calendarStory.lead}
-                  </p>
-                  {briefing.calendarStory.items.length > 0 ? (
-                    <ul className="morning-brief-agenda">
-                      {briefing.calendarStory.items.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </article>
-
-                <article className="morning-brief-chapter morning-brief-chapter-plan">
-                  <p className="morning-brief-lead">{briefing.planStory.lead}</p>
-                  {briefing.planStory.items.length > 0 ? (
-                    <ul className="morning-brief-agenda morning-brief-agenda-plan">
-                      {briefing.planStory.items.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </article>
-
-                {briefing.leftoverNote ? (
-                  <p className="morning-brief-aside">{briefing.leftoverNote}</p>
-                ) : null}
-
-                <p className="morning-brief-pulse">{briefing.opener}</p>
-              </>
-            )}
-          </section>
-
-          <BriefingTasks tasks={expandedTasks} />
+          <BriefingTasks tasks={expandedTasks} kicker="The list" />
           <ThisDayInHistory today={today} entries={historyEntries} />
           <WorldHeadlines headlines={news} loading={briefingLoading} />
           <BodyMind workouts={workoutGaps} trends={trends} />
@@ -374,10 +387,21 @@ export default function MorningPage() {
   }
 
   return (
-    <main className="stack fade-in daily-briefing">
-      <p className="eyebrow">Daily briefing</p>
-      <h1>Open</h1>
-      <p className="muted">Check in first — then your briefing. About a minute.</p>
+    <main className="stack fade-in daily-briefing paper-edition">
+      <header className="paper-masthead paper-masthead-compact">
+        <p className="paper-masthead-flag">Morning edition</p>
+        <h1 className="paper-masthead-title">The Daily Open</h1>
+        <div className="paper-masthead-rule" aria-hidden />
+        <p className="paper-masthead-dateline">
+          <span>{editionDate}</span>
+          <span className="paper-masthead-dot" aria-hidden>
+            ·
+          </span>
+          <span>Check in, then the paper</span>
+        </p>
+      </header>
+
+      <p className="muted paper-checkin-note">About a minute.</p>
 
       <section className="panel">
         <p className="eyebrow">Sleep</p>

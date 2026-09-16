@@ -5,8 +5,8 @@ import { useApp } from "@/components/AppProvider";
 
 /**
  * Home header Open / Close entry (RB-032).
- * Always visible; grey + inactive when that ritual is done for today.
- * No dismiss / skip.
+ * Always visible and clickable — muted when that ritual is done so you can
+ * reopen today's edition. No dismiss / skip.
  */
 export function HomeOpenCloseButtons() {
   const { state, today } = useApp();
@@ -19,13 +19,13 @@ export function HomeOpenCloseButtons() {
         label="Open"
         href="/morning"
         done={morningDone}
-        doneLabel="Open done"
+        doneLabel="Read today's Open"
       />
       <OpenCloseButton
         label="Close"
         href="/evening"
         done={eveningDone}
-        doneLabel="Close done"
+        doneLabel="Read today's Close"
       />
     </div>
   );
@@ -42,19 +42,17 @@ function OpenCloseButton({
   done: boolean;
   doneLabel: string;
 }) {
-  if (done) {
-    return (
-      <span
-        className="home-open-close-btn home-open-close-btn-done"
-        aria-disabled="true"
-        title={doneLabel}
-      >
-        {label}
-      </span>
-    );
-  }
   return (
-    <Link href={href} className="home-open-close-btn">
+    <Link
+      href={href}
+      className={
+        done
+          ? "home-open-close-btn home-open-close-btn-done"
+          : "home-open-close-btn"
+      }
+      title={done ? doneLabel : undefined}
+      aria-label={done ? doneLabel : label}
+    >
       {label}
     </Link>
   );
