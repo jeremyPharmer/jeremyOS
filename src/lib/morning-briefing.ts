@@ -145,6 +145,33 @@ function weatherBody(weather: BriefingWeather): string {
   return `${weather.label}, ${weather.highF}° / ${weather.lowF}°.${precip}`;
 }
 
+/** Compact clock label for timetable columns — "11a", "11:30a", "12p". */
+export function formatBriefingClock(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed || /^all\s*day$/i.test(trimmed)) return "All day";
+  const m = trimmed.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+  if (!m) return trimmed;
+  const hour = Number(m[1]);
+  const mins = m[2] ?? "00";
+  const meridiem = m[3]!.toLowerCase().startsWith("p") ? "p" : "a";
+  if (mins === "00") return `${hour}${meridiem}`;
+  return `${hour}:${mins}${meridiem}`;
+}
+
+/** Compact range — "11–11:30a" when same meridiem, else "11a–1p". */
+export function formatBriefingWhen(start: string, end?: string): string {
+  if (!end) return formatBriefingClock(start);
+  if (/^all\s*day$/i.test(start) || /^all\s*day$/i.test(end)) return "All day";
+  const a = formatBriefingClock(start);
+  const b = formatBriefingClock(end);
+  const aMer = a.match(/[ap]$/)?.[0];
+  const bMer = b.match(/[ap]$/)?.[0];
+  if (aMer && bMer && aMer === bMer) {
+    return `${a.slice(0, -1)}–${b}`;
+  }
+  return `${a}–${b}`;
+}
+
 function calendarItems(events: BriefingEvent[]): {
   body?: string;
   items?: string[];
@@ -157,22 +184,23 @@ function calendarItems(events: BriefingEvent[]): {
   const timed = events.filter((e) => !e.allDay && e.startTime !== "All day");
   const items: string[] = [];
   const rows: BriefingTimetableRow[] = [];
-  for (const e of timed.slice(0, 6)) {
-    const when = e.endTime ? `${e.startTime}–${e.endTime}` : e.startTime;
-    items.push(`${when} · ${e.title}`);
+  for (const e of timed.slice(0, 5)) {
+    const when = formatBriefingWhen(e.startTime, e.endTime);
+    const legacy = e.endTime ? `${e.startTime}–${e.endTime}` : e.startTime;
+    items.push(`${legacy} · ${e.title}`);
     rows.push({ when, title: e.title });
   }
-  if (timed.length > 6) {
-    const more = `+${timed.length - 6} more`;
+  if (timed.length > 5) {
+    const more = `+${timed.length - 5} more`;
     items.push(more);
     rows.push({ when: "", title: more, muted: true });
   }
-  for (const e of allDay.slice(0, 3)) {
+  for (const e of allDay.slice(0, 2)) {
     items.push(`All day · ${e.title}`);
     rows.push({ when: "All day", title: e.title });
   }
-  if (allDay.length > 3) {
-    const more = `+${allDay.length - 3} more all-day`;
+  if (allDay.length > 2) {
+    const more = `+${allDay.length - 2} more all-day`;
     items.push(more);
     rows.push({ when: "", title: more, muted: true });
   }
@@ -300,6 +328,13 @@ function calendarStoryFrom(
   return { lead, items: cal.items ?? [], rows: cal.rows };
 }
 
+function gapWhenLabel(g: OpenGap): string {
+  return formatBriefingWhen(
+    formatTimelineHour(g.startMin),
+    formatTimelineHour(g.endMin),
+  );
+}
+
 function planStoryFrom(
   gaps: OpenGap[],
   suggestions: GapSuggestion[],
@@ -326,7 +361,7 @@ function planStoryFrom(
       );
       const feel = gap ? gapSpanWords(gap.minutes) : "open time";
       return {
-        when: s.gapLabel,
+        when: gap ? gapWhenLabel(gap) : s.gapLabel,
         title: `${feel} for “${s.taskLabel}”`,
       };
     });
@@ -342,13 +377,13 @@ function planStoryFrom(
   return {
     lead: "Open air on the clock.",
     items: gaps
-      .slice(0, 4)
+      .slice(0, 3)
       .map(
         (g) =>
           `${formatTimelineHour(g.startMin)}–${formatTimelineHour(g.endMin)} — ${gapSpanWords(g.minutes)}.`,
       ),
-    rows: gaps.slice(0, 4).map((g) => ({
-      when: `${formatTimelineHour(g.startMin)}–${formatTimelineHour(g.endMin)}`,
+    rows: gaps.slice(0, 3).map((g) => ({
+      when: gapWhenLabel(g),
       title: gapSpanWords(g.minutes),
     })),
   };

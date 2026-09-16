@@ -3,6 +3,7 @@ import {
   buildMorningBriefing,
   clampMorningScore,
   clampSleepHours,
+  formatBriefingWhen,
   suggestTasksForGaps,
 } from "./morning-briefing";
 
@@ -22,6 +23,15 @@ describe("clampSleepHours", () => {
     expect(clampSleepHours(7.75)).toBe(8);
     expect(clampSleepHours(20)).toBe(14);
     expect(clampSleepHours(-1)).toBe(0);
+  });
+});
+
+describe("formatBriefingWhen", () => {
+  it("compacts same-meridiem ranges", () => {
+    expect(formatBriefingWhen("11:00 AM", "11:30 AM")).toBe("11–11:30a");
+    expect(formatBriefingWhen("12:00 PM", "4:00 PM")).toBe("12–4p");
+    expect(formatBriefingWhen("11:00 AM", "1:00 PM")).toBe("11a–1p");
+    expect(formatBriefingWhen("All day")).toBe("All day");
   });
 });
 

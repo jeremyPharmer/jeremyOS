@@ -25,7 +25,6 @@ import {
   type BriefingTask,
   type BriefingWeather,
 } from "@/lib/morning-briefing";
-import { quoteById } from "@/lib/quotes";
 import { dueTodosOn } from "@/lib/todos";
 import type { DailyForecast } from "@/lib/weather";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
@@ -93,10 +92,6 @@ export default function MorningPage() {
   const [briefingLoading, setBriefingLoading] = useState(false);
 
   const todayMorning = state.mornings.find((m) => m.date === today);
-  const quote = useMemo(
-    () => quoteById(todayMorning?.quoteId),
-    [todayMorning?.quoteId],
-  );
   const shownIntention =
     intention.trim() || todayMorning?.intention?.trim() || "";
   /** Morning already saved for today (or just submitted this session). */
@@ -294,28 +289,10 @@ export default function MorningPage() {
             </span>
             <span>Your day, delivered</span>
           </p>
+          {shownIntention ? (
+            <p className="paper-masthead-aim">{shownIntention}</p>
+          ) : null}
         </header>
-
-        {shownIntention ? (
-          <section className="paper-front" aria-label="Today's aim">
-            <p className="paper-kicker">Above the fold</p>
-            <h2 className="paper-headline">{shownIntention}</h2>
-            {quote ? (
-              <p className="paper-deck">
-                &ldquo;{quote.text}&rdquo;
-                <cite className="paper-deck-attr"> — {quote.attribution}</cite>
-              </p>
-            ) : null}
-          </section>
-        ) : quote ? (
-          <section className="paper-front" aria-label="Quote">
-            <p className="paper-kicker">Morning line</p>
-            <blockquote className="paper-quote">
-              <p>&ldquo;{quote.text}&rdquo;</p>
-              <footer>— {quote.attribution}</footer>
-            </blockquote>
-          </section>
-        ) : null}
 
         <div className="paper-pages">
           <section className="paper-section" aria-live="polite">
