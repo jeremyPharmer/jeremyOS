@@ -52,38 +52,19 @@ export function SoccerPanelCard() {
     return pickFeaturedGame(panel.games)?.id ?? null;
   }, [panel]);
 
-  const isGameday = useMemo(() => {
-    if (!panel || !today) return false;
-    return panel.games.some(
-      (g) =>
-        g.status !== "post" && calendarDayInTz(g.date) === today,
-    );
-  }, [panel, today]);
-
   if (!loaded || !panel || !isSoccerSeason(today)) {
     return null;
   }
 
   return (
     <a
-      className={[
-        "home-card home-card-soccer soccer-stub",
-        isGameday ? "is-gameday" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className="home-card home-card-soccer soccer-stub"
       aria-label="Warriors soccer"
       href={panel.clubhouseUrl}
       target="_blank"
       rel="noopener noreferrer"
     >
       <div className="soccer-stub-perforation" aria-hidden="true" />
-
-      {isGameday ? (
-        <span className="ticket-gameday-stamp" aria-hidden="true">
-          Gameday
-        </span>
-      ) : null}
 
       <header className="soccer-stub-header">
         <div className="soccer-stub-admit">

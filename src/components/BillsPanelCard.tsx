@@ -50,35 +50,16 @@ export function BillsPanelCard() {
     return pickFeaturedGame(panel.games)?.id ?? null;
   }, [panel]);
 
-  const isGameday = useMemo(() => {
-    if (!panel || !today) return false;
-    return panel.games.some(
-      (g) =>
-        g.status !== "post" && calendarDayInTz(g.date) === today,
-    );
-  }, [panel, today]);
-
   if (!loaded || !panel || !isBillsSeason(today)) {
     return null;
   }
 
   return (
     <section
-      className={[
-        "home-card home-card-bills bills-stub",
-        isGameday ? "is-gameday" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className="home-card home-card-bills bills-stub"
       aria-label="Buffalo Bills"
     >
       <div className="bills-stub-perforation" aria-hidden="true" />
-
-      {isGameday ? (
-        <span className="ticket-gameday-stamp" aria-hidden="true">
-          Gameday
-        </span>
-      ) : null}
 
       <header className="bills-stub-header">
         <div className="bills-stub-admit">
