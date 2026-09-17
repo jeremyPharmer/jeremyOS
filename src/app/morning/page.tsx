@@ -187,7 +187,7 @@ export default function MorningPage() {
       setBriefingLoading(true);
       try {
         const coords = readStoredCoords();
-        const weatherQs = new URLSearchParams({ days: "5" });
+        const weatherQs = new URLSearchParams({ days: "6" });
         if (coords) {
           weatherQs.set("lat", String(coords.lat));
           weatherQs.set("lon", String(coords.lon));
@@ -299,25 +299,17 @@ export default function MorningPage() {
             <p className="paper-kicker">The day ahead</p>
             {briefingLoading && events.length === 0 && !thinWeather ? (
               <p className="muted paper-loading">
-                Pulling calendar and open windows…
+                Pulling calendar…
               </p>
             ) : (
               <>
                 <p className="paper-lead">{briefing.calendarStory.lead}</p>
                 <PaperTimetable rows={briefing.calendarStory.rows} />
-
-                {briefing.planStory.rows.length > 0 ? (
-                  <>
-                    <p className="paper-subhead">Open windows</p>
-                    <PaperTimetable rows={briefing.planStory.rows} />
-                  </>
-                ) : briefing.planStory.lead ? (
-                  <p className="paper-byline">{briefing.planStory.lead}</p>
-                ) : null}
-
-                {briefing.leftoverNote ? (
-                  <p className="paper-aside">{briefing.leftoverNote}</p>
-                ) : null}
+                <BriefingTasks
+                  tasks={expandedTasks}
+                  kicker="Planned tasks"
+                  hideWhenEmpty
+                />
               </>
             )}
           </section>
@@ -332,11 +324,6 @@ export default function MorningPage() {
             />
           )}
 
-          <BriefingTasks
-            tasks={expandedTasks}
-            kicker="The list"
-            hideWhenEmpty
-          />
           <ThisDayInHistory
             today={today}
             entries={historyEntries}
@@ -377,7 +364,7 @@ export default function MorningPage() {
           value={sleepHours}
           onChange={setSleepHours}
           min={4}
-          max={12}
+          max={10}
           step={0.5}
         />
         <TapScale

@@ -92,11 +92,11 @@ export function clampMorningScore(n: number): number {
   return Math.min(10, Math.max(1, Math.round(n)));
 }
 
-/** Clock hours slept — half-hour steps from 0 to 14. */
+/** Clock hours slept — half-hour steps from 0 to 10. */
 export function clampSleepHours(n: number): number {
   if (!Number.isFinite(n)) return 7;
   const stepped = Math.round(n * 2) / 2;
-  return Math.min(14, Math.max(0, stepped));
+  return Math.min(10, Math.max(0, stepped));
 }
 
 function feelingBody(scores: BriefingScores): string {

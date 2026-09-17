@@ -4683,6 +4683,72 @@ h2 {
   gap: 8px;
 }
 
+.daily-briefing-weather-expanded {
+  text-align: center;
+}
+
+.daily-briefing-weather-expanded .daily-briefing-kicker,
+.daily-briefing-weather-expanded .daily-briefing-weather-loc {
+  text-align: center;
+}
+
+.daily-briefing-weather-expanded .daily-briefing-weather-hero {
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.daily-briefing-weather-expanded .daily-briefing-weather-hero-copy {
+  align-items: center;
+}
+
+.daily-briefing-weather-expanded .daily-briefing-weather-temps {
+  justify-content: center;
+}
+
+.daily-briefing-weather-expanded .daily-briefing-weather-temps .high {
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.daily-briefing-weather-expanded .daily-briefing-weather-temps .low {
+  font-size: 1.2rem;
+}
+
+.daily-briefing-weather-expanded .daily-briefing-weather-icon {
+  font-size: 3.2rem;
+}
+
+.daily-briefing-weather-expanded .daily-briefing-weather-label {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.daily-briefing-weather-expanded .daily-briefing-weather-note {
+  max-width: 22rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.daily-briefing-weather-expanded .daily-briefing-weather-context {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+  justify-items: center;
+}
+
+@media (max-width: 420px) {
+  .daily-briefing-weather-expanded .daily-briefing-weather-context {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 0;
+  }
+}
+
 .daily-briefing-weather-chip {
   display: flex;
   flex-direction: column;

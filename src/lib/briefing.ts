@@ -133,17 +133,24 @@ export function workoutGapInsight(
 }
 
 export type SevenDayTrendInsight = {
+  /** Today's morning values (when logged). */
+  todayMood: number | null;
+  todayEnergy: number | null;
+  todayStress: number | null;
+  todaySleepQuality: number | null;
+  todaySleepHours: number | null;
+  /** Trailing 7-day averages (excluding today when possible). */
   moodAvg: number | null;
   energyAvg: number | null;
   stressAvg: number | null;
   sleepQualityAvg: number | null;
   sleepHoursAvg: number | null;
-  /** 7-day avg minus all-time (or prior) avg — positive = this week higher. */
-  moodVsAllTime: number | null;
-  energyVsAllTime: number | null;
-  stressVsAllTime: number | null;
-  sleepQualityVsAllTime: number | null;
-  sleepHoursVsAllTime: number | null;
+  /** Today minus last-week avg — positive = today higher. */
+  moodVsLastWeek: number | null;
+  energyVsLastWeek: number | null;
+  stressVsLastWeek: number | null;
+  sleepQualityVsLastWeek: number | null;
+  sleepHoursVsLastWeek: number | null;
   lines: string[];
   moodSeries: (number | undefined)[];
   sleepQualitySeries: (number | undefined)[];
@@ -171,225 +178,188 @@ function collectMetric(
   return out;
 }
 
-/**
- * Compare this week's average to the baseline (prefer history before this week).
- * Returns delta (week − baseline) or null if not enough data.
- */
-function vsBaseline(
+function vsLastWeek(
+  todayVal: number | null,
   weekAvg: number | null,
-  weekValues: number[],
-  allPoints: TrendPoint[],
-  weekStart: string,
-  key: keyof Omit<TrendPoint, "date">,
   minDelta: number,
-): { delta: number | null; baselineAvg: number | null } {
-  if (weekAvg == null) return { delta: null, baselineAvg: null };
-
-  const prior = allPoints.filter((p) => p.date < weekStart);
-  let baselineVals = collectMetric(prior, key);
-  // Fall back to full history when there isn't a prior baseline yet.
-  if (baselineVals.length < 3) {
-    baselineVals = collectMetric(allPoints, key);
-  }
-  // Need a broader sample than this week alone.
-  if (baselineVals.length < 3 || baselineVals.length <= weekValues.length) {
-    return { delta: null, baselineAvg: avg(baselineVals) };
-  }
-
-  const baselineAvg = avg(baselineVals);
-  if (baselineAvg == null) return { delta: null, baselineAvg: null };
-  const delta = weekAvg - baselineAvg;
-  if (Math.abs(delta) < minDelta) {
-    return { delta: 0, baselineAvg };
-  }
-  return { delta, baselineAvg };
+): number | null {
+  if (todayVal == null || weekAvg == null) return null;
+  const delta = todayVal - weekAvg;
+  if (Math.abs(delta) < minDelta) return 0;
+  return delta;
 }
 
 function comparePhrase(
   delta: number | null,
-  baselineAvg: number | null,
+  weekAvg: number | null,
   opts: {
-    up: string;
-    down: string;
-    even: string;
-    formatBaseline?: (n: number) => string;
-  },
+    formatWeek?: (n: number) => string;
+  } = {},
 ): string | null {
-  if (delta == null || baselineAvg == null) return null;
-  const base =
-    opts.formatBaseline?.(baselineAvg) ?? baselineAvg.toFixed(1);
-  if (delta === 0) return `${opts.even} (all-time ${base})`;
-  if (delta > 0) return `${opts.up} all-time ${base}`;
-  return `${opts.down} all-time ${base}`;
+  if (delta == null || weekAvg == null) return null;
+  const week = opts.formatWeek?.(weekAvg) ?? weekAvg.toFixed(1);
+  if (delta === 0) return `even with last week (${week})`;
+  if (delta > 0) return `up vs last week ${week}`;
+  return `down vs last week ${week}`;
 }
 
-/** Last 7 calendar days through today, compared to all-time baseline. */
+/**
+ * Today’s check-in vs the trailing week average (“The last week”).
+ * Week average prefers the 7 days before today; falls back to the last 7
+ * including today when prior history is thin.
+ */
 export function sevenDayTrendInsight(
   state: RebuildState,
   today: string,
 ): SevenDayTrendInsight {
-  const start = addDays(today, -6);
-  const journeyStart =
-    state.profile?.startDate ??
-    state.mornings.map((m) => m.date).sort()[0] ??
-    start;
-  const allPoints = trendPointsInRange(state, journeyStart, today);
-  const weekPoints = trendPointsInRange(state, start, today);
+  const weekStart = addDays(today, -6);
+  const priorStart = addDays(today, -7);
+  const priorEnd = addDays(today, -1);
+
+  const weekPoints = trendPointsInRange(state, weekStart, today);
+  const priorPoints = trendPointsInRange(state, priorStart, priorEnd);
   const byDate = new Map(weekPoints.map((p) => [p.date, p]));
+  const todayPoint = weekPoints.find((p) => p.date === today) ?? null;
 
   const moodSeries: (number | undefined)[] = [];
   const sleepQualitySeries: (number | undefined)[] = [];
-  const moods: number[] = [];
-  const energies: number[] = [];
-  const stresses: number[] = [];
-  const qualities: number[] = [];
-  const hours: number[] = [];
-
   for (let i = 0; i < 7; i++) {
-    const date = addDays(start, i);
+    const date = addDays(weekStart, i);
     const p = byDate.get(date);
     moodSeries.push(p?.mood);
     sleepQualitySeries.push(p?.sleepQuality);
-    if (p?.mood != null) moods.push(p.mood);
-    if (p?.energy != null) energies.push(p.energy);
-    if (p?.stress != null) stresses.push(p.stress);
-    if (p?.sleepQuality != null) qualities.push(p.sleepQuality);
-    if (p?.sleepHours != null) hours.push(p.sleepHours);
   }
 
-  const moodAvg = avg(moods);
-  const energyAvg = avg(energies);
-  const stressAvg = avg(stresses);
-  const sleepQualityAvg = avg(qualities);
-  const sleepHoursAvg = avg(hours);
+  const todayMood = todayPoint?.mood ?? null;
+  const todayEnergy = todayPoint?.energy ?? null;
+  const todayStress = todayPoint?.stress ?? null;
+  const todaySleepQuality = todayPoint?.sleepQuality ?? null;
+  const todaySleepHours = todayPoint?.sleepHours ?? null;
 
-  const moodCmp = vsBaseline(moodAvg, moods, allPoints, start, "mood", 0.35);
-  const energyCmp = vsBaseline(
-    energyAvg,
-    energies,
-    allPoints,
-    start,
-    "energy",
-    0.35,
-  );
-  const stressCmp = vsBaseline(
-    stressAvg,
-    stresses,
-    allPoints,
-    start,
-    "stress",
-    0.35,
-  );
-  const sleepQualityCmp = vsBaseline(
+  const priorMoods = collectMetric(priorPoints, "mood");
+  const priorEnergies = collectMetric(priorPoints, "energy");
+  const priorStresses = collectMetric(priorPoints, "stress");
+  const priorQualities = collectMetric(priorPoints, "sleepQuality");
+  const priorHours = collectMetric(priorPoints, "sleepHours");
+
+  const usePrior = (vals: number[]) => vals.length >= 3;
+  const weekMoods = usePrior(priorMoods)
+    ? priorMoods
+    : collectMetric(weekPoints, "mood");
+  const weekEnergies = usePrior(priorEnergies)
+    ? priorEnergies
+    : collectMetric(weekPoints, "energy");
+  const weekStresses = usePrior(priorStresses)
+    ? priorStresses
+    : collectMetric(weekPoints, "stress");
+  const weekQualities = usePrior(priorQualities)
+    ? priorQualities
+    : collectMetric(weekPoints, "sleepQuality");
+  const weekHours = usePrior(priorHours)
+    ? priorHours
+    : collectMetric(weekPoints, "sleepHours");
+
+  const moodAvg = avg(weekMoods);
+  const energyAvg = avg(weekEnergies);
+  const stressAvg = avg(weekStresses);
+  const sleepQualityAvg = avg(weekQualities);
+  const sleepHoursAvg = avg(weekHours);
+
+  const moodVsLastWeek = vsLastWeek(todayMood, moodAvg, 0.35);
+  const energyVsLastWeek = vsLastWeek(todayEnergy, energyAvg, 0.35);
+  const stressVsLastWeek = vsLastWeek(todayStress, stressAvg, 0.35);
+  const sleepQualityVsLastWeek = vsLastWeek(
+    todaySleepQuality,
     sleepQualityAvg,
-    qualities,
-    allPoints,
-    start,
-    "sleepQuality",
     0.35,
   );
-  const sleepHoursCmp = vsBaseline(
-    sleepHoursAvg,
-    hours,
-    allPoints,
-    start,
-    "sleepHours",
-    0.25,
-  );
+  const sleepHoursVsLastWeek = vsLastWeek(todaySleepHours, sleepHoursAvg, 0.25);
 
   const lines: string[] = [];
 
-  if (sleepHoursAvg != null || sleepQualityAvg != null) {
+  if (todaySleepHours != null || todaySleepQuality != null) {
+    const bits: string[] = [];
+    if (todaySleepHours != null) {
+      const cmp = comparePhrase(sleepHoursVsLastWeek, sleepHoursAvg, {
+        formatWeek: (n) => `${hoursLabel(n)}h`,
+      });
+      bits.push(
+        cmp
+          ? `${hoursLabel(todaySleepHours)}h sleep — ${cmp}`
+          : `${hoursLabel(todaySleepHours)}h sleep today`,
+      );
+    }
+    if (todaySleepQuality != null) {
+      const cmp = comparePhrase(sleepQualityVsLastWeek, sleepQualityAvg);
+      bits.push(
+        cmp
+          ? `quality ${todaySleepQuality} — ${cmp}`
+          : `quality ${todaySleepQuality} today`,
+      );
+    }
+    lines.push(`Sleep today: ${bits.join("; ")}.`);
+  } else if (sleepHoursAvg != null || sleepQualityAvg != null) {
     const bits: string[] = [];
     if (sleepHoursAvg != null) {
-      const cmp = comparePhrase(
-        sleepHoursCmp.delta,
-        sleepHoursCmp.baselineAvg,
-        {
-          up: "up vs",
-          down: "down vs",
-          even: "even with all-time",
-          formatBaseline: (n) => `${hoursLabel(n)}h`,
-        },
-      );
-      bits.push(
-        cmp
-          ? `${hoursLabel(sleepHoursAvg)}h sleep — ${cmp}`
-          : `${hoursLabel(sleepHoursAvg)}h sleep avg`,
-      );
+      bits.push(`${hoursLabel(sleepHoursAvg)}h sleep avg`);
     }
     if (sleepQualityAvg != null) {
-      const cmp = comparePhrase(
-        sleepQualityCmp.delta,
-        sleepQualityCmp.baselineAvg,
-        {
-          up: "up vs",
-          down: "down vs",
-          even: "even with all-time",
-        },
-      );
-      bits.push(
-        cmp
-          ? `quality ${sleepQualityAvg.toFixed(1)} — ${cmp}`
-          : `quality ${sleepQualityAvg.toFixed(1)}`,
-      );
+      bits.push(`quality ${sleepQualityAvg.toFixed(1)}`);
     }
-    lines.push(`Sleep this week: ${bits.join("; ")}.`);
+    lines.push(`Sleep last week: ${bits.join("; ")}.`);
   }
 
-  if (moodAvg != null) {
-    const cmp = comparePhrase(moodCmp.delta, moodCmp.baselineAvg, {
-      up: "up vs",
-      down: "down vs",
-      even: "even with all-time",
-    });
+  if (todayMood != null) {
+    const cmp = comparePhrase(moodVsLastWeek, moodAvg);
     lines.push(
       cmp
-        ? `Mood averaging ${moodAvg.toFixed(1)} — ${cmp}.`
-        : `Mood averaging ${moodAvg.toFixed(1)} over the last 7 days.`,
+        ? `Mood today ${todayMood} — ${cmp}.`
+        : `Mood today ${todayMood}.`,
     );
+  } else if (moodAvg != null) {
+    lines.push(`Mood averaging ${moodAvg.toFixed(1)} over the last week.`);
   } else {
-    lines.push("Not enough mood check-ins yet for a 7-day read.");
+    lines.push("Not enough mood check-ins yet for a weekly read.");
   }
 
-  if (energyAvg != null) {
-    const cmp = comparePhrase(energyCmp.delta, energyCmp.baselineAvg, {
-      up: "up vs",
-      down: "down vs",
-      even: "even with all-time",
-    });
+  if (todayEnergy != null) {
+    const cmp = comparePhrase(energyVsLastWeek, energyAvg);
     lines.push(
       cmp
-        ? `Energy averaging ${energyAvg.toFixed(1)} — ${cmp}.`
-        : `Energy averaging ${energyAvg.toFixed(1)} over the last 7 days.`,
+        ? `Energy today ${todayEnergy} — ${cmp}.`
+        : `Energy today ${todayEnergy}.`,
     );
+  } else if (energyAvg != null) {
+    lines.push(`Energy averaging ${energyAvg.toFixed(1)} over the last week.`);
   }
 
-  if (stressAvg != null) {
-    // For stress, "up" means higher stress (worse) — still say up/down vs all-time clearly.
-    const cmp = comparePhrase(stressCmp.delta, stressCmp.baselineAvg, {
-      up: "up vs",
-      down: "down vs",
-      even: "even with all-time",
-    });
+  if (todayStress != null) {
+    const cmp = comparePhrase(stressVsLastWeek, stressAvg);
     lines.push(
       cmp
-        ? `Stress averaging ${stressAvg.toFixed(1)} — ${cmp}.`
-        : `Stress averaging ${stressAvg.toFixed(1)} over the last 7 days.`,
+        ? `Stress today ${todayStress} — ${cmp}.`
+        : `Stress today ${todayStress}.`,
     );
+  } else if (stressAvg != null) {
+    lines.push(`Stress averaging ${stressAvg.toFixed(1)} over the last week.`);
   }
 
   return {
+    todayMood,
+    todayEnergy,
+    todayStress,
+    todaySleepQuality,
+    todaySleepHours,
     moodAvg,
     energyAvg,
     stressAvg,
     sleepQualityAvg,
     sleepHoursAvg,
-    moodVsAllTime: moodCmp.delta,
-    energyVsAllTime: energyCmp.delta,
-    stressVsAllTime: stressCmp.delta,
-    sleepQualityVsAllTime: sleepQualityCmp.delta,
-    sleepHoursVsAllTime: sleepHoursCmp.delta,
+    moodVsLastWeek,
+    energyVsLastWeek,
+    stressVsLastWeek,
+    sleepQualityVsLastWeek,
+    sleepHoursVsLastWeek,
     lines,
     moodSeries,
     sleepQualitySeries,
