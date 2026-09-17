@@ -25,7 +25,6 @@ import {
   type BriefingTask,
   type BriefingWeather,
 } from "@/lib/morning-briefing";
-import { quoteById } from "@/lib/quotes";
 import { dueTodosOn } from "@/lib/todos";
 import type { DailyForecast } from "@/lib/weather";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
@@ -93,10 +92,6 @@ export default function MorningPage() {
   const [briefingLoading, setBriefingLoading] = useState(false);
 
   const todayMorning = state.mornings.find((m) => m.date === today);
-  const quote = useMemo(
-    () => quoteById(todayMorning?.quoteId),
-    [todayMorning?.quoteId],
-  );
   const shownIntention =
     intention.trim() || todayMorning?.intention?.trim() || "";
   /** Morning already saved for today (or just submitted this session). */
@@ -192,7 +187,7 @@ export default function MorningPage() {
       setBriefingLoading(true);
       try {
         const coords = readStoredCoords();
-        const weatherQs = new URLSearchParams({ days: "5" });
+        const weatherQs = new URLSearchParams({ days: "6" });
         if (coords) {
           weatherQs.set("lat", String(coords.lat));
           weatherQs.set("lon", String(coords.lon));
@@ -294,53 +289,27 @@ export default function MorningPage() {
             </span>
             <span>Your day, delivered</span>
           </p>
+          {shownIntention ? (
+            <p className="paper-masthead-aim">{shownIntention}</p>
+          ) : null}
         </header>
-
-        {shownIntention ? (
-          <section className="paper-front" aria-label="Today's aim">
-            <p className="paper-kicker">Above the fold</p>
-            <h2 className="paper-headline">{shownIntention}</h2>
-            {quote ? (
-              <p className="paper-deck">
-                &ldquo;{quote.text}&rdquo;
-                <cite className="paper-deck-attr"> — {quote.attribution}</cite>
-              </p>
-            ) : null}
-          </section>
-        ) : quote ? (
-          <section className="paper-front" aria-label="Quote">
-            <p className="paper-kicker">Morning line</p>
-            <blockquote className="paper-quote">
-              <p>&ldquo;{quote.text}&rdquo;</p>
-              <footer>— {quote.attribution}</footer>
-            </blockquote>
-          </section>
-        ) : null}
 
         <div className="paper-pages">
           <section className="paper-section" aria-live="polite">
             <p className="paper-kicker">The day ahead</p>
             {briefingLoading && events.length === 0 && !thinWeather ? (
               <p className="muted paper-loading">
-                Pulling calendar and open windows…
+                Pulling calendar…
               </p>
             ) : (
               <>
                 <p className="paper-lead">{briefing.calendarStory.lead}</p>
                 <PaperTimetable rows={briefing.calendarStory.rows} />
-
-                {briefing.planStory.rows.length > 0 ? (
-                  <>
-                    <p className="paper-subhead">Open windows</p>
-                    <PaperTimetable rows={briefing.planStory.rows} />
-                  </>
-                ) : briefing.planStory.lead ? (
-                  <p className="paper-byline">{briefing.planStory.lead}</p>
-                ) : null}
-
-                {briefing.leftoverNote ? (
-                  <p className="paper-aside">{briefing.leftoverNote}</p>
-                ) : null}
+                <BriefingTasks
+                  tasks={expandedTasks}
+                  kicker="Planned tasks"
+                  hideWhenEmpty
+                />
               </>
             )}
           </section>
@@ -355,11 +324,6 @@ export default function MorningPage() {
             />
           )}
 
-          <BriefingTasks
-            tasks={expandedTasks}
-            kicker="The list"
-            hideWhenEmpty
-          />
           <ThisDayInHistory
             today={today}
             entries={historyEntries}
@@ -400,7 +364,7 @@ export default function MorningPage() {
           value={sleepHours}
           onChange={setSleepHours}
           min={4}
-          max={12}
+          max={10}
           step={0.5}
         />
         <TapScale

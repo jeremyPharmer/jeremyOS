@@ -62,14 +62,14 @@ export function WeatherExpanded({
     (mode === "tomorrow" ? days[1] : days[0]);
   const contextDays =
     mode === "today"
-      ? days
-          .filter((d) => d.date !== focus?.date)
-          // Skip tomorrow — today hero already covers the near term.
-          .slice(1, 3)
+      ? days.filter((d) => d.date !== focus?.date).slice(0, 4)
       : [];
 
   return (
-    <section className="daily-briefing-section daily-briefing-weather" aria-label="Weather">
+    <section
+      className="daily-briefing-section daily-briefing-weather daily-briefing-weather-expanded"
+      aria-label="Weather"
+    >
       <p className="daily-briefing-kicker">
         {mode === "tomorrow" ? "Tomorrow's forecast" : "Forecast"}
       </p>
@@ -98,7 +98,10 @@ export function WeatherExpanded({
             </div>
           </div>
           {contextDays.length > 0 ? (
-            <div className="daily-briefing-weather-context" aria-label="Coming days">
+            <div
+              className="daily-briefing-weather-context"
+              aria-label="Coming days"
+            >
               {contextDays.map((day) => (
                 <div key={day.date} className="daily-briefing-weather-chip">
                   <span className="dow">{dayAbbrev(day.date)}</span>
@@ -221,7 +224,7 @@ export function WorldHeadlines({
 export function BriefingTasks({
   tasks,
   emptyLabel = "Nothing due today.",
-  kicker = "The list",
+  kicker = "Planned tasks",
   hideWhenEmpty = false,
 }: {
   tasks: BriefingTaskRow[];
@@ -321,9 +324,9 @@ export function BodyMind({
   return (
     <section
       className="daily-briefing-section daily-briefing-bodymind"
-      aria-label="Last 7 days"
+      aria-label="The last week"
     >
-      <p className="daily-briefing-kicker">Last 7 days</p>
+      <p className="daily-briefing-kicker">The last week</p>
       <div className="daily-briefing-bodymind-block">
         {trends.lines.map((line) => (
           <p key={line} className="daily-briefing-bodymind-line">

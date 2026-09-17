@@ -101,7 +101,60 @@ describe("workoutGapInsight", () => {
 });
 
 describe("sevenDayTrendInsight", () => {
-  it("averages mood and sleep across the last 7 days", () => {
+  it("compares today's check-in to the last week average", () => {
+    const mornings = [];
+    for (const date of [
+      "2026-09-05",
+      "2026-09-06",
+      "2026-09-07",
+      "2026-09-08",
+      "2026-09-09",
+      "2026-09-10",
+      "2026-09-11",
+    ]) {
+      mornings.push({
+        date,
+        sleepHours: 6,
+        sleepQuality: 5,
+        mood: 4,
+        energy: 4,
+        stress: 7,
+        intention: "week",
+        completedAt: `${date}T08:00:00.000Z`,
+      });
+    }
+    mornings.push({
+      date: "2026-09-12",
+      sleepHours: 8,
+      sleepQuality: 8,
+      mood: 8,
+      energy: 8,
+      stress: 3,
+      intention: "today",
+      completedAt: "2026-09-12T08:00:00.000Z",
+    });
+
+    const state = {
+      mornings,
+      evenings: [],
+      journals: [],
+      profile: { startDate: "2026-08-01" },
+    } as unknown as RebuildState;
+
+    const insight = sevenDayTrendInsight(state, "2026-09-12");
+    expect(insight.moodSeries).toHaveLength(7);
+    expect(insight.todayMood).toBe(8);
+    expect(insight.moodAvg).toBeCloseTo(4, 1);
+    expect(insight.moodVsLastWeek).not.toBeNull();
+    expect(insight.moodVsLastWeek!).toBeGreaterThan(0);
+    expect(insight.lines.some((l) => /Mood today 8/.test(l))).toBe(true);
+    expect(insight.lines.some((l) => /up vs last week/.test(l))).toBe(true);
+    expect(insight.lines.every((l) => !/all-time/i.test(l))).toBe(true);
+    expect(insight.stressVsLastWeek).not.toBeNull();
+    expect(insight.stressVsLastWeek!).toBeLessThan(0);
+  });
+
+  it("falls back to week averages when today is not logged yet", () => {
     const state = {
       mornings: [
         {
@@ -124,16 +177,6 @@ describe("sevenDayTrendInsight", () => {
           intention: "b",
           completedAt: "2026-09-10T08:00:00.000Z",
         },
-        {
-          date: "2026-09-12",
-          sleepHours: 7,
-          sleepQuality: 7,
-          mood: 7,
-          energy: 7,
-          stress: 4,
-          intention: "c",
-          completedAt: "2026-09-12T08:00:00.000Z",
-        },
       ],
       evenings: [],
       journals: [],
@@ -141,64 +184,8 @@ describe("sevenDayTrendInsight", () => {
     } as unknown as RebuildState;
 
     const insight = sevenDayTrendInsight(state, "2026-09-12");
-    expect(insight.moodSeries).toHaveLength(7);
+    expect(insight.todayMood).toBeNull();
     expect(insight.moodAvg).not.toBeNull();
     expect(insight.lines.some((l) => /Mood averaging/.test(l))).toBe(true);
-    expect(insight.lines.some((l) => /Sleep this week|sleep/i.test(l))).toBe(
-      true,
-    );
-    expect(insight.lines.some((l) => /Energy averaging/.test(l))).toBe(true);
-    expect(insight.lines.some((l) => /Stress averaging/.test(l))).toBe(true);
-  });
-
-  it("compares this week to all-time when prior history exists", () => {
-    const mornings = [];
-    // Low baseline history before the week window (before 2026-09-06)
-    for (const date of [
-      "2026-08-20",
-      "2026-08-22",
-      "2026-08-25",
-      "2026-08-28",
-      "2026-09-01",
-      "2026-09-03",
-    ]) {
-      mornings.push({
-        date,
-        sleepHours: 6,
-        sleepQuality: 5,
-        mood: 4,
-        energy: 4,
-        stress: 7,
-        intention: "base",
-        completedAt: `${date}T08:00:00.000Z`,
-      });
-    }
-    // Stronger week
-    for (const date of ["2026-09-08", "2026-09-10", "2026-09-12"]) {
-      mornings.push({
-        date,
-        sleepHours: 8,
-        sleepQuality: 8,
-        mood: 8,
-        energy: 8,
-        stress: 3,
-        intention: "week",
-        completedAt: `${date}T08:00:00.000Z`,
-      });
-    }
-
-    const state = {
-      mornings,
-      evenings: [],
-      journals: [],
-      profile: { startDate: "2026-08-01" },
-    } as unknown as RebuildState;
-
-    const insight = sevenDayTrendInsight(state, "2026-09-12");
-    expect(insight.moodVsAllTime).not.toBeNull();
-    expect(insight.moodVsAllTime!).toBeGreaterThan(0);
-    expect(insight.lines.some((l) => /up vs all-time/.test(l))).toBe(true);
-    expect(insight.stressVsAllTime).not.toBeNull();
-    expect(insight.stressVsAllTime!).toBeLessThan(0);
   });
 });
