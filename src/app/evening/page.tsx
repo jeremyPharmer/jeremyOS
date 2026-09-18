@@ -33,6 +33,7 @@ import {
   isStarredDay,
 } from "@/lib/journal";
 import type { NewsHeadline } from "@/lib/news";
+import type { OnThisDayEvent } from "@/lib/on-this-day";
 import { completedTodosForUndo, openTodosOn } from "@/lib/todos";
 import type { DailyForecast } from "@/lib/weather";
 
@@ -119,6 +120,8 @@ function EveningPageInner() {
   const [weatherDays, setWeatherDays] = useState<DailyForecast[]>([]);
   const [weatherLocation, setWeatherLocation] = useState("");
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [worldEvent, setWorldEvent] = useState<OnThisDayEvent | null>(null);
+  const [worldLoading, setWorldLoading] = useState(false);
 
   const summarySentences = countSentences(standOut);
   const summaryOver =
@@ -211,6 +214,7 @@ function EveningPageInner() {
     let cancelled = false;
     setNewsLoading(true);
     setWeatherLoading(true);
+    setWorldLoading(true);
 
     (async () => {
       try {
@@ -223,9 +227,12 @@ function EveningPageInner() {
             weatherQs.set("label", coords.label);
           }
         }
-        const [newsRes, weatherRes] = await Promise.all([
+        const [newsRes, weatherRes, onThisDayRes] = await Promise.all([
           fetch(`/api/news?date=${encodeURIComponent(editionClosed.date)}`),
           fetch(`/api/weather?${weatherQs.toString()}`),
+          fetch(
+            `/api/on-this-day?date=${encodeURIComponent(editionClosed.date)}`,
+          ),
         ]);
         if (cancelled) return;
         if (newsRes.ok) {
@@ -242,12 +249,19 @@ function EveningPageInner() {
           setWeatherDays(data.days ?? []);
           setWeatherLocation(data.locationLabel ?? "");
         }
+        if (onThisDayRes.ok) {
+          const data = (await onThisDayRes.json()) as {
+            event?: OnThisDayEvent | null;
+          };
+          setWorldEvent(data.event ?? null);
+        }
       } catch {
         /* fail soft — briefing still works without news/weather */
       } finally {
         if (!cancelled) {
           setNewsLoading(false);
           setWeatherLoading(false);
+          setWorldLoading(false);
         }
       }
     })();
@@ -395,7 +409,7 @@ function EveningPageInner() {
     const editionDate = formatHomeHeaderDate(editionClosed.date);
     return (
       <main
-        className={`stack daily-briefing evening-recap paper-edition${
+        className={`stack daily-briefing evening-recap paper-edition paper-rundown${
           result ? " success-pop" : " fade-in"
         }`}
       >
@@ -449,7 +463,7 @@ function EveningPageInner() {
           </div>
         ) : null}
 
-        <div className="paper-pages">
+        <div className="paper-pages paper-card-stack">
           <WeatherExpanded
             mode="tomorrow"
             locationLabel={weatherLocation}
@@ -458,22 +472,24 @@ function EveningPageInner() {
             loading={weatherLoading}
           />
 
-          <ThisDayInHistory
-            today={editionClosed.date}
-            entries={historyEntries}
-            hideWhenEmpty
-          />
-          <WorldHeadlines
-            headlines={news}
-            loading={newsLoading}
-            hideWhenEmpty
-          />
           <BriefingTasks
             tasks={briefingTasks}
             emptyLabel="No tasks logged for this day."
             hideWhenEmpty
           />
           <BodyMind workouts={workoutGaps} trends={trends} />
+          <WorldHeadlines
+            headlines={news}
+            loading={newsLoading}
+            hideWhenEmpty
+          />
+          <ThisDayInHistory
+            today={editionClosed.date}
+            entries={historyEntries}
+            worldEvent={worldEvent}
+            worldLoading={worldLoading}
+            hideWhenEmpty
+          />
         </div>
 
         <PrimaryButton onClick={() => router.push("/journal")}>

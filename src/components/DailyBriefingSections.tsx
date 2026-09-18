@@ -13,6 +13,7 @@ import {
   type TaskGroup,
 } from "@/lib/task-groups";
 import type { NewsHeadline } from "@/lib/news";
+import type { OnThisDayEvent } from "@/lib/on-this-day";
 import {
   dayAbbrev,
   weatherDetailNote,
@@ -67,12 +68,15 @@ export function WeatherExpanded({
 
   return (
     <section
-      className="daily-briefing-section daily-briefing-weather daily-briefing-weather-expanded"
+      className="daily-briefing-section daily-briefing-weather daily-briefing-weather-expanded paper-card"
       aria-label="Weather"
     >
-      <p className="daily-briefing-kicker">
-        {mode === "tomorrow" ? "Tomorrow's forecast" : "Forecast"}
-      </p>
+      <div className="paper-card-head">
+        <p className="daily-briefing-kicker">
+          {mode === "tomorrow" ? "Tomorrow's forecast" : "Forecast"}
+        </p>
+        <p className="paper-card-tag">Skies</p>
+      </div>
       {loading && !focus ? (
         <p className="muted tiny">Loading forecast…</p>
       ) : !focus ? (
@@ -129,45 +133,92 @@ export function WeatherExpanded({
 export function ThisDayInHistory({
   today,
   entries,
+  worldEvent,
+  worldLoading,
   hideWhenEmpty = false,
 }: {
   today: string;
   entries: ThisDayHistoryEntry[];
-  /** Skip the whole section when there are no past entries. */
+  /** One world anniversary for this month-day. */
+  worldEvent?: OnThisDayEvent | null;
+  worldLoading?: boolean;
+  /** Skip when no journal rows and no world event (and not loading). */
   hideWhenEmpty?: boolean;
 }) {
-  if (hideWhenEmpty && entries.length === 0) return null;
+  const hasJournal = entries.length > 0;
+  const hasWorld = Boolean(worldEvent);
+  if (
+    hideWhenEmpty &&
+    !hasJournal &&
+    !hasWorld &&
+    !worldLoading
+  ) {
+    return null;
+  }
+
   return (
     <section
-      className="daily-briefing-section daily-briefing-history"
+      className="daily-briefing-section daily-briefing-history paper-card paper-card-history"
       aria-label="On this date"
     >
-      <p className="daily-briefing-kicker">{thisDayInHistoryTitle(today)}</p>
-      {entries.length === 0 ? (
+      <div className="paper-card-head">
+        <p className="daily-briefing-kicker">{thisDayInHistoryTitle(today)}</p>
+        <p className="paper-card-tag">Archive</p>
+      </div>
+
+      {worldLoading && !hasWorld ? (
+        <p className="muted tiny paper-card-loading">Looking up this date…</p>
+      ) : hasWorld && worldEvent ? (
+        <div className="paper-history-world">
+          <p className="paper-history-world-label">Also on this date</p>
+          <p className="paper-history-world-year">{worldEvent.year}</p>
+          {worldEvent.url ? (
+            <a
+              href={worldEvent.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="paper-history-world-text"
+            >
+              {worldEvent.text}
+            </a>
+          ) : (
+            <p className="paper-history-world-text">{worldEvent.text}</p>
+          )}
+        </div>
+      ) : null}
+
+      {hasJournal ? (
+        <>
+          <p className="paper-history-journal-label">From your journal</p>
+          <ol className="daily-briefing-history-timeline">
+            {entries.map((entry) => (
+              <li key={entry.date} className="daily-briefing-history-item">
+                <span className="daily-briefing-history-year">{entry.year}</span>
+                <div className="daily-briefing-history-body">
+                  {entry.headline ? (
+                    <p className="daily-briefing-history-headline">
+                      {entry.headline}
+                    </p>
+                  ) : null}
+                  {entry.summary?.trim() ? (
+                    <p className="daily-briefing-history-excerpt">
+                      {historyExcerpt(entry)}
+                    </p>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </>
+      ) : !worldLoading && !hasWorld ? (
         <p className="muted tiny">
           No journal entries for this date in past years yet.
         </p>
-      ) : (
-        <ol className="daily-briefing-history-timeline">
-          {entries.map((entry) => (
-            <li key={entry.date} className="daily-briefing-history-item">
-              <span className="daily-briefing-history-year">{entry.year}</span>
-              <div className="daily-briefing-history-body">
-                {entry.headline ? (
-                  <p className="daily-briefing-history-headline">
-                    {entry.headline}
-                  </p>
-                ) : null}
-                {entry.summary?.trim() ? (
-                  <p className="daily-briefing-history-excerpt">
-                    {historyExcerpt(entry)}
-                  </p>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
+      ) : !hasJournal && hasWorld ? (
+        <p className="paper-history-empty-journal muted tiny">
+          No journal pages for this date yet — start one this evening.
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -236,10 +287,13 @@ export function BriefingTasks({
   if (hideWhenEmpty && tasks.length === 0) return null;
   return (
     <section
-      className="daily-briefing-section daily-briefing-tasks"
+      className="daily-briefing-section daily-briefing-tasks paper-card"
       aria-label={kicker}
     >
-      <p className="daily-briefing-kicker">{kicker}</p>
+      <div className="paper-card-head">
+        <p className="daily-briefing-kicker">{kicker}</p>
+        <p className="paper-card-tag">Desk</p>
+      </div>
       {tasks.length === 0 ? (
         <p className="muted tiny">{emptyLabel}</p>
       ) : (
@@ -314,6 +368,42 @@ export function PaperTimetable({
   );
 }
 
+function pulseDelta(delta: number | null): {
+  tone: "up" | "down" | "even" | "none";
+  label: string;
+} {
+  if (delta == null) return { tone: "none", label: "—" };
+  if (delta === 0) return { tone: "even", label: "even" };
+  if (delta > 0) return { tone: "up", label: "up" };
+  return { tone: "down", label: "down" };
+}
+
+function pulseValue(
+  today: number | null,
+  weekAvg: number | null,
+  opts?: { hours?: boolean },
+): { display: string; caption: string } {
+  const fmt = (n: number) =>
+    opts?.hours
+      ? Number.isInteger(n)
+        ? `${n}h`
+        : `${n.toFixed(1)}h`
+      : Number.isInteger(n)
+        ? String(n)
+        : n.toFixed(1);
+  if (today != null) {
+    return {
+      display: fmt(today),
+      caption: weekAvg != null ? `wk ${fmt(weekAvg)}` : "today",
+    };
+  }
+  if (weekAvg != null) {
+    return { display: fmt(weekAvg), caption: "week avg" };
+  }
+  return { display: "—", caption: "no data" };
+}
+
+/** Newspaper pulse box score — today vs last week. */
 export function BodyMind({
   workouts,
   trends,
@@ -321,20 +411,102 @@ export function BodyMind({
   workouts: WorkoutGapInsight;
   trends: SevenDayTrendInsight;
 }) {
+  const sleepIsHours =
+    trends.todaySleepHours != null ||
+    (trends.todaySleepQuality == null && trends.sleepHoursAvg != null);
+
+  const rows: {
+    key: string;
+    label: string;
+    today: number | null;
+    avg: number | null;
+    delta: number | null;
+    hours?: boolean;
+  }[] = [
+    {
+      key: "mood",
+      label: "Mood",
+      today: trends.todayMood,
+      avg: trends.moodAvg,
+      delta: trends.moodVsLastWeek,
+    },
+    {
+      key: "energy",
+      label: "Energy",
+      today: trends.todayEnergy,
+      avg: trends.energyAvg,
+      delta: trends.energyVsLastWeek,
+    },
+    {
+      key: "stress",
+      label: "Stress",
+      today: trends.todayStress,
+      avg: trends.stressAvg,
+      delta: trends.stressVsLastWeek,
+    },
+    {
+      key: "sleep",
+      label: "Sleep",
+      today: sleepIsHours ? trends.todaySleepHours : trends.todaySleepQuality,
+      avg: sleepIsHours ? trends.sleepHoursAvg : trends.sleepQualityAvg,
+      delta: sleepIsHours
+        ? trends.sleepHoursVsLastWeek
+        : trends.sleepQualityVsLastWeek,
+      hours: sleepIsHours,
+    },
+  ];
+
   return (
     <section
-      className="daily-briefing-section daily-briefing-bodymind"
+      className="daily-briefing-section daily-briefing-bodymind paper-pulse paper-card"
       aria-label="The last week"
     >
-      <p className="daily-briefing-kicker">The last week</p>
-      <div className="daily-briefing-bodymind-block">
-        {trends.lines.map((line) => (
-          <p key={line} className="daily-briefing-bodymind-line">
-            {line}
-          </p>
-        ))}
-        <p className="daily-briefing-bodymind-line">{workouts.anyLabel}</p>
+      <div className="paper-pulse-head paper-card-head">
+        <p className="daily-briefing-kicker">The last week</p>
+        <p className="paper-pulse-tag">Pulse</p>
       </div>
+      <div className="paper-pulse-scoreboard" role="list">
+        {rows.map((row) => {
+          const value = pulseValue(row.today, row.avg, { hours: row.hours });
+          const vs = pulseDelta(row.delta);
+          return (
+            <div key={row.key} className="paper-pulse-stat" role="listitem">
+              <span className="paper-pulse-label">{row.label}</span>
+              <span className="paper-pulse-value">{value.display}</span>
+              <span className={`paper-pulse-delta paper-pulse-delta-${vs.tone}`}>
+                {row.today != null && row.avg != null ? (
+                  <>
+                    <span className="paper-pulse-arrow" aria-hidden>
+                      {vs.tone === "up" ? "▲" : vs.tone === "down" ? "▼" : "●"}
+                    </span>
+                    {vs.label} · {value.caption}
+                  </>
+                ) : (
+                  value.caption
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {trends.todaySleepHours != null && trends.todaySleepQuality != null ? (
+        <p className="paper-pulse-note">
+          Sleep quality {trends.todaySleepQuality}
+          {trends.sleepQualityAvg != null
+            ? ` — ${
+                trends.sleepQualityVsLastWeek == null
+                  ? "today"
+                  : trends.sleepQualityVsLastWeek === 0
+                    ? "even with"
+                    : trends.sleepQualityVsLastWeek > 0
+                      ? "up vs"
+                      : "down vs"
+              } last week ${trends.sleepQualityAvg.toFixed(1)}`
+            : ""}
+          .
+        </p>
+      ) : null}
+      <p className="paper-pulse-workout">{workouts.anyLabel}</p>
     </section>
   );
 }
