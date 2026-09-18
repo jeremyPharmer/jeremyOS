@@ -48,16 +48,33 @@ describe("mini crossword pack", () => {
 
   it("keeps today’s pin on a fresh 5×5 with unique clues", () => {
     const p = puzzleForDate("2026-09-15");
-    expect(p.id).toBe("folk-liege");
+    expect(p.id).toBe("care-radio");
     expect(p.rows.length).toBe(5);
-    expect(answerAt(p, 1, "across")).toBe("FOLK");
-    expect(answerAt(p, 4, "across")).toBe("OPERA");
-    expect(answerAt(p, 5, "across")).toBe("NEST");
-    expect(answerAt(p, 1, "down")).toBe("FLOW");
-    expect(answerAt(p, 2, "down")).toBe("LIEGE");
-    expect(answerAt(p, 3, "down")).toBe("EAST");
+    expect(answerAt(p, 1, "across")).toBe("CARE");
+    expect(answerAt(p, 4, "across")).toBe("RADIO");
+    expect(answerAt(p, 5, "across")).toBe("IRON");
+    expect(answerAt(p, 1, "down")).toBe("CORE");
+    expect(answerAt(p, 2, "down")).toBe("RIDER");
+    expect(answerAt(p, 3, "down")).toBe("HORN");
     const clues = [...p.across, ...p.down].map((c) => c.clue);
     expect(new Set(clues).size).toBe(clues.length);
+  });
+
+  it("never reuses the same answer word across the pack", () => {
+    const seen = new Map<string, string>();
+    for (const p of MINI_CROSSWORDS) {
+      for (const dir of ["across", "down"] as const) {
+        for (const c of p[dir]) {
+          const a = answerAt(p, c.num, dir);
+          const where = `${p.id}:${dir}:${c.num}`;
+          expect(seen.has(a), `duplicate answer "${a}" at ${where} (also ${seen.get(a)})`).toBe(
+            false,
+          );
+          seen.set(a, where);
+        }
+      }
+    }
+    expect(seen.size).toBeGreaterThanOrEqual(MINI_CROSSWORDS.length * 5);
   });
 
   it("rejects duplicate clue text", () => {
@@ -136,13 +153,13 @@ describe("correct word feedback", () => {
 
 describe("clear entry helpers", () => {
   it("clears letters for the active clue without touching others", () => {
-    const puzzle = MINI_CROSSWORDS.find((p) => p.id === "glow-ideal")!;
+    const puzzle = MINI_CROSSWORDS.find((p) => p.id === "ache-lemon")!;
     const cells = emptyCellsForPuzzle(puzzle);
     const across = puzzle.across[0]!;
     const indexes = wordCellIndexes(puzzle, across.num, "across");
     const answer = answerAt(puzzle, across.num, "across");
     for (let i = 0; i < indexes.length; i++) {
-      cells[indexes[i]!] = answer[i] === "G" ? "X" : answer[i]!;
+      cells[indexes[i]!] = answer[i] === "A" ? "X" : answer[i]!;
     }
     const other = wordCellIndexes(puzzle, puzzle.across[1]!.num, "across")[0]!;
     cells[other] = "Z";
@@ -157,7 +174,7 @@ describe("clear entry helpers", () => {
   });
 
   it("keeps letters that already belong to a correct crossing word", () => {
-    const puzzle = MINI_CROSSWORDS.find((p) => p.id === "glow-ideal")!;
+    const puzzle = MINI_CROSSWORDS.find((p) => p.id === "ache-lemon")!;
     const cells = emptyCellsForPuzzle(puzzle);
     // Fill 1-Down correctly so those cells are locked as correct.
     const downIndexes = wordCellIndexes(puzzle, 1, "down");
@@ -189,7 +206,7 @@ describe("clear entry helpers", () => {
   });
 
   it("moves along across/down, not flat grid order", () => {
-    const puzzle = MINI_CROSSWORDS.find((p) => p.id === "glow-ideal")!;
+    const puzzle = MINI_CROSSWORDS.find((p) => p.id === "ache-lemon")!;
     const start = wordCellIndexes(puzzle, 1, "down")[0]!;
     const nextDown = nextCellInDirection(puzzle, start, "down", 1);
     expect(nextDown).toBe(start + 5);

@@ -43,8 +43,8 @@ export type DailyCrosswordState = {
 };
 
 /**
- * Hand-authored pack — mix of sizes (5–7) and black patterns so days
- * aren’t always the same five-letter-across mini.
+ * Hand-authored pack — mix of classic and ladder 5×5 shapes.
+ * Answer words must stay unique across the whole pack (enforced in tests).
  * Rotate by day-of-year; optional DATE_PUZZLES overrides for a given day.
  */
 export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
@@ -63,17 +63,17 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
-    id: "glow-ideal",
-    rows: ["GLOW#", "R#P#F", "IDEAL", "T#R#I", "#LAMP"],
+    id: "ache-lemon",
+    rows: ["ACHE#", "X#U#K", "LEMON", "E#O#O", "#CRAB"],
     across: [
-      { num: 1, clue: "Soft radiance" },
-      { num: 4, clue: "Perfect, as a day" },
-      { num: 5, clue: "Bedside light" },
+      { num: 1, clue: "Dull, lingering pain" },
+      { num: 4, clue: "Yellow citrus" },
+      { num: 5, clue: "Sideways beach walker" },
     ],
     down: [
-      { num: 1, clue: "Sandpaper quality" },
-      { num: 2, clue: "Met’s singing house" },
-      { num: 3, clue: "Turn over, as a pancake" },
+      { num: 1, clue: "Car’s drive shaft" },
+      { num: 2, clue: "Comic’s secret weapon" },
+      { num: 3, clue: "Door or drawer handle" },
     ],
   },
   {
@@ -91,17 +91,17 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
-    id: "wasp-score",
-    rows: ["WASP#", "I#T#N", "SCORE", "P#V#O", "#VEIN"],
+    id: "barn-novel",
+    rows: ["BARN#", "E#I#S", "NOVEL", "D#E#A", "#DRUM"],
     across: [
-      { num: 1, clue: "Picnic pest" },
-      { num: 4, clue: "Final tally" },
-      { num: 5, clue: "Blood vessel" },
+      { num: 1, clue: "Hayloft housing" },
+      { num: 4, clue: "Bookstore fiction" },
+      { num: 5, clue: "Beat-keeper in a kit" },
     ],
     down: [
-      { num: 1, clue: "Thin strand" },
-      { num: 2, clue: "Kitchen heat box" },
-      { num: 3, clue: "Gas-station glow" },
+      { num: 1, clue: "Curve in the road" },
+      { num: 2, clue: "Amazon’s namesake waterway" },
+      { num: 3, clue: "Shut loudly" },
     ],
   },
   {
@@ -119,45 +119,17 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
-    id: "beam-ideal",
-    rows: ["BEAM#", "A#L#P", "IDEAL", "T#R#U", "#ITEM"],
+    id: "blue-input",
+    rows: ["BLUE#", "R#P#S", "INPUT", "M#E#A", "#TRAY"],
     across: [
-      { num: 1, clue: "Grin widely" },
-      { num: 4, clue: "Model example" },
-      { num: 5, clue: "Agenda bullet" },
+      { num: 1, clue: "Feeling down" },
+      { num: 4, clue: "What a keyboard provides" },
+      { num: 5, clue: "Cafeteria carrier" },
     ],
     down: [
-      { num: 1, clue: "Hook’s offering" },
-      { num: 2, clue: "Heads-up, as a warning" },
-      { num: 3, clue: "Purple stone fruit" },
-    ],
-  },
-  {
-    id: "folk-liege",
-    rows: ["FOLK#", "L#I#E", "OPERA", "W#G#S", "#NEST"],
-    across: [
-      { num: 1, clue: "Traditional tunes, collectively" },
-      { num: 4, clue: "La Scala spectacle" },
-      { num: 5, clue: "Robin’s twiggy home" },
-    ],
-    down: [
-      { num: 1, clue: "Go with the ___" },
-      { num: 2, clue: "Feudal lord" },
-      { num: 3, clue: "Toward sunrise" },
-    ],
-  },
-  {
-    id: "spot-alert",
-    rows: ["SPOT#", "T#P#I", "ALERT", "R#R#E", "#FARM"],
-    across: [
-      { num: 1, clue: "Notice, as a typo" },
-      { num: 4, clue: "Ready for action" },
-      { num: 5, clue: "Barn territory" },
-    ],
-    down: [
-      { num: 1, clue: "Sky’s night lead" },
-      { num: 2, clue: "La Scala spectacle" },
-      { num: 3, clue: "Checklist entry" },
+      { num: 1, clue: "Hat’s edge" },
+      { num: 2, clue: "Higher, as a floor" },
+      { num: 3, clue: "Remain" },
     ],
   },
   {
@@ -175,17 +147,17 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
-    id: "soap-opera",
-    rows: ["SOAP#", "P#V#F", "OPERA", "T#R#R", "#ITEM"],
+    id: "bold-loyal",
+    rows: ["BOLD#", "O#A#P", "LOYAL", "T#E#U", "#FROG"],
     across: [
-      { num: 1, clue: "Dish duty bar" },
-      { num: 4, clue: "Aida’s art form" },
-      { num: 5, clue: "Thing on a list" },
+      { num: 1, clue: "Daring typeface choice" },
+      { num: 4, clue: "True-blue, as a friend" },
+      { num: 5, clue: "Lily-pad hopper" },
     ],
     down: [
-      { num: 1, clue: "Dalmatian mark" },
-      { num: 2, clue: "Turn aside, as eyes" },
-      { num: 3, clue: "Acreage with crops" },
+      { num: 1, clue: "Fasten with a nut" },
+      { num: 2, clue: "Cake’s frosting plane" },
+      { num: 3, clue: "Stop up, as a drain" },
     ],
   },
   {
@@ -203,17 +175,17 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
-    id: "order-slimy",
-    rows: ["ORDER", "N#R#H", "SLIMY", "E#F#M", "TITLE"],
+    id: "cave-actor",
+    rows: ["CAVE#", "H#I#T", "ACTOR", "T#A#A", "#CLIP"],
     across: [
-      { num: 1, clue: "Court command" },
-      { num: 4, clue: "Eel-like" },
-      { num: 5, clue: "Champ’s belt, say" },
+      { num: 1, clue: "Bat’s address" },
+      { num: 4, clue: "Stage or screen player" },
+      { num: 5, clue: "Movie snippet" },
     ],
     down: [
-      { num: 1, clue: "Beginning, as of winter" },
-      { num: 2, clue: "Continental shift" },
-      { num: 3, clue: "Sounds-alike pairing" },
+      { num: 1, clue: "Catch up over coffee" },
+      { num: 2, clue: "Essential, as a sign" },
+      { num: 3, clue: "Snare, as in hunting" },
     ],
   },
   {
@@ -231,6 +203,20 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
+    id: "chip-lunch",
+    rows: ["CHIP#", "O#N#T", "LUNCH", "D#E#A", "#WREN"],
+    across: [
+      { num: 1, clue: "Poker ante unit" },
+      { num: 4, clue: "Midday meal" },
+      { num: 5, clue: "Tiny songbird" },
+    ],
+    down: [
+      { num: 1, clue: "Chilly weather" },
+      { num: 2, clue: "Core, as feelings" },
+      { num: 3, clue: "Compared with" },
+    ],
+  },
+  {
     id: "clasp-phone",
     rows: ["CLASP", "A#L#I", "PHONE", "E#O#C", "RIFLE"],
     across: [
@@ -242,6 +228,20 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
       { num: 1, clue: "Prank or frolic" },
       { num: 2, clue: "Coolly distant" },
       { num: 3, clue: "Share of the pie" },
+    ],
+  },
+  {
+    id: "care-radio",
+    rows: ["CARE#", "O#I#H", "RADIO", "E#E#R", "#IRON"],
+    across: [
+      { num: 1, clue: "Concern or caution" },
+      { num: 4, clue: "Dashboard soundtrack" },
+      { num: 5, clue: "Press with heat" },
+    ],
+    down: [
+      { num: 1, clue: "Apple’s center" },
+      { num: 2, clue: "Horseback competitor" },
+      { num: 3, clue: "Brass or French ___" },
     ],
   },
   {
@@ -259,17 +259,17 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
-    id: "visor-scoff",
-    rows: ["VISOR", "I#P#I", "SCOFF", "O#O#L", "RANGE"],
+    id: "raft-piano",
+    rows: ["RAFT#", "O#L#V", "PIANO", "E#M#L", "#ZEST"],
     across: [
-      { num: 1, clue: "Sun-blocking brim" },
-      { num: 4, clue: "Jeer at" },
-      { num: 5, clue: "Stove’s domain" },
+      { num: 1, clue: "Huck’s river craft" },
+      { num: 4, clue: "Grand or upright" },
+      { num: 5, clue: "Lemon’s bright kick" },
     ],
     down: [
-      { num: 1, clue: "Helmet flap, again" },
-      { num: 2, clue: "Utensil drawer staple" },
-      { num: 3, clue: "Gun or file through" },
+      { num: 1, clue: "Climbing aid" },
+      { num: 2, clue: "Campfire tongue" },
+      { num: 3, clue: "Amp unit" },
     ],
   },
   {
@@ -287,17 +287,73 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
     ],
   },
   {
-    id: "abyss-ulcer",
-    rows: ["ABYSS", "Z#A#U", "ULCER", "R#H#L", "ENTRY"],
+    id: "apple-draft",
+    rows: ["APPLE", "U#L#N", "DRAFT", "I#N#E", "OUTER"],
     across: [
-      { num: 1, clue: "Bottomless gulf" },
-      { num: 4, clue: "Stomach’s unwelcome guest" },
-      { num: 5, clue: "Password’s counterpart" },
+      { num: 1, clue: "Teacher’s desktop gift" },
+      { num: 4, clue: "Beer on tap, or a first pass" },
+      { num: 5, clue: "External, as a layer" },
     ],
     down: [
-      { num: 1, clue: "Sky-blue, poetically" },
-      { num: 2, clue: "Monaco’s marina darling" },
-      { num: 3, clue: "Ill-tempered" },
+      { num: 1, clue: "Podcast or album sound" },
+      { num: 2, clue: "Garden green" },
+      { num: 3, clue: "Go in" },
+    ],
+  },
+  {
+    id: "wasp-score",
+    rows: ["WASP#", "I#T#N", "SCORE", "P#V#O", "#VEIN"],
+    across: [
+      { num: 1, clue: "Picnic pest" },
+      { num: 4, clue: "Final tally" },
+      { num: 5, clue: "Blood vessel" },
+    ],
+    down: [
+      { num: 1, clue: "Thin strand" },
+      { num: 2, clue: "Kitchen heat box" },
+      { num: 3, clue: "Gas-station glow" },
+    ],
+  },
+  {
+    id: "badge-image",
+    rows: ["BADGE", "R#R#V", "IMAGE", "N#M#N", "GIANT"],
+    across: [
+      { num: 1, clue: "Scout’s sew-on honor" },
+      { num: 4, clue: "Public reputation" },
+      { num: 5, clue: "Jack’s beanstalk foe" },
+    ],
+    down: [
+      { num: 1, clue: "Carry along" },
+      { num: 2, clue: "Stage play" },
+      { num: 3, clue: "Calendar happening" },
+    ],
+  },
+  {
+    id: "basic-arena",
+    rows: ["BASIC", "O#L#O", "ARENA", "R#E#C", "DEPTH"],
+    across: [
+      { num: 1, clue: "Elementary, as skills" },
+      { num: 4, clue: "Gladiator’s venue" },
+      { num: 5, clue: "How deep it goes" },
+    ],
+    down: [
+      { num: 1, clue: "Plank meeting" },
+      { num: 2, clue: "What you do at night" },
+      { num: 3, clue: "Sideline shouter" },
+    ],
+  },
+  {
+    id: "catch-panel",
+    rows: ["CATCH", "H#R#O", "EXACT", "A#I#E", "PANEL"],
+    across: [
+      { num: 1, clue: "What a mitt does" },
+      { num: 4, clue: "Precise, as a fit" },
+      { num: 5, clue: "Discussion group, or wall section" },
+    ],
+    down: [
+      { num: 1, clue: "Bargain-bin priced" },
+      { num: 2, clue: "Locomotive convoy" },
+      { num: 3, clue: "Lodging with a lobby" },
     ],
   },
 ];
@@ -311,8 +367,8 @@ function dayOfYear(date: string): number {
 
 /** Pin a fresh puzzle to a calendar day without reshuffling the pack. */
 const DATE_PUZZLES: Record<string, MiniCrosswordPuzzle> = {
-  // 2026-09-15 — pack slot was a repeat; founder wants a fresh 5×5, no clue dupes.
-  "2026-09-15": MINI_CROSSWORDS.find((p) => p.id === "folk-liege")!,
+  // Keep a pinned fresh day so a known calendar slot stays non-repeating.
+  "2026-09-15": MINI_CROSSWORDS.find((p) => p.id === "care-radio")!,
 };
 
 export function puzzleForDate(date: string): MiniCrosswordPuzzle {
