@@ -52,19 +52,19 @@ export function pickOnThisDayEvent(
   items: WikiOnThisDayItem[],
   date: string,
 ): OnThisDayEvent | null {
-  const usable = items
-    .map((item) => {
-      const year = Number(item.year);
-      const text = cleanText(String(item.text ?? ""));
-      if (!Number.isFinite(year) || year < 1 || text.length < 24) return null;
-      const url = item.pages?.[0]?.content_urls?.desktop?.page;
-      return {
-        year,
-        text: text.length > 220 ? `${text.slice(0, 217).trimEnd()}…` : text,
-        url: url?.startsWith("http") ? url : undefined,
-      } satisfies OnThisDayEvent;
-    })
-    .filter((x): x is OnThisDayEvent => x != null);
+  const usable: OnThisDayEvent[] = [];
+  for (const item of items) {
+    const year = Number(item.year);
+    const text = cleanText(String(item.text ?? ""));
+    if (!Number.isFinite(year) || year < 1 || text.length < 24) continue;
+    const pageUrl = item.pages?.[0]?.content_urls?.desktop?.page;
+    const event: OnThisDayEvent = {
+      year,
+      text: text.length > 220 ? `${text.slice(0, 217).trimEnd()}…` : text,
+    };
+    if (pageUrl?.startsWith("http")) event.url = pageUrl;
+    usable.push(event);
+  }
 
   if (usable.length === 0) return null;
 
