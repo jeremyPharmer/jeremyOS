@@ -43,9 +43,9 @@ export type DailyCrosswordState = {
 };
 
 /**
- * Hand-authored pack — mix of classic and ladder 5×5 shapes.
+ * Hand-authored + generated pack — classic and ladder 5×5 shapes.
  * Answer words must stay unique across the whole pack (enforced in tests).
- * Rotate by day-of-year; optional DATE_PUZZLES overrides for a given day.
+ * Rotate by day-of-year (~50+ day cycle). Prefer pack growth over DATE_PUZZLES pins.
  */
 export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
   {
@@ -356,6 +356,497 @@ export const MINI_CROSSWORDS: MiniCrosswordPuzzle[] = [
       { num: 3, clue: "Lodging with a lobby" },
     ],
   },
+{
+    id: "flush-intel",
+    rows: ["FLUSH", "A#N#O", "INTEL", "L#I#E", "SALES"],
+    across: [
+      { num: 1, clue: "Poker hand of one suit" },
+      { num: 4, clue: "Spy info, for short" },
+      { num: 5, clue: "Clearance events" },
+    ],
+    down: [
+      { num: 1, clue: "Flunks" },
+      { num: 2, clue: "Up to the time of" },
+      { num: 3, clue: "Doughnut centers" },
+    ],
+  },
+  {
+    id: "tiles-scowl",
+    rows: ["TILES", "A#I#I", "SCOWL", "T#N#K", "ESSAY"],
+    across: [
+      { num: 1, clue: "Bathroom floor squares" },
+      { num: 4, clue: "Angry look" },
+      { num: 5, clue: "School paper" },
+    ],
+    down: [
+      { num: 1, clue: "Sip check" },
+      { num: 2, clue: "Pride big cats" },
+      { num: 3, clue: "Smooth to touch" },
+    ],
+  },
+  {
+    id: "globe-anger",
+    rows: ["GLOBE", "O#R#A", "ANGER", "L#A#L", "SUNNY"],
+    across: [
+      { num: 1, clue: "Desktop Earth model" },
+      { num: 4, clue: "Hot emotion" },
+      { num: 5, clue: "Clear skies" },
+    ],
+    down: [
+      { num: 1, clue: "Soccer scores" },
+      { num: 2, clue: "Church keyboard" },
+      { num: 3, clue: "Before schedule" },
+    ],
+  },
+  {
+    id: "tight-pause",
+    rows: ["TIGHT", "Y#A#E", "PAUSE", "E#G#N", "STEPS"],
+    across: [
+      { num: 1, clue: "Snug, as jeans" },
+      { num: 4, clue: "Brief stop" },
+      { num: 5, clue: "Staircase parts" },
+    ],
+    down: [
+      { num: 1, clue: "Kinds or sorts" },
+      { num: 2, clue: "Fuel meter" },
+      { num: 3, clue: "High-school ages" },
+    ],
+  },
+  {
+    id: "scene-radar",
+    rows: ["SCENE", "E#L#A", "RADAR", "U#E#T", "MIRTH"],
+    across: [
+      { num: 1, clue: "Movie setting" },
+      { num: 4, clue: "Airport tracker" },
+      { num: 5, clue: "Glee" },
+    ],
+    down: [
+      { num: 1, clue: "Lab vial contents" },
+      { num: 2, clue: "Older of two" },
+      { num: 3, clue: "Third planet" },
+    ],
+  },
+  {
+    id: "brown-dense",
+    rows: ["BROWN", "A#W#E", "DENSE", "L#E#D", "YARDS"],
+    across: [
+      { num: 1, clue: "Coffee-order color" },
+      { num: 4, clue: "Thick, as fog" },
+      { num: 5, clue: "Football gain units" },
+    ],
+    down: [
+      { num: 1, clue: "In a poor way" },
+      { num: 2, clue: "Deed holder" },
+      { num: 3, clue: "Requires" },
+    ],
+  },
+  {
+    id: "aware-raise",
+    rows: ["AWARE", "C#M#L", "RAISE", "E#N#C", "SHORT"],
+    across: [
+      { num: 1, clue: "In the know" },
+      { num: 4, clue: "Salary bump" },
+      { num: 5, clue: "Not tall" },
+    ],
+    down: [
+      { num: 1, clue: "Farm parcels" },
+      { num: 2, clue: "___ acid" },
+      { num: 3, clue: "Vote in" },
+    ],
+  },
+  {
+    id: "sheet-ultra",
+    rows: ["SHEET", "O#X#R", "ULTRA", "L#R#C", "SHADE"],
+    across: [
+      { num: 1, clue: "Bed linen piece" },
+      { num: 4, clue: "Extreme prefix" },
+      { num: 5, clue: "Tree cover" },
+    ],
+    down: [
+      { num: 1, clue: "Spiritual selves" },
+      { num: 2, clue: "Bonus scene" },
+      { num: 3, clue: "Faint leftover" },
+    ],
+  },
+  {
+    id: "phase-worse",
+    rows: ["PHASE", "O#P#V", "WORSE", "E#I#R", "RALLY"],
+    across: [
+      { num: 1, clue: "Moon stage" },
+      { num: 4, clue: "Not as good" },
+      { num: 5, clue: "Pep event" },
+    ],
+    down: [
+      { num: 1, clue: "Electrical might" },
+      { num: 2, clue: "Fools' Day month" },
+      { num: 3, clue: "Each and ___" },
+    ],
+  },
+  {
+    id: "sweet-angel",
+    rows: ["SWEET", "H#D#E", "ANGEL", "F#E#L", "TESTS"],
+    across: [
+      { num: 1, clue: "Sugary" },
+      { num: 4, clue: "Halo wearer" },
+      { num: 5, clue: "Classroom quizzes" },
+    ],
+    down: [
+      { num: 1, clue: "Elevator passage" },
+      { num: 2, clue: "Page borders" },
+      { num: 3, clue: "Narrates" },
+    ],
+  },
+  {
+    id: "great-mourn",
+    rows: ["GREAT", "A#Q#U", "MOURN", "E#A#E", "SOLAR"],
+    across: [
+      { num: 1, clue: "Wonderful" },
+      { num: 4, clue: "Grieve" },
+      { num: 5, clue: "Sun-powered" },
+    ],
+    down: [
+      { num: 1, clue: "PlayStation fare" },
+      { num: 2, clue: "Same in amount" },
+      { num: 3, clue: "Radio dial" },
+    ],
+  },
+  {
+    id: "crash-email",
+    rows: ["CRASH", "H#W#E", "EMAIL", "A#R#P", "TIDES"],
+    across: [
+      { num: 1, clue: "Auto wreck" },
+      { num: 4, clue: "Inbox message" },
+      { num: 5, clue: "Beach ebbs" },
+    ],
+    down: [
+      { num: 1, clue: "Break the rules" },
+      { num: 2, clue: "Oscar or Emmy" },
+      { num: 3, clue: "Lends a hand" },
+    ],
+  },
+  {
+    id: "inter-coast",
+    rows: ["INTER", "N#E#A", "COAST", "U#M#E", "RISKS"],
+    across: [
+      { num: 1, clue: "Burial, old-style" },
+      { num: 4, clue: "Shoreline" },
+      { num: 5, clue: "Takes chances" },
+    ],
+    down: [
+      { num: 1, clue: "Bring upon oneself" },
+      { num: 2, clue: "League sides" },
+      { num: 3, clue: "Hotel prices" },
+    ],
+  },
+  {
+    id: "crime-music",
+    rows: ["CRIME", "A#S#X", "MUSIC", "P#U#E", "STEEL"],
+    across: [
+      { num: 1, clue: "Lawbreaking" },
+      { num: 4, clue: "Playlist stuff" },
+      { num: 5, clue: "Beam metal" },
+    ],
+    down: [
+      { num: 1, clue: "Scout sites" },
+      { num: 2, clue: "Magazine edition" },
+      { num: 3, clue: "Do great" },
+    ],
+  },
+  {
+    id: "wages-thorn",
+    rows: ["WAGES", "A#R#I", "THORN", "C#A#C", "HINGE"],
+    across: [
+      { num: 1, clue: "Hourly pay" },
+      { num: 4, clue: "Rose prickle" },
+      { num: 5, clue: "Door pivot" },
+    ],
+    down: [
+      { num: 1, clue: "Observe" },
+      { num: 2, clue: "Complaint sound" },
+      { num: 3, clue: "From then on" },
+    ],
+  },
+  {
+    id: "owned-balls",
+    rows: ["OWNED", "R#Y#I", "BALLS", "I#O#C", "TENTS"],
+    across: [
+      { num: 1, clue: "Had title to" },
+      { num: 4, clue: "Sports spheres" },
+      { num: 5, clue: "Canvas shelters" },
+    ],
+    down: [
+      { num: 1, clue: "Planet path" },
+      { num: 2, clue: "Stocking material" },
+      { num: 3, clue: "Frisbee shapes" },
+    ],
+  },
+  {
+    id: "bones-unite",
+    rows: ["BONES", "O#O#T", "UNITE", "N#S#A", "DREAM"],
+    across: [
+      { num: 1, clue: "Skeleton parts" },
+      { num: 4, clue: "Join together" },
+      { num: 5, clue: "Sleep story" },
+    ],
+    down: [
+      { num: 1, clue: "Tied up" },
+      { num: 2, clue: "Unwanted sound" },
+      { num: 3, clue: "Kettle output" },
+    ],
+  },
+  {
+    id: "spray-agree",
+    rows: ["SPRAY", "T#U#I", "AGREE", "T#A#L", "SALAD"],
+    across: [
+      { num: 1, clue: "Aerosol burst" },
+      { num: 4, clue: "See eye to eye" },
+      { num: 5, clue: "Leafy bowl" },
+    ],
+    down: [
+      { num: 1, clue: "Box-score numbers" },
+      { num: 2, clue: "Not urban" },
+      { num: 3, clue: "Give way" },
+    ],
+  },
+  {
+    id: "match-light",
+    rows: ["MATCH", "E#I#A", "LIGHT", "O#E#C", "NORTH"],
+    across: [
+      { num: 1, clue: "Soccer contest" },
+      { num: 4, clue: "Lamp output" },
+      { num: 5, clue: "Compass point" },
+    ],
+    down: [
+      { num: 1, clue: "Watermelon kin" },
+      { num: 2, clue: "Striped cat" },
+      { num: 3, clue: "Egg opening" },
+    ],
+  },
+  {
+    id: "hosts-rouse",
+    rows: ["HOSTS", "O#Q#P", "ROUSE", "S#A#N", "ENDED"],
+    across: [
+      { num: 1, clue: "Party throwers" },
+      { num: 4, clue: "Wake up" },
+      { num: 5, clue: "Came to a close" },
+    ],
+    down: [
+      { num: 1, clue: "Derby runner" },
+      { num: 2, clue: "Police unit" },
+      { num: 3, clue: "Shell out" },
+    ],
+  },
+  {
+    id: "films-order",
+    rows: ["FILMS", "R#O#U", "ORDER", "S#G#G", "THEME"],
+    across: [
+      { num: 1, clue: "Movie night picks" },
+      { num: 4, clue: "Menu request" },
+      { num: 5, clue: "Party motif" },
+    ],
+    down: [
+      { num: 1, clue: "Window ice" },
+      { num: 2, clue: "Cabin" },
+      { num: 3, clue: "Power spike" },
+    ],
+  },
+  {
+    id: "racks-using",
+    rows: ["RACKS", "O#R#I", "USING", "N#S#H", "DEPOT"],
+    across: [
+      { num: 1, clue: "Spice shelf rods" },
+      { num: 4, clue: "Making use of" },
+      { num: 5, clue: "Bus station" },
+    ],
+    down: [
+      { num: 1, clue: "Circular" },
+      { num: 2, clue: "Like a potato chip" },
+      { num: 3, clue: "Vision" },
+    ],
+  },
+  {
+    id: "nails-whose",
+    rows: ["NAILS", "E#V#H", "WHOSE", "E#R#L", "ROYAL"],
+    across: [
+      { num: 1, clue: "Hammer targets" },
+      { num: 4, clue: "___ side are you on?" },
+      { num: 5, clue: "Fit for a king" },
+    ],
+    down: [
+      { num: 1, clue: "More recent" },
+      { num: 2, clue: "Piano key material" },
+      { num: 3, clue: "Taco exterior" },
+    ],
+  },
+
+  {
+    id: "nerve-clamp",
+    rows: ["NERVE", "I#O#M", "CLAMP", "E#D#T", "RUSTY"],
+    across: [
+      { num: 1, clue: "Audacity" },
+      { num: 4, clue: "Hold tight tool" },
+      { num: 5, clue: "Needs oil" },
+    ],
+    down: [
+      { num: 1, clue: "More pleasant" },
+      { num: 2, clue: "Highways" },
+      { num: 3, clue: "Not full" },
+    ],
+  },
+  {
+    id: "lyric-ulcer",
+    rows: ["LYRIC", "A#E#A", "ULCER", "G#A#R", "HAPPY"],
+    across: [
+      { num: 1, clue: "Song words" },
+      { num: 4, clue: "Stomach woe" },
+      { num: 5, clue: "Glad" },
+    ],
+    down: [
+      { num: 1, clue: "Chuckle" },
+      { num: 2, clue: "Summary" },
+      { num: 3, clue: "Tote" },
+    ],
+  },
+  {
+    id: "craft-maple",
+    rows: ["CRAFT", "O#L#E", "MAPLE", "E#H#T", "TEACH"],
+    across: [
+      { num: 1, clue: "Handmade art" },
+      { num: 4, clue: "Syrup tree" },
+      { num: 5, clue: "Instruct" },
+    ],
+    down: [
+      { num: 1, clue: "Shooting visitor" },
+      { num: 2, clue: "First Greek letter" },
+      { num: 3, clue: "Dentist's concern" },
+    ],
+  },
+  {
+    id: "cloud-oxide",
+    rows: ["CLOUD", "L#L#W", "OXIDE", "C#V#L", "KNEEL"],
+    across: [
+      { num: 1, clue: "Sky puff" },
+      { num: 4, clue: "Rust relative" },
+      { num: 5, clue: "Get down on one knee" },
+    ],
+    down: [
+      { num: 1, clue: "Wall timepiece" },
+      { num: 2, clue: "Martini garnish" },
+      { num: 3, clue: "Reside" },
+    ],
+  },
+  {
+    id: "mango-dance",
+    rows: ["MANGO", "E#I#C", "DANCE", "A#J#A", "LEARN"],
+    across: [
+      { num: 1, clue: "Tropical fruit" },
+      { num: 4, clue: "Club activity" },
+      { num: 5, clue: "Study up" },
+    ],
+    down: [
+      { num: 1, clue: "Podium prize" },
+      { num: 2, clue: "Stealth fighter" },
+      { num: 3, clue: "Vast sea" },
+    ],
+  },
+  {
+    id: "waves-villa",
+    rows: ["WAVES", "O#A#E", "VILLA", "E#E#T", "NOTES"],
+    across: [
+      { num: 1, clue: "Surf sets" },
+      { num: 4, clue: "Luxury house" },
+      { num: 5, clue: "Classroom jottings" },
+    ],
+    down: [
+      { num: 1, clue: "Like fabric" },
+      { num: 2, clue: "Parking helper" },
+      { num: 3, clue: "Theater places" },
+    ],
+  },
+  {
+    id: "inns-lobby",
+    rows: ["INNS#", "D#O#M", "LOBBY", "E#L#T", "#TECH"],
+    across: [
+      { num: 1, clue: "Roadside lodgings" },
+      { num: 4, clue: "Hotel entrance hall" },
+      { num: 5, clue: "Silicon Valley field" },
+    ],
+    down: [
+      { num: 1, clue: "Not working" },
+      { num: 2, clue: "High-born" },
+      { num: 3, clue: "Ancient legend" },
+    ],
+  },
+  {
+    id: "meal-above",
+    rows: ["MEAL#", "E#B#K", "ABOVE", "T#D#E", "#DEEP"],
+    across: [
+      { num: 1, clue: "Breakfast or dinner" },
+      { num: 4, clue: "Overhead" },
+      { num: 5, clue: "Not shallow" },
+    ],
+    down: [
+      { num: 1, clue: "Butcher's stock" },
+      { num: 2, clue: "Home" },
+      { num: 3, clue: "Retain" },
+    ],
+  },
+  {
+    id: "luck-trend",
+    rows: ["LUCK#", "A#L#I", "TREND", "E#A#O", "#INTL"],
+    across: [
+      { num: 1, clue: "Good fortune" },
+      { num: 4, clue: "Viral direction" },
+      { num: 5, clue: "Global, for short" },
+    ],
+    down: [
+      { num: 1, clue: "After schedule" },
+      { num: 2, clue: "Not dirty" },
+      { num: 3, clue: "Teen crush" },
+    ],
+  },
+  {
+    id: "vary-shape",
+    rows: ["VARY#", "I#E#B", "SHAPE", "A#D#D", "#EYES"],
+    across: [
+      { num: 1, clue: "Differ" },
+      { num: 4, clue: "Form or outline" },
+      { num: 5, clue: "Peepers" },
+    ],
+    down: [
+      { num: 1, clue: "Passport stamp" },
+      { num: 2, clue: "All set" },
+      { num: 3, clue: "Places to sleep" },
+    ],
+  },
+  {
+    id: "plan-table",
+    rows: ["PLAN#", "U#R#R", "TABLE", "S#O#A", "#GRID"],
+    across: [
+      { num: 1, clue: "Itinerary" },
+      { num: 4, clue: "Dinner surface" },
+      { num: 5, clue: "City street pattern" },
+    ],
+    down: [
+      { num: 1, clue: "Golf green shots" },
+      { num: 2, clue: "Garden arch" },
+      { num: 3, clue: "Scan a book" },
+    ],
+  },
+  {
+    id: "hats-grain",
+    rows: ["HATS#", "I#R#K", "GRAIN", "H#I#O", "#SLOW"],
+    across: [
+      { num: 1, clue: "Headwear" },
+      { num: 4, clue: "Wheat unit" },
+      { num: 5, clue: "Not fast" },
+    ],
+    down: [
+      { num: 1, clue: "Altitude word" },
+      { num: 2, clue: "Hiking path" },
+      { num: 3, clue: "Be aware" },
+    ],
+  }
 ];
 
 function dayOfYear(date: string): number {
@@ -367,8 +858,8 @@ function dayOfYear(date: string): number {
 
 /** Pin a fresh puzzle to a calendar day without reshuffling the pack. */
 const DATE_PUZZLES: Record<string, MiniCrosswordPuzzle> = {
-  // Keep a pinned fresh day so a known calendar slot stays non-repeating.
-  "2026-09-15": MINI_CROSSWORDS.find((p) => p.id === "care-radio")!,
+  // Empty on purpose: pins that also appear in the rotating pack
+  // reuse answers mid-cycle. Grow the pack instead.
 };
 
 export function puzzleForDate(date: string): MiniCrosswordPuzzle {

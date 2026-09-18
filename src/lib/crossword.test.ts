@@ -46,18 +46,37 @@ describe("mini crossword pack", () => {
     expect(lengths.has(4)).toBe(true);
   });
 
-  it("keeps today’s pin on a fresh 5×5 with unique clues", () => {
+  it("serves a stable unique puzzle for a known date", () => {
     const p = puzzleForDate("2026-09-15");
-    expect(p.id).toBe("care-radio");
     expect(p.rows.length).toBe(5);
-    expect(answerAt(p, 1, "across")).toBe("CARE");
-    expect(answerAt(p, 4, "across")).toBe("RADIO");
-    expect(answerAt(p, 5, "across")).toBe("IRON");
-    expect(answerAt(p, 1, "down")).toBe("CORE");
-    expect(answerAt(p, 2, "down")).toBe("RIDER");
-    expect(answerAt(p, 3, "down")).toBe("HORN");
+    expect(() => assertPuzzleValid(p)).not.toThrow();
     const clues = [...p.across, ...p.down].map((c) => c.clue);
     expect(new Set(clues).size).toBe(clues.length);
+    const answers = [
+      ...p.across.map((c) => answerAt(p, c.num, "across")),
+      ...p.down.map((c) => answerAt(p, c.num, "down")),
+    ];
+    expect(new Set(answers).size).toBe(answers.length);
+  });
+
+  it("keeps a long unique-answer rotation (no mid-cycle word repeats)", () => {
+    expect(MINI_CROSSWORDS.length).toBeGreaterThanOrEqual(50);
+    const seen = new Set<string>();
+    let firstReuse: { day: number; word: string; id: string } | null = null;
+    for (let i = 0; i < MINI_CROSSWORDS.length; i++) {
+      const date = new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10);
+      const p = puzzleForDate(date);
+      for (const dir of ["across", "down"] as const) {
+        for (const c of p[dir]) {
+          const a = answerAt(p, c.num, dir);
+          if (seen.has(a) && !firstReuse) {
+            firstReuse = { day: i, word: a, id: p.id };
+          }
+          seen.add(a);
+        }
+      }
+    }
+    expect(firstReuse).toBeNull();
   });
 
   it("never reuses the same answer word across the pack", () => {
@@ -75,6 +94,9 @@ describe("mini crossword pack", () => {
       }
     }
     expect(seen.size).toBeGreaterThanOrEqual(MINI_CROSSWORDS.length * 5);
+    for (const banned of ["OPERA", "ITEM", "ITEMS", "ALERT", "IDEAL"]) {
+      expect(seen.has(banned), `retired answer ${banned} should stay out of pack`).toBe(false);
+    }
   });
 
   it("rejects duplicate clue text", () => {
