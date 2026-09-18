@@ -100,4 +100,5 @@ None blocking scope. Optional later polish only: whether to show light text labe
 
 - **Also considered / less preferred for chip-at-day:** Daily Word Unscramble; Riddle of the Day; Pattern Pulse.
 - **2026-09-13 founder feedback:** pack felt like “the same 5-letter word puzzle”; clearing a wrong typed word was painful. **Polish:** mix ladder grids (4- and 5-letter entries) into the curated pack; add a plain **Clear** button for the active clue; typing advances in Across/Down direction; clues are tappable.
+- **2026-09-18 founder feedback:** same answers/clues (e.g. OPERA, ITEM) recycled too often. **Lock:** every answer word unique across the curated pack; regression test enforces pack-wide uniqueness.
 - Passes RB-013 build filter (Jeremy asked). Rank **9**. Slot replacement with [RB-025](./park-home-entertainment.md).
