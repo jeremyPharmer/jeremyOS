@@ -26,6 +26,7 @@ import {
   type BriefingWeather,
 } from "@/lib/morning-briefing";
 import { dueTodosOn } from "@/lib/todos";
+import type { OnThisDayEvent } from "@/lib/on-this-day";
 import type { DailyForecast } from "@/lib/weather";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
 
@@ -90,6 +91,8 @@ export default function MorningPage() {
   const [weatherLocation, setWeatherLocation] = useState("");
   const [events, setEvents] = useState<BriefingEvent[]>([]);
   const [briefingLoading, setBriefingLoading] = useState(false);
+  const [worldEvent, setWorldEvent] = useState<OnThisDayEvent | null>(null);
+  const [worldLoading, setWorldLoading] = useState(false);
 
   const todayMorning = state.mornings.find((m) => m.date === today);
   const shownIntention =
@@ -185,6 +188,7 @@ export default function MorningPage() {
 
     async function loadBriefingContext() {
       setBriefingLoading(true);
+      setWorldLoading(true);
       try {
         const coords = readStoredCoords();
         const weatherQs = new URLSearchParams({ days: "6" });
@@ -195,9 +199,10 @@ export default function MorningPage() {
             weatherQs.set("label", coords.label);
           }
         }
-        const [weatherRes, calRes] = await Promise.all([
+        const [weatherRes, calRes, onThisDayRes] = await Promise.all([
           fetch(`/api/weather?${weatherQs.toString()}`),
           fetch(`/api/calendar/work?date=${encodeURIComponent(today)}`),
+          fetch(`/api/on-this-day?date=${encodeURIComponent(today)}`),
         ]);
         if (cancelled) return;
 
@@ -224,10 +229,20 @@ export default function MorningPage() {
             })),
           );
         }
+
+        if (onThisDayRes.ok) {
+          const data = (await onThisDayRes.json()) as {
+            event?: OnThisDayEvent | null;
+          };
+          setWorldEvent(data.event ?? null);
+        }
       } catch {
         /* briefing still works with partial context */
       } finally {
-        if (!cancelled) setBriefingLoading(false);
+        if (!cancelled) {
+          setBriefingLoading(false);
+          setWorldLoading(false);
+        }
       }
     }
 
@@ -297,23 +312,32 @@ export default function MorningPage() {
           ) : null}
         </header>
 
-        <div className="paper-pages">
-          <section className="paper-section" aria-live="polite">
-            <p className="paper-kicker">The day ahead</p>
+        <div className="paper-pages paper-card-stack">
+          <section className="paper-section paper-card" aria-live="polite">
+            <div className="paper-card-head">
+              <p className="paper-kicker">The day ahead</p>
+              <p className="paper-card-tag">Schedule</p>
+            </div>
             {briefingLoading && events.length === 0 && !thinWeather ? (
               <p className="muted paper-loading">Pulling calendar…</p>
             ) : (
               <>
                 <p className="paper-lead">{briefing.calendarStory.lead}</p>
                 <PaperTimetable rows={briefing.calendarStory.rows} />
-                <BriefingTasks
-                  tasks={expandedTasks}
-                  kicker="Planned tasks"
-                  hideWhenEmpty
-                />
+                {briefing.calendarStory.rows.length === 0 ? (
+                  <p className="paper-card-empty muted tiny">
+                    No timed events on the books.
+                  </p>
+                ) : null}
               </>
             )}
           </section>
+
+          <BriefingTasks
+            tasks={expandedTasks}
+            kicker="Planned tasks"
+            hideWhenEmpty
+          />
 
           <BodyMind workouts={workoutGaps} trends={trends} />
 
@@ -330,6 +354,8 @@ export default function MorningPage() {
           <ThisDayInHistory
             today={today}
             entries={historyEntries}
+            worldEvent={worldEvent}
+            worldLoading={worldLoading}
             hideWhenEmpty
           />
         </div>

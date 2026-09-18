@@ -13,6 +13,7 @@ import {
   type TaskGroup,
 } from "@/lib/task-groups";
 import type { NewsHeadline } from "@/lib/news";
+import type { OnThisDayEvent } from "@/lib/on-this-day";
 import {
   dayAbbrev,
   weatherDetailNote,
@@ -67,12 +68,15 @@ export function WeatherExpanded({
 
   return (
     <section
-      className="daily-briefing-section daily-briefing-weather daily-briefing-weather-expanded"
+      className="daily-briefing-section daily-briefing-weather daily-briefing-weather-expanded paper-card"
       aria-label="Weather"
     >
-      <p className="daily-briefing-kicker">
-        {mode === "tomorrow" ? "Tomorrow's forecast" : "Forecast"}
-      </p>
+      <div className="paper-card-head">
+        <p className="daily-briefing-kicker">
+          {mode === "tomorrow" ? "Tomorrow's forecast" : "Forecast"}
+        </p>
+        <p className="paper-card-tag">Skies</p>
+      </div>
       {loading && !focus ? (
         <p className="muted tiny">Loading forecast…</p>
       ) : !focus ? (
@@ -129,45 +133,92 @@ export function WeatherExpanded({
 export function ThisDayInHistory({
   today,
   entries,
+  worldEvent,
+  worldLoading,
   hideWhenEmpty = false,
 }: {
   today: string;
   entries: ThisDayHistoryEntry[];
-  /** Skip the whole section when there are no past entries. */
+  /** One world anniversary for this month-day. */
+  worldEvent?: OnThisDayEvent | null;
+  worldLoading?: boolean;
+  /** Skip when no journal rows and no world event (and not loading). */
   hideWhenEmpty?: boolean;
 }) {
-  if (hideWhenEmpty && entries.length === 0) return null;
+  const hasJournal = entries.length > 0;
+  const hasWorld = Boolean(worldEvent);
+  if (
+    hideWhenEmpty &&
+    !hasJournal &&
+    !hasWorld &&
+    !worldLoading
+  ) {
+    return null;
+  }
+
   return (
     <section
-      className="daily-briefing-section daily-briefing-history"
+      className="daily-briefing-section daily-briefing-history paper-card paper-card-history"
       aria-label="On this date"
     >
-      <p className="daily-briefing-kicker">{thisDayInHistoryTitle(today)}</p>
-      {entries.length === 0 ? (
+      <div className="paper-card-head">
+        <p className="daily-briefing-kicker">{thisDayInHistoryTitle(today)}</p>
+        <p className="paper-card-tag">Archive</p>
+      </div>
+
+      {worldLoading && !hasWorld ? (
+        <p className="muted tiny paper-card-loading">Looking up this date…</p>
+      ) : hasWorld && worldEvent ? (
+        <div className="paper-history-world">
+          <p className="paper-history-world-label">Also on this date</p>
+          <p className="paper-history-world-year">{worldEvent.year}</p>
+          {worldEvent.url ? (
+            <a
+              href={worldEvent.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="paper-history-world-text"
+            >
+              {worldEvent.text}
+            </a>
+          ) : (
+            <p className="paper-history-world-text">{worldEvent.text}</p>
+          )}
+        </div>
+      ) : null}
+
+      {hasJournal ? (
+        <>
+          <p className="paper-history-journal-label">From your journal</p>
+          <ol className="daily-briefing-history-timeline">
+            {entries.map((entry) => (
+              <li key={entry.date} className="daily-briefing-history-item">
+                <span className="daily-briefing-history-year">{entry.year}</span>
+                <div className="daily-briefing-history-body">
+                  {entry.headline ? (
+                    <p className="daily-briefing-history-headline">
+                      {entry.headline}
+                    </p>
+                  ) : null}
+                  {entry.summary?.trim() ? (
+                    <p className="daily-briefing-history-excerpt">
+                      {historyExcerpt(entry)}
+                    </p>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </>
+      ) : !worldLoading && !hasWorld ? (
         <p className="muted tiny">
           No journal entries for this date in past years yet.
         </p>
-      ) : (
-        <ol className="daily-briefing-history-timeline">
-          {entries.map((entry) => (
-            <li key={entry.date} className="daily-briefing-history-item">
-              <span className="daily-briefing-history-year">{entry.year}</span>
-              <div className="daily-briefing-history-body">
-                {entry.headline ? (
-                  <p className="daily-briefing-history-headline">
-                    {entry.headline}
-                  </p>
-                ) : null}
-                {entry.summary?.trim() ? (
-                  <p className="daily-briefing-history-excerpt">
-                    {historyExcerpt(entry)}
-                  </p>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
+      ) : !hasJournal && hasWorld ? (
+        <p className="paper-history-empty-journal muted tiny">
+          No journal pages for this date yet — start one this evening.
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -236,10 +287,13 @@ export function BriefingTasks({
   if (hideWhenEmpty && tasks.length === 0) return null;
   return (
     <section
-      className="daily-briefing-section daily-briefing-tasks"
+      className="daily-briefing-section daily-briefing-tasks paper-card"
       aria-label={kicker}
     >
-      <p className="daily-briefing-kicker">{kicker}</p>
+      <div className="paper-card-head">
+        <p className="daily-briefing-kicker">{kicker}</p>
+        <p className="paper-card-tag">Desk</p>
+      </div>
       {tasks.length === 0 ? (
         <p className="muted tiny">{emptyLabel}</p>
       ) : (
@@ -404,10 +458,10 @@ export function BodyMind({
 
   return (
     <section
-      className="daily-briefing-section daily-briefing-bodymind paper-pulse"
+      className="daily-briefing-section daily-briefing-bodymind paper-pulse paper-card"
       aria-label="The last week"
     >
-      <div className="paper-pulse-head">
+      <div className="paper-pulse-head paper-card-head">
         <p className="daily-briefing-kicker">The last week</p>
         <p className="paper-pulse-tag">Pulse</p>
       </div>

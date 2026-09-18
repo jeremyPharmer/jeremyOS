@@ -4263,8 +4263,66 @@ h2 {
 }
 
 .paper-rundown .paper-pages > * + * {
-  padding-top: 18px;
-  border-top: 2px solid color-mix(in srgb, var(--text) 28%, transparent);
+  padding-top: 0;
+  border-top: none;
+  margin-top: 0;
+}
+
+.paper-card-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.paper-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 16px 15px;
+  background: color-mix(in srgb, #fff 88%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
+  border-radius: 10px;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 70%, transparent) inset,
+    0 8px 22px -14px color-mix(in srgb, var(--text) 42%, transparent);
+}
+
+.paper-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  background: color-mix(in srgb, var(--text) 55%, var(--accent, #345));
+  border-radius: 0 2px 2px 0;
+}
+
+.paper-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.paper-card-tag {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.paper-card-empty {
+  margin: 0;
+}
+
+.paper-card-loading {
+  margin: 0;
 }
 
 .paper-rundown .paper-kicker,
@@ -4286,7 +4344,7 @@ h2 {
 
 .paper-rundown .paper-timetable {
   margin-top: 2px;
-  border-top: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
 }
 
 .paper-rundown .paper-timetable-when {
@@ -4316,7 +4374,105 @@ h2 {
   border-top-color: color-mix(in srgb, var(--text) 28%, transparent);
 }
 
-/* Pulse box score — today vs last week */
+/* History archive card — more distinct, sits as the closer */
+.paper-card-history {
+  margin-top: 6px;
+  padding: 18px 16px 16px;
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, #fff 70%, #d9e4f4) 0%,
+      color-mix(in srgb, #fff 92%, #f3eee6) 55%,
+      #fff 100%
+    );
+  border: 1.5px solid color-mix(in srgb, var(--text) 36%, transparent);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 80%, transparent) inset,
+    0 18px 40px -22px color-mix(in srgb, var(--text) 50%, transparent);
+}
+
+.paper-card-history::before {
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(
+    180deg,
+    var(--text),
+    color-mix(in srgb, var(--accent, #345) 70%, var(--text))
+  );
+}
+
+.paper-history-world {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "label label"
+    "year text";
+  column-gap: 12px;
+  row-gap: 4px;
+  padding: 12px 12px 11px;
+  margin: 2px 0 4px;
+  background: color-mix(in srgb, var(--surface) 70%, #fff);
+  border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+}
+
+.paper-history-world-label {
+  grid-area: label;
+  margin: 0 0 2px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.paper-history-world-year {
+  grid-area: year;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.paper-history-world-text {
+  grid-area: text;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+a.paper-history-world-text:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.paper-history-journal-label {
+  margin: 10px 0 0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.paper-history-empty-journal {
+  margin: 8px 0 0;
+}
+
+.paper-rundown .paper-card-history .daily-briefing-history-timeline {
+  margin-top: 6px;
+}
+
 .paper-pulse-head {
   display: flex;
   align-items: baseline;
