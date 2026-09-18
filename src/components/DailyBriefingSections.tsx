@@ -314,6 +314,42 @@ export function PaperTimetable({
   );
 }
 
+function pulseDelta(delta: number | null): {
+  tone: "up" | "down" | "even" | "none";
+  label: string;
+} {
+  if (delta == null) return { tone: "none", label: "—" };
+  if (delta === 0) return { tone: "even", label: "even" };
+  if (delta > 0) return { tone: "up", label: "up" };
+  return { tone: "down", label: "down" };
+}
+
+function pulseValue(
+  today: number | null,
+  weekAvg: number | null,
+  opts?: { hours?: boolean },
+): { display: string; caption: string } {
+  const fmt = (n: number) =>
+    opts?.hours
+      ? Number.isInteger(n)
+        ? `${n}h`
+        : `${n.toFixed(1)}h`
+      : Number.isInteger(n)
+        ? String(n)
+        : n.toFixed(1);
+  if (today != null) {
+    return {
+      display: fmt(today),
+      caption: weekAvg != null ? `wk ${fmt(weekAvg)}` : "today",
+    };
+  }
+  if (weekAvg != null) {
+    return { display: fmt(weekAvg), caption: "week avg" };
+  }
+  return { display: "—", caption: "no data" };
+}
+
+/** Newspaper pulse box score — today vs last week. */
 export function BodyMind({
   workouts,
   trends,
@@ -321,20 +357,102 @@ export function BodyMind({
   workouts: WorkoutGapInsight;
   trends: SevenDayTrendInsight;
 }) {
+  const sleepIsHours =
+    trends.todaySleepHours != null ||
+    (trends.todaySleepQuality == null && trends.sleepHoursAvg != null);
+
+  const rows: {
+    key: string;
+    label: string;
+    today: number | null;
+    avg: number | null;
+    delta: number | null;
+    hours?: boolean;
+  }[] = [
+    {
+      key: "mood",
+      label: "Mood",
+      today: trends.todayMood,
+      avg: trends.moodAvg,
+      delta: trends.moodVsLastWeek,
+    },
+    {
+      key: "energy",
+      label: "Energy",
+      today: trends.todayEnergy,
+      avg: trends.energyAvg,
+      delta: trends.energyVsLastWeek,
+    },
+    {
+      key: "stress",
+      label: "Stress",
+      today: trends.todayStress,
+      avg: trends.stressAvg,
+      delta: trends.stressVsLastWeek,
+    },
+    {
+      key: "sleep",
+      label: "Sleep",
+      today: sleepIsHours ? trends.todaySleepHours : trends.todaySleepQuality,
+      avg: sleepIsHours ? trends.sleepHoursAvg : trends.sleepQualityAvg,
+      delta: sleepIsHours
+        ? trends.sleepHoursVsLastWeek
+        : trends.sleepQualityVsLastWeek,
+      hours: sleepIsHours,
+    },
+  ];
+
   return (
     <section
-      className="daily-briefing-section daily-briefing-bodymind"
+      className="daily-briefing-section daily-briefing-bodymind paper-pulse"
       aria-label="The last week"
     >
-      <p className="daily-briefing-kicker">The last week</p>
-      <div className="daily-briefing-bodymind-block">
-        {trends.lines.map((line) => (
-          <p key={line} className="daily-briefing-bodymind-line">
-            {line}
-          </p>
-        ))}
-        <p className="daily-briefing-bodymind-line">{workouts.anyLabel}</p>
+      <div className="paper-pulse-head">
+        <p className="daily-briefing-kicker">The last week</p>
+        <p className="paper-pulse-tag">Pulse</p>
       </div>
+      <div className="paper-pulse-scoreboard" role="list">
+        {rows.map((row) => {
+          const value = pulseValue(row.today, row.avg, { hours: row.hours });
+          const vs = pulseDelta(row.delta);
+          return (
+            <div key={row.key} className="paper-pulse-stat" role="listitem">
+              <span className="paper-pulse-label">{row.label}</span>
+              <span className="paper-pulse-value">{value.display}</span>
+              <span className={`paper-pulse-delta paper-pulse-delta-${vs.tone}`}>
+                {row.today != null && row.avg != null ? (
+                  <>
+                    <span className="paper-pulse-arrow" aria-hidden>
+                      {vs.tone === "up" ? "▲" : vs.tone === "down" ? "▼" : "●"}
+                    </span>
+                    {vs.label} · {value.caption}
+                  </>
+                ) : (
+                  value.caption
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {trends.todaySleepHours != null && trends.todaySleepQuality != null ? (
+        <p className="paper-pulse-note">
+          Sleep quality {trends.todaySleepQuality}
+          {trends.sleepQualityAvg != null
+            ? ` — ${
+                trends.sleepQualityVsLastWeek == null
+                  ? "today"
+                  : trends.sleepQualityVsLastWeek === 0
+                    ? "even with"
+                    : trends.sleepQualityVsLastWeek > 0
+                      ? "up vs"
+                      : "down vs"
+              } last week ${trends.sleepQualityAvg.toFixed(1)}`
+            : ""}
+          .
+        </p>
+      ) : null}
+      <p className="paper-pulse-workout">{workouts.anyLabel}</p>
     </section>
   );
 }

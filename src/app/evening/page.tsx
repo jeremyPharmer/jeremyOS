@@ -395,7 +395,7 @@ function EveningPageInner() {
     const editionDate = formatHomeHeaderDate(editionClosed.date);
     return (
       <main
-        className={`stack daily-briefing evening-recap paper-edition${
+        className={`stack daily-briefing evening-recap paper-edition paper-rundown${
           result ? " success-pop" : " fade-in"
         }`}
       >

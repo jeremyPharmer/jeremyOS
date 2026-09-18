@@ -4186,6 +4186,246 @@ h2 {
   max-width: 40rem;
 }
 
+/* Full newspaper rundown — ink on paper, department stack */
+.paper-rundown {
+  gap: 18px;
+  position: relative;
+}
+
+.paper-rundown::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(
+      120% 80% at 50% -10%,
+      color-mix(in srgb, var(--accent-soft) 55%, transparent),
+      transparent 55%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg) 88%, #d8cfc0) 0%,
+      var(--bg) 42%,
+      color-mix(in srgb, var(--bg) 92%, #c9d6e8) 100%
+    );
+  opacity: 0.95;
+}
+
+.paper-rundown .paper-masthead {
+  gap: 4px;
+  padding: 8px 0 6px;
+}
+
+.paper-rundown .paper-masthead-title {
+  font-size: clamp(2.15rem, 8vw, 2.9rem);
+  letter-spacing: -0.035em;
+}
+
+.paper-rundown .paper-masthead-rule {
+  height: 5px;
+  margin: 10px 0 4px;
+  opacity: 0.7;
+  background:
+    linear-gradient(var(--text), var(--text)) center 0 / 100% 2px no-repeat,
+    linear-gradient(var(--text), var(--text)) center 100% / 100% 1px no-repeat;
+}
+
+.paper-rundown .paper-masthead-dateline {
+  width: 100%;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 2px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
+  padding-bottom: 8px;
+}
+
+.paper-lead-story {
+  width: 100%;
+  margin-top: 14px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.paper-front-headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 5.5vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.paper-rundown .paper-pages > * + * {
+  padding-top: 18px;
+  border-top: 2px solid color-mix(in srgb, var(--text) 28%, transparent);
+}
+
+.paper-rundown .paper-kicker,
+.paper-rundown .daily-briefing-kicker {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  font-weight: 800;
+  color: var(--text);
+  opacity: 0.72;
+}
+
+.paper-rundown .paper-lead {
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+.paper-rundown .paper-timetable {
+  margin-top: 2px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+}
+
+.paper-rundown .paper-timetable-when {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.paper-rundown .paper-timetable-title {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 650;
+}
+
+.paper-rundown .daily-briefing-task-title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.paper-rundown .daily-briefing-weather-expanded .daily-briefing-weather-label {
+  font-size: 1.35rem;
+}
+
+.paper-rundown .daily-briefing-weather-expanded .daily-briefing-weather-context {
+  border-top-color: color-mix(in srgb, var(--text) 28%, transparent);
+}
+
+/* Pulse box score — today vs last week */
+.paper-pulse-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.paper-pulse-tag {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-style: italic;
+  color: var(--text);
+}
+
+.paper-pulse-scoreboard {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 4px;
+  border: 1.5px solid color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+.paper-pulse-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 8px 9px;
+  text-align: center;
+  border-right: 1px solid color-mix(in srgb, var(--text) 28%, transparent);
+  min-width: 0;
+}
+
+.paper-pulse-stat:last-child {
+  border-right: none;
+}
+
+.paper-pulse-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.paper-pulse-value {
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 5vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.paper-pulse-delta {
+  font-size: 0.68rem;
+  line-height: 1.25;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.paper-pulse-arrow {
+  margin-right: 2px;
+  font-size: 0.58rem;
+}
+
+.paper-pulse-delta-up {
+  color: color-mix(in srgb, var(--good, #2f6b4f) 80%, var(--text));
+}
+
+.paper-pulse-delta-down {
+  color: color-mix(in srgb, var(--danger, #b33) 75%, var(--text));
+}
+
+.paper-pulse-delta-even,
+.paper-pulse-delta-none {
+  color: var(--muted);
+}
+
+.paper-pulse-note,
+.paper-pulse-workout {
+  margin: 8px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--text) 88%, var(--muted));
+}
+
+.paper-pulse-workout {
+  font-style: italic;
+}
+
+@media (max-width: 360px) {
+  .paper-pulse-scoreboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .paper-pulse-stat:nth-child(2) {
+    border-right: none;
+  }
+
+  .paper-pulse-stat:nth-child(1),
+  .paper-pulse-stat:nth-child(2) {
+    border-bottom: 1px solid color-mix(in srgb, var(--text) 28%, transparent);
+  }
+}
+
 .paper-masthead {
   display: flex;
   flex-direction: column;

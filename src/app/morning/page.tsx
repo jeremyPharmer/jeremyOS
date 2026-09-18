@@ -277,7 +277,7 @@ export default function MorningPage() {
 
   if (morningDone) {
     return (
-      <main className="stack fade-in daily-briefing morning-brief paper-edition">
+      <main className="stack fade-in daily-briefing morning-brief paper-edition paper-rundown">
         <header className="paper-masthead">
           <p className="paper-masthead-flag">Morning edition</p>
           <h1 className="paper-masthead-title">The Daily Open</h1>
@@ -287,10 +287,13 @@ export default function MorningPage() {
             <span className="paper-masthead-dot" aria-hidden>
               ·
             </span>
-            <span>Your day, delivered</span>
+            <span>Rundown</span>
           </p>
           {shownIntention ? (
-            <p className="paper-masthead-aim">{shownIntention}</p>
+            <div className="paper-lead-story">
+              <p className="paper-kicker">Today&apos;s lead</p>
+              <h2 className="paper-front-headline">{shownIntention}</h2>
+            </div>
           ) : null}
         </header>
 
@@ -298,9 +301,7 @@ export default function MorningPage() {
           <section className="paper-section" aria-live="polite">
             <p className="paper-kicker">The day ahead</p>
             {briefingLoading && events.length === 0 && !thinWeather ? (
-              <p className="muted paper-loading">
-                Pulling calendar…
-              </p>
+              <p className="muted paper-loading">Pulling calendar…</p>
             ) : (
               <>
                 <p className="paper-lead">{briefing.calendarStory.lead}</p>
@@ -313,6 +314,8 @@ export default function MorningPage() {
               </>
             )}
           </section>
+
+          <BodyMind workouts={workoutGaps} trends={trends} />
 
           {(briefingLoading || weatherDays.length > 0) && (
             <WeatherExpanded
@@ -329,7 +332,6 @@ export default function MorningPage() {
             entries={historyEntries}
             hideWhenEmpty
           />
-          <BodyMind workouts={workoutGaps} trends={trends} />
         </div>
 
         {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
