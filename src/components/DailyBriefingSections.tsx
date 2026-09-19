@@ -68,57 +68,46 @@ export function WeatherExpanded({
 
   return (
     <section
-      className="daily-briefing-section daily-briefing-weather daily-briefing-weather-expanded paper-card"
+      className="daily-briefing-section daily-briefing-weather paper-card paper-weather"
       aria-label="Weather"
     >
-      <div className="paper-card-head">
-        <p className="daily-briefing-kicker">
-          {mode === "tomorrow" ? "Tomorrow's forecast" : "Forecast"}
-        </p>
-        <p className="paper-card-tag">Skies</p>
-      </div>
+      <p className="daily-briefing-kicker">
+        {mode === "tomorrow" ? "Tomorrow's forecast" : "Weather"}
+      </p>
       {loading && !focus ? (
         <p className="muted tiny">Loading forecast…</p>
       ) : !focus ? (
         <p className="muted tiny">Forecast unavailable right now.</p>
       ) : (
         <>
-          {locationLabel ? (
-            <p className="daily-briefing-weather-loc">{locationLabel}</p>
-          ) : null}
-          <div className="daily-briefing-weather-hero">
-            <span className="daily-briefing-weather-icon" aria-hidden>
+          <div className="paper-weather-now">
+            <span className="paper-weather-icon" aria-hidden>
               {focus.icon}
             </span>
-            <div className="daily-briefing-weather-hero-copy">
-              <p className="daily-briefing-weather-label">{focus.label}</p>
-              <p className="daily-briefing-weather-temps">
-                <span className="high">{focus.highF}°</span>
-                <span className="low">{focus.lowF}°</span>
+            <div className="paper-weather-now-copy">
+              <p className="paper-weather-condition">
+                {focus.label}
+                {locationLabel ? (
+                  <span className="paper-weather-place"> · {locationLabel}</span>
+                ) : null}
               </p>
-              <p className="daily-briefing-weather-note">
-                {weatherDetailNote(focus)}
+              <p className="paper-weather-temps">
+                <span className="high">{focus.highF}°</span>
+                <span className="low">/{focus.lowF}°</span>
               </p>
             </div>
           </div>
+          <p className="paper-weather-note">{weatherDetailNote(focus)}</p>
           {contextDays.length > 0 ? (
-            <div
-              className="daily-briefing-weather-context"
-              aria-label="Coming days"
-            >
+            <div className="paper-weather-days" aria-label="Coming days">
               {contextDays.map((day) => (
-                <div key={day.date} className="daily-briefing-weather-chip">
+                <div key={day.date} className="paper-weather-day">
                   <span className="dow">{dayAbbrev(day.date)}</span>
                   <span className="icon" aria-hidden>
                     {day.icon}
                   </span>
                   <span className="temps">
-                    {day.highF}° / {day.lowF}°
-                  </span>
-                  <span className="precip">
-                    {day.precipChancePct > 0
-                      ? `${day.precipChancePct}%`
-                      : "Dry"}
+                    {day.highF}°/{day.lowF}°
                   </span>
                 </div>
               ))}
@@ -161,29 +150,28 @@ export function ThisDayInHistory({
       className="daily-briefing-section daily-briefing-history paper-card paper-card-history"
       aria-label="On this date"
     >
-      <div className="paper-card-head">
-        <p className="daily-briefing-kicker">{thisDayInHistoryTitle(today)}</p>
-        <p className="paper-card-tag">Archive</p>
-      </div>
+      <p className="daily-briefing-kicker">{thisDayInHistoryTitle(today)}</p>
 
       {worldLoading && !hasWorld ? (
         <p className="muted tiny paper-card-loading">Looking up this date…</p>
       ) : hasWorld && worldEvent ? (
         <div className="paper-history-world">
           <p className="paper-history-world-label">Also on this date</p>
-          <p className="paper-history-world-year">{worldEvent.year}</p>
-          {worldEvent.url ? (
-            <a
-              href={worldEvent.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="paper-history-world-text"
-            >
-              {worldEvent.text}
-            </a>
-          ) : (
-            <p className="paper-history-world-text">{worldEvent.text}</p>
-          )}
+          <p className="paper-history-world-line">
+            <span className="paper-history-world-year">{worldEvent.year}</span>
+            {worldEvent.url ? (
+              <a
+                href={worldEvent.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="paper-history-world-text"
+              >
+                {worldEvent.text}
+              </a>
+            ) : (
+              <span className="paper-history-world-text">{worldEvent.text}</span>
+            )}
+          </p>
         </div>
       ) : null}
 
@@ -290,10 +278,7 @@ export function BriefingTasks({
       className="daily-briefing-section daily-briefing-tasks paper-card"
       aria-label={kicker}
     >
-      <div className="paper-card-head">
-        <p className="daily-briefing-kicker">{kicker}</p>
-        <p className="paper-card-tag">Desk</p>
-      </div>
+      <p className="daily-briefing-kicker">{kicker}</p>
       {tasks.length === 0 ? (
         <p className="muted tiny">{emptyLabel}</p>
       ) : (
@@ -461,10 +446,7 @@ export function BodyMind({
       className="daily-briefing-section daily-briefing-bodymind paper-pulse paper-card"
       aria-label="The last week"
     >
-      <div className="paper-pulse-head paper-card-head">
-        <p className="daily-briefing-kicker">The last week</p>
-        <p className="paper-pulse-tag">Pulse</p>
-      </div>
+      <p className="daily-briefing-kicker">The last week</p>
       <div className="paper-pulse-scoreboard" role="list">
         {rows.map((row) => {
           const value = pulseValue(row.today, row.avg, { hours: row.hours });
@@ -473,17 +455,10 @@ export function BodyMind({
             <div key={row.key} className="paper-pulse-stat" role="listitem">
               <span className="paper-pulse-label">{row.label}</span>
               <span className="paper-pulse-value">{value.display}</span>
-              <span className={`paper-pulse-delta paper-pulse-delta-${vs.tone}`}>
-                {row.today != null && row.avg != null ? (
-                  <>
-                    <span className="paper-pulse-arrow" aria-hidden>
-                      {vs.tone === "up" ? "▲" : vs.tone === "down" ? "▼" : "●"}
-                    </span>
-                    {vs.label} · {value.caption}
-                  </>
-                ) : (
-                  value.caption
-                )}
+              <span className="paper-pulse-delta">
+                {row.today != null && row.avg != null
+                  ? `${vs.label} from ${value.caption}`
+                  : value.caption}
               </span>
             </div>
           );
@@ -493,17 +468,8 @@ export function BodyMind({
         <p className="paper-pulse-note">
           Sleep quality {trends.todaySleepQuality}
           {trends.sleepQualityAvg != null
-            ? ` — ${
-                trends.sleepQualityVsLastWeek == null
-                  ? "today"
-                  : trends.sleepQualityVsLastWeek === 0
-                    ? "even with"
-                    : trends.sleepQualityVsLastWeek > 0
-                      ? "up vs"
-                      : "down vs"
-              } last week ${trends.sleepQualityAvg.toFixed(1)}`
+            ? ` · week ${trends.sleepQualityAvg.toFixed(1)}`
             : ""}
-          .
         </p>
       ) : null}
       <p className="paper-pulse-workout">{workouts.anyLabel}</p>
