@@ -314,10 +314,7 @@ export default function MorningPage() {
 
         <div className="paper-pages paper-card-stack">
           <section className="paper-section paper-card" aria-live="polite">
-            <div className="paper-card-head">
-              <p className="paper-kicker">The day ahead</p>
-              <p className="paper-card-tag">Schedule</p>
-            </div>
+            <p className="paper-kicker">The day ahead</p>
             {briefingLoading && events.length === 0 && !thinWeather ? (
               <p className="muted paper-loading">Pulling calendar…</p>
             ) : (
