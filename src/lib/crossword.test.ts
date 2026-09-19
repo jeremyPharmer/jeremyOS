@@ -76,6 +76,21 @@ describe("mini crossword pack", () => {
     expect(new Set(answers).size).toBe(answers.length);
   });
 
+  it("keeps 2026-09-19 on the pre-mix puzzle; new pack from the next day", () => {
+    const today = puzzleForDate("2026-09-19");
+    expect(today.id).toBe("inter-coast");
+    expect(answerAt(today, 1, "across")).toBe("INTER");
+    expect(answerAt(today, 4, "across")).toBe("COAST");
+    expect(answerAt(today, 5, "across")).toBe("RISKS");
+    expect(() => assertPuzzleValid(today)).not.toThrow();
+
+    const tomorrow = puzzleForDate("2026-09-20");
+    expect(tomorrow.id).not.toBe("inter-coast");
+    const isLadder =
+      tomorrow.rows[0]!.includes("#") || tomorrow.rows[4]!.includes("#");
+    expect(isLadder).toBe(true);
+  });
+
   it("keeps a long unique-answer rotation (no mid-cycle word repeats)", () => {
     expect(MINI_CROSSWORDS.length).toBeGreaterThanOrEqual(50);
     const seen = new Set<string>();

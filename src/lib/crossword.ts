@@ -1067,10 +1067,26 @@ function dayOfYear(date: string): number {
   return Math.floor((now - start) / 86_400_000);
 }
 
-/** Pin a fresh puzzle to a calendar day without reshuffling the pack. */
+/** One-off calendar pins (standalone puzzles — not also in the rotating pack). */
+const PINNED_2026_09_19: MiniCrosswordPuzzle = {
+  id: "inter-coast",
+  rows: ["INTER", "N#E#A", "COAST", "U#M#E", "RISKS"],
+  across: [
+    { num: 1, clue: "Burial, old-style" },
+    { num: 4, clue: "Shoreline" },
+    { num: 5, clue: "Takes chances" },
+  ],
+  down: [
+    { num: 1, clue: "Bring upon oneself" },
+    { num: 2, clue: "League sides" },
+    { num: 3, clue: "Hotel prices" },
+  ],
+};
+
+/** Pin a puzzle to a calendar day without reshuffling the pack. */
 const DATE_PUZZLES: Record<string, MiniCrosswordPuzzle> = {
-  // Empty on purpose: pins that also appear in the rotating pack
-  // reuse answers mid-cycle. Grow the pack instead.
+  // Keep 2026-09-19 on the pre-ladder-mix puzzle; new pack rotation from 2026-09-20.
+  "2026-09-19": PINNED_2026_09_19,
 };
 
 export function puzzleForDate(date: string): MiniCrosswordPuzzle {
