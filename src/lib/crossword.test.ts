@@ -37,13 +37,30 @@ describe("mini crossword pack", () => {
 
   it("includes mixed word lengths, not only 5-letter across", () => {
     const lengths = new Set<number>();
+    let four = 0;
+    let five = 0;
+    let ladderPuzzles = 0;
     for (const p of MINI_CROSSWORDS) {
+      const isLadder = p.rows[0]!.includes("#") || p.rows[4]!.includes("#");
+      if (isLadder) ladderPuzzles += 1;
       for (const c of p.across) {
-        lengths.add(answerAt(p, c.num, "across").length);
+        const len = answerAt(p, c.num, "across").length;
+        lengths.add(len);
+        if (len === 4) four += 1;
+        if (len === 5) five += 1;
+      }
+      for (const c of p.down) {
+        const len = answerAt(p, c.num, "down").length;
+        lengths.add(len);
+        if (len === 4) four += 1;
+        if (len === 5) five += 1;
       }
     }
     expect(lengths.has(5)).toBe(true);
     expect(lengths.has(4)).toBe(true);
+    // Pack must not be dominated by all-5 classics — ladders carry 4-letter entries.
+    expect(ladderPuzzles).toBeGreaterThanOrEqual(Math.ceil(MINI_CROSSWORDS.length * 0.45));
+    expect(four).toBeGreaterThanOrEqual(Math.floor(five * 0.6));
   });
 
   it("serves a stable unique puzzle for a known date", () => {
