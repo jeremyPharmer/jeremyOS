@@ -4,6 +4,7 @@ import {
   dayLabel,
   timeGreeting,
   weatherCodeMeta,
+  weatherDayFacts,
   weatherDetailNote,
 } from "./weather";
 
