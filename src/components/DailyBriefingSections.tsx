@@ -15,7 +15,7 @@ import {
 import type { NewsHeadline } from "@/lib/news";
 import type { OnThisDayEvent } from "@/lib/on-this-day";
 import {
-  dayAbbrev,
+  weatherDayFacts,
   weatherDetailNote,
   type DailyForecast,
 } from "@/lib/weather";
@@ -43,7 +43,7 @@ function taskGroupOf(group?: TaskGroup): TaskGroup {
   return group ?? "home";
 }
 
-/** Expanded weather — today + multi-day context, or tomorrow-only detail. */
+/** Single-day weather detail — today or tomorrow, no week strip. */
 export function WeatherExpanded({
   mode,
   locationLabel,
@@ -61,10 +61,7 @@ export function WeatherExpanded({
   const focus =
     days.find((d) => d.date === focusDate) ??
     (mode === "tomorrow" ? days[1] : days[0]);
-  const contextDays =
-    mode === "today"
-      ? days.filter((d) => d.date !== focus?.date).slice(0, 4)
-      : [];
+  const facts = focus ? weatherDayFacts(focus) : [];
 
   return (
     <section
@@ -72,7 +69,7 @@ export function WeatherExpanded({
       aria-label="Weather"
     >
       <p className="daily-briefing-kicker">
-        {mode === "tomorrow" ? "Tomorrow's forecast" : "Weather"}
+        {mode === "tomorrow" ? "Tomorrow's weather" : "Today's weather"}
       </p>
       {loading && !focus ? (
         <p className="muted tiny">Loading forecast…</p>
@@ -85,34 +82,25 @@ export function WeatherExpanded({
               {focus.icon}
             </span>
             <div className="paper-weather-now-copy">
-              <p className="paper-weather-condition">
-                {focus.label}
-                {locationLabel ? (
-                  <span className="paper-weather-place"> · {locationLabel}</span>
-                ) : null}
-              </p>
+              <p className="paper-weather-condition">{focus.label}</p>
+              {locationLabel ? (
+                <p className="paper-weather-place">{locationLabel}</p>
+              ) : null}
               <p className="paper-weather-temps">
                 <span className="high">{focus.highF}°</span>
-                <span className="low">/{focus.lowF}°</span>
+                <span className="low"> / {focus.lowF}°</span>
               </p>
             </div>
           </div>
           <p className="paper-weather-note">{weatherDetailNote(focus)}</p>
-          {contextDays.length > 0 ? (
-            <div className="paper-weather-days" aria-label="Coming days">
-              {contextDays.map((day) => (
-                <div key={day.date} className="paper-weather-day">
-                  <span className="dow">{dayAbbrev(day.date)}</span>
-                  <span className="icon" aria-hidden>
-                    {day.icon}
-                  </span>
-                  <span className="temps">
-                    {day.highF}°/{day.lowF}°
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : null}
+          <dl className="paper-weather-facts">
+            {facts.map((fact) => (
+              <div key={fact.label} className="paper-weather-fact">
+                <dt>{fact.label}</dt>
+                <dd>{fact.value}</dd>
+              </div>
+            ))}
+          </dl>
         </>
       )}
     </section>
@@ -275,7 +263,7 @@ export function BriefingTasks({
   if (hideWhenEmpty && tasks.length === 0) return null;
   return (
     <section
-      className="daily-briefing-section daily-briefing-tasks paper-card"
+      className="daily-briefing-section daily-briefing-tasks paper-card paper-card-tasks"
       aria-label={kicker}
     >
       <p className="daily-briefing-kicker">{kicker}</p>
@@ -388,7 +376,7 @@ function pulseValue(
   return { display: "—", caption: "no data" };
 }
 
-/** Newspaper pulse box score — today vs last week. */
+/** Check-in vs last week — mood, energy, stress, sleep hours + quality. */
 export function BodyMind({
   workouts,
   trends,
@@ -396,10 +384,6 @@ export function BodyMind({
   workouts: WorkoutGapInsight;
   trends: SevenDayTrendInsight;
 }) {
-  const sleepIsHours =
-    trends.todaySleepHours != null ||
-    (trends.todaySleepQuality == null && trends.sleepHoursAvg != null);
-
   const rows: {
     key: string;
     label: string;
@@ -430,23 +414,31 @@ export function BodyMind({
       delta: trends.stressVsLastWeek,
     },
     {
-      key: "sleep",
+      key: "sleep-hours",
       label: "Sleep",
-      today: sleepIsHours ? trends.todaySleepHours : trends.todaySleepQuality,
-      avg: sleepIsHours ? trends.sleepHoursAvg : trends.sleepQualityAvg,
-      delta: sleepIsHours
-        ? trends.sleepHoursVsLastWeek
-        : trends.sleepQualityVsLastWeek,
-      hours: sleepIsHours,
+      today: trends.todaySleepHours,
+      avg: trends.sleepHoursAvg,
+      delta: trends.sleepHoursVsLastWeek,
+      hours: true,
+    },
+    {
+      key: "sleep-quality",
+      label: "Quality",
+      today: trends.todaySleepQuality,
+      avg: trends.sleepQualityAvg,
+      delta: trends.sleepQualityVsLastWeek,
     },
   ];
 
   return (
     <section
-      className="daily-briefing-section daily-briefing-bodymind paper-pulse paper-card"
-      aria-label="The last week"
+      className="daily-briefing-section daily-briefing-bodymind paper-pulse paper-card paper-card-pulse"
+      aria-label="Check-in versus last week"
     >
-      <p className="daily-briefing-kicker">The last week</p>
+      <div className="paper-pulse-heading">
+        <p className="daily-briefing-kicker">Check-in</p>
+        <p className="paper-pulse-sub">Today vs last week</p>
+      </div>
       <div className="paper-pulse-scoreboard" role="list">
         {rows.map((row) => {
           const value = pulseValue(row.today, row.avg, { hours: row.hours });
@@ -464,14 +456,6 @@ export function BodyMind({
           );
         })}
       </div>
-      {trends.todaySleepHours != null && trends.todaySleepQuality != null ? (
-        <p className="paper-pulse-note">
-          Sleep quality {trends.todaySleepQuality}
-          {trends.sleepQualityAvg != null
-            ? ` · week ${trends.sleepQualityAvg.toFixed(1)}`
-            : ""}
-        </p>
-      ) : null}
       <p className="paper-pulse-workout">{workouts.anyLabel}</p>
     </section>
   );

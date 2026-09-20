@@ -52,6 +52,9 @@ export default function LayoutsPage() {
           <Link href="/layouts/calendar-day" className="layouts-board-link">
             Calendar day samples →
           </Link>
+          <Link href="/layouts/open-paper" className="layouts-board-link">
+            Daily Open paper samples →
+          </Link>
           <Link href="/settings" className="layouts-board-link">
             Settings
           </Link>

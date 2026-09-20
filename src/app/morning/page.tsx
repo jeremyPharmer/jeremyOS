@@ -191,7 +191,7 @@ export default function MorningPage() {
       setWorldLoading(true);
       try {
         const coords = readStoredCoords();
-        const weatherQs = new URLSearchParams({ days: "6" });
+        const weatherQs = new URLSearchParams({ days: "2" });
         if (coords) {
           weatherQs.set("lat", String(coords.lat));
           weatherQs.set("lon", String(coords.lon));
@@ -312,29 +312,33 @@ export default function MorningPage() {
           ) : null}
         </header>
 
-        <div className="paper-pages paper-card-stack">
-          <section className="paper-section paper-card" aria-live="polite">
-            <p className="paper-kicker">The day ahead</p>
-            {briefingLoading && events.length === 0 && !thinWeather ? (
-              <p className="muted paper-loading">Pulling calendar…</p>
-            ) : (
-              <>
-                <p className="paper-lead">{briefing.calendarStory.lead}</p>
-                <PaperTimetable rows={briefing.calendarStory.rows} />
-                {briefing.calendarStory.rows.length === 0 ? (
-                  <p className="paper-card-empty muted tiny">
-                    No timed events on the books.
+        <div className="paper-pages paper-card-stack paper-split-day">
+          <div className="paper-day-split" aria-label="Day ahead and planned tasks">
+            <section className="paper-section paper-card paper-card-schedule" aria-live="polite">
+              <p className="paper-kicker">The day ahead</p>
+              {briefingLoading && events.length === 0 && !thinWeather ? (
+                <p className="muted paper-loading">Pulling calendar…</p>
+              ) : (
+                <>
+                  <p className="paper-section-headline">
+                    {briefing.calendarStory.lead}
                   </p>
-                ) : null}
-              </>
-            )}
-          </section>
+                  <PaperTimetable rows={briefing.calendarStory.rows} />
+                  {briefing.calendarStory.rows.length === 0 ? (
+                    <p className="paper-card-empty muted tiny">
+                      No timed events on the books.
+                    </p>
+                  ) : null}
+                </>
+              )}
+            </section>
 
-          <BriefingTasks
-            tasks={expandedTasks}
-            kicker="Planned tasks"
-            hideWhenEmpty
-          />
+            <BriefingTasks
+              tasks={expandedTasks}
+              kicker="Planned tasks"
+              hideWhenEmpty
+            />
+          </div>
 
           <BodyMind workouts={workoutGaps} trends={trends} />
 
