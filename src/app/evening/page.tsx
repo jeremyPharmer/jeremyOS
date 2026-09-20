@@ -407,6 +407,10 @@ function EveningPageInner() {
 
   if (editionClosed) {
     const editionDate = formatHomeHeaderDate(editionClosed.date);
+    const morningLead =
+      state.mornings
+        .find((m) => m.date === editionClosed.date)
+        ?.intention?.trim() || "";
     return (
       <main
         className={`stack daily-briefing evening-recap paper-edition paper-rundown${
@@ -424,6 +428,12 @@ function EveningPageInner() {
             </span>
             <span>Day put to bed</span>
           </p>
+          {morningLead ? (
+            <div className="paper-lead-story">
+              <p className="paper-kicker">Today&apos;s lead</p>
+              <h2 className="paper-front-headline">{morningLead}</h2>
+            </div>
+          ) : null}
         </header>
         {editionClosed.date !== today && (
           <p className="muted paper-checkin-note">

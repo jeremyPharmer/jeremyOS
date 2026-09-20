@@ -144,6 +144,32 @@ export function weatherDetailNote(day: DailyForecast): string {
   return `${day.label}. ${bits.join(" · ")}. High ${day.highF}° / low ${day.lowF}°.`;
 }
 
+/** Structured facts for a single-day forecast block. */
+export function weatherDayFacts(
+  day: DailyForecast,
+): { label: string; value: string }[] {
+  const facts: { label: string; value: string }[] = [
+    { label: "High", value: `${day.highF}°` },
+    { label: "Low", value: `${day.lowF}°` },
+    {
+      label: "Rain",
+      value:
+        day.precipChancePct <= 0
+          ? "None expected"
+          : day.precipIn >= 0.1
+            ? `${day.precipChancePct}% · ~${day.precipIn.toFixed(2)}"`
+            : `${day.precipChancePct}% chance`,
+    },
+  ];
+  if (day.windMphMax != null && Number.isFinite(day.windMphMax)) {
+    facts.push({ label: "Wind", value: `up to ${day.windMphMax} mph` });
+  }
+  if (day.uvIndexMax != null && Number.isFinite(day.uvIndexMax)) {
+    facts.push({ label: "UV", value: String(day.uvIndexMax) });
+  }
+  return facts;
+}
+
 /** Approximate coords when geolocation is unavailable */
 export const TIMEZONE_FALLBACKS: Record<
   string,
