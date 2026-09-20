@@ -3,6 +3,7 @@ import {
   computeRecordAndStreak,
   fetchSoccerPanel,
   mapHudlScheduleEntry,
+  scheduleWhenLabel,
 } from "./soccer";
 
 describe("mapHudlScheduleEntry", () => {
@@ -42,6 +43,66 @@ describe("mapHudlScheduleEntry", () => {
     expect(game!.homeAway).toBe("home");
     expect(game!.weWon).toBeNull();
     expect(game!.status).toBe("post");
+  });
+
+  it("marks a past kickoff as Final when Hudl outcome is still unknown", () => {
+    const kickoff = "2026-09-19T21:00:00.000Z";
+    const now = Date.parse(kickoff) + 4 * 60 * 60 * 1000;
+    const game = mapHudlScheduleEntry(
+      {
+        scheduleEntryId: "pittsford",
+        timeUtc: kickoff,
+        scheduleEntryLocation: 2,
+        scheduleEntryOutcome: 0,
+        score1: null,
+        score2: null,
+        opponentDetails: { shortName: "Pittsford" },
+      },
+      now,
+    );
+    expect(game!.status).toBe("post");
+    expect(game!.usScore).toBeNull();
+    expect(game!.weWon).toBeNull();
+    expect(scheduleWhenLabel(game!)).toBe("Final");
+  });
+
+  it("infers W/L from scores when Hudl left outcome unknown after kickoff", () => {
+    const kickoff = "2026-09-17T23:00:00.000Z";
+    const now = Date.parse(kickoff) + 5 * 60 * 60 * 1000;
+    const game = mapHudlScheduleEntry(
+      {
+        scheduleEntryId: "penfield",
+        timeUtc: kickoff,
+        scheduleEntryLocation: 1,
+        scheduleEntryOutcome: 0,
+        score1: 3,
+        score2: 1,
+        opponentDetails: { shortName: "Penfield" },
+      },
+      now,
+    );
+    expect(game!.status).toBe("post");
+    expect(game!.weWon).toBe(true);
+    expect(scheduleWhenLabel(game!)).toBe("W 3–1");
+  });
+
+  it("treats the game as live during the post-kickoff grace window", () => {
+    const kickoff = "2026-09-19T21:00:00.000Z";
+    const now = Date.parse(kickoff) + 45 * 60 * 1000;
+    const game = mapHudlScheduleEntry(
+      {
+        scheduleEntryId: "live",
+        timeUtc: kickoff,
+        scheduleEntryLocation: 2,
+        scheduleEntryOutcome: 0,
+        score1: 1,
+        score2: 0,
+        opponentDetails: { shortName: "Hilton" },
+      },
+      now,
+    );
+    expect(game!.status).toBe("in");
+    expect(scheduleWhenLabel(game!)).toBe("Live 1–0");
   });
 });
 
@@ -90,6 +151,34 @@ describe("computeRecordAndStreak", () => {
       streak: "L1",
     });
   });
+
+  it("does not count Final-without-score as a tie in the record", () => {
+    const kickoff = "2026-09-19T21:00:00.000Z";
+    const now = Date.parse(kickoff) + 4 * 60 * 60 * 1000;
+    const pending = mapHudlScheduleEntry(
+      {
+        scheduleEntryId: "pending",
+        timeUtc: kickoff,
+        scheduleEntryLocation: 2,
+        scheduleEntryOutcome: 0,
+        opponentDetails: { shortName: "Pittsford" },
+      },
+      now,
+    )!;
+    const prior = mapHudlScheduleEntry({
+      scheduleEntryId: "prior",
+      timeUtc: "2026-09-17T23:00:00.000Z",
+      scheduleEntryLocation: 1,
+      scheduleEntryOutcome: 3,
+      score1: 3,
+      score2: 3,
+      opponentDetails: { shortName: "Penfield" },
+    })!;
+    expect(computeRecordAndStreak([prior, pending])).toEqual({
+      record: "0-0-1",
+      streak: "T1",
+    });
+  });
 });
 
 describe("fetchSoccerPanel (live Hudl)", () => {
@@ -100,5 +189,17 @@ describe("fetchSoccerPanel (live Hudl)", () => {
     expect(panel!.games[0]!.opponentName.toLowerCase()).toContain("irondequoit");
     expect(panel!.clubhouseUrl).toContain("hudl.com");
     expect(panel!.record).not.toBe("—");
+  }, 20000);
+
+  it("marks last night’s game post even when Hudl outcome lags", async () => {
+    const panel = await fetchSoccerPanel("2026-09-20");
+    expect(panel).not.toBeNull();
+    const pittsford = panel!.games.find(
+      (g) =>
+        /pittsford/i.test(g.opponentName) &&
+        g.date.startsWith("2026-09-19"),
+    );
+    expect(pittsford).toBeTruthy();
+    expect(pittsford!.status).toBe("post");
   }, 20000);
 });

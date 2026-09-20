@@ -16,7 +16,13 @@ const HUDL_GRAPHQL = "https://core.hudl.com/api/public/graphql/query";
 const HUDL_INTERNAL_TEAM_ID = "76442";
 
 const FETCH_MS = 8_000;
-const REVALIDATE_SEC = 300;
+/** Keep short so last night’s final isn’t stuck behind a long cache. */
+const REVALIDATE_SEC = 60;
+/**
+ * After kickoff, treat the game as live until this grace elapses, then post —
+ * even if Hudl still reports outcome UNKNOWN (common overnight lag).
+ */
+export const SOCCER_POST_GRACE_MS = 3 * 60 * 60 * 1000;
 
 /** MaxPreps team id (legacy mapper / tests). */
 const MAXPREPS_TEAM_ID = "9944dd24-fb57-4022-891c-5284e982482b";
@@ -206,8 +212,53 @@ function scoreToString(v: unknown): string | null {
   return null;
 }
 
+/** Infer W/L/T from scores when Hudl left outcome unset. */
+export function inferWeWonFromScores(
+  score1: unknown,
+  score2: unknown,
+): boolean | null {
+  const us = scoreToString(score1);
+  const opp = scoreToString(score2);
+  if (us == null || opp == null) return null;
+  const a = Number(us);
+  const b = Number(opp);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  if (a > b) return true;
+  if (a < b) return false;
+  return null;
+}
+
+/**
+ * When Hudl still says UNKNOWN, advance pre → in → post from kickoff time
+ * so past games never linger as upcoming on Home.
+ */
+export function resolveHudlStatus(
+  entry: Pick<
+    HudlScheduleEntry,
+    "timeUtc" | "scheduleEntryOutcome" | "score1" | "score2"
+  >,
+  nowMs: number = Date.now(),
+  postGraceMs: number = SOCCER_POST_GRACE_MS,
+): { status: SoccerGameStatus; weWon: boolean | null } {
+  const fromHudl = mapHudlOutcome(entry.scheduleEntryOutcome);
+  if (fromHudl.status === "post") return fromHudl;
+
+  const kickoff = entry.timeUtc ? Date.parse(entry.timeUtc) : NaN;
+  if (!Number.isFinite(kickoff)) return fromHudl;
+
+  const elapsed = nowMs - kickoff;
+  if (elapsed < 0) return fromHudl;
+  if (elapsed < postGraceMs) {
+    return { status: "in", weWon: null };
+  }
+
+  const weWon = inferWeWonFromScores(entry.score1, entry.score2);
+  return { status: "post", weWon };
+}
+
 export function mapHudlScheduleEntry(
   entry: HudlScheduleEntry,
+  nowMs: number = Date.now(),
 ): SoccerGame | null {
   const rawName =
     entry.opponentDetails?.shortName ||
@@ -218,9 +269,10 @@ export function mapHudlScheduleEntry(
   if (!homeAway) return null;
   if (!entry.timeUtc) return null;
 
-  const { status, weWon } = mapHudlOutcome(entry.scheduleEntryOutcome);
-  const usScore = status === "post" ? scoreToString(entry.score1) : null;
-  const opponentScore = status === "post" ? scoreToString(entry.score2) : null;
+  const { status, weWon } = resolveHudlStatus(entry, nowMs);
+  const showScore = status === "post" || status === "in";
+  const usScore = showScore ? scoreToString(entry.score1) : null;
+  const opponentScore = showScore ? scoreToString(entry.score2) : null;
 
   const id =
     entry.scheduleEntryId ||
@@ -328,11 +380,18 @@ export function scheduleWhenLabel(
   return `${day} · ${rest}`;
 }
 
+/** True when a post game has a known W/L/T (not “Final” awaiting Hudl). */
+export function hasKnownSoccerResult(game: SoccerGame): boolean {
+  if (game.status !== "post") return false;
+  if (game.weWon === true || game.weWon === false) return true;
+  return game.usScore != null && game.opponentScore != null;
+}
+
 export function computeRecordAndStreak(games: SoccerGame[]): {
   record: string;
   streak: string;
 } {
-  const completed = games.filter((g) => g.status === "post");
+  const completed = games.filter(hasKnownSoccerResult);
   let w = 0;
   let l = 0;
   let t = 0;
@@ -467,8 +526,9 @@ export async function fetchSoccerPanel(
     if (!seasonId) throw new Error("Hudl season missing");
 
     const entries = await fetchHudlScheduleEntries(header.id, seasonId);
+    const nowMs = Date.now();
     const games = entries
-      .map(mapHudlScheduleEntry)
+      .map((entry) => mapHudlScheduleEntry(entry, nowMs))
       .filter((g): g is SoccerGame => g != null)
       .sort((a, b) => a.date.localeCompare(b.date));
 

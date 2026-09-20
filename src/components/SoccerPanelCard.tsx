@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import {
   dateShortLabel,
+  hasKnownSoccerResult,
   isSoccerSeason,
   matchupLabel,
   pickFeaturedGame,
@@ -13,6 +14,8 @@ import {
 import { calendarDayInTz } from "@/lib/journey";
 
 const WARRIORS_LOGO = "/schroeder-warriors-logo.png";
+/** Poll while a recent game may still be awaiting Hudl’s final. */
+const SOCCER_REFRESH_MS = 60_000;
 
 export function SoccerPanelCard() {
   const { today } = useApp();
@@ -31,6 +34,7 @@ export function SoccerPanelCard() {
       try {
         const res = await fetch(
           `/api/soccer?date=${encodeURIComponent(today)}`,
+          { cache: "no-store" },
         );
         const data = (await res.json()) as { panel?: SoccerPanel | null };
         if (cancelled) return;
@@ -41,9 +45,19 @@ export function SoccerPanelCard() {
         if (!cancelled) setLoaded(true);
       }
     }
+
     void load();
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    const timer = window.setInterval(() => void load(), SOCCER_REFRESH_MS);
+
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(timer);
     };
   }, [today]);
 
@@ -109,6 +123,8 @@ export function SoccerPanelCard() {
                 game.status !== "post" &&
                 calendarDayInTz(game.date) === today;
               const isNext = game.id === featuredId && game.status !== "post";
+              const awaitingResult =
+                game.status === "post" && !hasKnownSoccerResult(game);
               return (
                 <li
                   key={game.id}
@@ -143,7 +159,7 @@ export function SoccerPanelCard() {
                     <span className="soccer-stub-opp">{game.opponentName}</span>
                   </span>
                   <span className="soccer-stub-when">
-                    {scheduleWhenLabel(game)}
+                    {awaitingResult ? "Final" : scheduleWhenLabel(game)}
                   </span>
                 </li>
               );
