@@ -38,22 +38,27 @@ describe("timeGreeting", () => {
   });
 });
 
-describe("weatherDetailNote", () => {
-  it("mentions precip and wind when elevated", () => {
-    const note = weatherDetailNote({
-      date: "2026-09-12",
-      highF: 72,
-      lowF: 55,
-      code: 61,
-      label: "Rain",
-      icon: "🌧️",
-      precipChancePct: 60,
-      precipIn: 0.25,
-      windMphMax: 18,
-      uvIndexMax: 3,
+describe("weatherDayFacts", () => {
+  it("returns structured today facts including rain and UV", () => {
+    const facts = weatherDayFacts({
+      date: "2026-09-20",
+      highF: 83,
+      lowF: 65,
+      code: 2,
+      label: "Partly cloudy",
+      icon: "⛅",
+      precipChancePct: 2,
+      precipIn: 0,
+      windMphMax: 11,
+      uvIndexMax: 7,
     });
-    expect(note).toMatch(/60%/);
-    expect(note).toMatch(/0\.25/);
-    expect(note).toMatch(/18 mph/);
+    expect(facts.map((f) => f.label)).toEqual([
+      "High",
+      "Low",
+      "Rain",
+      "Wind",
+      "UV",
+    ]);
+    expect(facts.find((f) => f.label === "Rain")?.value).toMatch(/2%/);
   });
 });
