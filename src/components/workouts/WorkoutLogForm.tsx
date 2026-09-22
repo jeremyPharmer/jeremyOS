@@ -10,6 +10,7 @@ import {
   blankActualsFromRoutine,
   findRoutine,
   gymSupportForType,
+  lastExerciseActualsForRoutine,
   parseRoutineSelectValue,
   repModeLabel,
   routineSelectValue,
@@ -81,9 +82,10 @@ export function WorkoutLogForm({
       return;
     }
     const r = findRoutine(state.workoutRoutines, id);
-    setActuals(r ? blankActualsFromRoutine(r) : []);
+    const previous = lastExerciseActualsForRoutine(state.workouts, id);
+    setActuals(r ? blankActualsFromRoutine(r, previous) : []);
     setShowSessionDetails(false);
-  }, [workout, state.workoutRoutines]);
+  }, [workout, state.workoutRoutines, state.workouts]);
 
   function updateSet(
     exerciseIndex: number,
@@ -255,7 +257,8 @@ export function WorkoutLogForm({
         <div className="workout-actuals">
           <p className="workout-log-label">Today&apos;s sets</p>
           <p className="tiny muted">
-            Log what you did — weights only where this routine tracks them.
+            Log what you did — weights default to last time you did this
+            workout (edit if you change them).
           </p>
           {actuals.map((ex, ei) => (
             <div key={ex.exerciseId} className="workout-actual-ex">

@@ -4,6 +4,7 @@ import {
   buildMonthGrid,
   formatExerciseActualSummary,
   formatWorkoutListDate,
+  lastExerciseActualsForRoutine,
   monthWorkoutSummary,
   normalizeExerciseActuals,
   normalizeQuality,
@@ -245,8 +246,112 @@ describe("routines and actuals", () => {
     expect(actuals[0].sets).toHaveLength(3);
     expect(actuals[0].sets[0].reps).toBe(8);
     expect(actuals[0].tracksWeight).toBe(true);
+    expect(actuals[0].sets[0].weight).toBeUndefined();
     expect(actuals[1].tracksWeight).toBe(false);
     expect(actuals[1].sets[0].weight).toBeUndefined();
+  });
+
+  it("defaults weights from the last logged session for that routine", () => {
+    const previous = [
+      {
+        exerciseId: "ex_1",
+        name: "Bench",
+        tracksWeight: true,
+        sets: [
+          { reps: 8, weight: 135 },
+          { reps: 8, weight: 140 },
+          { reps: 6, weight: 145 },
+        ],
+      },
+      {
+        exerciseId: "ex_2",
+        name: "Push-ups",
+        tracksWeight: false,
+        sets: [{ reps: 12 }, { reps: 12 }],
+      },
+    ];
+    const actuals = blankActualsFromRoutine(routine, previous);
+    expect(actuals[0].sets.map((s) => s.weight)).toEqual([135, 140, 145]);
+    expect(actuals[0].sets[0].reps).toBe(8);
+    expect(actuals[1].sets[0].weight).toBeUndefined();
+  });
+
+  it("matches previous weights by exercise name when ids differ", () => {
+    const previous = [
+      {
+        exerciseId: "old_bench",
+        name: "Bench",
+        tracksWeight: true,
+        sets: [
+          { reps: 8, weight: 155 },
+          { reps: 8, weight: 155 },
+        ],
+      },
+    ];
+    const actuals = blankActualsFromRoutine(routine, previous);
+    expect(actuals[0].sets[0].weight).toBe(155);
+    expect(actuals[0].sets[1].weight).toBe(155);
+    expect(actuals[0].sets[2].weight).toBeUndefined();
+  });
+
+  it("finds the newest routine session for last weights", () => {
+    const logs: WorkoutLog[] = [
+      {
+        id: "older",
+        date: "2026-09-01",
+        label: "Upper",
+        type: "lift",
+        routineId: "routine_1",
+        exerciseActuals: [
+          {
+            exerciseId: "ex_1",
+            name: "Bench",
+            tracksWeight: true,
+            sets: [{ reps: 8, weight: 100 }],
+          },
+        ],
+        createdAt: "2026-09-01T12:00:00Z",
+      },
+      {
+        id: "newer",
+        date: "2026-09-10",
+        label: "Upper",
+        type: "lift",
+        routineId: "routine_1",
+        exerciseActuals: [
+          {
+            exerciseId: "ex_1",
+            name: "Bench",
+            tracksWeight: true,
+            sets: [
+              { reps: 8, weight: 135 },
+              { reps: 8, weight: 140 },
+              { reps: 6, weight: 145 },
+            ],
+          },
+        ],
+        createdAt: "2026-09-10T12:00:00Z",
+      },
+      {
+        id: "other",
+        date: "2026-09-12",
+        label: "HIIT circuit",
+        type: "hiit",
+        routineId: "routine_hiit",
+        exerciseActuals: [
+          {
+            exerciseId: "ex_kb",
+            name: "KB swing",
+            tracksWeight: true,
+            sets: [{ reps: 15, weight: 35 }],
+          },
+        ],
+        createdAt: "2026-09-12T12:00:00Z",
+      },
+    ];
+    const last = lastExerciseActualsForRoutine(logs, "routine_1");
+    expect(last?.[0].sets[0].weight).toBe(135);
+    expect(lastExerciseActualsForRoutine(logs, "missing")).toBeUndefined();
   });
 
   it("preserves seconds rep mode on routines and actuals", () => {

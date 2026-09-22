@@ -193,20 +193,77 @@ export function findRoutine(
   return normalizeRoutines(routines).find((r) => r.id === id);
 }
 
-/** Seed empty actual rows from a routine plan (reps prefilled; weight blank). */
+/**
+ * Most recent logged session for a routine that includes set actuals.
+ * Newest by date, then createdAt.
+ */
+export function lastExerciseActualsForRoutine(
+  workouts: WorkoutLog[] | undefined,
+  routineId: string,
+): WorkoutExerciseActual[] | undefined {
+  if (!routineId) return undefined;
+  const match = normalizeWorkouts(workouts)
+    .filter(
+      (w) =>
+        w.routineId === routineId &&
+        Array.isArray(w.exerciseActuals) &&
+        w.exerciseActuals.length > 0,
+    )
+    .sort((a, b) => {
+      const byDate = b.date.localeCompare(a.date);
+      if (byDate !== 0) return byDate;
+      return b.createdAt.localeCompare(a.createdAt);
+    })[0];
+  return match?.exerciseActuals;
+}
+
+function previousActualForExercise(
+  previous: WorkoutExerciseActual[] | undefined,
+  exerciseId: string,
+  name: string,
+): WorkoutExerciseActual | undefined {
+  if (!previous?.length) return undefined;
+  const byId = previous.find((p) => p.exerciseId === exerciseId);
+  if (byId) return byId;
+  const lower = name.trim().toLowerCase();
+  return previous.find((p) => p.name.trim().toLowerCase() === lower);
+}
+
+/**
+ * Seed actual rows from a routine plan.
+ * Reps come from the plan; weights default from the last logged session
+ * for that routine (matched by exercise id, then name).
+ */
 export function blankActualsFromRoutine(
   routine: WorkoutRoutine,
+  previousActuals?: WorkoutExerciseActual[] | undefined,
 ): WorkoutExerciseActual[] {
-  return normalizeRoutine(routine).exercises.map((ex) => ({
-    exerciseId: ex.id,
-    name: ex.name,
-    tracksWeight: ex.tracksWeight,
-    repMode: ex.repMode ?? "reps",
-    sets: Array.from({ length: ex.sets }, () => ({
-      reps: ex.reps,
-      weight: undefined,
-    })),
-  }));
+  return normalizeRoutine(routine).exercises.map((ex) => {
+    const prev = previousActualForExercise(
+      previousActuals,
+      ex.id,
+      ex.name,
+    );
+    return {
+      exerciseId: ex.id,
+      name: ex.name,
+      tracksWeight: ex.tracksWeight,
+      repMode: ex.repMode ?? "reps",
+      sets: Array.from({ length: ex.sets }, (_, setIndex) => {
+        const prevWeight = prev?.sets[setIndex]?.weight;
+        return {
+          reps: ex.reps,
+          weight:
+            ex.tracksWeight &&
+            prevWeight != null &&
+            Number.isFinite(prevWeight) &&
+            prevWeight >= 0
+              ? prevWeight
+              : undefined,
+        };
+      }),
+    };
+  });
 }
 
 export function repModeLabel(mode: WorkoutRepMode | undefined): string {
