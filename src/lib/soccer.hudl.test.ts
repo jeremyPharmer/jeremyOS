@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applySoccerScoreOverrides,
   computeRecordAndStreak,
   enrichMissingScores,
   fetchSoccerPanel,
@@ -221,6 +222,24 @@ describe("enrichMissingScores", () => {
   });
 });
 
+describe("applySoccerScoreOverrides", () => {
+  it("corrects Pittsford 9/19 to T 3–3", () => {
+    const wrong: SoccerGame = {
+      id: "pit",
+      date: "2026-09-19T21:00:00.000Z",
+      opponentAbbr: "PIT",
+      opponentName: "Pittsford",
+      homeAway: "away",
+      status: "post",
+      usScore: "0",
+      opponentScore: "0",
+      weWon: null,
+    };
+    const [fixed] = applySoccerScoreOverrides([wrong]);
+    expect(scheduleWhenLabel(fixed!)).toBe("T 3–3");
+  });
+});
+
 describe("fetchSoccerPanel (live Hudl)", () => {
   it("returns the Warriors schedule starting with Irondequoit", async () => {
     const panel = await fetchSoccerPanel("2026-09-15");
@@ -231,7 +250,7 @@ describe("fetchSoccerPanel (live Hudl)", () => {
     expect(panel!.record).not.toBe("—");
   }, 20000);
 
-  it("fills Pittsford score from MaxPreps when Hudl outcome lags", async () => {
+  it("shows Pittsford as T 3–3 (founder correction)", async () => {
     const panel = await fetchSoccerPanel("2026-09-20");
     expect(panel).not.toBeNull();
     const pittsford = panel!.games.find(
@@ -241,8 +260,8 @@ describe("fetchSoccerPanel (live Hudl)", () => {
     );
     expect(pittsford).toBeTruthy();
     expect(pittsford!.status).toBe("post");
-    expect(pittsford!.usScore).toBe("0");
-    expect(pittsford!.opponentScore).toBe("0");
-    expect(scheduleWhenLabel(pittsford!)).toBe("T 0–0");
+    expect(pittsford!.usScore).toBe("3");
+    expect(pittsford!.opponentScore).toBe("3");
+    expect(scheduleWhenLabel(pittsford!)).toBe("T 3–3");
   }, 20000);
 });

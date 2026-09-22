@@ -423,6 +423,45 @@ export function enrichMissingScores(
   });
 }
 
+/** Founder corrections when Hudl/MaxPreps post the wrong final. */
+type SoccerScoreOverride = {
+  day: string;
+  opponentMatch: RegExp;
+  usScore: string;
+  opponentScore: string;
+  weWon: boolean | null;
+};
+
+const SOCCER_SCORE_OVERRIDES: SoccerScoreOverride[] = [
+  {
+    day: "2026-09-19",
+    opponentMatch: /pittsford|mendon/i,
+    usScore: "3",
+    opponentScore: "3",
+    weWon: null,
+  },
+];
+
+export function applySoccerScoreOverrides(
+  games: SoccerGame[],
+  timeZone = "America/New_York",
+): SoccerGame[] {
+  return games.map((g) => {
+    const day = calendarDayInTz(g.date, timeZone);
+    const hit = SOCCER_SCORE_OVERRIDES.find(
+      (o) => o.day === day && o.opponentMatch.test(g.opponentName),
+    );
+    if (!hit) return g;
+    return {
+      ...g,
+      status: "post" as const,
+      usScore: hit.usScore,
+      opponentScore: hit.opponentScore,
+      weWon: hit.weWon,
+    };
+  });
+}
+
 function extractNextData(html: string): unknown | null {
   const m = html.match(
     /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/,
@@ -616,7 +655,9 @@ export async function fetchSoccerPanel(
       .map((entry) => mapHudlScheduleEntry(entry, nowMs))
       .filter((g): g is SoccerGame => g != null)
       .sort((a, b) => a.date.localeCompare(b.date));
-    const games = enrichMissingScores(mapped, maxPrepsGames);
+    const games = applySoccerScoreOverrides(
+      enrichMissingScores(mapped, maxPrepsGames),
+    );
 
     const { record, streak } = computeRecordAndStreak(games);
 
