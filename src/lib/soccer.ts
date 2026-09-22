@@ -1,7 +1,9 @@
 /**
  * Webster Schroeder Warriors varsity boys soccer Home panel (RB-035).
- * Hudl Fan schedule via public GraphQL; fail soft.
+ * Hudl Fan schedule via public GraphQL; MaxPreps fills missing finals.
  */
+
+import { calendarDayInTz } from "./journey";
 
 export const SCHROEDER_HUDL_CLUBHOUSE =
   "https://fan.hudl.com/usa/ny/webster/organization/14887/webster-schroeder-high-school/team/76442/boys-varsity-soccer";
@@ -387,6 +389,86 @@ export function hasKnownSoccerResult(game: SoccerGame): boolean {
   return game.usScore != null && game.opponentScore != null;
 }
 
+/**
+ * Fill blank Hudl finals from MaxPreps by Eastern calendar day.
+ * Opponent names often differ (Hudl “Pittsford” vs MaxPreps “Mendon”).
+ */
+export function enrichMissingScores(
+  games: SoccerGame[],
+  fillers: SoccerGame[],
+  timeZone = "America/New_York",
+): SoccerGame[] {
+  const byDay = new Map<string, SoccerGame>();
+  for (const f of fillers) {
+    if (!hasKnownSoccerResult(f)) continue;
+    if (f.usScore == null || f.opponentScore == null) continue;
+    const key = calendarDayInTz(f.date, timeZone);
+    if (!key) continue;
+    byDay.set(key, f);
+  }
+
+  return games.map((g) => {
+    if (g.usScore != null && g.opponentScore != null) return g;
+    if (g.status !== "post" && g.status !== "in") return g;
+    const key = calendarDayInTz(g.date, timeZone);
+    const fill = key ? byDay.get(key) : undefined;
+    if (!fill) return g;
+    return {
+      ...g,
+      status: "post" as const,
+      usScore: fill.usScore,
+      opponentScore: fill.opponentScore,
+      weWon: fill.weWon,
+    };
+  });
+}
+
+function extractNextData(html: string): unknown | null {
+  const m = html.match(
+    /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/,
+  );
+  if (!m?.[1]) return null;
+  try {
+    return JSON.parse(m[1]) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function contestsFromSchedule(data: unknown): unknown[] {
+  const contests = (
+    data as { props?: { pageProps?: { contests?: unknown } } }
+  )?.props?.pageProps?.contests;
+  return Array.isArray(contests) ? contests : [];
+}
+
+async function fetchMaxPrepsGames(): Promise<SoccerGame[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_MS);
+  try {
+    const res = await fetch(SCHROEDER_MAXPREPS_SCHEDULE, {
+      signal: controller.signal,
+      next: { revalidate: REVALIDATE_SEC },
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (compatible; JeremyOS/1.0; +https://jeremyos-prod.fly.dev)",
+        accept: "text/html",
+      },
+    });
+    if (!res.ok) return [];
+    const html = await res.text();
+    const data = extractNextData(html);
+    if (!data) return [];
+    return contestsFromSchedule(data)
+      .map(mapMaxPrepsContest)
+      .filter((g): g is SoccerGame => g != null && hasKnownSoccerResult(g));
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function computeRecordAndStreak(games: SoccerGame[]): {
   record: string;
   streak: string;
@@ -525,12 +607,16 @@ export async function fetchSoccerPanel(
     const seasonId = header.currentSeason?.seasonId;
     if (!seasonId) throw new Error("Hudl season missing");
 
-    const entries = await fetchHudlScheduleEntries(header.id, seasonId);
+    const [entries, maxPrepsGames] = await Promise.all([
+      fetchHudlScheduleEntries(header.id, seasonId),
+      fetchMaxPrepsGames(),
+    ]);
     const nowMs = Date.now();
-    const games = entries
+    const mapped = entries
       .map((entry) => mapHudlScheduleEntry(entry, nowMs))
       .filter((g): g is SoccerGame => g != null)
       .sort((a, b) => a.date.localeCompare(b.date));
+    const games = enrichMissingScores(mapped, maxPrepsGames);
 
     const { record, streak } = computeRecordAndStreak(games);
 

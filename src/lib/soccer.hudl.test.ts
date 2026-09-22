@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   computeRecordAndStreak,
+  enrichMissingScores,
   fetchSoccerPanel,
   mapHudlScheduleEntry,
   scheduleWhenLabel,
+  type SoccerGame,
 } from "./soccer";
 
 describe("mapHudlScheduleEntry", () => {
@@ -181,6 +183,44 @@ describe("computeRecordAndStreak", () => {
   });
 });
 
+describe("enrichMissingScores", () => {
+  it("fills a blank Hudl Final from MaxPreps on the same calendar day", () => {
+    const hudlBlank = mapHudlScheduleEntry(
+      {
+        scheduleEntryId: "pittsford",
+        timeUtc: "2026-09-19T21:00:00.000Z",
+        scheduleEntryLocation: 2,
+        scheduleEntryOutcome: 0,
+        score1: null,
+        score2: null,
+        opponentDetails: { shortName: "Pittsford" },
+      },
+      Date.parse("2026-09-19T21:00:00.000Z") + 4 * 60 * 60 * 1000,
+    )!;
+    expect(hudlBlank.usScore).toBeNull();
+    expect(scheduleWhenLabel(hudlBlank)).toBe("Final");
+
+    const maxPreps: SoccerGame = {
+      id: "mp-mendon",
+      date: "2026-09-19T17:00:00",
+      opponentAbbr: "MEN",
+      opponentName: "Mendon",
+      homeAway: "away",
+      status: "post",
+      usScore: "0",
+      opponentScore: "0",
+      weWon: null,
+    };
+
+    const [filled] = enrichMissingScores([hudlBlank], [maxPreps]);
+    expect(filled!.usScore).toBe("0");
+    expect(filled!.opponentScore).toBe("0");
+    expect(filled!.weWon).toBeNull();
+    expect(scheduleWhenLabel(filled!)).toBe("T 0–0");
+    expect(filled!.opponentName).toBe("Pittsford");
+  });
+});
+
 describe("fetchSoccerPanel (live Hudl)", () => {
   it("returns the Warriors schedule starting with Irondequoit", async () => {
     const panel = await fetchSoccerPanel("2026-09-15");
@@ -191,7 +231,7 @@ describe("fetchSoccerPanel (live Hudl)", () => {
     expect(panel!.record).not.toBe("—");
   }, 20000);
 
-  it("marks last night’s game post even when Hudl outcome lags", async () => {
+  it("fills Pittsford score from MaxPreps when Hudl outcome lags", async () => {
     const panel = await fetchSoccerPanel("2026-09-20");
     expect(panel).not.toBeNull();
     const pittsford = panel!.games.find(
@@ -201,5 +241,8 @@ describe("fetchSoccerPanel (live Hudl)", () => {
     );
     expect(pittsford).toBeTruthy();
     expect(pittsford!.status).toBe("post");
+    expect(pittsford!.usScore).toBe("0");
+    expect(pittsford!.opponentScore).toBe("0");
+    expect(scheduleWhenLabel(pittsford!)).toBe("T 0–0");
   }, 20000);
 });
