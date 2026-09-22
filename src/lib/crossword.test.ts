@@ -13,7 +13,9 @@ import {
   entryHasClearableLetters,
   entryHasLetters,
   isGridSolved,
+  isStaleUnfinishedCrossword,
   isWordCorrect,
+  missedReviewForPuzzle,
   nextCellInDirection,
   puzzleForDate,
   solutionCells,
@@ -332,5 +334,74 @@ describe("applyCrosswordAction", () => {
     });
     expect(state.dailyCrossword?.completed).toBe(0);
     expect(state.dailyCrossword?.current?.revealed).toBe(true);
+  });
+
+  it("Start on a new day clears a stale unfinished attempt", () => {
+    let state = emptyState();
+    state = applyCrosswordAction(state, { action: "start", date: "2026-09-04" });
+    const yesterday = puzzleForDate("2026-09-04");
+    const partial = emptyCellsForPuzzle(yesterday);
+    const indexes = wordCellIndexes(yesterday, yesterday.across[0]!.num, "across");
+    const answer = answerAt(yesterday, yesterday.across[0]!.num, "across");
+    for (let i = 0; i < indexes.length; i++) {
+      partial[indexes[i]!] = answer[i]!;
+    }
+    state = applyCrosswordAction(state, {
+      action: "save",
+      date: "2026-09-04",
+      cells: partial,
+    });
+    expect(state.dailyCrossword?.current?.solved).toBe(false);
+    expect(
+      isStaleUnfinishedCrossword(state.dailyCrossword?.current, "2026-09-05"),
+    ).toBe(true);
+
+    state = applyCrosswordAction(state, { action: "start", date: "2026-09-05" });
+    expect(state.dailyCrossword?.current?.date).toBe("2026-09-05");
+    expect(state.dailyCrossword?.current?.solved).toBe(false);
+    expect(state.dailyCrossword?.attempts).toBe(2);
+    expect(
+      isStaleUnfinishedCrossword(state.dailyCrossword?.current, "2026-09-05"),
+    ).toBe(false);
+  });
+
+  it("does not treat a solved yesterday as stale unfinished", () => {
+    let state = emptyState();
+    state = applyCrosswordAction(state, { action: "start", date: "2026-09-04" });
+    const puzzle = puzzleForDate("2026-09-04");
+    state = applyCrosswordAction(state, {
+      action: "save",
+      date: "2026-09-04",
+      cells: solutionCells(puzzle),
+    });
+    expect(state.dailyCrossword?.current?.solved).toBe(true);
+    expect(
+      isStaleUnfinishedCrossword(state.dailyCrossword?.current, "2026-09-05"),
+    ).toBe(false);
+  });
+});
+
+describe("missed review after a stale unfinished day", () => {
+  it("fills missed cells with solution letters and marks them", () => {
+    const puzzle = puzzleForDate("2026-09-04");
+    const cells = emptyCellsForPuzzle(puzzle);
+    const across = puzzle.across[0]!;
+    const indexes = wordCellIndexes(puzzle, across.num, "across");
+    const answer = answerAt(puzzle, across.num, "across");
+    // Fill first word correctly; leave the rest empty/wrong.
+    for (let i = 0; i < indexes.length; i++) {
+      cells[indexes[i]!] = answer[i]!;
+    }
+    const other = wordCellIndexes(puzzle, puzzle.across[1]!.num, "across")[0]!;
+    cells[other] = "X";
+
+    const review = missedReviewForPuzzle(puzzle, cells);
+    expect(review.missedIndexes.has(indexes[0]!)).toBe(false);
+    expect(review.missedIndexes.has(other)).toBe(true);
+    expect(review.displayCells[other]).toBe(solutionCells(puzzle)[other]);
+    for (const i of indexes) {
+      expect(review.displayCells[i]).toBe(answer[indexes.indexOf(i)]);
+    }
+    expect(isGridSolved(puzzle, review.displayCells)).toBe(true);
   });
 });

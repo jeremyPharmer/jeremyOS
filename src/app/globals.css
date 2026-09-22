@@ -2554,6 +2554,21 @@ h2 {
   outline-color: color-mix(in srgb, var(--accent) 85%, transparent);
 }
 
+.crossword-cell.missed {
+  background: color-mix(in srgb, var(--danger, #b42318) 14%, var(--surface));
+  border-color: color-mix(in srgb, var(--danger, #b42318) 42%, var(--line));
+  color: var(--danger, #b42318);
+}
+
+.crossword-cell.missed .crossword-cell-input {
+  color: var(--danger, #b42318);
+  font-weight: 700;
+}
+
+.crossword-grid.review {
+  opacity: 1;
+}
+
 .crossword-correct-mark {
   position: absolute;
   top: 3px;
