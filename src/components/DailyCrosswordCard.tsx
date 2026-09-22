@@ -18,7 +18,9 @@ import {
   entryForCell,
   entryForCellPrefer,
   entryHasClearableLetters,
+  isStaleUnfinishedCrossword,
   isWordCorrect,
+  missedReviewForPuzzle,
   nextCellInDirection,
   normalizeDailyCrossword,
   puzzleForDate,
@@ -30,19 +32,36 @@ import {
 
 export function DailyCrosswordCard() {
   const { state, today, post } = useApp();
-  const puzzle = useMemo(() => puzzleForDate(today), [today]);
+  const dc = normalizeDailyCrossword(state.dailyCrossword);
+  const staleUnfinished = isStaleUnfinishedCrossword(dc.current, today);
+  const staleDate = staleUnfinished ? dc.current!.date : null;
+
+  const todayPuzzle = useMemo(() => puzzleForDate(today), [today]);
+  const reviewPuzzle = useMemo(
+    () => (staleDate ? puzzleForDate(staleDate) : null),
+    [staleDate],
+  );
+  const puzzle = reviewPuzzle ?? todayPuzzle;
   const grid = useMemo(() => buildGrid(puzzle), [puzzle]);
   const size = puzzleSize(puzzle);
-  const dc = normalizeDailyCrossword(state.dailyCrossword);
+
+  const review = useMemo(() => {
+    if (!reviewPuzzle || !dc.current) return null;
+    return missedReviewForPuzzle(reviewPuzzle, dc.current.cells);
+  }, [reviewPuzzle, dc.current?.cells, dc.current?.date]);
+
   const progress =
     dc.current?.date === today ? dc.current : undefined;
   const started = Boolean(progress?.started);
   const solved = Boolean(progress?.solved);
   const revealed = Boolean(progress?.revealed);
-  const locked = solved || revealed;
+  const showingReview = Boolean(staleUnfinished && review);
+  const locked = solved || revealed || showingReview;
 
-  const [cells, setCells] = useState<string[]>(
-    () => progress?.cells ?? grid.map((c) => (c.black ? "#" : "")),
+  const [cells, setCells] = useState<string[]>(() =>
+    showingReview && review
+      ? review.displayCells
+      : (progress?.cells ?? grid.map((c) => (c.black ? "#" : ""))),
   );
   const [selected, setSelected] = useState<number | null>(null);
   const [direction, setDirection] = useState<CrosswordDir>("across");
@@ -53,6 +72,11 @@ export function DailyCrosswordCard() {
   const lastTap = useRef<{ index: number; at: number } | null>(null);
 
   useEffect(() => {
+    if (showingReview && review) {
+      setCells(review.displayCells);
+      setSelected(null);
+      return;
+    }
     if (progress?.cells?.length === grid.length) {
       setCells(progress.cells);
     } else {
@@ -60,26 +84,34 @@ export function DailyCrosswordCard() {
     }
   }, [
     today,
+    showingReview,
+    review,
     progress?.date,
     progress?.started,
     progress?.solved,
     progress?.revealed,
+    progress?.cells,
     grid,
   ]);
 
   const banner = bannerText(dc.completed, dc.attempts);
+  const missedCells = review?.missedIndexes ?? new Set<number>();
   const correctCells = useMemo(() => {
+    if (showingReview) {
+      // Keep already-correct letters unmarked; misses are red.
+      return new Set<number>();
+    }
     if (!started || revealed) return new Set<number>();
     if (solved) {
       return new Set(grid.filter((c) => !c.black).map((c) => c.index));
     }
     return correctWordCellIndexes(puzzle, cells);
-  }, [started, revealed, solved, puzzle, cells, grid]);
+  }, [showingReview, started, revealed, solved, puzzle, cells, grid]);
 
   const activeEntry: CrosswordEntry | null = useMemo(() => {
-    if (selected == null) return null;
+    if (selected == null || showingReview) return null;
     return entryForCellPrefer(puzzle, selected, direction);
-  }, [puzzle, selected, direction]);
+  }, [puzzle, selected, direction, showingReview]);
 
   const activeIndexes = useMemo(() => {
     return new Set(activeEntry?.indexes ?? []);
@@ -120,12 +152,12 @@ export function DailyCrosswordCard() {
 
   // After Start, focus the first white cell so the keyboard can open on tap
   useEffect(() => {
-    if (!started || locked) return;
+    if (!started || locked || showingReview) return;
     const first = grid.find((c) => !c.black);
     if (!first) return;
     setSelected(first.index);
     setDirection("across");
-  }, [started, locked, grid]);
+  }, [started, locked, showingReview, grid]);
 
   async function onStart() {
     setBusy(true);
@@ -296,27 +328,29 @@ export function DailyCrosswordCard() {
     }
   }
 
-  const statusLine = solved
-    ? "Solved"
-    : revealed
-      ? "Answers revealed"
-      : started
-        ? null
-        : "One mini puzzle a day — shapes change";
+  const statusLine = showingReview
+    ? "Yesterday’s puzzle — missed letters in red"
+    : solved
+      ? "Solved"
+      : revealed
+        ? "Answers revealed"
+        : started
+          ? "Tap a square, then type"
+          : "One mini puzzle a day — shapes change";
 
   const clearLabel = "Clear";
+  const showPlaySurface = started || showingReview;
+  const showStart = !started;
 
   return (
     <section className="home-card home-card-crossword" aria-label="Daily crossword">
       <div className="home-card-head">
         <p className="home-card-kicker">Daily crossword</p>
         <h2>Today&apos;s puzzle</h2>
-        {statusLine ? (
-          <p className="tiny home-card-sub">{statusLine}</p>
-        ) : null}
+        <p className="tiny home-card-sub">{statusLine}</p>
       </div>
 
-      {!started ? (
+      {showStart ? (
         <button
           type="button"
           className="btn primary crossword-start"
@@ -325,7 +359,9 @@ export function DailyCrosswordCard() {
         >
           {busy ? "Starting…" : "Start today's crossword"}
         </button>
-      ) : (
+      ) : null}
+
+      {showPlaySurface ? (
         <>
           <div className="crossword-board">
             {!locked ? (
@@ -343,10 +379,13 @@ export function DailyCrosswordCard() {
             ) : null}
 
             <div
-              className={`crossword-grid${locked ? " locked" : ""}${solved ? " solved" : ""}${revealed ? " revealed" : ""}`}
-              style={{ ["--crossword-n" as string]: String(size) }}
+              className={`crossword-grid size-${size}${locked ? " locked" : ""}${solved ? " solved" : ""}${revealed ? " revealed" : ""}${showingReview ? " review" : ""}`}
               role="grid"
-              aria-label="Crossword grid"
+              aria-label={
+                showingReview
+                  ? "Yesterday’s crossword — missed letters in red"
+                  : "Crossword grid"
+              }
               aria-readonly={locked || undefined}
             >
               {grid.map((cell) => (
@@ -358,6 +397,7 @@ export function DailyCrosswordCard() {
                   inActiveWord={activeIndexes.has(cell.index)}
                   locked={locked}
                   correct={correctCells.has(cell.index)}
+                  missed={missedCells.has(cell.index)}
                   inputRef={(el) => {
                     if (el) cellRefs.current.set(cell.index, el);
                     else cellRefs.current.delete(cell.index);
@@ -378,7 +418,9 @@ export function DailyCrosswordCard() {
                 {puzzle.across.map((c) => {
                   const active =
                     activeEntry?.dir === "across" && activeEntry.num === c.num;
-                  const ok = isWordCorrect(puzzle, cells, c.num, "across");
+                  const ok =
+                    !showingReview &&
+                    isWordCorrect(puzzle, cells, c.num, "across");
                   return (
                     <li key={`a-${c.num}`}>
                       <button
@@ -400,7 +442,9 @@ export function DailyCrosswordCard() {
                 {puzzle.down.map((c) => {
                   const active =
                     activeEntry?.dir === "down" && activeEntry.num === c.num;
-                  const ok = isWordCorrect(puzzle, cells, c.num, "down");
+                  const ok =
+                    !showingReview &&
+                    isWordCorrect(puzzle, cells, c.num, "down");
                   return (
                     <li key={`d-${c.num}`}>
                       <button
@@ -429,7 +473,7 @@ export function DailyCrosswordCard() {
             </button>
           ) : null}
         </>
-      )}
+      ) : null}
 
       {error ? <p className="error tiny">{error}</p> : null}
 
@@ -447,6 +491,7 @@ function GridCell({
   inActiveWord,
   locked,
   correct,
+  missed,
   inputRef,
   onPointerDown,
   onFocus,
@@ -459,6 +504,7 @@ function GridCell({
   inActiveWord: boolean;
   locked: boolean;
   correct: boolean;
+  missed: boolean;
   inputRef: (el: HTMLInputElement | null) => void;
   onPointerDown: () => void;
   onFocus: () => void;
@@ -470,7 +516,7 @@ function GridCell({
   }
   return (
     <div
-      className={`crossword-cell${selected && !locked ? " selected" : ""}${inActiveWord && !selected && !locked ? " in-word" : ""}${locked ? " done" : ""}${correct ? " correct" : ""}`}
+      className={`crossword-cell${selected && !locked ? " selected" : ""}${inActiveWord && !selected && !locked ? " in-word" : ""}${locked ? " done" : ""}${correct ? " correct" : ""}${missed ? " missed" : ""}`}
       onPointerDown={onPointerDown}
     >
       {cell.number != null ? (
@@ -496,7 +542,7 @@ function GridCell({
         disabled={locked}
         aria-label={
           cell.number
-            ? `Cell ${cell.number}${value ? `, ${value}` : ""}${correct ? ", correct" : ""}`
+            ? `Cell ${cell.number}${value ? `, ${value}` : ""}${correct ? ", correct" : ""}${missed ? ", missed" : ""}`
             : value || "Empty cell"
         }
         onFocus={onFocus}

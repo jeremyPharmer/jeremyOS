@@ -1419,6 +1419,56 @@ export function correctWordCellIndexes(
   return out;
 }
 
+/** Yesterday (or earlier) attempt that was started but never solved or revealed. */
+export function isStaleUnfinishedCrossword(
+  current: CrosswordDayProgress | undefined,
+  today: string,
+): boolean {
+  return Boolean(
+    current &&
+      current.date !== today &&
+      current.started &&
+      !current.solved &&
+      !current.revealed,
+  );
+}
+
+export type MissedReview = {
+  /** Player-correct letters kept; missed/wrong cells filled with the solution. */
+  displayCells: string[];
+  /** Indexes that were empty or wrong — shown in red in the review UI. */
+  missedIndexes: Set<number>;
+};
+
+/**
+ * Build a frozen end-of-day review: keep letters that were already right,
+ * fill every miss with the solution letter so the player can see what they
+ * left unfinished.
+ */
+export function missedReviewForPuzzle(
+  puzzle: MiniCrosswordPuzzle,
+  cells: string[],
+): MissedReview {
+  const sol = solutionCells(puzzle);
+  const displayCells = emptyCellsForPuzzle(puzzle);
+  const missedIndexes = new Set<number>();
+  for (let i = 0; i < sol.length; i++) {
+    const want = sol[i]!;
+    if (want === "#") {
+      displayCells[i] = "#";
+      continue;
+    }
+    const got = (cells[i] || "").toUpperCase();
+    if (got === want) {
+      displayCells[i] = got;
+    } else {
+      displayCells[i] = want;
+      missedIndexes.add(i);
+    }
+  }
+  return { displayCells, missedIndexes };
+}
+
 export function normalizeDailyCrossword(
   raw: DailyCrosswordState | undefined,
 ): DailyCrosswordState {
