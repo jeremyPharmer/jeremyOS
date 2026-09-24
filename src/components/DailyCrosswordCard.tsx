@@ -30,9 +30,29 @@ import {
   type CrosswordEntry,
 } from "@/lib/crossword";
 
+function sameCellFill(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((c, i) => c === b[i]);
+}
+
 export function DailyCrosswordCard() {
   const { state, today, post } = useApp();
-  const dc = normalizeDailyCrossword(state.dailyCrossword);
+  // normalizeDailyCrossword allocates a new `cells` array every call — memoize
+  // on content so Home does not infinite-re-render and freeze Open/Close taps.
+  const rawDc = state.dailyCrossword;
+  const rawCellsKey = rawDc?.current?.cells?.join("\0") ?? "";
+  const dc = useMemo(
+    () => normalizeDailyCrossword(rawDc),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by fields below
+    [
+      rawDc?.attempts,
+      rawDc?.completed,
+      rawDc?.current?.date,
+      rawDc?.current?.started,
+      rawDc?.current?.solved,
+      rawDc?.current?.revealed,
+      rawCellsKey,
+    ],
+  );
   const staleUnfinished = isStaleUnfinishedCrossword(dc.current, today);
   const staleDate = staleUnfinished ? dc.current!.date : null;
 
@@ -48,7 +68,7 @@ export function DailyCrosswordCard() {
   const review = useMemo(() => {
     if (!reviewPuzzle || !dc.current) return null;
     return missedReviewForPuzzle(reviewPuzzle, dc.current.cells);
-  }, [reviewPuzzle, dc.current?.cells, dc.current?.date]);
+  }, [reviewPuzzle, dc.current]);
 
   const progress =
     dc.current?.date === today ? dc.current : undefined;
@@ -71,25 +91,33 @@ export function DailyCrosswordCard() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTap = useRef<{ index: number; at: number } | null>(null);
 
+  const progressCellsKey = progress?.cells?.join("\0") ?? "";
+  const reviewCellsKey = review?.displayCells.join("\0") ?? "";
+
   useEffect(() => {
     if (showingReview && review) {
-      setCells(review.displayCells);
+      setCells((prev) =>
+        sameCellFill(prev, review.displayCells) ? prev : review.displayCells,
+      );
       setSelected(null);
       return;
     }
-    if (progress?.cells?.length === grid.length) {
-      setCells(progress.cells);
-    } else {
-      setCells(grid.map((c) => (c.black ? "#" : "")));
-    }
+    const next =
+      progress?.cells?.length === grid.length
+        ? progress.cells
+        : grid.map((c) => (c.black ? "#" : ""));
+    setCells((prev) => (sameCellFill(prev, next) ? prev : next));
+    // progressCellsKey / reviewCellsKey: content identity (arrays are new each normalize)
   }, [
     today,
     showingReview,
     review,
+    reviewCellsKey,
     progress?.date,
     progress?.started,
     progress?.solved,
     progress?.revealed,
+    progressCellsKey,
     progress?.cells,
     grid,
   ]);
