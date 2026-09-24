@@ -58,6 +58,7 @@ export function TodoTaskRow({
   home = false,
   busy,
   clearing = false,
+  snoozingOut = false,
   doneMeta,
   onComplete,
   onSnooze,
@@ -70,7 +71,10 @@ export function TodoTaskRow({
   viewDate?: string;
   home?: boolean;
   busy: boolean;
+  /** Complete exit — check + strike + lift away */
   clearing?: boolean;
+  /** Snooze exit — highlight Snooze, then drop the card */
+  snoozingOut?: boolean;
   /** Extra meta for completed rows (e.g. done date M/D/YY) */
   doneMeta?: string | null;
   onComplete: () => void | Promise<void>;
@@ -90,7 +94,8 @@ export function TodoTaskRow({
     item.lastCompletedOn === today ||
     Boolean(doneMeta) ||
     clearing;
-  const canSnooze = activeDate >= today && !doneToday && !item.undated;
+  const canSnooze =
+    (activeDate >= today && !doneToday && !item.undated) || snoozingOut;
   const group = item.group as TaskGroup | undefined;
   const barStyle = group
     ? { ["--group-color" as string]: TASK_GROUP_COLORS[group] }
@@ -99,8 +104,10 @@ export function TodoTaskRow({
   const snoozeButton = canSnooze ? (
     <button
       type="button"
-      className={home ? "tasks-action-btn" : "dismiss-btn"}
-      disabled={busy}
+      className={`${home ? "tasks-action-btn" : "dismiss-btn"}${
+        snoozingOut ? " tasks-snooze-hot" : ""
+      }`}
+      disabled={busy || snoozingOut}
       aria-label={`Snooze ${item.label}`}
       onClick={() => setSnoozing(true)}
     >
@@ -117,23 +124,27 @@ export function TodoTaskRow({
     >
       {home ? (
         <div
-          className={`tasks-item${clearing ? " tasks-item-clearing" : ""}`}
+          className={`tasks-item${clearing ? " tasks-item-clearing" : ""}${
+            snoozingOut ? " tasks-item-snoozing" : ""
+          }`}
         >
           <button
             type="button"
             className="tasks-check-btn"
-            disabled={busy || doneToday}
+            disabled={busy || doneToday || snoozingOut}
             aria-label={`Complete ${item.label}`}
             onClick={onComplete}
           >
-            <span className={`tasks-check${doneToday ? " tasks-check-done" : ""}`}>
+            <span
+              className={`tasks-check${doneToday ? " tasks-check-done" : ""}`}
+            >
               {doneToday ? "✓" : ""}
             </span>
           </button>
           <button
             type="button"
             className="tasks-main"
-            disabled={busy}
+            disabled={busy || snoozingOut}
             aria-label={`Edit ${item.label}`}
             onClick={() => setEditing(true)}
           >
@@ -145,11 +156,15 @@ export function TodoTaskRow({
           {snoozeButton}
         </div>
       ) : (
-        <div className="check-item check-item-row">
+        <div
+          className={`check-item check-item-row${
+            clearing ? " clearing" : ""
+          }${snoozingOut ? " snoozing" : ""}`}
+        >
           <button
             type="button"
             className="check-box-btn"
-            disabled={busy || doneToday}
+            disabled={busy || doneToday || snoozingOut}
             aria-label={`Complete ${item.label}`}
             onClick={onComplete}
           >
@@ -160,7 +175,7 @@ export function TodoTaskRow({
           <button
             type="button"
             className="check-item-body"
-            disabled={busy}
+            disabled={busy || snoozingOut}
             aria-label={`Edit ${item.label}`}
             onClick={() => setEditing(true)}
           >
@@ -208,8 +223,10 @@ export function TodoTaskRow({
           label={item.label}
           busy={busy}
           onPick={async (until) => {
-            await onSnooze(until);
             setSnoozing(false);
+            // Let the sheet finish closing before the row exit motion.
+            await new Promise((r) => setTimeout(r, 80));
+            await onSnooze(until);
           }}
           onClose={() => setSnoozing(false)}
         />

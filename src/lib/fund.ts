@@ -45,6 +45,7 @@ export function normalizeState(state: RebuildState): RebuildState {
     listenedPodcasts: state.listenedPodcasts ?? [],
     reminderLog: state.reminderLog ?? {},
     dayProvisions: state.dayProvisions ?? [],
+    todoEvents: state.todoEvents ?? [],
     quoteLog: state.quoteLog ?? [],
     workouts: (state.workouts ?? []).map(normalizeWorkout),
     workoutPrs: normalizeWorkoutPrs(state.workoutPrs),

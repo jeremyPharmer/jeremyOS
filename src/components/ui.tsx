@@ -168,10 +168,27 @@ export function Sheet({
   const dragStartY = useRef<number | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [ready, setReady] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const closeTimer = useRef<number | null>(null);
 
   useLayoutEffect(() => {
     setReady(true);
   }, []);
+
+  useLayoutEffect(() => {
+    return () => {
+      if (closeTimer.current != null) window.clearTimeout(closeTimer.current);
+    };
+  }, []);
+
+  function requestClose() {
+    if (busy || closing) return;
+    setClosing(true);
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = null;
+      onClose();
+    }, 220);
+  }
 
   useLayoutEffect(() => {
     if (!ready) return;
@@ -241,7 +258,7 @@ export function Sheet({
     const delta = clientY - dragStartY.current;
     dragStartY.current = null;
     setDragOffset(0);
-    if (!busy && delta > 80) onClose();
+    if (!busy && delta > 80) requestClose();
   }
 
   if (!ready) return null;
@@ -249,13 +266,13 @@ export function Sheet({
   return createPortal(
     <div
       ref={backdropRef}
-      className="modal-backdrop"
+      className={`modal-backdrop${closing ? " closing" : ""}`}
       role="presentation"
-      onClick={() => !busy && onClose()}
+      onClick={() => requestClose()}
     >
       <div
         ref={sheetRef}
-        className="modal-sheet"
+        className={`modal-sheet${closing ? " closing" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label={label}

@@ -364,6 +364,7 @@ export function emptyState(): RebuildState {
     reminderLog: {},
     listenedPodcasts: [],
     dayProvisions: [],
+    todoEvents: [],
     quoteLog: [],
     workouts: [],
     workoutPrs: [],

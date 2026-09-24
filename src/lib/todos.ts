@@ -4,6 +4,8 @@ import type {
   DayProvision,
   RebuildState,
   SupportCompletion,
+  TodoEvent,
+  TodoEventAction,
   TodoRecurrence,
   TodoRepeatEnds,
 } from "./types";
@@ -11,6 +13,35 @@ import type { TaskGroup } from "./task-groups";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
+/** Cap append-only analytics log so db.json stays lean. */
+const TODO_EVENTS_MAX = 400;
+
+function appendTodoEvent(
+  state: RebuildState,
+  item: DayProvision,
+  action: TodoEventAction,
+  today: string,
+  nowIso: string,
+): RebuildState {
+  const event: TodoEvent = {
+    id: newId("te"),
+    at: nowIso,
+    date: today,
+    todoId: item.id,
+    label: item.label,
+    group: optionalTaskGroup(item.group),
+    action,
+  };
+  const prev = state.todoEvents ?? [];
+  const next = [...prev, event];
+  return {
+    ...state,
+    todoEvents:
+      next.length > TODO_EVENTS_MAX
+        ? next.slice(next.length - TODO_EVENTS_MAX)
+        : next,
+  };
+}
 
 /** Daily Medication todo ↔ Journey support adherence. */
 export function isMedicationTodoLabel(label: string): boolean {
@@ -658,7 +689,13 @@ export function applyTodoAction(
 
   if (action === "complete") {
     items[index] = completeTodo(current, today, nowIso);
-    let after: RebuildState = { ...next, dayProvisions: items };
+    let after: RebuildState = appendTodoEvent(
+      { ...next, dayProvisions: items },
+      current,
+      "complete",
+      today,
+      nowIso,
+    );
     // Medication todo completions also count for Journey adherence.
     if (isMedicationTodoLabel(current.label)) {
       after = ensureMedicationSupportLogged(after, today, nowIso);
@@ -668,7 +705,13 @@ export function applyTodoAction(
 
   if (action === "undo") {
     items[index] = undoCompleteTodo(current);
-    return { ...next, dayProvisions: items };
+    return appendTodoEvent(
+      { ...next, dayProvisions: items },
+      current,
+      "undo",
+      today,
+      nowIso,
+    );
   }
 
   if (action === "edit") {
@@ -741,7 +784,13 @@ export function applyTodoAction(
       throw Object.assign(new Error("Snooze until a future date"), { status: 400 });
     }
     items[index] = snoozeUntil(current, until, today);
-    return { ...next, dayProvisions: items };
+    return appendTodoEvent(
+      { ...next, dayProvisions: items },
+      current,
+      "snooze",
+      today,
+      nowIso,
+    );
   }
 
   throw Object.assign(new Error("Unknown action"), { status: 400 });

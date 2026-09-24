@@ -206,6 +206,21 @@ export type DayProvision = {
   completionDates?: string[];
 };
 
+/** Append-only task action log for Tasks page analytics (RB-036). */
+export type TodoEventAction = "complete" | "snooze" | "undo";
+
+export type TodoEvent = {
+  id: string;
+  /** ISO timestamp */
+  at: string;
+  /** Local calendar day of the action (YYYY-MM-DD) */
+  date: string;
+  todoId: string;
+  label: string;
+  group?: TaskGroup;
+  action: TodoEventAction;
+};
+
 export type EveningCheckIn = {
   date: string;
   mood: number;
@@ -469,6 +484,8 @@ export type RebuildState = {
   listenedPodcasts?: string[];
   /** Personal to-dos (Today’s Items); `date` is next due day */
   dayProvisions?: DayProvision[];
+  /** Append-only complete/snooze/undo log for Tasks analytics (RB-036) */
+  todoEvents?: TodoEvent[];
   /** Morning quotes already shown (avoid reuse for ~1 year) */
   quoteLog?: { quoteId: string; usedOn: string }[];
   /** Gym / workout log */
