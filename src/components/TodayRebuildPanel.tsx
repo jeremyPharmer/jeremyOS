@@ -27,7 +27,9 @@ export function TodayRebuildPanel() {
   const [adding, setAdding] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
   const [todoBusyId, setTodoBusyId] = useState<string | null>(null);
-  const [exitingTodos, setExitingTodos] = useState<string[]>([]);
+  const [exitingTodos, setExitingTodos] = useState<
+    Record<string, "complete" | "snooze">
+  >({});
 
   const onToday = viewDate === today;
 
@@ -80,16 +82,28 @@ export function TodayRebuildPanel() {
     setTodoBusyId(id);
     try {
       if (body.action === "complete" || body.action === "snooze") {
-        setExitingTodos((prev) => (prev.includes(id) ? prev : [...prev, id]));
-        await new Promise((r) => setTimeout(r, 360));
+        const kind = body.action as "complete" | "snooze";
+        setExitingTodos((prev) => ({ ...prev, [id]: kind }));
+        // Snooze holds a beat for the button flash, then drops.
+        await new Promise((r) =>
+          setTimeout(r, kind === "snooze" ? 480 : 360),
+        );
       }
       await post("/api/todos", body);
     } catch (e) {
-      setExitingTodos((prev) => prev.filter((x) => x !== id));
+      setExitingTodos((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       throw e;
     } finally {
       setTodoBusyId(null);
-      setExitingTodos((prev) => prev.filter((x) => x !== id));
+      setExitingTodos((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
     }
   }
 
@@ -121,7 +135,8 @@ export function TodayRebuildPanel() {
         viewDate={viewDate}
         home
         busy={todoBusyId === p.id}
-        clearing={exitingTodos.includes(p.id)}
+        clearing={exitingTodos[p.id] === "complete"}
+        snoozingOut={exitingTodos[p.id] === "snooze"}
         onComplete={() => todoAction(p.id, { action: "complete", id: p.id })}
         onSnooze={(until) =>
           todoAction(p.id, { action: "snooze", id: p.id, until })

@@ -20,7 +20,9 @@ export default function ItemsPage() {
   const [adding, setAdding] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [exitingTodos, setExitingTodos] = useState<string[]>([]);
+  const [exitingTodos, setExitingTodos] = useState<
+    Record<string, "complete" | "snooze">
+  >({});
   const [openCompleted, setOpenCompleted] = useState<Record<string, boolean>>(
     {},
   );
@@ -47,18 +49,33 @@ export default function ItemsPage() {
         id &&
         (body.action === "complete" || body.action === "snooze")
       ) {
-        setExitingTodos((prev) => (prev.includes(id) ? prev : [...prev, id]));
-        await new Promise((r) => setTimeout(r, 360));
+        const kind = body.action as "complete" | "snooze";
+        setExitingTodos((prev) => ({ ...prev, [id]: kind }));
+        await new Promise((r) =>
+          setTimeout(r, kind === "snooze" ? 480 : 360),
+        );
       }
       await post("/api/todos", body);
       if (!id) setAdding(false);
     } catch (e) {
-      if (id) setExitingTodos((prev) => prev.filter((x) => x !== id));
+      if (id) {
+        setExitingTodos((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      }
       throw e;
     } finally {
       setBusyId(null);
       setAddBusy(false);
-      if (id) setExitingTodos((prev) => prev.filter((x) => x !== id));
+      if (id) {
+        setExitingTodos((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      }
     }
   }
 
@@ -133,7 +150,8 @@ export default function ItemsPage() {
                   item={item}
                   today={today}
                   busy={busyId === item.id}
-                  clearing={exitingTodos.includes(item.id)}
+                  clearing={exitingTodos[item.id] === "complete"}
+                  snoozingOut={exitingTodos[item.id] === "snooze"}
                   onComplete={() =>
                     run(item.id, { action: "complete", id: item.id })
                   }
@@ -167,7 +185,8 @@ export default function ItemsPage() {
                       item={item}
                       today={today}
                       busy={busyId === item.id}
-                      clearing={exitingTodos.includes(item.id)}
+                      clearing={exitingTodos[item.id] === "complete"}
+                      snoozingOut={exitingTodos[item.id] === "snooze"}
                       onComplete={() =>
                         run(item.id, { action: "complete", id: item.id })
                       }
@@ -220,7 +239,8 @@ export default function ItemsPage() {
                         item={item}
                         today={today}
                         busy={busyId === item.id}
-                        clearing={exitingTodos.includes(item.id)}
+                        clearing={exitingTodos[item.id] === "complete"}
+                        snoozingOut={exitingTodos[item.id] === "snooze"}
                         doneMeta={doneDateLabel(item) || null}
                         onComplete={() => undefined}
                         onSnooze={() => undefined}
@@ -293,7 +313,8 @@ export default function ItemsPage() {
                         item={item}
                         today={today}
                         busy={busyId === item.id}
-                        clearing={exitingTodos.includes(item.id)}
+                        clearing={exitingTodos[item.id] === "complete"}
+                        snoozingOut={exitingTodos[item.id] === "snooze"}
                         doneMeta={doneDateLabel(item) || null}
                         onComplete={() => undefined}
                         onSnooze={() => undefined}
