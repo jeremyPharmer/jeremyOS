@@ -117,7 +117,9 @@ export function TodoTaskRow({
     >
       {home ? (
         <div
-          className={`tasks-item${clearing ? " tasks-item-clearing" : ""}`}
+          className={`tasks-item${clearing ? " tasks-item-clearing" : ""}${
+            clearing ? " tasks-item-clearing-check" : ""
+          }`}
         >
           <button
             type="button"
@@ -126,7 +128,9 @@ export function TodoTaskRow({
             aria-label={`Complete ${item.label}`}
             onClick={onComplete}
           >
-            <span className={`tasks-check${doneToday ? " tasks-check-done" : ""}`}>
+            <span
+              className={`tasks-check${doneToday ? " tasks-check-done" : ""}`}
+            >
               {doneToday ? "✓" : ""}
             </span>
           </button>
@@ -145,7 +149,11 @@ export function TodoTaskRow({
           {snoozeButton}
         </div>
       ) : (
-        <div className="check-item check-item-row">
+        <div
+          className={`check-item check-item-row${
+            clearing ? " clearing" : ""
+          }`}
+        >
           <button
             type="button"
             className="check-box-btn"
@@ -208,8 +216,10 @@ export function TodoTaskRow({
           label={item.label}
           busy={busy}
           onPick={async (until) => {
-            await onSnooze(until);
             setSnoozing(false);
+            // Let the sheet finish closing before the row exit motion.
+            await new Promise((r) => setTimeout(r, 80));
+            await onSnooze(until);
           }}
           onClose={() => setSnoozing(false)}
         />

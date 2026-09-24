@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
 import { TodoComposer, type TodoComposerPayload } from "@/components/TodoComposer";
 import { TodoTaskRow } from "@/components/TodoTaskRow";
+import { TaskAnalyticsPanel } from "@/components/TaskAnalyticsPanel";
 import {
   doneDateLabel,
   groupCompletedTodos,
@@ -19,6 +20,7 @@ export default function ItemsPage() {
   const [adding, setAdding] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [exitingTodos, setExitingTodos] = useState<string[]>([]);
   const [openCompleted, setOpenCompleted] = useState<Record<string, boolean>>(
     {},
   );
@@ -41,11 +43,22 @@ export default function ItemsPage() {
     if (id) setBusyId(id);
     else setAddBusy(true);
     try {
+      if (
+        id &&
+        (body.action === "complete" || body.action === "snooze")
+      ) {
+        setExitingTodos((prev) => (prev.includes(id) ? prev : [...prev, id]));
+        await new Promise((r) => setTimeout(r, 360));
+      }
       await post("/api/todos", body);
       if (!id) setAdding(false);
+    } catch (e) {
+      if (id) setExitingTodos((prev) => prev.filter((x) => x !== id));
+      throw e;
     } finally {
       setBusyId(null);
       setAddBusy(false);
+      if (id) setExitingTodos((prev) => prev.filter((x) => x !== id));
     }
   }
 
@@ -69,6 +82,8 @@ export default function ItemsPage() {
       <p className="eyebrow">Tasks</p>
       <h1>Tasks</h1>
       <p className="muted">Grouped by life area — open first, completed under each.</p>
+
+      <TaskAnalyticsPanel />
 
       <button
         type="button"
@@ -118,6 +133,7 @@ export default function ItemsPage() {
                   item={item}
                   today={today}
                   busy={busyId === item.id}
+                  clearing={exitingTodos.includes(item.id)}
                   onComplete={() =>
                     run(item.id, { action: "complete", id: item.id })
                   }
@@ -151,6 +167,7 @@ export default function ItemsPage() {
                       item={item}
                       today={today}
                       busy={busyId === item.id}
+                      clearing={exitingTodos.includes(item.id)}
                       onComplete={() =>
                         run(item.id, { action: "complete", id: item.id })
                       }
@@ -203,6 +220,7 @@ export default function ItemsPage() {
                         item={item}
                         today={today}
                         busy={busyId === item.id}
+                        clearing={exitingTodos.includes(item.id)}
                         doneMeta={doneDateLabel(item) || null}
                         onComplete={() => undefined}
                         onSnooze={() => undefined}
@@ -275,6 +293,7 @@ export default function ItemsPage() {
                         item={item}
                         today={today}
                         busy={busyId === item.id}
+                        clearing={exitingTodos.includes(item.id)}
                         doneMeta={doneDateLabel(item) || null}
                         onComplete={() => undefined}
                         onSnooze={() => undefined}

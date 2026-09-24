@@ -79,9 +79,9 @@ export function TodayRebuildPanel() {
   async function todoAction(id: string, body: Record<string, unknown>) {
     setTodoBusyId(id);
     try {
-      if (body.action === "complete") {
+      if (body.action === "complete" || body.action === "snooze") {
         setExitingTodos((prev) => (prev.includes(id) ? prev : [...prev, id]));
-        await new Promise((r) => setTimeout(r, 420));
+        await new Promise((r) => setTimeout(r, 360));
       }
       await post("/api/todos", body);
     } catch (e) {
