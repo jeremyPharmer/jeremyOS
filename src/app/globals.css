@@ -844,6 +844,24 @@ h2 {
   gap: 10px;
 }
 
+.task-day-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: task-day-in 0.48s cubic-bezier(0.33, 0.1, 0.25, 1);
+}
+
+@keyframes task-day-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .task-day-heading {
   margin: 0;
 }
@@ -1713,7 +1731,7 @@ h2 {
 
 .tasks-item-clearing {
   pointer-events: none;
-  animation: clear-row 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: clear-row 0.62s cubic-bezier(0.33, 0.1, 0.25, 1) forwards;
 }
 
 .tasks-item-clearing .tasks-title,
@@ -1721,12 +1739,13 @@ h2 {
   text-decoration: line-through;
   text-decoration-color: var(--good-strike);
   color: var(--muted);
+  transition: color 0.35s ease, text-decoration-color 0.35s ease;
 }
 
-/* Snooze exit: flash Snooze, then drop the card (no check/strike). */
+/* Snooze exit: flash Snooze, then soft fade/drop (no check/strike). */
 .tasks-item-snoozing {
   pointer-events: none;
-  animation: snooze-drop 0.48s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: snooze-drop 0.82s cubic-bezier(0.33, 0.1, 0.25, 1) forwards;
 }
 
 .tasks-item-snoozing .tasks-action-btn,
@@ -1735,7 +1754,7 @@ h2 {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent-soft) 85%, var(--surface));
   color: var(--accent);
-  animation: snooze-btn-flash 0.28s ease forwards;
+  animation: snooze-btn-flash 0.4s ease forwards;
 }
 
 .tasks-action-btn.tasks-snooze-hot:disabled,
@@ -5882,7 +5901,7 @@ button.check-item-btn:disabled {
   border-color: var(--good-border);
   background: var(--good-soft);
   pointer-events: none;
-  animation: clear-row 0.7s ease forwards;
+  animation: clear-row 0.62s cubic-bezier(0.33, 0.1, 0.25, 1) forwards;
 }
 
 .check-item-row.clearing .check-label {
@@ -5893,7 +5912,7 @@ button.check-item-btn:disabled {
 
 .check-item-row.snoozing {
   pointer-events: none;
-  animation: snooze-drop 0.48s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: snooze-drop 0.82s cubic-bezier(0.33, 0.1, 0.25, 1) forwards;
 }
 
 .check-item-row.snoozing .dismiss-btn.tasks-snooze-hot {
@@ -6126,16 +6145,16 @@ button.check-item-btn:disabled {
   0% {
     opacity: 1;
     transform: translateY(0) scale(1);
-    max-height: 56px;
+    max-height: 64px;
     margin-bottom: 0;
   }
-  40% {
-    opacity: 1;
+  45% {
+    opacity: 0.72;
     transform: translateY(-2px) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-6px) scale(0.98);
+    transform: translateY(-3px) scale(0.995);
     max-height: 0;
     margin-bottom: -8px;
     padding-top: 0;
@@ -6149,27 +6168,27 @@ button.check-item-btn:disabled {
     transform: scale(1);
     filter: brightness(1);
   }
-  45% {
-    transform: scale(1.06);
-    filter: brightness(1.08);
+  40% {
+    transform: scale(1.04);
+    filter: brightness(1.06);
   }
   100% {
-    transform: scale(1.03);
-    filter: brightness(1.05);
+    transform: scale(1.02);
+    filter: brightness(1.04);
   }
 }
 
 @keyframes snooze-drop {
   0%,
-  32% {
+  30% {
     opacity: 1;
     transform: translateY(0) scale(1);
-    max-height: 56px;
+    max-height: 64px;
     margin-bottom: 0;
   }
   100% {
     opacity: 0;
-    transform: translateY(12px) scale(0.97);
+    transform: translateY(5px) scale(0.995);
     max-height: 0;
     margin-bottom: -8px;
     padding-top: 0;

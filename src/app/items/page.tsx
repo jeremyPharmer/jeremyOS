@@ -71,7 +71,7 @@ export default function ItemsPage() {
         const kind = body.action as "complete" | "snooze";
         setExitingTodos((prev) => ({ ...prev, [id]: kind }));
         await new Promise((r) =>
-          setTimeout(r, kind === "snooze" ? 480 : 360),
+          setTimeout(r, kind === "snooze" ? 820 : 620),
         );
       }
       await post("/api/todos", body);
@@ -206,41 +206,45 @@ export default function ItemsPage() {
         />
 
         <div className="task-day-panel">
-          <p className="eyebrow task-day-heading">
-            {selectedDate === today
-              ? "Today"
-              : formatDisplayDate(selectedDate)}
-          </p>
-          {dayTodos.length === 0 ? (
-            <p className="muted tiny" style={{ margin: 0 }}>
-              Nothing due this day.
+          <div key={selectedDate} className="task-day-panel-body">
+            <p className="eyebrow task-day-heading">
+              {selectedDate === today
+                ? "Today"
+                : formatDisplayDate(selectedDate)}
             </p>
-          ) : (
-            <div className="daily-actions">{dayTodos.map((item) => renderRow(item))}</div>
-          )}
+            {dayTodos.length === 0 ? (
+              <p className="muted tiny" style={{ margin: 0 }}>
+                Nothing due this day.
+              </p>
+            ) : (
+              <div className="daily-actions">
+                {dayTodos.map((item) => renderRow(item))}
+              </div>
+            )}
 
-          {dayCompleted.length > 0 && (
-            <div className="task-group-completed">
-              <button
-                type="button"
-                className="task-group-completed-toggle"
-                aria-expanded={completedOpen}
-                onClick={() => setCompletedOpen((v) => !v)}
-              >
-                <span className="task-group-chevron" aria-hidden>
-                  {completedOpen ? "▾" : "▸"}
-                </span>
-                Completed ({dayCompleted.length})
-              </button>
-              {completedOpen && (
-                <div className="daily-actions">
-                  {dayCompleted.map((item) =>
-                    renderRow(item, { done: true, snooze: false }),
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+            {dayCompleted.length > 0 && (
+              <div className="task-group-completed">
+                <button
+                  type="button"
+                  className="task-group-completed-toggle"
+                  aria-expanded={completedOpen}
+                  onClick={() => setCompletedOpen((v) => !v)}
+                >
+                  <span className="task-group-chevron" aria-hidden>
+                    {completedOpen ? "▾" : "▸"}
+                  </span>
+                  Completed ({dayCompleted.length})
+                </button>
+                {completedOpen && (
+                  <div className="daily-actions">
+                    {dayCompleted.map((item) =>
+                      renderRow(item, { done: true, snooze: false }),
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 

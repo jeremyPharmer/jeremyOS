@@ -86,7 +86,7 @@ export function TodayRebuildPanel() {
         setExitingTodos((prev) => ({ ...prev, [id]: kind }));
         // Snooze holds a beat for the button flash, then drops.
         await new Promise((r) =>
-          setTimeout(r, kind === "snooze" ? 480 : 360),
+          setTimeout(r, kind === "snooze" ? 820 : 620),
         );
       }
       await post("/api/todos", body);
