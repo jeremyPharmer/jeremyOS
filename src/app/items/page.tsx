@@ -6,13 +6,17 @@ import { useApp } from "@/components/AppProvider";
 import { TodoComposer, type TodoComposerPayload } from "@/components/TodoComposer";
 import { TodoTaskRow } from "@/components/TodoTaskRow";
 import { TaskAnalyticsPanel } from "@/components/TaskAnalyticsPanel";
+import { TaskMonthCalendar } from "@/components/TaskMonthCalendar";
+import { formatDisplayDate, parseDate } from "@/lib/journey";
 import {
+  completedTodosOn,
   doneDateLabel,
-  groupCompletedTodos,
-  groupOpenTodos,
-  TASK_GROUP_COLORS,
-  TASK_GROUP_LABELS,
+  openDatedTodosOn,
+  openTaskColorsByDate,
+  openUndatedTodos,
 } from "@/lib/task-groups";
+import { monthKey } from "@/lib/workouts";
+import type { DayProvision } from "@/lib/types";
 
 export default function ItemsPage() {
   const { state, today, post } = useApp();
@@ -23,32 +27,47 @@ export default function ItemsPage() {
   const [exitingTodos, setExitingTodos] = useState<
     Record<string, "complete" | "snooze">
   >({});
-  const [openCompleted, setOpenCompleted] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [completedOpen, setCompletedOpen] = useState(false);
+  const [undatedOpen, setUndatedOpen] = useState(true);
+
+  const initialMonth = useMemo(() => {
+    if (!today) return "";
+    const d = parseDate(today);
+    return monthKey(d.getFullYear(), d.getMonth() + 1);
+  }, [today]);
+  const [month, setMonth] = useState(initialMonth);
+  const [selectedDate, setSelectedDate] = useState(today);
 
   useEffect(() => {
     if (!state.profile?.onboarded) router.replace("/onboarding");
   }, [state.profile, router]);
 
+  useEffect(() => {
+    if (!today) return;
+    setSelectedDate((prev) => prev || today);
+    if (!month) {
+      const d = parseDate(today);
+      setMonth(monthKey(d.getFullYear(), d.getMonth() + 1));
+    }
+  }, [today, month]);
+
   const todos = state.dayProvisions ?? [];
-  const openGroups = useMemo(
-    () => (today ? groupOpenTodos(todos, today) : []),
-    [todos, today],
+  const dayColors = useMemo(() => openTaskColorsByDate(todos), [todos]);
+  const dayTodos = useMemo(
+    () => (selectedDate ? openDatedTodosOn(todos, selectedDate) : []),
+    [todos, selectedDate],
   );
-  const completedGroups = useMemo(
-    () => (today ? groupCompletedTodos(todos, today) : []),
-    [todos, today],
+  const undatedTodos = useMemo(() => openUndatedTodos(todos), [todos]);
+  const dayCompleted = useMemo(
+    () => (selectedDate ? completedTodosOn(todos, selectedDate) : []),
+    [todos, selectedDate],
   );
 
   async function run(id: string | null, body: Record<string, unknown>) {
     if (id) setBusyId(id);
     else setAddBusy(true);
     try {
-      if (
-        id &&
-        (body.action === "complete" || body.action === "snooze")
-      ) {
+      if (id && (body.action === "complete" || body.action === "snooze")) {
         const kind = body.action as "complete" | "snooze";
         setExitingTodos((prev) => ({ ...prev, [id]: kind }));
         await new Promise((r) =>
@@ -90,15 +109,69 @@ export default function ItemsPage() {
       undated: payload.undated,
       trackOverTime: payload.trackOverTime,
     });
+    if (payload.date && !payload.undated) {
+      setSelectedDate(payload.date);
+      const d = parseDate(payload.date);
+      setMonth(monthKey(d.getFullYear(), d.getMonth() + 1));
+    }
   }
 
-  if (!state.profile?.onboarded || !today) return null;
+  function renderRow(
+    item: DayProvision,
+    opts?: { done?: boolean; snooze?: boolean },
+  ) {
+    return (
+      <TodoTaskRow
+        key={item.id}
+        item={item}
+        today={today!}
+        viewDate={selectedDate}
+        busy={busyId === item.id}
+        clearing={exitingTodos[item.id] === "complete"}
+        snoozingOut={exitingTodos[item.id] === "snooze"}
+        doneMeta={opts?.done ? doneDateLabel(item) || null : null}
+        onComplete={() =>
+          opts?.done
+            ? undefined
+            : run(item.id, { action: "complete", id: item.id })
+        }
+        onSnooze={(until) =>
+          opts?.snooze === false || opts?.done
+            ? undefined
+            : run(item.id, { action: "snooze", id: item.id, until })
+        }
+        onEdit={(payload) =>
+          void run(item.id, {
+            action: "edit",
+            id: item.id,
+            label: payload.label,
+            date: payload.date,
+            time: payload.time,
+            recurrence: payload.recurrence,
+            group: payload.group,
+            undated: payload.undated,
+            trackOverTime: payload.trackOverTime,
+          })
+        }
+        onDelete={() => run(item.id, { action: "delete", id: item.id })}
+        onUndo={
+          opts?.done
+            ? () => run(item.id, { action: "undo", id: item.id })
+            : undefined
+        }
+      />
+    );
+  }
+
+  if (!state.profile?.onboarded || !today || !month || !selectedDate) {
+    return null;
+  }
 
   return (
     <main className="stack fade-in">
       <p className="eyebrow">Tasks</p>
       <h1>Tasks</h1>
-      <p className="muted">Grouped by life area — open first, completed under each.</p>
+      <p className="muted">Due dates on the calendar — tap a day to work the list.</p>
 
       <TaskAnalyticsPanel />
 
@@ -122,229 +195,77 @@ export default function ItemsPage() {
         />
       )}
 
-      {openGroups.length === 0 && (
-        <section className="panel">
-          <p className="muted" style={{ margin: 0 }}>
-            Nothing open. Add a task to get started.
-          </p>
-        </section>
-      )}
+      <section className="panel workout-calendar-panel task-calendar-panel">
+        <TaskMonthCalendar
+          monthKey={month}
+          today={today}
+          selectedDate={selectedDate}
+          dayColors={dayColors}
+          onMonthChange={setMonth}
+          onSelectDate={setSelectedDate}
+        />
 
-      {openGroups.map(({ group, dated, undated }) => {
-        const completed = completedGroups.find((c) => c.group === group);
-        const completedOpen = Boolean(openCompleted[group]);
-        return (
-          <section
-            key={group}
-            className="panel task-group-section"
-            style={{ ["--group-color" as string]: TASK_GROUP_COLORS[group] }}
-          >
-            <p className="eyebrow task-group-heading">
-              <span className="task-group-heading-swatch" aria-hidden />
-              {TASK_GROUP_LABELS[group]}
+        <div className="task-day-panel">
+          <p className="eyebrow task-day-heading">
+            {selectedDate === today
+              ? "Today"
+              : formatDisplayDate(selectedDate)}
+          </p>
+          {dayTodos.length === 0 ? (
+            <p className="muted tiny" style={{ margin: 0 }}>
+              Nothing due this day.
             </p>
-            <div className="daily-actions">
-              {dated.map((item) => (
-                <TodoTaskRow
-                  key={item.id}
-                  item={item}
-                  today={today}
-                  busy={busyId === item.id}
-                  clearing={exitingTodos[item.id] === "complete"}
-                  snoozingOut={exitingTodos[item.id] === "snooze"}
-                  onComplete={() =>
-                    run(item.id, { action: "complete", id: item.id })
-                  }
-                  onSnooze={(until) =>
-                    run(item.id, { action: "snooze", id: item.id, until })
-                  }
-                  onEdit={(payload) =>
-                    run(item.id, {
-                      action: "edit",
-                      id: item.id,
-                      label: payload.label,
-                      date: payload.date,
-                      time: payload.time,
-                      recurrence: payload.recurrence,
-                      group: payload.group,
-                      undated: payload.undated,
-                      trackOverTime: payload.trackOverTime,
-                    })
-                  }
-                  onDelete={() =>
-                    run(item.id, { action: "delete", id: item.id })
-                  }
-                />
-              ))}
-              {undated.length > 0 && (
-                <>
-                  <p className="tiny muted task-group-nodate">No date</p>
-                  {undated.map((item) => (
-                    <TodoTaskRow
-                      key={item.id}
-                      item={item}
-                      today={today}
-                      busy={busyId === item.id}
-                      clearing={exitingTodos[item.id] === "complete"}
-                      snoozingOut={exitingTodos[item.id] === "snooze"}
-                      onComplete={() =>
-                        run(item.id, { action: "complete", id: item.id })
-                      }
-                      onSnooze={() => undefined}
-                      onEdit={(payload) =>
-                        run(item.id, {
-                          action: "edit",
-                          id: item.id,
-                          label: payload.label,
-                          date: payload.date,
-                          time: payload.time,
-                          recurrence: payload.recurrence,
-                          group: payload.group,
-                          undated: payload.undated,
-                          trackOverTime: payload.trackOverTime,
-                        })
-                      }
-                      onDelete={() =>
-                        run(item.id, { action: "delete", id: item.id })
-                      }
-                    />
-                  ))}
-                </>
+          ) : (
+            <div className="daily-actions">{dayTodos.map((item) => renderRow(item))}</div>
+          )}
+
+          {dayCompleted.length > 0 && (
+            <div className="task-group-completed">
+              <button
+                type="button"
+                className="task-group-completed-toggle"
+                aria-expanded={completedOpen}
+                onClick={() => setCompletedOpen((v) => !v)}
+              >
+                <span className="task-group-chevron" aria-hidden>
+                  {completedOpen ? "▾" : "▸"}
+                </span>
+                Completed ({dayCompleted.length})
+              </button>
+              {completedOpen && (
+                <div className="daily-actions">
+                  {dayCompleted.map((item) =>
+                    renderRow(item, { done: true, snooze: false }),
+                  )}
+                </div>
               )}
             </div>
+          )}
+        </div>
+      </section>
 
-            {completed && completed.items.length > 0 && (
-              <div className="task-group-completed">
-                <button
-                  type="button"
-                  className="task-group-completed-toggle"
-                  aria-expanded={completedOpen}
-                  onClick={() =>
-                    setOpenCompleted((prev) => ({
-                      ...prev,
-                      [group]: !prev[group],
-                    }))
-                  }
-                >
-                  <span className="task-group-chevron" aria-hidden>
-                    {completedOpen ? "▾" : "▸"}
-                  </span>
-                  Completed ({completed.items.length})
-                </button>
-                {completedOpen && (
-                  <div className="daily-actions">
-                    {completed.items.map((item) => (
-                      <TodoTaskRow
-                        key={item.id}
-                        item={item}
-                        today={today}
-                        busy={busyId === item.id}
-                        clearing={exitingTodos[item.id] === "complete"}
-                        snoozingOut={exitingTodos[item.id] === "snooze"}
-                        doneMeta={doneDateLabel(item) || null}
-                        onComplete={() => undefined}
-                        onSnooze={() => undefined}
-                        onEdit={(payload) =>
-                          void run(item.id, {
-                            action: "edit",
-                            id: item.id,
-                            label: payload.label,
-                            date: payload.date,
-                            time: payload.time,
-                            recurrence: payload.recurrence,
-                            group: payload.group,
-                            undated: payload.undated,
-                            trackOverTime: payload.trackOverTime,
-                          })
-                        }
-                        onDelete={() =>
-                          run(item.id, { action: "delete", id: item.id })
-                        }
-                        onUndo={() =>
-                          run(item.id, { action: "undo", id: item.id })
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-        );
-      })}
-
-      {/* Completed-only groups (no open items) */}
-      {completedGroups
-        .filter((c) => !openGroups.some((o) => o.group === c.group))
-        .map(({ group, items }) => {
-          const completedOpen = Boolean(openCompleted[group]);
-          return (
-            <section
-              key={`done-${group}`}
-              className="panel task-group-section"
-              style={{ ["--group-color" as string]: TASK_GROUP_COLORS[group] }}
-            >
-              <p className="eyebrow task-group-heading">
-                <span className="task-group-heading-swatch" aria-hidden />
-                {TASK_GROUP_LABELS[group]}
-              </p>
-              <div className="task-group-completed">
-                <button
-                  type="button"
-                  className="task-group-completed-toggle"
-                  aria-expanded={completedOpen}
-                  onClick={() =>
-                    setOpenCompleted((prev) => ({
-                      ...prev,
-                      [group]: !prev[group],
-                    }))
-                  }
-                >
-                  <span className="task-group-chevron" aria-hidden>
-                    {completedOpen ? "▾" : "▸"}
-                  </span>
-                  Completed ({items.length})
-                </button>
-                {completedOpen && (
-                  <div className="daily-actions">
-                    {items.map((item) => (
-                      <TodoTaskRow
-                        key={item.id}
-                        item={item}
-                        today={today}
-                        busy={busyId === item.id}
-                        clearing={exitingTodos[item.id] === "complete"}
-                        snoozingOut={exitingTodos[item.id] === "snooze"}
-                        doneMeta={doneDateLabel(item) || null}
-                        onComplete={() => undefined}
-                        onSnooze={() => undefined}
-                        onEdit={(payload) =>
-                          void run(item.id, {
-                            action: "edit",
-                            id: item.id,
-                            label: payload.label,
-                            date: payload.date,
-                            time: payload.time,
-                            recurrence: payload.recurrence,
-                            group: payload.group,
-                            undated: payload.undated,
-                            trackOverTime: payload.trackOverTime,
-                          })
-                        }
-                        onDelete={() =>
-                          run(item.id, { action: "delete", id: item.id })
-                        }
-                        onUndo={() =>
-                          run(item.id, { action: "undo", id: item.id })
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </section>
-          );
-        })}
+      {undatedTodos.length > 0 && (
+        <section className="panel task-undated-panel">
+          <button
+            type="button"
+            className="task-group-completed-toggle"
+            aria-expanded={undatedOpen}
+            onClick={() => setUndatedOpen((v) => !v)}
+          >
+            <span className="task-group-chevron" aria-hidden>
+              {undatedOpen ? "▾" : "▸"}
+            </span>
+            No date ({undatedTodos.length})
+          </button>
+          {undatedOpen && (
+            <div className="daily-actions">
+              {undatedTodos.map((item) =>
+                renderRow(item, { snooze: false }),
+              )}
+            </div>
+          )}
+        </section>
+      )}
     </main>
   );
 }
