@@ -71,7 +71,7 @@ export default function ItemsPage() {
         const kind = body.action as "complete" | "snooze";
         setExitingTodos((prev) => ({ ...prev, [id]: kind }));
         await new Promise((r) =>
-          setTimeout(r, kind === "snooze" ? 820 : 620),
+          setTimeout(r, kind === "snooze" ? 780 : 620),
         );
       }
       await post("/api/todos", body);
