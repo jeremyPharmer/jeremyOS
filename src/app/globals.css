@@ -9016,6 +9016,11 @@ html.sheet-open .top-nav {
   gap: 6px;
 }
 
+.todo-task:has(.tasks-item-snoozing),
+.todo-task:has(.check-item-row.snoozing) {
+  overflow: hidden;
+}
+
 .todo-task.has-group-bar,
 .agenda-item.has-group-bar {
   border-left: 3px solid var(--group-color, transparent);
