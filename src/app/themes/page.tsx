@@ -204,7 +204,7 @@ function LivePreview() {
         <span className="palette-live-chip">Plan</span>
         <span className="palette-live-chip warn">Move</span>
       </div>
-      <button type="button" className="btn btn-primary palette-live-cta">
+      <button type="button" className="btn primary palette-live-cta">
         Apply vibe
       </button>
     </div>
