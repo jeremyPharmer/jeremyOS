@@ -1,0 +1,857 @@
+/* Daily Open — modern layout samples (gallery only) */
+
+.om-gallery {
+  --om-ink: #12151a;
+  --om-mute: #6b7380;
+  --om-line: #e4e8ee;
+  --om-surf: #f4f6f8;
+  --om-card: #ffffff;
+  --om-accent: #1f6b5c;
+  --om-accent-soft: rgba(31, 107, 92, 0.1);
+  --om-warn: #c47a2c;
+  --om-display: "Syne", "Space Grotesk", system-ui, sans-serif;
+  --om-body: "Outfit", "Figtree", system-ui, sans-serif;
+  /* Break out of the narrow app shell so samples sit in a wide comparison grid */
+  width: 100vw;
+  max-width: 100vw;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 28px max(18px, calc((100vw - 1200px) / 2)) 80px;
+  color: var(--om-ink);
+  font-family: var(--om-body);
+  background:
+    radial-gradient(900px 480px at 0% -10%, rgba(31, 107, 92, 0.08), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(40, 90, 140, 0.06), transparent 50%),
+    #f7f8fa;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.om-gallery-head {
+  max-width: 640px;
+  margin-bottom: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.om-gallery-eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--om-mute);
+}
+
+.om-gallery-head h1 {
+  margin: 0;
+  font-family: var(--om-display);
+  font-size: clamp(1.7rem, 4vw, 2.2rem);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.om-gallery-head > p {
+  margin: 0;
+  color: var(--om-mute);
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
+.om-gallery-head strong {
+  color: var(--om-ink);
+  font-weight: 600;
+}
+
+.om-gallery-nav {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+}
+
+.om-gallery-nav a {
+  color: var(--om-accent);
+  font-weight: 600;
+}
+
+.om-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 28px 22px;
+}
+
+.om-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.om-blurb {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.86rem;
+  color: var(--om-mute);
+  line-height: 1.35;
+}
+
+.om-blurb strong {
+  color: var(--om-ink);
+  font-family: var(--om-display);
+  font-size: 0.95rem;
+}
+
+.om-wx-tag {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--om-accent);
+}
+
+/* Phone frame */
+.om-phone {
+  background: #0e1116;
+  border-radius: 28px;
+  padding: 10px;
+  box-shadow: 0 24px 60px rgba(18, 21, 26, 0.22);
+}
+
+.om-phone-inner {
+  position: relative;
+  height: 620px;
+  overflow: auto;
+  border-radius: 20px;
+  background: #fafbfc;
+  color: var(--om-ink);
+  font-family: var(--om-body);
+  padding: 16px 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scroll-behavior: smooth;
+}
+
+.om-phone-inner::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.om-caption {
+  margin: 10px 4px 2px;
+  text-align: center;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9aa3b0;
+}
+
+/* Shared atoms */
+.om-mast {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.om-flag {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--om-mute);
+}
+
+.om-title {
+  margin: 0;
+  font-family: var(--om-display);
+  font-size: 1.55rem;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.om-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--om-mute);
+}
+
+.om-kicker-sub {
+  margin-top: 10px;
+}
+
+.om-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.om-jump {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--om-accent);
+  letter-spacing: 0.02em;
+}
+
+.om-commit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.om-commit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.om-commit-text {
+  margin: 0;
+  font-family: var(--om-display);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.om-commit-sm .om-commit-text {
+  font-size: 0.98rem;
+}
+.om-commit-md .om-commit-text {
+  font-size: 1.15rem;
+}
+.om-commit-lg .om-commit-text {
+  font-size: 1.35rem;
+}
+.om-commit-xl .om-commit-text {
+  font-size: 1.7rem;
+}
+
+.om-task-list,
+.om-cal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.om-task-list li,
+.om-cal-list li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 9px 0;
+  border-top: 1px solid var(--om-line);
+}
+
+.om-task-list li:first-child,
+.om-cal-list li:first-child {
+  border-top: none;
+  padding-top: 2px;
+}
+
+.om-task-list strong,
+.om-cal-list strong {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.om-task-list em {
+  display: block;
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--om-mute);
+  margin-top: 1px;
+}
+
+.om-check {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  border-radius: 5px;
+  border: 1.5px solid var(--om-accent);
+  background: var(--om-accent-soft);
+}
+
+.om-check-soft {
+  border-color: #b7bec8;
+  background: transparent;
+}
+
+.om-cal-list {
+  grid-template-columns: unset;
+}
+
+.om-cal-list li {
+  grid-template-columns: 5.6rem 1fr;
+}
+
+.om-cal-list li > span {
+  font-size: 0.72rem;
+  color: var(--om-mute);
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+}
+
+.om-cal-lead {
+  margin: 0 0 4px;
+  font-family: var(--om-display);
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.om-wx-hero {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.om-wx-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.om-wx-cond {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.om-wx-place {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--om-mute);
+}
+
+.om-wx-temps {
+  margin: 2px 0 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+}
+
+.om-wx-temps b {
+  font-size: 1.15rem;
+}
+
+.om-wx-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  margin: 10px 0 0;
+}
+
+.om-wx-facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px solid var(--om-line);
+  font-size: 0.75rem;
+}
+
+.om-wx-facts dt {
+  margin: 0;
+  color: var(--om-mute);
+}
+
+.om-wx-facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.om-radar {
+  display: inline-flex;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--om-accent);
+}
+
+.om-radar-primary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--om-ink);
+  color: #fff;
+  text-align: center;
+}
+
+.om-wo-status {
+  margin: 0;
+  font-family: var(--om-display);
+  font-weight: 650;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.om-wo-hint {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: var(--om-mute);
+}
+
+.om-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.om-pair > * {
+  min-width: 0;
+}
+
+/* Tile surfaces used by many variants */
+.om-bento > *,
+.om-glass-stack > *,
+.om-status-grid > *,
+.om-tile-row > *,
+.om-modules > *,
+.om-snap-card,
+.om-river-side > *,
+.om-dock-wx,
+.om-sticky-commit,
+.om-wo-featured,
+.om-wx-featured {
+  background: var(--om-card);
+  border: 1px solid var(--om-line);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+/* Animations */
+@keyframes om-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.om-phone-inner > *,
+.om-bento > *,
+.om-fade-stack > *,
+.om-glass-stack > *,
+.om-status-grid > *,
+.om-spine > li,
+.om-tile-row > *,
+.om-modules > *,
+.om-icons > *,
+.om-snap-card {
+  animation: om-fade-up 0.55s ease both;
+}
+
+.om-phone-inner > *:nth-child(2),
+.om-bento > *:nth-child(2),
+.om-fade-stack > *:nth-child(2),
+.om-glass-stack > *:nth-child(2),
+.om-status-grid > *:nth-child(2),
+.om-spine > li:nth-child(2),
+.om-tile-row > *:nth-child(2),
+.om-modules > *:nth-child(2),
+.om-icons > *:nth-child(2) {
+  animation-delay: 0.06s;
+}
+.om-phone-inner > *:nth-child(3),
+.om-bento > *:nth-child(3),
+.om-fade-stack > *:nth-child(3),
+.om-glass-stack > *:nth-child(3),
+.om-status-grid > *:nth-child(3),
+.om-spine > li:nth-child(3),
+.om-tile-row > *:nth-child(3),
+.om-modules > *:nth-child(3),
+.om-icons > *:nth-child(3) {
+  animation-delay: 0.12s;
+}
+.om-phone-inner > *:nth-child(4),
+.om-bento > *:nth-child(4),
+.om-fade-stack > *:nth-child(4),
+.om-glass-stack > *:nth-child(4),
+.om-status-grid > *:nth-child(4),
+.om-spine > li:nth-child(4),
+.om-tile-row > *:nth-child(4),
+.om-modules > *:nth-child(4),
+.om-icons > *:nth-child(4) {
+  animation-delay: 0.18s;
+}
+.om-phone-inner > *:nth-child(5),
+.om-bento > *:nth-child(5),
+.om-spine > li:nth-child(5) {
+  animation-delay: 0.24s;
+}
+
+/* 01 Bento */
+.om-01-bento-dawn .om-phone-inner {
+  background: linear-gradient(165deg, #f3f7f5 0%, #fafbfc 40%, #eef2f6 100%);
+}
+
+.om-bento {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-areas:
+    "commit commit"
+    "tasks wx"
+    "cal wo";
+  gap: 10px;
+}
+
+.om-bento-commit {
+  grid-area: commit;
+  background: var(--om-ink);
+  color: #f5f7f9;
+  border: none;
+}
+.om-bento-commit .om-kicker,
+.om-bento-commit .om-jump {
+  color: #9eb0a8;
+}
+.om-bento-commit .om-jump {
+  color: #7dceb8;
+}
+.om-bento-tasks {
+  grid-area: tasks;
+}
+.om-bento-wx {
+  grid-area: wx;
+}
+.om-bento-cal {
+  grid-area: cal;
+}
+.om-bento-wo {
+  grid-area: wo;
+}
+
+/* 02 Focus first */
+.om-02-focus-first .om-phone-inner {
+  background: #fcfcfd;
+  gap: 16px;
+}
+.om-02-focus-first .om-commit-xl {
+  padding: 8px 2px 18px;
+  border-bottom: 1px solid var(--om-line);
+}
+.om-fade-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 03 Weather dock */
+.om-03-weather-dock .om-phone-inner {
+  gap: 10px;
+}
+.om-dock-wx {
+  background: linear-gradient(135deg, #e8f1f7, #f7fafc);
+  border-color: #d5e3ee;
+}
+.om-03-weather-dock .om-mast {
+  margin-top: 4px;
+}
+
+/* 04 Start checklist */
+.om-04-start-checklist .om-tasks {
+  background: var(--om-card);
+  border: 1px solid var(--om-line);
+  border-radius: 16px;
+  padding: 12px;
+}
+.om-sticky-commit {
+  margin-top: auto;
+  background: var(--om-accent-soft);
+  border-color: color-mix(in srgb, var(--om-accent) 25%, var(--om-line));
+}
+
+/* 05 Split river */
+.om-river {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.om-river-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.om-river-main .om-commit,
+.om-river-main .om-tasks {
+  background: var(--om-card);
+  border: 1px solid var(--om-line);
+  border-radius: 16px;
+  padding: 12px;
+}
+.om-river-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 06 Snap stories */
+.om-06-snap-stories .om-phone-inner {
+  overflow: hidden;
+}
+.om-snap {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 4px;
+  margin: 0 -4px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+.om-snap-card {
+  flex: 0 0 86%;
+  scroll-snap-align: start;
+  min-height: 420px;
+}
+.om-snap-hint {
+  margin: 0;
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--om-mute);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* 07 Soft glass */
+.om-07-soft-glass .om-phone-inner {
+  background: linear-gradient(160deg, #dfe9e4 0%, #e8eef5 45%, #f2ebe3 100%);
+  overflow: hidden;
+}
+.om-glass-bg {
+  position: absolute;
+  inset: -20% -10% auto;
+  height: 55%;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.55), transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(31, 107, 92, 0.18), transparent 50%);
+  pointer-events: none;
+}
+.om-glass-stack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.om-glass-stack > * {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 10px 30px rgba(18, 21, 26, 0.06);
+}
+
+/* 08 Command strip */
+.om-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.om-pills a {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--om-surf);
+  border: 1px solid var(--om-line);
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--om-ink);
+}
+.om-status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.om-08-command-strip .om-commit {
+  background: var(--om-ink);
+  color: #f4f6f8;
+  border-radius: 16px;
+  padding: 14px;
+}
+.om-08-command-strip .om-commit .om-kicker,
+.om-08-command-strip .om-commit .om-jump {
+  color: #9aa8b8;
+}
+
+/* 09 Timeline */
+.om-spine {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 14px;
+  border-left: 2px solid var(--om-line);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.om-spine > li {
+  position: relative;
+  padding-left: 12px;
+}
+.om-spine > li::before {
+  content: "";
+  position: absolute;
+  left: -19px;
+  top: 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--om-accent);
+  box-shadow: 0 0 0 3px var(--om-accent-soft);
+}
+
+/* 10 Type + tiles */
+.om-10-type-tiles .om-phone-inner {
+  background: #fff;
+  gap: 14px;
+}
+.om-10-type-tiles .om-commit-xl .om-commit-text {
+  font-size: 1.85rem;
+  max-width: 14ch;
+}
+.om-tile-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* 11 Quiet list */
+.om-11-quiet-list .om-phone-inner {
+  background: #fbfbfc;
+}
+.om-quiet > * {
+  padding: 14px 2px;
+  border-top: 1px solid var(--om-line);
+}
+.om-quiet > *:first-child {
+  border-top: none;
+  padding-top: 4px;
+}
+.om-11-quiet-list .om-jump {
+  opacity: 0.85;
+}
+
+/* 12 Workout pulse */
+.om-wo-featured {
+  background: linear-gradient(145deg, #17352e, #1f4a3f);
+  color: #f2f7f5;
+  border: none;
+}
+.om-wo-featured .om-kicker,
+.om-wo-featured .om-jump,
+.om-wo-featured .om-wo-hint {
+  color: #9fbfb4;
+}
+.om-wo-featured .om-jump {
+  color: #7dceb8;
+}
+
+/* 13 Radar feature */
+.om-wx-featured {
+  background: linear-gradient(160deg, #eaf3f9, #f8fbfd);
+  border-color: #d3e2ee;
+}
+.om-13-radar-feature .om-wx-featured .om-wx-temps b {
+  font-size: 1.6rem;
+}
+.om-13-radar-feature .om-wx-facts {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* 14 Icon grid */
+.om-icons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.om-icon-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 12px;
+  border-radius: 18px;
+  background: var(--om-card);
+  border: 1px solid var(--om-line);
+  min-height: 96px;
+}
+.om-icon-tile span {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.om-icon-tile strong {
+  font-family: var(--om-display);
+  font-size: 0.95rem;
+  letter-spacing: -0.02em;
+}
+.om-icon-tile em {
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--om-mute);
+}
+
+/* 15 Compact modules */
+.om-status-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: var(--om-surf);
+  border: 1px solid var(--om-line);
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--om-mute);
+}
+.om-modules {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.om-15-compact-modules .om-commit {
+  padding: 4px 2px 8px;
+}
+
+/* Variant font accents (consistent within each phone) */
+.om-02-focus-first,
+.om-10-type-tiles {
+  --om-display: "Fraunces", Georgia, serif;
+}
+.om-06-snap-stories,
+.om-14-icon-grid {
+  --om-display: "Space Grotesk", system-ui, sans-serif;
+}
+.om-07-soft-glass,
+.om-11-quiet-list {
+  --om-display: "Instrument Serif", Georgia, serif;
+}
+.om-08-command-strip,
+.om-15-compact-modules {
+  --om-display: "Syne", system-ui, sans-serif;
+}
+
+@media (max-width: 700px) {
+  .om-grid {
+    grid-template-columns: 1fr;
+  }
+  .om-phone-inner {
+    height: 560px;
+  }
+}
