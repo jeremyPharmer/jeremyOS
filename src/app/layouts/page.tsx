@@ -55,6 +55,9 @@ export default function LayoutsPage() {
           <Link href="/layouts/open-paper" className="layouts-board-link">
             Daily Open paper samples →
           </Link>
+          <Link href="/layouts/open-modern" className="layouts-board-link">
+            Modern Open samples (15) →
+          </Link>
           <Link href="/settings" className="layouts-board-link">
             Settings
           </Link>
