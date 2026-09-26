@@ -16,7 +16,6 @@ import type { NewsHeadline } from "@/lib/news";
 import type { OnThisDayEvent } from "@/lib/on-this-day";
 import {
   weatherDayFacts,
-  weatherDetailNote,
   type DailyForecast,
 } from "@/lib/weather";
 
@@ -44,12 +43,16 @@ function taskGroupOf(group?: TaskGroup): TaskGroup {
 }
 
 /** Single-day weather detail — today or tomorrow, no week strip. */
+const DEFAULT_RADAR_HREF = "https://radar.weather.gov/";
+
 export function WeatherExpanded({
   mode,
   locationLabel,
   days,
   focusDate,
   loading,
+  showRadar = false,
+  radarHref = DEFAULT_RADAR_HREF,
 }: {
   mode: "today" | "tomorrow";
   locationLabel?: string;
@@ -57,6 +60,9 @@ export function WeatherExpanded({
   /** Date to highlight (today or tomorrow). */
   focusDate: string;
   loading?: boolean;
+  /** External radar bounce-out (NWS). */
+  showRadar?: boolean;
+  radarHref?: string;
 }) {
   const focus =
     days.find((d) => d.date === focusDate) ??
@@ -67,10 +73,23 @@ export function WeatherExpanded({
     <section
       className="daily-briefing-section daily-briefing-weather paper-card paper-weather"
       aria-label="Weather"
+      id="weather"
     >
-      <p className="daily-briefing-kicker">
-        {mode === "tomorrow" ? "Tomorrow's weather" : "Today's weather"}
-      </p>
+      <div className="open-river-sec-head">
+        <p className="daily-briefing-kicker">
+          {mode === "tomorrow" ? "Tomorrow" : "Today"}
+        </p>
+        {showRadar ? (
+          <a
+            className="open-river-jump"
+            href={radarHref}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Radar →
+          </a>
+        ) : null}
+      </div>
       {loading && !focus ? (
         <p className="muted tiny">Loading forecast…</p>
       ) : !focus ? (
@@ -92,7 +111,6 @@ export function WeatherExpanded({
               </p>
             </div>
           </div>
-          <p className="paper-weather-note">{weatherDetailNote(focus)}</p>
           <dl className="paper-weather-facts">
             {facts.map((fact) => (
               <div key={fact.label} className="paper-weather-fact">
@@ -101,6 +119,16 @@ export function WeatherExpanded({
               </div>
             ))}
           </dl>
+          {showRadar ? (
+            <a
+              className="open-river-radar"
+              href={radarHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open radar →
+            </a>
+          ) : null}
         </>
       )}
     </section>
@@ -253,20 +281,32 @@ export function BriefingTasks({
   emptyLabel = "Nothing due today.",
   kicker = "Planned tasks",
   hideWhenEmpty = false,
+  linkHref,
+  linkLabel = "All →",
 }: {
   tasks: BriefingTaskRow[];
   emptyLabel?: string;
   kicker?: string;
   /** Skip the whole section when there is nothing to show. */
   hideWhenEmpty?: boolean;
+  linkHref?: string;
+  linkLabel?: string;
 }) {
   if (hideWhenEmpty && tasks.length === 0) return null;
   return (
     <section
       className="daily-briefing-section daily-briefing-tasks paper-card paper-card-tasks"
       aria-label={kicker}
+      id="tasks"
     >
-      <p className="daily-briefing-kicker">{kicker}</p>
+      <div className="open-river-sec-head">
+        <p className="daily-briefing-kicker">{kicker}</p>
+        {linkHref ? (
+          <a className="open-river-jump" href={linkHref}>
+            {linkLabel}
+          </a>
+        ) : null}
+      </div>
       {tasks.length === 0 ? (
         <p className="muted tiny">{emptyLabel}</p>
       ) : (

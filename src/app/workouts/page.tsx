@@ -5,10 +5,12 @@ import { useApp } from "@/components/AppProvider";
 import { WorkoutCalendar } from "@/components/workouts/WorkoutCalendar";
 import { WorkoutLogForm } from "@/components/workouts/WorkoutLogForm";
 import { WorkoutRoutineBuilder } from "@/components/workouts/WorkoutRoutineBuilder";
+import { WorkoutSessionDetail } from "@/components/workouts/WorkoutSessionDetail";
 import { WorkoutSummaryPanel } from "@/components/workouts/WorkoutSummaryPanel";
 import {
   formatWorkoutListDate,
   monthKey,
+  workoutsForDate,
   workoutsInMonth,
 } from "@/lib/workouts";
 import { parseDate } from "@/lib/journey";
@@ -24,6 +26,8 @@ export default function WorkoutsPage() {
   const [selectedDate, setSelectedDate] = useState(today);
 
   const monthWorkouts = workoutsInMonth(state.workouts, month);
+  const selectedDayWorkouts = workoutsForDate(state.workouts, selectedDate);
+  const dayPanelOpen = selectedDayWorkouts.length > 0;
 
   async function deleteWorkout(id: string) {
     await post("/api/workouts", { action: "delete", id });
@@ -48,6 +52,32 @@ export default function WorkoutsPage() {
           onMonthChange={setMonth}
           onSelectDate={setSelectedDate}
         />
+
+        {dayPanelOpen ? (
+          <div className="workout-day-expand fade-in" aria-live="polite">
+            <p className="workout-day-expand-label">
+              {formatWorkoutListDate(selectedDate)}
+              <span className="muted">
+                {" "}
+                · {selectedDayWorkouts.length} session
+                {selectedDayWorkouts.length === 1 ? "" : "s"}
+              </span>
+            </p>
+            <div className="workout-day-expand-list">
+              {selectedDayWorkouts.map((w) => (
+                <WorkoutSessionDetail
+                  key={w.id}
+                  workout={w}
+                  onDelete={(id) => void deleteWorkout(id)}
+                />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="muted tiny workout-day-expand-empty">
+            Tap a marked day to see that workout.
+          </p>
+        )}
 
         {monthWorkouts.length === 0 ? (
           <p className="muted tiny workout-history-empty">

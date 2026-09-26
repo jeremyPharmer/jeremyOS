@@ -1,22 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
 import {
-  BodyMind,
   BriefingTasks,
   PaperTimetable,
-  ThisDayInHistory,
   WeatherExpanded,
   type BriefingTaskRow,
 } from "@/components/DailyBriefingSections";
 import { PrimaryButton, SecondaryButton, TapScale } from "@/components/ui";
-import {
-  sevenDayTrendInsight,
-  thisDayInHistory,
-  workoutGapInsight,
-} from "@/lib/briefing";
+import { workoutGapInsight } from "@/lib/briefing";
 import { formatHomeHeaderDate } from "@/lib/journey";
 import {
   buildMorningBriefing,
@@ -26,7 +21,6 @@ import {
   type BriefingWeather,
 } from "@/lib/morning-briefing";
 import { dueTodosOn } from "@/lib/todos";
-import type { OnThisDayEvent } from "@/lib/on-this-day";
 import type { DailyForecast } from "@/lib/weather";
 import type { WorkCalendarEvent } from "@/lib/work-calendar";
 
@@ -72,6 +66,19 @@ function scoresFromMorning(m: {
   };
 }
 
+/** Home / morning-timed tasks float to the top as “start the day”. */
+function sortStartTasks(tasks: BriefingTaskRow[]): BriefingTaskRow[] {
+  return [...tasks].sort((a, b) => {
+    const aHome = a.group === "home" ? 0 : 1;
+    const bHome = b.group === "home" ? 0 : 1;
+    if (aHome !== bHome) return aHome - bHome;
+    const aTime = a.time ? 0 : 1;
+    const bTime = b.time ? 0 : 1;
+    if (aTime !== bTime) return aTime - bTime;
+    return (a.time ?? "").localeCompare(b.time ?? "");
+  });
+}
+
 export default function MorningPage() {
   const { post, state, today, refresh } = useApp();
   const router = useRouter();
@@ -91,8 +98,6 @@ export default function MorningPage() {
   const [weatherLocation, setWeatherLocation] = useState("");
   const [events, setEvents] = useState<BriefingEvent[]>([]);
   const [briefingLoading, setBriefingLoading] = useState(false);
-  const [worldEvent, setWorldEvent] = useState<OnThisDayEvent | null>(null);
-  const [worldLoading, setWorldLoading] = useState(false);
 
   const todayMorning = state.mornings.find((m) => m.date === today);
   const shownIntention =
@@ -111,26 +116,20 @@ export default function MorningPage() {
   }, [state.dayProvisions, today]);
 
   const expandedTasks: BriefingTaskRow[] = useMemo(() => {
-    return dueTodosOn(state.dayProvisions ?? [], today).map((t) => ({
-      id: t.id,
-      label: t.label,
-      time: t.time,
-      group: t.group,
-      meta: undefined as string | undefined,
-    }));
+    return sortStartTasks(
+      dueTodosOn(state.dayProvisions ?? [], today).map((t) => ({
+        id: t.id,
+        label: t.label,
+        time: t.time,
+        group: t.group,
+        meta: undefined as string | undefined,
+      })),
+    );
   }, [state.dayProvisions, today]);
 
-  const historyEntries = useMemo(
-    () => thisDayInHistory(state.journals ?? [], today),
-    [state.journals, today],
-  );
   const workoutGaps = useMemo(
     () => workoutGapInsight(state.workouts, today),
     [state.workouts, today],
-  );
-  const trends = useMemo(
-    () => sevenDayTrendInsight(state, today),
-    [state, today],
   );
 
   const scalesReady =
@@ -188,7 +187,6 @@ export default function MorningPage() {
 
     async function loadBriefingContext() {
       setBriefingLoading(true);
-      setWorldLoading(true);
       try {
         const coords = readStoredCoords();
         const weatherQs = new URLSearchParams({ days: "2" });
@@ -199,10 +197,9 @@ export default function MorningPage() {
             weatherQs.set("label", coords.label);
           }
         }
-        const [weatherRes, calRes, onThisDayRes] = await Promise.all([
+        const [weatherRes, calRes] = await Promise.all([
           fetch(`/api/weather?${weatherQs.toString()}`),
           fetch(`/api/calendar/work?date=${encodeURIComponent(today)}`),
-          fetch(`/api/on-this-day?date=${encodeURIComponent(today)}`),
         ]);
         if (cancelled) return;
 
@@ -229,19 +226,11 @@ export default function MorningPage() {
             })),
           );
         }
-
-        if (onThisDayRes.ok) {
-          const data = (await onThisDayRes.json()) as {
-            event?: OnThisDayEvent | null;
-          };
-          setWorldEvent(data.event ?? null);
-        }
       } catch {
         /* briefing still works with partial context */
       } finally {
         if (!cancelled) {
           setBriefingLoading(false);
-          setWorldLoading(false);
         }
       }
     }
@@ -292,73 +281,99 @@ export default function MorningPage() {
 
   if (morningDone) {
     return (
-      <main className="stack fade-in daily-briefing morning-brief paper-edition paper-rundown">
-        <header className="paper-masthead">
-          <p className="paper-masthead-flag">Morning edition</p>
-          <h1 className="paper-masthead-title">The Daily Open</h1>
-          <div className="paper-masthead-rule" aria-hidden />
-          <p className="paper-masthead-dateline">
-            <span>{editionDate}</span>
-            <span className="paper-masthead-dot" aria-hidden>
-              ·
-            </span>
-            <span>Rundown</span>
-          </p>
-          {shownIntention ? (
-            <div className="paper-lead-story">
-              <p className="paper-kicker">Today&apos;s lead</p>
-              <h2 className="paper-front-headline">{shownIntention}</h2>
-            </div>
-          ) : null}
+      <main className="stack fade-in open-river">
+        <header className="open-river-mast">
+          <p className="open-river-flag">{editionDate} · Open</p>
+          <h1 className="open-river-title">Morning</h1>
         </header>
 
-        <div className="paper-pages paper-card-stack paper-split-day">
-          <div className="paper-day-split" aria-label="Day ahead and planned tasks">
-            <section className="paper-section paper-card paper-card-schedule" aria-live="polite">
-              <p className="paper-kicker">The day ahead</p>
-              {briefingLoading && events.length === 0 && !thinWeather ? (
-                <p className="muted paper-loading">Pulling calendar…</p>
+        <div className="open-river-grid">
+          <div className="open-river-main">
+            {shownIntention ? (
+              <section
+                className="open-river-tile open-river-commit"
+                id="commitment"
+                aria-label="Do well today"
+              >
+                <div className="open-river-sec-head">
+                  <p className="open-river-kicker">Do well today</p>
+                </div>
+                <h2 className="open-river-commit-text">{shownIntention}</h2>
+              </section>
+            ) : null}
+
+            <div className="open-river-tile open-river-tasks-wrap">
+              <BriefingTasks
+                tasks={expandedTasks}
+                kicker="Start the day"
+                linkHref="/items"
+                linkLabel="Tasks →"
+                hideWhenEmpty={false}
+                emptyLabel="Nothing queued to start — add one on Tasks."
+              />
+            </div>
+          </div>
+
+          <div className="open-river-side">
+            <section
+              className="open-river-tile open-river-cal"
+              id="calendar"
+              aria-live="polite"
+              aria-label="Calendar"
+            >
+              <div className="open-river-sec-head">
+                <p className="open-river-kicker">Calendar</p>
+                <Link className="open-river-jump" href="/">
+                  Home →
+                </Link>
+              </div>
+              {briefingLoading && events.length === 0 ? (
+                <p className="muted tiny">Pulling calendar…</p>
               ) : (
                 <>
-                  <p className="paper-section-headline">
+                  <p className="open-river-cal-lead">
                     {briefing.calendarStory.lead}
                   </p>
                   <PaperTimetable rows={briefing.calendarStory.rows} />
                   {briefing.calendarStory.rows.length === 0 ? (
-                    <p className="paper-card-empty muted tiny">
-                      No timed events on the books.
-                    </p>
+                    <p className="muted tiny">No timed events on the books.</p>
                   ) : null}
                 </>
               )}
             </section>
 
-            <BriefingTasks
-              tasks={expandedTasks}
-              kicker="Planned tasks"
-              hideWhenEmpty
-            />
+            <div className="open-river-tile open-river-wx-wrap">
+              <WeatherExpanded
+                mode="today"
+                locationLabel={weatherLocation}
+                days={weatherDays}
+                focusDate={today}
+                loading={briefingLoading}
+                showRadar
+              />
+            </div>
+
+            <section
+              className="open-river-tile open-river-workout"
+              id="workout"
+              aria-label="Workout"
+            >
+              <div className="open-river-sec-head">
+                <p className="open-river-kicker">Workout</p>
+                <Link className="open-river-jump" href="/workouts">
+                  Log →
+                </Link>
+              </div>
+              <p className="open-river-wo-status">
+                {workoutGaps.daysSinceAny === 0
+                  ? "Moved today"
+                  : workoutGaps.daysSinceAny == null
+                    ? "No session yet"
+                    : `${workoutGaps.daysSinceAny}d since last`}
+              </p>
+              <p className="open-river-wo-hint">{workoutGaps.anyLabel}</p>
+            </section>
           </div>
-
-          <BodyMind workouts={workoutGaps} trends={trends} />
-
-          {(briefingLoading || weatherDays.length > 0) && (
-            <WeatherExpanded
-              mode="today"
-              locationLabel={weatherLocation}
-              days={weatherDays}
-              focusDate={today}
-              loading={briefingLoading}
-            />
-          )}
-
-          <ThisDayInHistory
-            today={today}
-            entries={historyEntries}
-            worldEvent={worldEvent}
-            worldLoading={worldLoading}
-            hideWhenEmpty
-          />
         </div>
 
         {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
@@ -370,23 +385,14 @@ export default function MorningPage() {
   }
 
   return (
-    <main className="stack fade-in daily-briefing paper-edition">
-      <header className="paper-masthead paper-masthead-compact">
-        <p className="paper-masthead-flag">Morning edition</p>
-        <h1 className="paper-masthead-title">The Daily Open</h1>
-        <div className="paper-masthead-rule" aria-hidden />
-        <p className="paper-masthead-dateline">
-          <span>{editionDate}</span>
-          <span className="paper-masthead-dot" aria-hidden>
-            ·
-          </span>
-          <span>Check in, then the paper</span>
-        </p>
+    <main className="stack fade-in open-river open-river-compose">
+      <header className="open-river-mast">
+        <p className="open-river-flag">{editionDate} · Open</p>
+        <h1 className="open-river-title">Morning</h1>
+        <p className="muted open-river-note">Check in, then your day.</p>
       </header>
 
-      <p className="muted paper-checkin-note">About a minute.</p>
-
-      <section className="panel">
+      <section className="panel open-river-panel">
         <p className="eyebrow">Sleep</p>
         <TapScale
           label="Hours slept"
@@ -403,14 +409,14 @@ export default function MorningPage() {
         />
       </section>
 
-      <section className="panel">
+      <section className="panel open-river-panel">
         <p className="eyebrow">Current state</p>
         <TapScale label="Mood" value={mood} onChange={setMood} />
         <TapScale label="Energy" value={energy} onChange={setEnergy} />
         <TapScale label="Stress" value={stress} onChange={setStress} />
       </section>
 
-      <section className="panel">
+      <section className="panel open-river-panel">
         <label className="field">
           <span className="field-label">
             What&apos;s the one thing you want to do well today?
