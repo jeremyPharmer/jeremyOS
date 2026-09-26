@@ -229,6 +229,66 @@ export function doneDateLabel(item: DayProvision): string {
   return "";
 }
 
+function displayGroup(item: DayProvision): TaskGroup {
+  return isTaskGroup(item.group) ? item.group : "home";
+}
+
+/**
+ * Unique group colors for open dated tasks, keyed by due date.
+ * Used by the Tasks month calendar (workout-cal style dots).
+ */
+export function openTaskColorsByDate(
+  items: DayProvision[],
+): Record<string, string[]> {
+  const map: Record<string, string[]> = {};
+  for (const item of items) {
+    if (item.completed || item.undated || !item.date) continue;
+    const color = TASK_GROUP_COLORS[displayGroup(item)];
+    const list = map[item.date] ?? [];
+    if (!list.includes(color)) list.push(color);
+    map[item.date] = list.slice(0, 4);
+  }
+  return map;
+}
+
+/** Open, dated tasks due exactly on `date` (excludes undated). */
+export function openDatedTodosOn(
+  items: DayProvision[],
+  date: string,
+): DayProvision[] {
+  return sortTodosByDueDate(
+    items.filter(
+      (item) => !item.completed && !item.undated && item.date === date,
+    ),
+  );
+}
+
+/** Undated open tasks. */
+export function openUndatedTodos(items: DayProvision[]): DayProvision[] {
+  return items
+    .filter((item) => !item.completed && isUndatedTodo(item))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/** Completed (or recurring just-done) for a calendar day. */
+export function completedTodosOn(
+  items: DayProvision[],
+  date: string,
+): DayProvision[] {
+  return items
+    .filter((item) => {
+      if (item.lastCompletedOn === date) return true;
+      if (!item.completed) return false;
+      if (item.completedAt?.startsWith(date)) return true;
+      return item.date === date;
+    })
+    .sort((a, b) => {
+      const ta = a.completedAt || a.lastCompletedOn || "";
+      const tb = b.completedAt || b.lastCompletedOn || "";
+      return tb.localeCompare(ta);
+    });
+}
+
 /** Resolve display group for a calendar event. */
 export function resolveEventGroup(opts: {
   eventId: string;

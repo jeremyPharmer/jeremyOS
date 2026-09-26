@@ -835,6 +835,47 @@ h2 {
   gap: 4px;
 }
 
+.task-calendar-panel .task-day-panel {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-day-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: task-day-in 0.48s cubic-bezier(0.33, 0.1, 0.25, 1);
+}
+
+@keyframes task-day-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.task-day-heading {
+  margin: 0;
+}
+
+.task-undated-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-undated-panel .daily-actions {
+  margin-top: 4px;
+}
+
 .workout-history-empty {
   margin: 12px 0 4px;
   padding-top: 12px;
@@ -1690,7 +1731,7 @@ h2 {
 
 .tasks-item-clearing {
   pointer-events: none;
-  animation: clear-row 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: clear-row 0.62s cubic-bezier(0.33, 0.1, 0.25, 1) forwards;
 }
 
 .tasks-item-clearing .tasks-title,
@@ -1698,12 +1739,15 @@ h2 {
   text-decoration: line-through;
   text-decoration-color: var(--good-strike);
   color: var(--muted);
+  transition: color 0.35s ease, text-decoration-color 0.35s ease;
 }
 
-/* Snooze exit: flash Snooze, then drop the card (no check/strike). */
+/* Snooze exit: accent flash, then slide off like a modern list dismiss. */
 .tasks-item-snoozing {
   pointer-events: none;
-  animation: snooze-drop 0.48s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent-soft) 50%, transparent);
+  animation: snooze-slide 0.78s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 .tasks-item-snoozing .tasks-action-btn,
@@ -1712,7 +1756,7 @@ h2 {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent-soft) 85%, var(--surface));
   color: var(--accent);
-  animation: snooze-btn-flash 0.28s ease forwards;
+  animation: snooze-btn-flash 0.32s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 .tasks-action-btn.tasks-snooze-hot:disabled,
@@ -5859,7 +5903,7 @@ button.check-item-btn:disabled {
   border-color: var(--good-border);
   background: var(--good-soft);
   pointer-events: none;
-  animation: clear-row 0.7s ease forwards;
+  animation: clear-row 0.62s cubic-bezier(0.33, 0.1, 0.25, 1) forwards;
 }
 
 .check-item-row.clearing .check-label {
@@ -5870,7 +5914,10 @@ button.check-item-btn:disabled {
 
 .check-item-row.snoozing {
   pointer-events: none;
-  animation: snooze-drop 0.48s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  animation: snooze-slide 0.78s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 .check-item-row.snoozing .dismiss-btn.tasks-snooze-hot {
@@ -6103,16 +6150,16 @@ button.check-item-btn:disabled {
   0% {
     opacity: 1;
     transform: translateY(0) scale(1);
-    max-height: 56px;
+    max-height: 64px;
     margin-bottom: 0;
   }
-  40% {
-    opacity: 1;
+  45% {
+    opacity: 0.72;
     transform: translateY(-2px) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-6px) scale(0.98);
+    transform: translateY(-3px) scale(0.995);
     max-height: 0;
     margin-bottom: -8px;
     padding-top: 0;
@@ -6124,29 +6171,37 @@ button.check-item-btn:disabled {
 @keyframes snooze-btn-flash {
   0% {
     transform: scale(1);
-    filter: brightness(1);
   }
   45% {
-    transform: scale(1.06);
-    filter: brightness(1.08);
+    transform: scale(1.05);
   }
   100% {
-    transform: scale(1.03);
-    filter: brightness(1.05);
+    transform: scale(1.02);
   }
 }
 
-@keyframes snooze-drop {
-  0%,
-  32% {
+/* Hold → slide right off-screen → collapse (Mail / Reminders style). */
+@keyframes snooze-slide {
+  0% {
     opacity: 1;
-    transform: translateY(0) scale(1);
-    max-height: 56px;
+    transform: translate3d(0, 0, 0);
+    max-height: 72px;
+    margin-bottom: 0;
+  }
+  16% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    max-height: 72px;
+  }
+  58% {
+    opacity: 0;
+    transform: translate3d(112%, 0, 0);
+    max-height: 72px;
     margin-bottom: 0;
   }
   100% {
     opacity: 0;
-    transform: translateY(12px) scale(0.97);
+    transform: translate3d(112%, 0, 0);
     max-height: 0;
     margin-bottom: -8px;
     padding-top: 0;
@@ -8959,6 +9014,11 @@ html.sheet-open .top-nav {
 .todo-task {
   display: grid;
   gap: 6px;
+}
+
+.todo-task:has(.tasks-item-snoozing),
+.todo-task:has(.check-item-row.snoozing) {
+  overflow: hidden;
 }
 
 .todo-task.has-group-bar,

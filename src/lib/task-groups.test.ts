@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  completedTodosOn,
   doneDateLabel,
   formatMonthDay,
   formatMonthDayYear,
   groupCompletedTodos,
   groupOpenTodos,
+  openDatedTodosOn,
+  openTaskColorsByDate,
+  openUndatedTodos,
   resolveEventGroup,
+  TASK_GROUP_COLORS,
 } from "./task-groups";
 import type { DayProvision } from "./types";
 
@@ -158,5 +163,52 @@ describe("resolveEventGroup", () => {
         feedGroups: { extra: [undefined, "real_estate"] },
       }),
     ).toBe("real_estate");
+  });
+});
+
+describe("openTaskColorsByDate", () => {
+  it("maps unique group colors per due date", () => {
+    const colors = openTaskColorsByDate([
+      todo({ id: "1", label: "A", group: "work", date: "2026-09-10" }),
+      todo({ id: "2", label: "B", group: "work", date: "2026-09-10" }),
+      todo({ id: "3", label: "C", group: "family", date: "2026-09-10" }),
+      todo({ id: "4", label: "D", group: "home", undated: true }),
+      todo({
+        id: "5",
+        label: "E",
+        group: "real_estate",
+        date: "2026-09-11",
+        completed: true,
+      }),
+    ]);
+    expect(colors["2026-09-10"]).toEqual([
+      TASK_GROUP_COLORS.work,
+      TASK_GROUP_COLORS.family,
+    ]);
+    expect(colors["2026-09-11"]).toBeUndefined();
+  });
+});
+
+describe("openDatedTodosOn / undated / completedTodosOn", () => {
+  it("filters day lists", () => {
+    const items = [
+      todo({ id: "1", label: "Due", group: "work", date: "2026-09-10" }),
+      todo({ id: "2", label: "Float", group: "home", undated: true }),
+      todo({
+        id: "3",
+        label: "Done",
+        group: "family",
+        date: "2026-09-10",
+        completed: true,
+        lastCompletedOn: "2026-09-10",
+      }),
+    ];
+    expect(openDatedTodosOn(items, "2026-09-10").map((t) => t.id)).toEqual([
+      "1",
+    ]);
+    expect(openUndatedTodos(items).map((t) => t.id)).toEqual(["2"]);
+    expect(completedTodosOn(items, "2026-09-10").map((t) => t.id)).toEqual([
+      "3",
+    ]);
   });
 });
