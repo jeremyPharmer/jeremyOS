@@ -813,7 +813,7 @@ function EveningPageInner() {
           <label className="check-row" style={{ marginTop: 12 }}>
             <input
               type="checkbox"
-              checked={applySaveGoals && !dayApplied}
+              checked={dayApplied || applySaveGoals}
               disabled={dayApplied}
               onChange={(e) => setApplySaveGoals(e.target.checked)}
             />
