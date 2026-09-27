@@ -12,6 +12,13 @@ import {
 } from "@/components/DailyBriefingSections";
 import { PrimaryButton, TapScale } from "@/components/ui";
 import { workoutGapInsight } from "@/lib/briefing";
+import {
+  applyCalendarTitleOverrides,
+  calendarHiddenEventIds,
+  calendarTitleOverrides,
+  filterHiddenCalendarEvents,
+} from "@/lib/calendar-overrides";
+import { isCustomAgendaId } from "@/lib/custom-agenda-shared";
 import { formatHomeHeaderDate } from "@/lib/journey";
 import {
   buildMorningBriefing,
@@ -99,6 +106,7 @@ export default function MorningPage() {
   const [weatherLocation, setWeatherLocation] = useState("");
   const [events, setEvents] = useState<BriefingEvent[]>([]);
   const [briefingLoading, setBriefingLoading] = useState(false);
+  const [removingEventId, setRemovingEventId] = useState<string | null>(null);
 
   const todayMorning = state.mornings.find((m) => m.date === today);
   const shownIntention =
@@ -248,8 +256,13 @@ export default function MorningPage() {
           const data = (await calRes.json()) as {
             events?: WorkCalendarEvent[];
           };
+          const hidden = calendarHiddenEventIds(state);
+          const titled = applyCalendarTitleOverrides(
+            data.events ?? [],
+            calendarTitleOverrides(state),
+          );
           setEvents(
-            (data.events ?? []).map((e) => ({
+            filterHiddenCalendarEvents(titled, hidden).map((e) => ({
               id: e.id,
               title: e.title,
               startTime: e.startTime,
@@ -271,7 +284,24 @@ export default function MorningPage() {
     return () => {
       cancelled = true;
     };
-  }, [today, timezone]);
+  }, [today, timezone, state]);
+
+  async function removeCalendarEvent(eventId: string) {
+    setRemovingEventId(eventId);
+    setError("");
+    try {
+      if (isCustomAgendaId(eventId)) {
+        await post("/api/calendar/custom", { action: "delete", id: eventId });
+      } else {
+        await post("/api/calendar/overrides", { eventId, hide: true });
+      }
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn’t remove event");
+    } finally {
+      setRemovingEventId(null);
+    }
+  }
 
   async function submit() {
     const focus = intention.trim();
@@ -426,7 +456,11 @@ export default function MorningPage() {
               <p className="open-edition-cal-lead">
                 {briefing.calendarStory.lead}
               </p>
-              <PaperTimetable rows={briefing.calendarStory.rows} />
+              <PaperTimetable
+                rows={briefing.calendarStory.rows}
+                onRemove={removeCalendarEvent}
+                removingId={removingEventId}
+              />
               {briefing.calendarStory.rows.length === 0 ? (
                 <p className="muted tiny">No timed events on the books.</p>
               ) : null}

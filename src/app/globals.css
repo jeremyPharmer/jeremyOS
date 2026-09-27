@@ -4789,6 +4789,10 @@ h2 {
   border-top: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
 }
 
+.paper-rundown .paper-timetable-row:has(.paper-timetable-remove) {
+  grid-template-columns: 6.8rem minmax(0, 1fr) auto;
+}
+
 .paper-rundown .paper-timetable-row:first-child {
   border-top: none;
   padding-top: 2px;
@@ -5135,6 +5139,10 @@ a.paper-history-world-text:hover {
     grid-template-columns: 5.4rem minmax(0, 1fr);
     gap: 8px;
   }
+
+  .paper-rundown .paper-timetable-row:has(.paper-timetable-remove) {
+    grid-template-columns: 5.4rem minmax(0, 1fr) auto;
+  }
 }
 
 @media (max-width: 360px) {
@@ -5382,6 +5390,10 @@ a.paper-history-world-text:hover {
   border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
 }
 
+.paper-timetable-row:has(.paper-timetable-remove) {
+  grid-template-columns: 5.75rem minmax(0, 1fr) auto;
+}
+
 .paper-timetable-row:first-child {
   border-top: none;
   padding-top: 4px;
@@ -5410,6 +5422,43 @@ a.paper-history-world-text:hover {
   font-style: italic;
   color: var(--muted);
   font-weight: 400;
+}
+
+.paper-timetable-remove {
+  appearance: none;
+  margin: 0;
+  margin-left: 4px;
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.paper-timetable-row:hover .paper-timetable-remove,
+.paper-timetable-row:focus-within .paper-timetable-remove {
+  opacity: 0.7;
+}
+
+.paper-timetable-remove:hover,
+.paper-timetable-remove:focus-visible {
+  opacity: 1;
+  color: var(--danger, #b42318);
+}
+
+.paper-timetable-remove:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (hover: none) {
+  .paper-timetable-remove {
+    opacity: 0.5;
+  }
 }
 
 .paper-aside {
@@ -10856,6 +10905,10 @@ button.layout-pick-card {
   gap: 10px;
   padding: 9px 0;
   border-top: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.open-river .paper-timetable-row:has(.paper-timetable-remove) {
+  grid-template-columns: 5.8rem minmax(0, 1fr) auto;
 }
 
 .open-river .paper-timetable-row:first-child {
