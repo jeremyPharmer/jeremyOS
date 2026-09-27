@@ -4,13 +4,12 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import "./open-unified-samples.css";
 
-type ScaleKey = "sleep" | "quality" | "mood" | "energy" | "stress";
+type ScaleKey = "quality" | "mood" | "energy" | "stress";
 
 type ScaleValues = Record<ScaleKey, number | null>;
 
 const SCALE_META: { key: ScaleKey; label: string; min?: number; max?: number; step?: number }[] =
   [
-    { key: "sleep", label: "Hours slept", min: 4, max: 10, step: 0.5 },
     { key: "quality", label: "Sleep quality" },
     { key: "mood", label: "Mood" },
     { key: "energy", label: "Energy" },
@@ -69,7 +68,6 @@ const SAMPLES = [
 ] as const;
 
 const EMPTY: ScaleValues = {
-  sleep: null,
   quality: null,
   mood: null,
   energy: null,
@@ -77,7 +75,6 @@ const EMPTY: ScaleValues = {
 };
 
 const DEMO_FILLED: ScaleValues = {
-  sleep: 7.5,
   quality: 7,
   mood: 7,
   energy: 6,
@@ -164,7 +161,7 @@ function SamplePhone({
 
   const summary = useMemo(() => {
     if (!scalesReady(values)) return null;
-    return `S ${fmt(values.sleep, 0.5)} · Q ${fmt(values.quality)} · M ${fmt(values.mood)} · E ${fmt(values.energy)} · St ${fmt(values.stress)}`;
+    return `Q ${fmt(values.quality)} · M ${fmt(values.mood)} · E ${fmt(values.energy)} · St ${fmt(values.stress)}`;
   }, [values]);
 
   return (

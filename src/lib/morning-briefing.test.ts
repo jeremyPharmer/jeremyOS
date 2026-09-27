@@ -72,7 +72,7 @@ describe("buildMorningBriefing", () => {
       ],
     });
 
-    expect(briefing.feeling).toMatch(/Sleep looks solid/i);
+    expect(briefing.feeling).toMatch(/Sleep quality looks solid/i);
     expect(briefing.weather).toMatch(/partly cloudy/i);
     expect(briefing.calendarStory.lead).toMatch(/on the books/i);
     expect(briefing.calendarStory.rows.some((r) => /Standup/.test(r.title))).toBe(
