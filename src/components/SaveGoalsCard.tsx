@@ -13,9 +13,11 @@ import {
   inboundPercent,
   listSaveGoalAdjustments,
   listSaveGoalAdjustmentsForGoal,
+  listSaveGoalCloseDays,
   normalizeSaveGoalSettings,
   progressRatio,
   projectSaveGoalTargetDate,
+  saveGoalCloseForDate,
 } from "@/lib/save-goals";
 import type { SaveGoal, SaveGoalDay } from "@/lib/types";
 
@@ -123,6 +125,143 @@ function InboundBreakdown({
           onChange={(next) => onPercentChange(g.id, next)}
         />
       ))}
+    </div>
+  );
+}
+
+function LedgerAllocationLine({
+  day,
+  goals,
+}: {
+  day: Pick<SaveGoalDay, "allocations" | "leftover" | "lumpSum">;
+  goals: SaveGoal[];
+}) {
+  const nameById = new Map(goals.map((g) => [g.id, g.name]));
+  const parts = (day.allocations ?? [])
+    .filter((a) => a.amount !== 0)
+    .map((a) => `${nameById.get(a.goalId) ?? "Goal"} ${formatMoney(a.amount)}`);
+  if (!parts.length) return null;
+  return <p className="tiny save-goal-ledger-alloc">{parts.join(" · ")}</p>;
+}
+
+function DailyLedgerDay({
+  label,
+  inbound,
+  spend,
+  leftover,
+  lump,
+  closed,
+  goals,
+  day,
+}: {
+  label: string;
+  inbound: number;
+  spend: number | null;
+  leftover: number | null;
+  lump?: number;
+  closed: boolean;
+  goals: SaveGoal[];
+  day?: SaveGoalDay | null;
+}) {
+  return (
+    <div className={`save-goal-ledger-day${closed ? "" : " open"}`}>
+      <div className="save-goal-ledger-day-head">
+        <span className="save-goal-ledger-date">{label}</span>
+        {!closed ? <span className="tiny muted">open</span> : null}
+      </div>
+      <div className="save-goal-ledger-rows">
+        <div className="save-goal-ledger-row">
+          <span>Inbound</span>
+          <span>{formatMoney(inbound)}</span>
+        </div>
+        <div className="save-goal-ledger-row">
+          <span>Spend</span>
+          <span>
+            {spend === null
+              ? "—"
+              : spend === 0
+                ? formatMoney(0)
+                : `−${formatMoney(spend)}`}
+          </span>
+        </div>
+        {lump && lump > 0 ? (
+          <div className="save-goal-ledger-row">
+            <span>Lump</span>
+            <span>+{formatMoney(lump)}</span>
+          </div>
+        ) : null}
+        <div className="save-goal-ledger-row leftover">
+          <span>Left</span>
+          <span>{leftover === null ? "—" : formatMoney(leftover)}</span>
+        </div>
+      </div>
+      {day ? <LedgerAllocationLine day={day} goals={goals} /> : null}
+    </div>
+  );
+}
+
+/** Daily inbound − spend = leftover ledger (today + recent closes). */
+function DailyLedger({
+  today,
+  rate,
+  goals,
+}: {
+  today: string;
+  rate: number;
+  goals: SaveGoal[];
+}) {
+  const { state } = useApp();
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const todayClose = useMemo(
+    () => (today ? saveGoalCloseForDate(state, today) : null),
+    [state, today],
+  );
+  const history = useMemo(() => {
+    const closes = listSaveGoalCloseDays(state).filter((d) => d.date !== today);
+    return closes.slice(0, 14);
+  }, [state, today]);
+
+  return (
+    <div className="save-goal-ledger" aria-label="Daily ledger">
+      <p className="eyebrow save-goal-ledger-title">Daily</p>
+      <DailyLedgerDay
+        label="Today"
+        inbound={todayClose?.dailyIncome ?? rate}
+        spend={todayClose ? todayClose.spendTotal : null}
+        leftover={todayClose ? todayClose.leftover : null}
+        lump={todayClose?.lumpSum}
+        closed={Boolean(todayClose)}
+        goals={goals}
+        day={todayClose}
+      />
+      {history.length > 0 ? (
+        <div className="save-goal-ledger-history">
+          <button
+            type="button"
+            className="save-goal-log-toggle"
+            aria-expanded={historyOpen}
+            onClick={() => setHistoryOpen((v) => !v)}
+          >
+            <span aria-hidden="true">{historyOpen ? "▾" : "▸"}</span>
+            Prior days ({history.length})
+          </button>
+          {historyOpen
+            ? history.map((d) => (
+                <DailyLedgerDay
+                  key={d.date}
+                  label={formatTargetDateLabel(d.date)}
+                  inbound={d.dailyIncome}
+                  spend={d.spendTotal}
+                  leftover={d.leftover}
+                  lump={d.lumpSum}
+                  closed
+                  goals={[...(state.saveGoals ?? [])]}
+                  day={d}
+                />
+              ))
+            : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -903,6 +1042,10 @@ function SaveGoalsDetail() {
           />
         ) : null}
       </div>
+
+      {goals.length > 0 && today ? (
+        <DailyLedger today={today} rate={rate} goals={goals} />
+      ) : null}
 
       {goals.map((g) => (
         <GoalProgressRow

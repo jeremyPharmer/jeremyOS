@@ -860,6 +860,26 @@ export function listSaveGoalAdjustments(state: RebuildState): SaveGoalDay[] {
     });
 }
 
+/** Evening/approve close rows, newest first. */
+export function listSaveGoalCloseDays(state: RebuildState): SaveGoalDay[] {
+  return (state.saveGoalDays ?? [])
+    .filter((d) => (d.kind ?? "close") === "close")
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export function saveGoalCloseForDate(
+  state: RebuildState,
+  date: string,
+): SaveGoalDay | null {
+  if (!DATE_RE.test(date)) return null;
+  return (
+    (state.saveGoalDays ?? []).find(
+      (d) => d.date === date && (d.kind ?? "close") === "close",
+    ) ?? null
+  );
+}
+
 /** Adjustments that touched a specific goal (newest first). */
 export function listSaveGoalAdjustmentsForGoal(
   state: RebuildState,
