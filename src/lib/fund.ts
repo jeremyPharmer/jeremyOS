@@ -10,6 +10,7 @@ import type {
   RebuildState,
   Reward,
 } from "./types";
+import { normalizeSaveGoals } from "./save-goals";
 import {
   normalizeRoutines,
   normalizeWorkout,
@@ -35,7 +36,7 @@ export function normalizeFund(fund: FundLedger | undefined): FundLedger {
 }
 
 export function normalizeState(state: RebuildState): RebuildState {
-  return {
+  const base: RebuildState = {
     ...state,
     skips: state.skips ?? [],
     starredDays: normalizeStarredDays(state.starredDays),
@@ -60,6 +61,7 @@ export function normalizeState(state: RebuildState): RebuildState {
       current: state.dailyCrossword?.current,
     },
   };
+  return normalizeSaveGoals(base);
 }
 
 /** Unique sorted YYYY-MM-DD bookmarks */

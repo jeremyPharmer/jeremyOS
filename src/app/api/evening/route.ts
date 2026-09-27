@@ -8,8 +8,9 @@ import { pendingCashableMoments } from "@/lib/fund";
 import { applyJournalProseEdit } from "@/lib/journal";
 import { applyEveningSideEffects } from "@/lib/mutations";
 import { savePhotoDataUrl } from "@/lib/photos";
+import { recordSaveGoalDay } from "@/lib/save-goals";
 import { updateState } from "@/lib/store";
-import type { EveningCheckIn } from "@/lib/types";
+import type { EveningCheckIn, SaveGoalAllocation } from "@/lib/types";
 
 export async function POST(req: Request) {
   try {
@@ -82,6 +83,43 @@ export async function POST(req: Request) {
         evening.expandedJournal ?? "",
         photoId !== undefined ? photoId : undefined,
       );
+
+      // Save Goals day close (RB-037) — optional; does not block journal/reclaim.
+      // When spendTotal is omitted, skip (legacy clients / no money step).
+      if (body.spendTotal !== undefined && body.spendTotal !== null) {
+        const spendTotal = Number(body.spendTotal);
+        if (!Number.isFinite(spendTotal) || spendTotal < 0) {
+          const err = new Error("spendTotal must be ≥ 0");
+          (err as Error & { status: number }).status = 400;
+          throw err;
+        }
+        const lumpSum =
+          body.lumpSum !== undefined && body.lumpSum !== null
+            ? Number(body.lumpSum)
+            : 0;
+        if (!Number.isFinite(lumpSum) || lumpSum < 0) {
+          const err = new Error("lumpSum must be ≥ 0");
+          (err as Error & { status: number }).status = 400;
+          throw err;
+        }
+        const allocations: SaveGoalAllocation[] | undefined = Array.isArray(
+          body.allocations,
+        )
+          ? body.allocations.map(
+              (a: { goalId?: unknown; amount?: unknown }) => ({
+                goalId: String(a.goalId ?? ""),
+                amount: Number(a.amount),
+              }),
+            )
+          : undefined;
+        next = recordSaveGoalDay(next, {
+          date,
+          spendTotal,
+          lumpSum,
+          allocations,
+        });
+      }
+
       return next;
     });
     return NextResponse.json({

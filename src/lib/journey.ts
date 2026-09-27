@@ -371,6 +371,9 @@ export function emptyState(): RebuildState {
     workoutRoutines: [],
     vitals: [],
     dailyCrossword: { attempts: 0, completed: 0 },
+    saveGoalSettings: { monthlyIncome: 500, incomeDayOfMonth: 1 },
+    saveGoals: [],
+    saveGoalDays: [],
   };
 }
 

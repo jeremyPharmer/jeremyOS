@@ -34,6 +34,14 @@ import {
 } from "@/lib/journal";
 import type { NewsHeadline } from "@/lib/news";
 import type { OnThisDayEvent } from "@/lib/on-this-day";
+import {
+  activeSaveGoals,
+  dailyIncomeRate,
+  formatMoney,
+  leftoverPool,
+  normalizeSaveGoalSettings,
+  splitPoolByWeight,
+} from "@/lib/save-goals";
 import { completedTodosForUndo, openTodosOn } from "@/lib/todos";
 import type { DailyForecast } from "@/lib/weather";
 
@@ -109,6 +117,8 @@ function EveningPageInner() {
   const [oneLine, setOneLine] = useState("");
   const [standOut, setStandOut] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
+  const [spendTotal, setSpendTotal] = useState("");
+  const [lumpSum, setLumpSum] = useState("");
   const [busy, setBusy] = useState(false);
   const [starBusy, setStarBusy] = useState(false);
   const [starPending, setStarPending] = useState(false);
@@ -312,6 +322,30 @@ function EveningPageInner() {
     return sevenDayTrendInsight(state, editionClosed.date);
   }, [editionClosed, state, today]);
 
+  const saveSettings = normalizeSaveGoalSettings(state.saveGoalSettings);
+  const moneyDate = effectiveDate || today || "";
+  const dayRate = moneyDate
+    ? dailyIncomeRate(moneyDate, saveSettings.monthlyIncome)
+    : 0;
+  const spendNum = spendTotal.trim() === "" ? null : Number(spendTotal);
+  const lumpNum = lumpSum.trim() === "" ? 0 : Number(lumpSum);
+  const moneyPreview = useMemo(() => {
+    if (spendNum == null || !Number.isFinite(spendNum) || spendNum < 0) {
+      return null;
+    }
+    const lump = Number.isFinite(lumpNum) && lumpNum >= 0 ? lumpNum : 0;
+    const { leftover, pool } = leftoverPool(dayRate, spendNum, lump);
+    const goals = activeSaveGoals(state);
+    const allocations =
+      goals.length && pool !== 0 ? splitPoolByWeight(pool, goals) : [];
+    return { leftover, pool, allocations, goals };
+  }, [spendNum, lumpNum, dayRate, state]);
+  const spendReady =
+    spendTotal.trim() !== "" &&
+    spendNum != null &&
+    Number.isFinite(spendNum) &&
+    spendNum >= 0;
+
   const tomorrowDate = today ? addDays(today, 1) : "";
 
   async function toggleStarNow(date: string) {
@@ -341,6 +375,16 @@ function EveningPageInner() {
       setError("Tap a number for mood and stress.");
       return;
     }
+    const spend = Number(spendTotal);
+    if (spendTotal.trim() === "" || !Number.isFinite(spend) || spend < 0) {
+      setError("Enter today’s total spend (0 or more).");
+      return;
+    }
+    const lump = lumpSum.trim() === "" ? 0 : Number(lumpSum);
+    if (!Number.isFinite(lump) || lump < 0) {
+      setError("Lump sum must be 0 or more.");
+      return;
+    }
     setBusy(true);
     setError("");
     const snapshot: ClosedSnapshot = {
@@ -360,6 +404,8 @@ function EveningPageInner() {
         oneLine: snapshot.headline,
         expandedJournal: snapshot.summary || undefined,
         photoDataUrl: photoDataUrl || undefined,
+        spendTotal: spend,
+        lumpSum: lump,
       });
       setStarPending(false);
       setClosed(snapshot);
@@ -647,10 +693,87 @@ function EveningPageInner() {
           />
         </div>
       </section>
+
+      <section className="panel" aria-label="Money today">
+        <p className="eyebrow">Money today</p>
+        <p className="tiny muted" style={{ marginTop: 0 }}>
+          {formatMoney(saveSettings.monthlyIncome)} on the 1st ·{" "}
+          {formatMoney(dayRate)} credited for this day
+        </p>
+        <label className="field" style={{ marginTop: 10 }}>
+          <span className="field-label">Total spend</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            value={spendTotal}
+            onChange={(e) => setSpendTotal(e.target.value)}
+            placeholder="0"
+          />
+        </label>
+        <label className="field" style={{ marginTop: 12 }}>
+          <span className="field-label">
+            Lump sum
+            <span className="tiny" style={{ marginLeft: 8, fontWeight: 400 }}>
+              optional
+            </span>
+          </span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            value={lumpSum}
+            onChange={(e) => setLumpSum(e.target.value)}
+            placeholder="Extra to split across goals"
+          />
+        </label>
+        {moneyPreview ? (
+          <div
+            className={`evening-money-preview${
+              moneyPreview.pool < 0 ? " negative" : ""
+            }`}
+          >
+            {moneyPreview.pool > 0 ? (
+              <p className="tiny">
+                {formatMoney(moneyPreview.pool)} leftover
+                {moneyPreview.goals.length
+                  ? " → split across save goals"
+                  : " (no active save goals yet)"}
+              </p>
+            ) : moneyPreview.pool < 0 ? (
+              <p className="tiny">
+                {formatMoney(Math.abs(moneyPreview.pool))} over —
+                {moneyPreview.goals.length
+                  ? " drawn from save goals"
+                  : " tracked for the day"}
+              </p>
+            ) : (
+              <p className="tiny">Even — nothing to allocate</p>
+            )}
+            {moneyPreview.allocations.length > 0 ? (
+              <ul className="tiny">
+                {moneyPreview.allocations.map((a) => {
+                  const g = moneyPreview.goals.find((x) => x.id === a.goalId);
+                  if (!g) return null;
+                  return (
+                    <li key={a.goalId}>
+                      {g.name}: {a.amount >= 0 ? "+" : ""}
+                      {formatMoney(a.amount)}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
       <PrimaryButton
         onClick={submit}
-        disabled={busy || !oneLine.trim() || !scalesReady}
+        disabled={busy || !oneLine.trim() || !scalesReady || !spendReady}
       >
         {busy ? "Saving…" : isBackfill ? "Add journal entry" : "Close the day"}
       </PrimaryButton>
