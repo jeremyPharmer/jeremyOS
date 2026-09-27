@@ -13,10 +13,12 @@ import {
   inboundPercent,
   leftoverPool,
   listSaveGoalAdjustments,
+  listSaveGoalAdjustmentsForGoal,
   projectSaveGoalTargetDate,
   recordSaveGoalDay,
   recomputeSavedAmounts,
   removeSaveGoalAdjustment,
+  setGoalInboundPercent,
   setInboundPercents,
   setSoleDailyTarget,
   splitPoolByWeight,
@@ -506,6 +508,96 @@ describe("updateSaveGoal", () => {
     });
     expect(state.saveGoals![0].name).toBe("Hawaii");
     expect(state.saveGoals![0].targetAmount).toBe(800);
+  });
+});
+
+describe("setGoalInboundPercent", () => {
+  it("equally down-adjusts others when total would exceed 100", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "A",
+      targetAmount: 100,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "B",
+      targetAmount: 100,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "C",
+      targetAmount: 100,
+      createdOn: "2026-04-01",
+    });
+    const a = () => state.saveGoals!.find((g) => g.name === "A")!;
+    const b = () => state.saveGoals!.find((g) => g.name === "B")!;
+    const c = () => state.saveGoals!.find((g) => g.name === "C")!;
+
+    state = setInboundPercents(state, {
+      [a().id]: 40,
+      [b().id]: 40,
+      [c().id]: 20,
+    });
+    state = setGoalInboundPercent(state, a().id, 70);
+    expect(inboundPercent(a())).toBe(70);
+    expect(inboundPercent(b())).toBe(25);
+    expect(inboundPercent(c())).toBe(5);
+    const sum =
+      inboundPercent(a()) + inboundPercent(b()) + inboundPercent(c());
+    expect(sum).toBeCloseTo(100, 1);
+  });
+
+  it("allows under-100 totals when decreasing a share", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "Gift",
+      targetAmount: 200,
+      createdOn: "2026-04-01",
+    });
+    const trip = () => state.saveGoals!.find((g) => g.name === "Trip")!;
+    const gift = () => state.saveGoals!.find((g) => g.name === "Gift")!;
+    state = setGoalInboundPercent(state, trip().id, 60);
+    expect(inboundPercent(trip())).toBe(60);
+    expect(inboundPercent(gift())).toBe(0);
+  });
+});
+
+describe("listSaveGoalAdjustmentsForGoal", () => {
+  it("returns only adjustments that touched the goal", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "Gift",
+      targetAmount: 200,
+      createdOn: "2026-04-01",
+    });
+    const trip = () => state.saveGoals!.find((g) => g.name === "Trip")!;
+    const gift = () => state.saveGoals!.find((g) => g.name === "Gift")!;
+    state = applySaveGoalAdjustment(state, {
+      date: "2026-04-02",
+      amount: 40,
+      mode: "custom",
+      goalId: trip().id,
+    });
+    state = applySaveGoalAdjustment(state, {
+      date: "2026-04-02",
+      amount: 10,
+      mode: "custom",
+      goalId: gift().id,
+    });
+    const tripRows = listSaveGoalAdjustmentsForGoal(state, trip().id);
+    expect(tripRows).toHaveLength(1);
+    expect(tripRows[0].goalAmount).toBeCloseTo(40, 2);
+    expect(listSaveGoalAdjustmentsForGoal(state, gift().id)).toHaveLength(1);
   });
 });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { PrimaryButton, SecondaryButton } from "@/components/ui";
 import {
@@ -12,6 +12,7 @@ import {
   formatTargetDateLabel,
   inboundPercent,
   listSaveGoalAdjustments,
+  listSaveGoalAdjustmentsForGoal,
   normalizeSaveGoalSettings,
   progressRatio,
   projectSaveGoalTargetDate,
@@ -19,20 +20,149 @@ import {
 import type { SaveGoal, SaveGoalDay } from "@/lib/types";
 
 const NAME_PRESETS = ["Trip", "Gift", "General saving"] as const;
+const PCT_STEP = 5;
+
+function GoalPercentControls({
+  percent,
+  busy,
+  onChange,
+}: {
+  percent: number;
+  busy: boolean;
+  onChange: (next: number) => void;
+}) {
+  const rounded = Math.round(percent);
+  const [draft, setDraft] = useState(String(rounded));
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) setDraft(String(rounded));
+  }, [rounded, focused]);
+
+  function commit(raw: string) {
+    const n = Number(raw);
+    if (!Number.isFinite(n)) {
+      setDraft(String(rounded));
+      return;
+    }
+    const clamped = Math.min(100, Math.max(0, Math.round(n)));
+    setDraft(String(clamped));
+    if (clamped !== rounded) onChange(clamped);
+  }
+
+  return (
+    <div className="save-goal-pct" aria-label="Daily inbound percent">
+      <button
+        type="button"
+        className="save-goal-pct-btn"
+        disabled={busy || rounded <= 0}
+        aria-label="Decrease percent"
+        onClick={() => onChange(Math.max(0, rounded - PCT_STEP))}
+      >
+        −
+      </button>
+      <input
+        className="save-goal-pct-input"
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={100}
+        step={1}
+        disabled={busy}
+        value={draft}
+        aria-label="Inbound percent"
+        onFocus={() => setFocused(true)}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          setFocused(false);
+          commit(draft);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+        }}
+      />
+      <span className="save-goal-pct-suffix">%</span>
+      <button
+        type="button"
+        className="save-goal-pct-btn"
+        disabled={busy || rounded >= 100}
+        aria-label="Increase percent"
+        onClick={() => onChange(Math.min(100, rounded + PCT_STEP))}
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
+function GoalAdjustmentLog({
+  goalId,
+  busy,
+  onRemove,
+}: {
+  goalId: string;
+  busy: boolean;
+  onRemove: (id: string) => void;
+}) {
+  const { state } = useApp();
+  const rows = useMemo(
+    () => listSaveGoalAdjustmentsForGoal(state, goalId),
+    [state, goalId],
+  );
+  const [open, setOpen] = useState(false);
+  if (!rows.length) return null;
+
+  return (
+    <div className="save-goal-goal-log">
+      <button
+        type="button"
+        className="save-goal-log-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+        Adjustments ({rows.length})
+      </button>
+      {open ? (
+        <div className="save-goal-adjust-list" aria-label="Adjustment log">
+          {rows.map((d) => (
+            <div key={d.id} className="save-goal-adjust-row">
+              <div className="save-goal-adjust-meta">
+                <span className="tiny">
+                  {d.date} · {formatMoney(d.goalAmount)}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="save-goal-add-link"
+                disabled={busy || !d.id}
+                onClick={() => d.id && onRemove(d.id)}
+              >
+                Undo
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function GoalProgressRow({
   goal,
   today,
-  onClaimDaily,
+  onPercentChange,
   onEdit,
   onDelete,
+  onRemoveAdjust,
   busy,
 }: {
   goal: SaveGoal;
   today: string;
-  onClaimDaily: (id: string) => void;
+  onPercentChange: (id: string, percent: number) => void;
   onEdit: (goal: SaveGoal) => void;
   onDelete: (goal: SaveGoal) => void;
+  onRemoveAdjust: (id: string) => void;
   busy: boolean;
 }) {
   const { state } = useApp();
@@ -56,7 +186,14 @@ function GoalProgressRow({
   return (
     <article className="save-goal-row" aria-label={goal.name}>
       <div className="save-goal-row-head">
-        <h3 className="save-goal-name">{goal.name}</h3>
+        <div className="save-goal-row-title">
+          <h3 className="save-goal-name">{goal.name}</h3>
+          <GoalPercentControls
+            percent={pct}
+            busy={busy}
+            onChange={(next) => onPercentChange(goal.id, next)}
+          />
+        </div>
         <p className="save-goal-togo">
           {formatMoney(toGo)} <span className="save-goal-togo-label">to go</span>
         </p>
@@ -90,14 +227,6 @@ function GoalProgressRow({
       <div className="save-goal-inbound-row">
         <button
           type="button"
-          className={`chip${pct >= 100 ? " selected" : ""}`}
-          disabled={busy}
-          onClick={() => onClaimDaily(goal.id)}
-        >
-          {pct}% daily
-        </button>
-        <button
-          type="button"
           className="save-goal-add-link"
           disabled={busy}
           onClick={() => onEdit(goal)}
@@ -113,6 +242,11 @@ function GoalProgressRow({
           Delete
         </button>
       </div>
+      <GoalAdjustmentLog
+        goalId={goal.id}
+        busy={busy}
+        onRemove={onRemoveAdjust}
+      />
     </article>
   );
 }
@@ -130,7 +264,6 @@ function AdjustmentsList({
 }) {
   if (!adjustments.length) return null;
   const nameById = new Map(goals.map((g) => [g.id, g.name]));
-  // Include archived names from state via allocation goalIds only when known
   return (
     <div className="save-goal-adjust-list" aria-label="Recent adjustments">
       {adjustments.slice(0, 8).map((d) => {
@@ -566,8 +699,6 @@ function SaveGoalsDetail() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [adjustOpen, setAdjustOpen] = useState(false);
-  const [splitOpen, setSplitOpen] = useState(false);
-  const [draftPercents, setDraftPercents] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<SaveGoal | null>(null);
   const [editName, setEditName] = useState("");
   const [editTarget, setEditTarget] = useState("");
@@ -577,31 +708,6 @@ function SaveGoalsDetail() {
   const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
   const rate = today ? dailyIncomeRate(today, settings.monthlyIncome) : 0;
   const goals = useMemo(() => activeSaveGoals(state), [state]);
-  const adjustments = useMemo(
-    () => listSaveGoalAdjustments(state),
-    [state],
-  );
-
-  const splitPreviewState = useMemo(() => {
-    if (!splitOpen) return state;
-    return {
-      ...state,
-      saveGoals: (state.saveGoals ?? []).map((g) => {
-        const raw = draftPercents[g.id];
-        if (raw === undefined) return g;
-        const n = Number(raw);
-        return {
-          ...g,
-          allocationWeight: Number.isFinite(n) ? Math.max(0, n) : 0,
-        };
-      }),
-    };
-  }, [splitOpen, state, draftPercents]);
-
-  const draftPercentSum = useMemo(() => {
-    if (!splitOpen) return 100;
-    return goals.reduce((s, g) => s + (Number(draftPercents[g.id]) || 0), 0);
-  }, [splitOpen, goals, draftPercents]);
 
   async function create() {
     const targetAmount = Number(target);
@@ -629,33 +735,17 @@ function SaveGoalsDetail() {
     }
   }
 
-  async function claimDailyInbound(goalId: string) {
+  async function setPercent(goalId: string, percent: number) {
     setBusy(true);
     setError("");
     try {
       await post("/api/save-goals", {
         action: "setInbound",
-        soleGoalId: goalId,
+        goalId,
+        percent,
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update inbound");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveSplit() {
-    const percents: Record<string, number> = {};
-    for (const g of goals) {
-      percents[g.id] = Number(draftPercents[g.id] ?? 0);
-    }
-    setBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", { action: "setInbound", percents });
-      setSplitOpen(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Inbound % must total 100");
+      setError(e instanceof Error ? e.message : "Could not update percent");
     } finally {
       setBusy(false);
     }
@@ -753,9 +843,7 @@ function SaveGoalsDetail() {
           <p className="home-card-kicker">Save goals</p>
           <h2>Save towards something</h2>
         </div>
-        <p className="tiny save-goal-rate">
-          {formatMoney(rate)} / day
-        </p>
+        <p className="tiny save-goal-rate">{formatMoney(rate)} / day</p>
         <PrimaryButton onClick={() => setOpen(true)}>
           Add a save goal
         </PrimaryButton>
@@ -775,51 +863,8 @@ function SaveGoalsDetail() {
       <div className="home-card-head">
         <p className="home-card-kicker">Save goals</p>
         <h2>{goals.length === 0 ? "Save towards something" : "Saving toward"}</h2>
-        <p className="tiny home-card-sub">
-          {formatMoney(rate)} / day
-        </p>
+        <p className="tiny home-card-sub">{formatMoney(rate)} / day</p>
       </div>
-
-      {goals.length > 0 ? (
-        <div
-          className="save-goal-chip-row"
-          role="group"
-          aria-label="Daily inbound"
-        >
-          {goals.map((g) => {
-            const pct = inboundPercent(g);
-            return (
-              <button
-                key={g.id}
-                type="button"
-                className={`chip${pct >= 100 ? " selected" : ""}`}
-                disabled={busy}
-                onClick={() => void claimDailyInbound(g.id)}
-              >
-                {g.name}
-                {pct > 0 ? ` · ${pct}%` : ""}
-              </button>
-            );
-          })}
-          {goals.length > 1 ? (
-            <button
-              type="button"
-              className="chip"
-              disabled={busy}
-              onClick={() => {
-                const draft: Record<string, string> = {};
-                for (const g of goals) {
-                  draft[g.id] = String(inboundPercent(g));
-                }
-                setDraftPercents(draft);
-                setSplitOpen(true);
-              }}
-            >
-              Split %
-            </button>
-          ) : null}
-        </div>
-      ) : null}
 
       {goals.map((g) => (
         <GoalProgressRow
@@ -827,7 +872,8 @@ function SaveGoalsDetail() {
           goal={g}
           today={today}
           busy={busy}
-          onClaimDaily={(id) => void claimDailyInbound(id)}
+          onPercentChange={(id, percent) => void setPercent(id, percent)}
+          onRemoveAdjust={(id) => void removeAdjust(id)}
           onEdit={(goal) => {
             setEditing(goal);
             setEditName(goal.name);
@@ -942,78 +988,6 @@ function SaveGoalsDetail() {
         </div>
       ) : null}
 
-      {splitOpen ? (
-        <div className="save-goal-create">
-          <p className="eyebrow">Split %</p>
-          {goals.map((g) => {
-            const draftGoal = {
-              ...g,
-              allocationWeight: Number(draftPercents[g.id]) || 0,
-            };
-            const proj = projectSaveGoalTargetDate(
-              splitPreviewState,
-              draftGoal,
-              today,
-            );
-            let eta = "—";
-            if (proj.status === "reached") eta = "Reached";
-            else if (draftGoal.allocationWeight <= 0) eta = "0%";
-            else if (proj.targetDate) {
-              eta = formatTargetDateLabel(proj.targetDate);
-            }
-            return (
-              <label key={g.id} className="field save-goal-split-field">
-                <span className="field-label">
-                  {g.name}
-                  <span className="tiny save-goal-split-eta">{eta}</span>
-                </span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  max={100}
-                  step="1"
-                  value={draftPercents[g.id] ?? "0"}
-                  onChange={(e) =>
-                    setDraftPercents((prev) => ({
-                      ...prev,
-                      [g.id]: e.target.value,
-                    }))
-                  }
-                />
-              </label>
-            );
-          })}
-          <p
-            className="tiny"
-            style={{
-              margin: 0,
-              color:
-                Math.abs(draftPercentSum - 100) > 0.05
-                  ? "var(--danger)"
-                  : undefined,
-            }}
-          >
-            {Math.round(draftPercentSum * 10) / 10}%
-            {Math.abs(draftPercentSum - 100) > 0.05 ? " — need 100%" : ""}
-          </p>
-          <div className="save-goal-create-actions">
-            <PrimaryButton
-              onClick={() => void saveSplit()}
-              disabled={busy || Math.abs(draftPercentSum - 100) > 0.05}
-            >
-              {busy ? "Saving…" : "Save"}
-            </PrimaryButton>
-            <SecondaryButton
-              onClick={() => setSplitOpen(false)}
-              disabled={busy}
-            >
-              Cancel
-            </SecondaryButton>
-          </div>
-        </div>
-      ) : null}
-
       {adjustOpen ? (
         <AdjustPanel
           goals={goals}
@@ -1021,15 +995,6 @@ function SaveGoalsDetail() {
           error={error}
           onCancel={() => setAdjustOpen(false)}
           onSubmit={(input) => void submitAdjust(input)}
-        />
-      ) : null}
-
-      {adjustments.length > 0 && !adjustOpen && !editing && !deleting ? (
-        <AdjustmentsList
-          adjustments={adjustments}
-          goals={[...(state.saveGoals ?? [])]}
-          busy={busy}
-          onRemove={(id) => void removeAdjust(id)}
         />
       ) : null}
 

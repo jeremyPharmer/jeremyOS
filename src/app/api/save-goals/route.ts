@@ -6,6 +6,7 @@ import {
   deleteSaveGoal,
   recordSaveGoalDay,
   removeSaveGoalAdjustment,
+  setGoalInboundPercent,
   setInboundPercents,
   setSoleDailyTarget,
   updateSaveGoal,
@@ -95,6 +96,13 @@ export async function POST(req: Request) {
       if (action === "setInbound") {
         if (body.soleGoalId) {
           return setSoleDailyTarget(prev, String(body.soleGoalId));
+        }
+        if (body.goalId !== undefined && body.percent !== undefined) {
+          return setGoalInboundPercent(
+            prev,
+            String(body.goalId),
+            Number(body.percent),
+          );
         }
         const percents =
           body.percents && typeof body.percents === "object"

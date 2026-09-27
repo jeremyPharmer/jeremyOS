@@ -93,52 +93,150 @@ export function progressRatio(goal: Pick<SaveGoal, "targetAmount" | "savedAmount
 }
 
 /**
- * Active goals’ inbound percents must sum to 100.
- * Migrates legacy equal weights (e.g. all `1`) into equal percents.
+ * Normalize active inbound %.
+ * - Sum may be ≤ 100 (unallocated remainder is fine).
+ * - Sum > 100 is scaled down to 100.
+ * - Legacy equal relative weights (all `1`) become equal percents.
  */
 export function normalizeInboundPercents(goals: SaveGoal[]): SaveGoal[] {
   const actives = goals.filter((g) => g.status === "active");
   if (!actives.length) return goals;
 
-  const rawSum = actives.reduce(
-    (s, g) => s + Math.max(0, Number(g.allocationWeight) || 0),
-    0,
+  const clamped = goals.map((g) =>
+    g.status === "active"
+      ? {
+          ...g,
+          allocationWeight: round2(
+            Math.min(100, Math.max(0, Number(g.allocationWeight) || 0)),
+          ),
+        }
+      : g,
+  );
+  const activeClamped = clamped.filter((g) => g.status === "active");
+  const rawSum = round2(
+    activeClamped.reduce((s, g) => s + g.allocationWeight, 0),
   );
 
-  if (Math.abs(rawSum - 100) <= 0.05) {
-    return goals.map((g) =>
-      g.status === "active"
-        ? { ...g, allocationWeight: round2(Math.max(0, g.allocationWeight)) }
-        : g,
-    );
-  }
-
   if (rawSum <= 0) {
-    const firstId = actives[0].id;
-    return goals.map((g) =>
+    const firstId = activeClamped[0].id;
+    return clamped.map((g) =>
       g.status !== "active"
         ? g
         : { ...g, allocationWeight: g.id === firstId ? 100 : 0 },
     );
   }
 
+  // Legacy: all weights identical and tiny (e.g. every goal `1`) → equal %
+  const firstW = activeClamped[0].allocationWeight;
+  const allEqualLegacy =
+    activeClamped.every((g) => g.allocationWeight === firstW) &&
+    firstW > 0 &&
+    firstW <= 10 &&
+    rawSum < 99.95;
+  if (allEqualLegacy) {
+    let assigned = 0;
+    const percents = new Map<string, number>();
+    activeClamped.forEach((g, i) => {
+      const isLast = i === activeClamped.length - 1;
+      const p = isLast
+        ? round2(100 - assigned)
+        : round2(100 / activeClamped.length);
+      assigned = round2(assigned + p);
+      percents.set(g.id, p);
+    });
+    return clamped.map((g) =>
+      percents.has(g.id)
+        ? { ...g, allocationWeight: percents.get(g.id)! }
+        : g,
+    );
+  }
+
+  if (rawSum <= 100.05) {
+    return clamped;
+  }
+
+  // Over 100 → scale down
   let assigned = 0;
   const percents = new Map<string, number>();
-  actives.forEach((g, i) => {
-    const w = Math.max(0, Number(g.allocationWeight) || 0);
-    const isLast = i === actives.length - 1;
+  activeClamped.forEach((g, i) => {
+    const isLast = i === activeClamped.length - 1;
     const p = isLast
       ? round2(100 - assigned)
-      : round2((w / rawSum) * 100);
+      : round2((g.allocationWeight / rawSum) * 100);
     assigned = round2(assigned + p);
-    percents.set(g.id, p);
+    percents.set(g.id, Math.max(0, p));
   });
 
-  return goals.map((g) =>
+  return clamped.map((g) =>
     percents.has(g.id)
       ? { ...g, allocationWeight: percents.get(g.id)! }
       : g,
   );
+}
+
+/**
+ * Set one goal’s inbound %. If the new total would exceed 100, equally
+ * reduce the other active goals (floored at 0) until the sum is 100.
+ */
+export function setGoalInboundPercent(
+  state: RebuildState,
+  goalId: string,
+  percent: number,
+): RebuildState {
+  const id = String(goalId ?? "").trim();
+  const actives = activeSaveGoals(state);
+  if (!actives.some((g) => g.id === id)) {
+    throw Object.assign(new Error("Save goal not found"), { status: 404 });
+  }
+  const nextPct = round2(Number(percent));
+  if (!Number.isFinite(nextPct) || nextPct < 0 || nextPct > 100) {
+    throw Object.assign(new Error("Inbound % must be 0–100"), { status: 400 });
+  }
+
+  const map = new Map<string, number>();
+  for (const g of actives) {
+    map.set(g.id, inboundPercent(g));
+  }
+  map.set(id, nextPct);
+
+  let sum = round2([...map.values()].reduce((a, b) => a + b, 0));
+  if (sum > 100) {
+    let excess = round2(sum - 100);
+    const others = actives.filter((g) => g.id !== id);
+    // Equally shave others; if some hit 0, redistributing remaining excess.
+    while (excess > 0.05 && others.some((g) => (map.get(g.id) ?? 0) > 0)) {
+      const reducible = others.filter((g) => (map.get(g.id) ?? 0) > 0);
+      if (!reducible.length) break;
+      const share = round2(excess / reducible.length);
+      let taken = 0;
+      for (let i = 0; i < reducible.length; i++) {
+        const gid = reducible[i].id;
+        const cur = map.get(gid) ?? 0;
+        const isLast = i === reducible.length - 1;
+        const want = isLast ? round2(excess - taken) : share;
+        const cut = round2(Math.min(cur, Math.max(0, want)));
+        map.set(gid, round2(cur - cut));
+        taken = round2(taken + cut);
+      }
+      excess = round2(excess - taken);
+      if (taken <= 0) break;
+    }
+    // If others couldn't absorb (all zero), clamp this goal to remaining room.
+    sum = round2([...map.values()].reduce((a, b) => a + b, 0));
+    if (sum > 100) {
+      const othersSum = round2(
+        others.reduce((s, g) => s + (map.get(g.id) ?? 0), 0),
+      );
+      map.set(id, round2(Math.max(0, 100 - othersSum)));
+    }
+  }
+
+  return normalizeSaveGoals({
+    ...state,
+    saveGoals: (state.saveGoals ?? []).map((g) =>
+      map.has(g.id) ? { ...g, allocationWeight: map.get(g.id)! } : g,
+    ),
+  });
 }
 
 /** Merge allocation rows by goalId. */
@@ -760,6 +858,25 @@ export function listSaveGoalAdjustments(state: RebuildState): SaveGoalDay[] {
       if (byDate !== 0) return byDate;
       return String(b.id).localeCompare(String(a.id));
     });
+}
+
+/** Adjustments that touched a specific goal (newest first). */
+export function listSaveGoalAdjustmentsForGoal(
+  state: RebuildState,
+  goalId: string,
+): Array<SaveGoalDay & { goalAmount: number }> {
+  const id = String(goalId ?? "").trim();
+  if (!id) return [];
+  return listSaveGoalAdjustments(state)
+    .map((d) => {
+      const goalAmount = round2(
+        (d.allocations ?? [])
+          .filter((a) => a.goalId === id)
+          .reduce((s, a) => s + a.amount, 0),
+      );
+      return { ...d, goalAmount };
+    })
+    .filter((d) => d.goalAmount !== 0);
 }
 
 export type DeleteSaveGoalInput = {

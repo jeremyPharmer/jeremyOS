@@ -2248,9 +2248,17 @@ h2 {
 
 .save-goal-row-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.save-goal-row-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  min-width: 0;
 }
 
 .save-goal-name {
@@ -2258,6 +2266,92 @@ h2 {
   font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+.save-goal-pct {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.save-goal-pct-btn {
+  width: 1.55rem;
+  height: 1.55rem;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface, #fff) 92%, var(--accent) 8%);
+  color: var(--ink, inherit);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.save-goal-pct-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.save-goal-pct-input {
+  width: 2.4rem;
+  margin: 0;
+  padding: 2px 0;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.save-goal-pct-input::-webkit-outer-spin-button,
+.save-goal-pct-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.save-goal-pct-suffix {
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.75;
+  margin-right: 2px;
+}
+
+.save-goal-goal-log {
+  margin-top: 2px;
+}
+
+.save-goal-log-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.75;
+  cursor: pointer;
+}
+
+.save-goal-log-toggle:hover {
+  opacity: 1;
+}
+
+.save-goal-goal-log .save-goal-adjust-list {
+  margin-top: 6px;
+  padding-left: 2px;
 }
 
 .save-goal-togo {
