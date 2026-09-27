@@ -728,6 +728,110 @@ export function applySaveGoalAdjustment(
   });
 }
 
+/** Remove a one-time adjustment by id (undo). Close/evening rows are untouched. */
+export function removeSaveGoalAdjustment(
+  state: RebuildState,
+  adjustmentId: string,
+): RebuildState {
+  const id = String(adjustmentId ?? "").trim();
+  if (!id) {
+    throw Object.assign(new Error("adjustment id required"), { status: 400 });
+  }
+  const days = state.saveGoalDays ?? [];
+  const found = days.find(
+    (d) => d.id === id && (d.kind ?? "close") === "adjust",
+  );
+  if (!found) {
+    throw Object.assign(new Error("Adjustment not found"), { status: 404 });
+  }
+  return normalizeSaveGoals({
+    ...state,
+    saveGoalDays: days.filter((d) => d.id !== id),
+  });
+}
+
+/** Recent one-time adjustments, newest first (for undo UI). */
+export function listSaveGoalAdjustments(state: RebuildState): SaveGoalDay[] {
+  return (state.saveGoalDays ?? [])
+    .filter((d) => (d.kind ?? "close") === "adjust" && Boolean(d.id))
+    .slice()
+    .sort((a, b) => {
+      const byDate = b.date.localeCompare(a.date);
+      if (byDate !== 0) return byDate;
+      return String(b.id).localeCompare(String(a.id));
+    });
+}
+
+export type DeleteSaveGoalInput = {
+  id: string;
+  date: string;
+  /**
+   * Move current balance to another active goal before archiving.
+   * Omit / null / "" = archive in place (balance stays on archived goal).
+   */
+  reallocateToGoalId?: string | null;
+};
+
+/**
+ * Delete (archive) a save goal. Optionally transfer its current saved
+ * balance to another active goal via a one-time adjust, then archive.
+ */
+export function deleteSaveGoal(
+  state: RebuildState,
+  input: DeleteSaveGoalInput,
+): RebuildState {
+  const id = String(input.id ?? "").trim();
+  if (!id) {
+    throw Object.assign(new Error("id required"), { status: 400 });
+  }
+  if (!DATE_RE.test(input.date)) {
+    throw Object.assign(new Error("date required"), { status: 400 });
+  }
+
+  const goal = (state.saveGoals ?? []).find((g) => g.id === id);
+  if (!goal || goal.status === "archived") {
+    throw Object.assign(new Error("Save goal not found"), { status: 404 });
+  }
+
+  let next = state;
+  const reallocateTo = String(input.reallocateToGoalId ?? "").trim();
+  if (reallocateTo) {
+    if (reallocateTo === id) {
+      throw Object.assign(new Error("Pick a different goal to reallocate to"), {
+        status: 400,
+      });
+    }
+    const target = activeSaveGoals(state).find((g) => g.id === reallocateTo);
+    if (!target) {
+      throw Object.assign(new Error("Reallocate target not found"), {
+        status: 404,
+      });
+    }
+    const amount = savedAmountFromDays(id, state.saveGoalDays ?? []);
+    if (amount !== 0) {
+      const transfer: SaveGoalDay = {
+        id: newId("sga"),
+        date: input.date,
+        kind: "adjust",
+        dailyIncome: 0,
+        spendTotal: 0,
+        leftover: 0,
+        lumpSum: Math.max(0, amount),
+        allocations: [
+          { goalId: id, amount: round2(-amount) },
+          { goalId: reallocateTo, amount: round2(amount) },
+        ],
+      };
+      next = normalizeSaveGoals({
+        ...next,
+        saveGoalDays: [...(next.saveGoalDays ?? []), transfer],
+      });
+    }
+  }
+
+  return updateSaveGoal(next, { id, status: "archived" });
+}
+
 /** Mean spend over the last N save-goal days at or before `today` (most recent). */
 export function averageSpendLastDays(
   days: SaveGoalDay[],

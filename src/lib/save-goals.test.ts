@@ -7,16 +7,20 @@ import {
   createSaveGoal,
   dailyIncomeRate,
   daysInMonthForDate,
+  deleteSaveGoal,
   ensureElapsedSaveGoalDays,
   ensureSaveGoalDay,
   inboundPercent,
   leftoverPool,
+  listSaveGoalAdjustments,
   projectSaveGoalTargetDate,
   recordSaveGoalDay,
   recomputeSavedAmounts,
+  removeSaveGoalAdjustment,
   setInboundPercents,
   setSoleDailyTarget,
   splitPoolByWeight,
+  updateSaveGoal,
   updateSaveGoalSettings,
 } from "./save-goals";
 import type { SaveGoal, SaveGoalDay } from "./types";
@@ -460,5 +464,105 @@ describe("applySaveGoalAdjustment", () => {
     expect(inboundPercent(state.saveGoals!.find((g) => g.name === "Trip")!)).toBe(
       0,
     );
+  });
+});
+
+describe("removeSaveGoalAdjustment", () => {
+  it("undoes a one-time adjust by id", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = applySaveGoalAdjustment(state, {
+      date: "2026-04-02",
+      amount: 40,
+      mode: "preset",
+    });
+    const adj = listSaveGoalAdjustments(state)[0];
+    expect(adj?.id).toBeTruthy();
+    expect(state.saveGoals![0].savedAmount).toBeCloseTo(40, 2);
+
+    state = removeSaveGoalAdjustment(state, adj.id!);
+    expect(state.saveGoals![0].savedAmount).toBe(0);
+    expect(listSaveGoalAdjustments(state)).toHaveLength(0);
+  });
+});
+
+describe("updateSaveGoal", () => {
+  it("edits name and target amount", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    const id = state.saveGoals![0].id;
+    state = updateSaveGoal(state, {
+      id,
+      name: "Hawaii",
+      targetAmount: 800,
+    });
+    expect(state.saveGoals![0].name).toBe("Hawaii");
+    expect(state.saveGoals![0].targetAmount).toBe(800);
+  });
+});
+
+describe("deleteSaveGoal", () => {
+  it("archives without reallocate", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = applySaveGoalAdjustment(state, {
+      date: "2026-04-02",
+      amount: 40,
+      mode: "preset",
+    });
+    const id = state.saveGoals![0].id;
+    state = deleteSaveGoal(state, { id, date: "2026-04-03" });
+    expect(state.saveGoals!.find((g) => g.id === id)?.status).toBe("archived");
+    expect(state.saveGoals!.find((g) => g.id === id)?.savedAmount).toBeCloseTo(
+      40,
+      2,
+    );
+  });
+
+  it("reallocates balance to another goal then archives", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "Gift",
+      targetAmount: 200,
+      createdOn: "2026-04-01",
+    });
+    const trip = () => state.saveGoals!.find((g) => g.name === "Trip")!;
+    const gift = () => state.saveGoals!.find((g) => g.name === "Gift")!;
+
+    state = applySaveGoalAdjustment(state, {
+      date: "2026-04-02",
+      amount: 40,
+      mode: "custom",
+      goalId: trip().id,
+    });
+    expect(trip().savedAmount).toBeCloseTo(40, 2);
+
+    state = deleteSaveGoal(state, {
+      id: trip().id,
+      date: "2026-04-03",
+      reallocateToGoalId: gift().id,
+    });
+    expect(trip().status).toBe("archived");
+    expect(trip().savedAmount).toBeCloseTo(0, 2);
+    expect(gift().status).toBe("active");
+    expect(gift().savedAmount).toBeCloseTo(40, 2);
+    expect(inboundPercent(gift())).toBe(100);
   });
 });

@@ -2336,6 +2336,27 @@ h2 {
   cursor: pointer;
 }
 
+.save-goal-adjust-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.save-goal-adjust-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.save-goal-adjust-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .save-goal-add-link:hover {
   text-decoration: underline;
 }

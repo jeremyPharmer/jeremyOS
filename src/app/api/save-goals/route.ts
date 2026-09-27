@@ -3,7 +3,9 @@ import { todayInTz } from "@/lib/journey";
 import {
   applySaveGoalAdjustment,
   createSaveGoal,
+  deleteSaveGoal,
   recordSaveGoalDay,
+  removeSaveGoalAdjustment,
   setInboundPercents,
   setSoleDailyTarget,
   updateSaveGoal,
@@ -59,6 +61,22 @@ export async function POST(req: Request) {
           id: String(body.id ?? ""),
           status: "archived",
         });
+      }
+
+      if (action === "delete") {
+        return deleteSaveGoal(prev, {
+          id: String(body.id ?? ""),
+          date: String(body.date ?? today),
+          reallocateToGoalId:
+            body.reallocateToGoalId === undefined ||
+            body.reallocateToGoalId === null
+              ? null
+              : String(body.reallocateToGoalId),
+        });
+      }
+
+      if (action === "removeAdjust") {
+        return removeSaveGoalAdjustment(prev, String(body.id ?? ""));
       }
 
       if (action === "settings") {
