@@ -148,6 +148,10 @@ export async function POST(req: Request) {
           allocations: Array.isArray(body.allocations)
             ? body.allocations
             : undefined,
+          drawFromGoalId:
+            body.drawFromGoalId !== undefined && body.drawFromGoalId !== null
+              ? String(body.drawFromGoalId)
+              : undefined,
           source: body.source === "auto" ? "auto" : "manual",
         });
       }
@@ -169,6 +173,10 @@ export async function POST(req: Request) {
         return applySaveGoalDayTotals(prev, {
           date: String(body.date ?? today),
           lumpSum: body.lumpSum !== undefined ? Number(body.lumpSum) : 0,
+          drawFromGoalId:
+            body.drawFromGoalId !== undefined && body.drawFromGoalId !== null
+              ? String(body.drawFromGoalId)
+              : undefined,
         });
       }
 

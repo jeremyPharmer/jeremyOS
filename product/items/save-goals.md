@@ -127,8 +127,8 @@ Insert a thin **Money today** step in evening close (after mood/journal is fine;
    pool = leftover + lumpSum
    ```
 4. **Allocation UI**
-   - **Daily leftover** always uses preset **inbound chips** (`allocationWeight` as 0–100%, sum 100% across actives). Default: 100% to one target area (trip / gift / general saving).
-   - If leftover `< 0` (overspend): draw down by the same preset chips; balances may go **negative**.
+   - **Positive leftover** uses preset **inbound chips** (`allocationWeight` as 0–100%, sum 100% across actives). Default: 100% to one target area (trip / gift / general saving).
+   - If leftover `< 0` (overspend): **choose which goal to take from** (required when more than one active); balances may go **negative**.
    - **Lump / one-time**: chips — **Daily chips** (same preset) or **Custom (one area)** to send all to a chosen goal.
    - If `pool === 0`: no allocations; still store the day row.
    - If **no active goals**: skip allocation UI; still store spend/income/lump for history.

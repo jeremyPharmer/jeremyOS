@@ -217,6 +217,43 @@ describe("recordSaveGoalDay", () => {
     expect(amountToGo(trip)).toBe(534);
   });
 
+  it("draws overspend from the chosen goal when negative", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "Gift",
+      targetAmount: 200,
+      createdOn: "2026-04-01",
+    });
+    const trip = () => state.saveGoals!.find((g) => g.name === "Trip")!;
+    const gift = () => state.saveGoals!.find((g) => g.name === "Gift")!;
+    state = setInboundPercents(state, {
+      [trip().id]: 50,
+      [gift().id]: 50,
+    });
+
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 40,
+      kind: "spend",
+    });
+    // inbound 16 − 40 = −24; must pick
+    expect(() =>
+      applySaveGoalDayTotals(state, { date: "2026-04-01" }),
+    ).toThrow(/Pick a goal to take from/);
+
+    state = applySaveGoalDayTotals(state, {
+      date: "2026-04-01",
+      drawFromGoalId: gift().id,
+    });
+    expect(gift().savedAmount).toBe(-24);
+    expect(trip().savedAmount).toBe(0);
+  });
+
   it("replaces the same date and recomputes from ledger", () => {
     let state = emptyState();
     state = createSaveGoal(state, {

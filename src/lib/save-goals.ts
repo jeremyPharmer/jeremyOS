@@ -561,13 +561,18 @@ export function removeSaveGoalSpend(
 }
 
 /**
- * Apply today’s running ledger: leftover (day total − spends) is allocated by
- * preset inbound % to active goals. Stops roll-forward for this date.
- * Idempotent replace of that date’s close.
+ * Apply today’s running ledger: positive leftover uses inbound %;
+ * negative leftover draws from `drawFromGoalId` (required when >1 goals).
+ * Stops roll-forward for this date. Idempotent replace of that date’s close.
  */
 export function applySaveGoalDayTotals(
   state: RebuildState,
-  input: { date: string; lumpSum?: number } = { date: "" },
+  input: {
+    date: string;
+    lumpSum?: number;
+    /** When leftover is negative: goal to draw the overspend from */
+    drawFromGoalId?: string;
+  } = { date: "" },
 ): RebuildState {
   const date = String(input.date ?? "").trim();
   if (!DATE_RE.test(date)) {
@@ -579,6 +584,7 @@ export function applySaveGoalDayTotals(
     spendTotal: spend,
     lumpSum: input.lumpSum !== undefined ? Number(input.lumpSum) : 0,
     lumpMode: "preset",
+    drawFromGoalId: input.drawFromGoalId,
     source: "manual",
   });
 }
@@ -767,7 +773,7 @@ export type RecordSaveGoalDayInput = {
   spendTotal: number;
   lumpSum?: number;
   /**
-   * How to place the lump (one-time). Daily leftover always uses preset %.
+   * How to place the lump (one-time). Positive leftover uses inbound %.
    * - preset (default): same chips / inbound % as daily
    * - custom: `lumpGoalId` (all to one) or `lumpAllocations` / `lumpGoalIds`
    */
@@ -775,11 +781,48 @@ export type RecordSaveGoalDayInput = {
   lumpGoalId?: string;
   lumpGoalIds?: string[];
   lumpAllocations?: SaveGoalAllocation[];
+  /**
+   * When leftover is negative (overspend): which goal to draw from.
+   * Required if more than one active goal. Single-goal days auto-pick.
+   */
+  drawFromGoalId?: string;
   /** @deprecated full-pool override — prefer lump* fields */
   allocations?: SaveGoalAllocation[];
   /** manual approve/evening vs auto catch-up for missed days */
   source?: "manual" | "auto";
 };
+
+/**
+ * Positive leftover → inbound %. Negative → draw from one chosen goal
+ * (`drawFromGoalId`). One active goal auto-picks; multiple require a pick.
+ */
+function resolveLeftoverAlloc(
+  leftover: number,
+  goals: SaveGoal[],
+  input: Pick<RecordSaveGoalDayInput, "drawFromGoalId">,
+): SaveGoalAllocation[] {
+  if (leftover === 0 || !goals.length) return [];
+  if (leftover > 0) {
+    return splitPoolByWeight(leftover, goals);
+  }
+
+  const activeIds = new Set(goals.map((g) => g.id));
+  let drawId = String(input.drawFromGoalId ?? "").trim();
+  if (!drawId && goals.length === 1) {
+    drawId = goals[0].id;
+  }
+  if (!drawId) {
+    throw Object.assign(new Error("Pick a goal to take from"), {
+      status: 400,
+    });
+  }
+  if (!activeIds.has(drawId)) {
+    throw Object.assign(new Error("Unknown goal to take from"), {
+      status: 400,
+    });
+  }
+  return splitPoolToOne(leftover, drawId);
+}
 
 function resolveCustomPoolSplit(
   pool: number,
@@ -872,7 +915,7 @@ export function recordSaveGoalDay(
     });
   } else if (goals.length > 0) {
     const leftoverAlloc =
-      leftover !== 0 ? splitPoolByWeight(leftover, goals) : [];
+      leftover !== 0 ? resolveLeftoverAlloc(leftover, goals, input) : [];
     let lumpAlloc: SaveGoalAllocation[] = [];
     if (lumpSum !== 0) {
       const lumpMode = input.lumpMode ?? "preset";

@@ -221,10 +221,11 @@ function DailyLedger({
   today: string;
   goals: SaveGoal[];
   busy?: boolean;
-  onApply?: () => void;
+  onApply?: (opts?: { drawFromGoalId?: string }) => void;
 }) {
   const { state } = useApp();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [drawFromGoalId, setDrawFromGoalId] = useState("");
   const todayClose = useMemo(
     () => (today ? saveGoalCloseForDate(state, today) : null),
     [state, today],
@@ -241,6 +242,9 @@ function DailyLedger({
   const spendShown = todayClose ? todayClose.spendTotal : running.spend;
   const leftShown = todayClose ? todayClose.leftover : running.left;
   const applied = Boolean(todayClose);
+  const needsDrawPick = leftShown < 0 && goals.length > 1;
+  const canApply =
+    !needsDrawPick || Boolean(drawFromGoalId) || goals.length === 1;
 
   return (
     <div className="save-goal-ledger" aria-label="Daily ledger">
@@ -248,8 +252,18 @@ function DailyLedger({
         <p className="eyebrow save-goal-ledger-title">Daily</p>
         {onApply ? (
           <PrimaryButton
-            onClick={onApply}
-            disabled={busy}
+            onClick={() =>
+              onApply(
+                leftShown < 0
+                  ? {
+                      drawFromGoalId:
+                        drawFromGoalId ||
+                        (goals.length === 1 ? goals[0].id : undefined),
+                    }
+                  : undefined,
+              )
+            }
+            disabled={busy || !canApply}
           >
             {busy
               ? "Saving…"
@@ -259,6 +273,26 @@ function DailyLedger({
           </PrimaryButton>
         ) : null}
       </div>
+      {needsDrawPick ? (
+        <div className="save-goal-draw-from" style={{ marginBottom: 10 }}>
+          <p className="field-label" style={{ marginBottom: 6 }}>
+            Take from
+          </p>
+          <div className="chip-row">
+            {goals.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                className={`chip${drawFromGoalId === g.id ? " selected" : ""}`}
+                onClick={() => setDrawFromGoalId(g.id)}
+                disabled={busy}
+              >
+                {g.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <DailyLedgerDay
         label="Today"
         inbound={running.inbound}
@@ -1020,13 +1054,14 @@ function SaveGoalsDetail() {
     }
   }
 
-  async function applyTotals() {
+  async function applyTotals(opts?: { drawFromGoalId?: string }) {
     setBusy(true);
     setError("");
     try {
       await post("/api/save-goals", {
         action: "applyTotals",
         date: today,
+        drawFromGoalId: opts?.drawFromGoalId,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not apply");
@@ -1088,7 +1123,7 @@ function SaveGoalsDetail() {
           today={today}
           goals={goals}
           busy={busy}
-          onApply={() => void applyTotals()}
+          onApply={(opts) => void applyTotals(opts)}
         />
       ) : null}
 

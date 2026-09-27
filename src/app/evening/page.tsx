@@ -117,6 +117,7 @@ function EveningPageInner() {
   const [standOut, setStandOut] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [applySaveGoals, setApplySaveGoals] = useState(true);
+  const [drawFromGoalId, setDrawFromGoalId] = useState("");
   const [entryKind, setEntryKind] = useState<"add" | "spend" | null>(null);
   const [entryAmount, setEntryAmount] = useState("");
   const [ledgerOpen, setLedgerOpen] = useState(false);
@@ -342,6 +343,11 @@ function EveningPageInner() {
     () => (moneyDate ? Boolean(saveGoalCloseForDate(state, moneyDate)) : false),
     [state, moneyDate],
   );
+  const needsDrawPick = dayLedger.left < 0 && saveGoals.length > 1;
+  const resolvedDrawFrom =
+    drawFromGoalId ||
+    (saveGoals.length === 1 ? saveGoals[0].id : undefined);
+  const canApplyNegative = !needsDrawPick || Boolean(drawFromGoalId);
 
   const tomorrowDate = today ? addDays(today, 1) : "";
 
@@ -409,12 +415,18 @@ function EveningPageInner() {
   }
 
   async function applyEveningTotals() {
+    if (dayLedger.left < 0 && !resolvedDrawFrom) {
+      setError("Pick a goal to take from.");
+      return;
+    }
     setSaveBusy(true);
     setError("");
     try {
       await post("/api/save-goals", {
         action: "applyTotals",
         date: moneyDate,
+        drawFromGoalId:
+          dayLedger.left < 0 ? resolvedDrawFrom : undefined,
       });
       setApplySaveGoals(false);
     } catch (e) {
@@ -443,6 +455,10 @@ function EveningPageInner() {
     const shouldStarAfterClose = starPending && !persistedStarred;
     const shouldApply =
       saveGoals.length > 0 && applySaveGoals && !dayApplied;
+    if (shouldApply && dayLedger.left < 0 && !resolvedDrawFrom) {
+      setError("Pick a goal to take from.");
+      return;
+    }
     try {
       await post("/api/evening", {
         date: effectiveDate,
@@ -452,6 +468,10 @@ function EveningPageInner() {
         expandedJournal: snapshot.summary || undefined,
         photoDataUrl: photoDataUrl || undefined,
         applySaveGoals: shouldApply,
+        drawFromGoalId:
+          shouldApply && dayLedger.left < 0
+            ? resolvedDrawFrom
+            : undefined,
       });
       setStarPending(false);
       setClosed(snapshot);
@@ -824,7 +844,7 @@ function EveningPageInner() {
               </SecondaryButton>
               <PrimaryButton
                 onClick={() => void applyEveningTotals()}
-                disabled={saveBusy || dayApplied}
+                disabled={saveBusy || dayApplied || !canApplyNegative}
               >
                 {saveBusy
                   ? "Saving…"
@@ -834,6 +854,27 @@ function EveningPageInner() {
               </PrimaryButton>
             </div>
           )}
+
+          {needsDrawPick && !dayApplied ? (
+            <div className="save-goal-draw-from" style={{ marginTop: 12 }}>
+              <p className="field-label" style={{ marginBottom: 6 }}>
+                Take from
+              </p>
+              <div className="chip-row">
+                {saveGoals.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className={`chip${drawFromGoalId === g.id ? " selected" : ""}`}
+                    onClick={() => setDrawFromGoalId(g.id)}
+                    disabled={saveBusy || busy}
+                  >
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <label className="check-row" style={{ marginTop: 12 }}>
             <input
@@ -903,7 +944,15 @@ function EveningPageInner() {
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
       <PrimaryButton
         onClick={submit}
-        disabled={busy || !oneLine.trim() || !scalesReady}
+        disabled={
+          busy ||
+          !oneLine.trim() ||
+          !scalesReady ||
+          (applySaveGoals &&
+            !dayApplied &&
+            needsDrawPick &&
+            !drawFromGoalId)
+        }
       >
         {busy ? "Saving…" : isBackfill ? "Add journal entry" : "Close the day"}
       </PrimaryButton>

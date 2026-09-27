@@ -109,6 +109,10 @@ export async function POST(req: Request) {
         next = applySaveGoalDayTotals(next, {
           date,
           lumpSum: Number.isFinite(lumpSum) ? lumpSum : 0,
+          drawFromGoalId:
+            body.drawFromGoalId !== undefined && body.drawFromGoalId !== null
+              ? String(body.drawFromGoalId)
+              : undefined,
         });
       } else if (body.spendTotal !== undefined && body.spendTotal !== null) {
         const spendTotal = Number(body.spendTotal);
@@ -140,6 +144,10 @@ export async function POST(req: Request) {
             ? body.lumpGoalIds.map((id: unknown) => String(id))
             : undefined,
           lumpAllocations,
+          drawFromGoalId:
+            body.drawFromGoalId !== undefined && body.drawFromGoalId !== null
+              ? String(body.drawFromGoalId)
+              : undefined,
         });
       }
 
