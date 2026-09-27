@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { PrimaryButton, SecondaryButton } from "@/components/ui";
@@ -102,8 +103,14 @@ function GoalProgressRow({
   );
 }
 
-export function SaveGoalsCard() {
+export function SaveGoalsCard({
+  variant = "home",
+}: {
+  /** home = glance card with open link; page = full list, no open link */
+  variant?: "home" | "page";
+} = {}) {
   const { state, today, post } = useApp();
+  const isPage = variant === "page";
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
@@ -123,7 +130,9 @@ export function SaveGoalsCard() {
   const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
   const rate = today ? dailyIncomeRate(today, settings.monthlyIncome) : 0;
   const goals = useMemo(() => activeSaveGoals(state), [state]);
-  const shown = goals.slice(0, HOME_SAVE_GOAL_CARD_LIMIT);
+  const shown = isPage
+    ? goals
+    : goals.slice(0, HOME_SAVE_GOAL_CARD_LIMIT);
 
   /** Live preview while editing Split % — ETA follows draft inbound shares. */
   const splitPreviewState = useMemo(() => {
@@ -322,7 +331,7 @@ export function SaveGoalsCard() {
         />
       ))}
 
-      {goals.length > HOME_SAVE_GOAL_CARD_LIMIT ? (
+      {!isPage && goals.length > HOME_SAVE_GOAL_CARD_LIMIT ? (
         <p className="tiny muted">
           +{goals.length - HOME_SAVE_GOAL_CARD_LIMIT} more active
         </p>
@@ -578,6 +587,12 @@ export function SaveGoalsCard() {
           ) : null}
         </div>
       )}
+
+      {!isPage ? (
+        <Link href="/save-goals" className="btn ghost workout-open-link">
+          Open save goals →
+        </Link>
+      ) : null}
     </section>
   );
 }

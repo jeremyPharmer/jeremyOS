@@ -2183,6 +2183,18 @@ h2 {
   letter-spacing: 0;
 }
 
+.save-goals-page-header h1 {
+  margin: 0 0 6px;
+}
+
+.save-goals-page-header p {
+  margin: 0 0 4px;
+}
+
+.home-card-save-goals .workout-open-link {
+  margin-top: 4px;
+}
+
 .save-goal-row {
   display: flex;
   flex-direction: column;
