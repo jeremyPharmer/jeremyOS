@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import {
-  featuredThemes,
+  earthThemes,
+  modernThemes,
   THEMES,
   type ThemeId,
 } from "@/lib/themes";
@@ -89,6 +90,76 @@ const ROLE_COLORS: Partial<Record<ThemeId, Record<RoleKey, string>>> = {
     good: "#4a9a78",
     text: "#2a2e35",
   },
+  "bone-graphite": {
+    bg: "#f3f0ea",
+    accent: "#3a3a38",
+    accent2: "#5c5a56",
+    good: "#6a7d68",
+    text: "#3a3a38",
+  },
+  "river-stone": {
+    bg: "#eceee9",
+    accent: "#5c6560",
+    accent2: "#7a8480",
+    good: "#5f7d6a",
+    text: "#3d4540",
+  },
+  "wheat-umber": {
+    bg: "#f2eadc",
+    accent: "#6b4f3a",
+    accent2: "#8a6a4e",
+    good: "#6a7d58",
+    text: "#3a2e24",
+  },
+  "moss-linen": {
+    bg: "#f1eee6",
+    accent: "#5e6b55",
+    accent2: "#7a8770",
+    good: "#5a7a5e",
+    text: "#2e322c",
+  },
+  "taupe-ink": {
+    bg: "#ebe6df",
+    accent: "#2c2926",
+    accent2: "#5a524c",
+    good: "#6a7a62",
+    text: "#2c2926",
+  },
+  "charcoal-oak": {
+    bg: "#1a1c1b",
+    accent: "#c4a574",
+    accent2: "#d4b888",
+    good: "#7a9a78",
+    text: "#e8e4dc",
+  },
+  "espresso-night": {
+    bg: "#14110f",
+    accent: "#d8cfc3",
+    accent2: "#e4dcd2",
+    good: "#8a9e7a",
+    text: "#e8e0d6",
+  },
+  "slate-umber": {
+    bg: "#171a1c",
+    accent: "#a67c52",
+    accent2: "#b89068",
+    good: "#6a9a80",
+    text: "#e4e8ec",
+  },
+  "forest-dusk": {
+    bg: "#121614",
+    accent: "#c5b896",
+    accent2: "#d4c8a8",
+    good: "#7a9e7a",
+    text: "#e4e0d4",
+  },
+  "ink-sienna": {
+    bg: "#101010",
+    accent: "#b07a55",
+    accent2: "#c4906a",
+    good: "#7a9a78",
+    text: "#e8e4e0",
+  },
 };
 
 function rolesFor(id: ThemeId): Record<RoleKey, string> {
@@ -156,7 +227,9 @@ function PaletteCard({
       <div className="palette-card-head">
         <div>
           {typeof index === "number" ? (
-            <span className="palette-index">{String(index + 1).padStart(2, "0")}</span>
+            <span className="palette-index">
+              {String(index + 1).padStart(2, "0")}
+            </span>
           ) : null}
           <strong>{label}</strong>
           <p>{description}</p>
@@ -186,18 +259,59 @@ function PaletteCard({
   );
 }
 
+function PaletteSection({
+  title,
+  blurb,
+  options,
+  theme,
+  setTheme,
+  startIndex = 0,
+}: {
+  title: string;
+  blurb: string;
+  options: ReturnType<typeof modernThemes>;
+  theme: ThemeId;
+  setTheme: (id: ThemeId) => void;
+  startIndex?: number;
+}) {
+  return (
+    <section className="themes-board-section">
+      <h2>{title}</h2>
+      <p className="muted themes-board-core">{blurb}</p>
+      <div className="palette-grid">
+        {options.map((option, index) => (
+          <PaletteCard
+            key={option.id}
+            id={option.id}
+            label={option.label}
+            description={option.description}
+            layoutHint={option.layoutHint}
+            layout={option.layout}
+            selected={theme === option.id}
+            onSelect={() => setTheme(option.id)}
+            index={startIndex + index}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function ThemesPage() {
   const { theme, setTheme } = useTheme();
-  const options = featuredThemes();
+  const modern = modernThemes();
+  const earth = earthThemes();
+  const earthLight = earth.slice(0, 5);
+  const earthDark = earth.slice(5);
 
   return (
     <main className="page themes-board">
       <header className="themes-board-header">
-        <p className="eyebrow">Appearance</p>
+        <p className="eyebrow">Appearance · review board</p>
         <h1>Color palettes</h1>
         <p className="muted">
-          Ten modern directions — tap any card to restyle the whole OS live.
-          Same set as Settings → Appearance.
+          Modern accents plus a new earth set — five light neutrals, five dark
+          grounds. Tap to restyle live.
         </p>
         <div className="themes-board-links">
           <Link href="/" className="themes-board-link">
@@ -211,23 +325,31 @@ export default function ThemesPage() {
 
       <LivePreview />
 
-      <section className="themes-board-section">
-        <div className="palette-grid">
-          {options.map((option, index) => (
-            <PaletteCard
-              key={option.id}
-              id={option.id}
-              label={option.label}
-              description={option.description}
-              layoutHint={option.layoutHint}
-              layout={option.layout}
-              selected={theme === option.id}
-              onSelect={() => setTheme(option.id)}
-              index={index}
-            />
-          ))}
-        </div>
-      </section>
+      <PaletteSection
+        title="Modern"
+        blurb="Accent-forward looks already on prod."
+        options={modern}
+        theme={theme}
+        setTheme={setTheme}
+      />
+
+      <PaletteSection
+        title="Earth · light"
+        blurb="Neutral bone, stone, wheat, moss, taupe — soft day grounds."
+        options={earthLight}
+        theme={theme}
+        setTheme={setTheme}
+        startIndex={0}
+      />
+
+      <PaletteSection
+        title="Earth · dark"
+        blurb="Charcoal, espresso, slate, forest, ink — dark grounds, quiet heat."
+        options={earthDark}
+        theme={theme}
+        setTheme={setTheme}
+        startIndex={5}
+      />
     </main>
   );
 }

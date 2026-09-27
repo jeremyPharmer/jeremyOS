@@ -54,7 +54,17 @@ export type ThemeId =
   | "sandstone-studio"
   | "midnight-signal"
   | "porcelain-pine"
-  | "copper-fog";
+  | "copper-fog"
+  | "bone-graphite"
+  | "river-stone"
+  | "wheat-umber"
+  | "moss-linen"
+  | "taupe-ink"
+  | "charcoal-oak"
+  | "espresso-night"
+  | "slate-umber"
+  | "forest-dusk"
+  | "ink-sienna";
 
 export type ThemeOption = {
   id: ThemeId;
@@ -71,8 +81,8 @@ export type ThemeOption = {
 /** Default theme when nothing is stored. */
 export const DEFAULT_THEME_ID: ThemeId = "signal-ink";
 
-/** Themes shown in Settings + palette board (the active 10). */
-export const FEATURED_THEME_IDS: ThemeId[] = [
+/** Modern accent set (first board). */
+export const MODERN_THEME_IDS: ThemeId[] = [
   "signal-ink",
   "chartreuse-cut",
   "nordic-cobalt",
@@ -85,11 +95,31 @@ export const FEATURED_THEME_IDS: ThemeId[] = [
   "copper-fog",
 ];
 
+/** Neutral / earth set — 5 light + 5 dark. */
+export const EARTH_THEME_IDS: ThemeId[] = [
+  "bone-graphite",
+  "river-stone",
+  "wheat-umber",
+  "moss-linen",
+  "taupe-ink",
+  "charcoal-oak",
+  "espresso-night",
+  "slate-umber",
+  "forest-dusk",
+  "ink-sienna",
+];
+
+/** All themes shown in Settings + palette board. */
+export const FEATURED_THEME_IDS: ThemeId[] = [
+  ...MODERN_THEME_IDS,
+  ...EARTH_THEME_IDS,
+];
+
 /** @deprecated Use FEATURED_THEME_IDS — kept as an alias for older imports. */
 export const RETHINK_THEME_IDS: ThemeId[] = FEATURED_THEME_IDS;
 
 export const THEMES: ThemeOption[] = [
-  // ── Modern rethink (2026) ──
+  // ── Modern (accent) ──
   {
     id: "signal-ink",
     label: "Signal Ink",
@@ -178,6 +208,97 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Industrial soft — fog gray day, copper heat.",
     layout: "cozy",
     swatches: ["#e8eaed", "#b87333", "#2a2e35"],
+    featured: true,
+  },
+  // ── Earth & neutral (5 light + 5 dark) ──
+  {
+    id: "bone-graphite",
+    label: "Bone Graphite",
+    description: "Warm bone with graphite ink",
+    layoutHint: "Quiet paper day — neutral chrome, no loud accents.",
+    layout: "paper",
+    swatches: ["#f3f0ea", "#3a3a38", "#8a8680"],
+    featured: true,
+  },
+  {
+    id: "river-stone",
+    label: "River Stone",
+    description: "Cool stone gray with slate",
+    layoutHint: "Soft mineral calm — cool neutrals, steady focus.",
+    layout: "briefing",
+    swatches: ["#eceee9", "#5c6560", "#8b948c"],
+    featured: true,
+  },
+  {
+    id: "wheat-umber",
+    label: "Wheat Umber",
+    description: "Soft wheat with warm umber",
+    layoutHint: "Field-day warmth — grounded without orange pop.",
+    layout: "cozy",
+    swatches: ["#f2eadc", "#6b4f3a", "#a89070"],
+    featured: true,
+  },
+  {
+    id: "moss-linen",
+    label: "Moss Linen",
+    description: "Linen cream with muted moss",
+    layoutHint: "Soft utility — linen surfaces, quiet green accent.",
+    layout: "studio",
+    swatches: ["#f1eee6", "#5e6b55", "#9aa38f"],
+    featured: true,
+  },
+  {
+    id: "taupe-ink",
+    label: "Taupe Ink",
+    description: "Warm taupe with deep ink",
+    layoutHint: "Gallery taupe — soft walls, ink for hierarchy.",
+    layout: "paper",
+    swatches: ["#ebe6df", "#2c2926", "#8b8178"],
+    featured: true,
+  },
+  {
+    id: "charcoal-oak",
+    label: "Charcoal Oak",
+    description: "Deep charcoal with warm oak",
+    layoutHint: "Dark wood study — low glare, oak warmth.",
+    layout: "cozy",
+    swatches: ["#1a1c1b", "#c4a574", "#8a8f88"],
+    featured: true,
+  },
+  {
+    id: "espresso-night",
+    label: "Espresso Night",
+    description: "Near-black brown with cream",
+    layoutHint: "After-hours coffee shop — deep brown, soft cream.",
+    layout: "ritual",
+    swatches: ["#14110f", "#d8cfc3", "#8f7f6e"],
+    featured: true,
+  },
+  {
+    id: "slate-umber",
+    label: "Slate Umber",
+    description: "Dark slate with umber dust",
+    layoutHint: "Cool night mineral — slate ground, umber signal.",
+    layout: "briefing",
+    swatches: ["#171a1c", "#a67c52", "#7a848c"],
+    featured: true,
+  },
+  {
+    id: "forest-dusk",
+    label: "Forest Dusk",
+    description: "Deep pine black with khaki",
+    layoutHint: "Dusk trail — dark canopy, soft khaki text.",
+    layout: "ritual",
+    swatches: ["#121614", "#c5b896", "#6d7a6e"],
+    featured: true,
+  },
+  {
+    id: "ink-sienna",
+    label: "Ink Sienna",
+    description: "Ink black with muted sienna",
+    layoutHint: "Studio night — black ground, quiet sienna heat.",
+    layout: "studio",
+    swatches: ["#101010", "#b07a55", "#8a8580"],
     featured: true,
   },
   {
@@ -465,6 +586,14 @@ export function themeMetaColor(id: ThemeId): string {
 
 export function featuredThemes(): ThemeOption[] {
   return FEATURED_THEME_IDS.map((id) => getTheme(id)!).filter(Boolean);
+}
+
+export function modernThemes(): ThemeOption[] {
+  return MODERN_THEME_IDS.map((id) => getTheme(id)!).filter(Boolean);
+}
+
+export function earthThemes(): ThemeOption[] {
+  return EARTH_THEME_IDS.map((id) => getTheme(id)!).filter(Boolean);
 }
 
 export function rethinkThemes(): ThemeOption[] {
