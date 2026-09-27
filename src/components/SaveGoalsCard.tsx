@@ -329,10 +329,7 @@ function HomeSaveGoalsGlance() {
       aria-label="Save goals"
     >
       <div className="home-card-head save-goal-glance-head">
-        <div className="save-goal-glance-titles">
-          <p className="home-card-kicker">Save goals</p>
-          <h2>Save towards something</h2>
-        </div>
+        <p className="home-card-kicker save-goal-glance-kicker">Save goals</p>
         <p className="save-goal-inbound-figure" aria-label="Daily inbound">
           {formatMoney(rate)}
         </p>
@@ -360,10 +357,6 @@ function HomeSaveGoalsGlance() {
             );
           })}
         </div>
-      ) : null}
-
-      {(dayLogged || justApproved) && panel === "none" ? (
-        <p className="tiny save-goal-day-status">Today approved</p>
       ) : null}
 
       {panel === "approve" ? (
