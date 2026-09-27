@@ -56,6 +56,8 @@ export type BriefingTimetableRow = {
   title: string;
   /** Softer row for overflow / all-day grouping labels. */
   muted?: boolean;
+  /** Stable calendar event id — enables remove on Open. */
+  eventId?: string;
 };
 
 export type MorningBriefing = {
@@ -184,25 +186,15 @@ function calendarItems(events: BriefingEvent[]): {
   const timed = events.filter((e) => !e.allDay && e.startTime !== "All day");
   const items: string[] = [];
   const rows: BriefingTimetableRow[] = [];
-  for (const e of timed.slice(0, 5)) {
+  for (const e of timed) {
     const when = formatBriefingWhen(e.startTime, e.endTime);
     const legacy = e.endTime ? `${e.startTime}–${e.endTime}` : e.startTime;
     items.push(`${legacy} · ${e.title}`);
-    rows.push({ when, title: e.title });
+    rows.push({ when, title: e.title, eventId: e.id });
   }
-  if (timed.length > 5) {
-    const more = `+${timed.length - 5} more`;
-    items.push(more);
-    rows.push({ when: "", title: more, muted: true });
-  }
-  for (const e of allDay.slice(0, 2)) {
+  for (const e of allDay) {
     items.push(`All day · ${e.title}`);
-    rows.push({ when: "All day", title: e.title });
-  }
-  if (allDay.length > 2) {
-    const more = `+${allDay.length - 2} more all-day`;
-    items.push(more);
-    rows.push({ when: "", title: more, muted: true });
+    rows.push({ when: "All day", title: e.title, eventId: e.id });
   }
   return { items, rows };
 }
