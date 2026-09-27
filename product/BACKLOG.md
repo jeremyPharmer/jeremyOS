@@ -22,7 +22,7 @@ Last updated: 2026-09-27
 | 10 | RB-029 | Evening close success: day recap + world news | P0 | Done | M | TBD | v1 | [items/evening-close-recap-news.md](./items/evening-close-recap-news.md) |
 | 11 | RB-030 | Conversational morning briefing (calendar-first) | P0 | Done | S | TBD | v1.x | [items/morning-briefing-conversational.md](./items/morning-briefing-conversational.md) |
 | 12 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD | v1 | [items/five-year-journal-ux.md](./items/five-year-journal-ux.md) |
-| 13 | RB-037 | Save Goals (“Save towards something”) | P0 | Ready | M | TBD | v1 | [items/save-goals.md](./items/save-goals.md) |
+| 13 | RB-037 | Save Goals (“Save towards something”) | P0 | In Progress | M | TBD | v1 | [items/save-goals.md](./items/save-goals.md) |
 | 14 | RB-021 | Journal photos (attach + paperclip) | P1 | Backlog | S | TBD | v1.x | [items/journal-photos.md](./items/journal-photos.md) |
 | 15 | RB-022 | Journal edit, star & month calendar | P0 | In Progress | M | TBD | v1.x | [items/journal-edit-star-calendar.md](./items/journal-edit-star-calendar.md) |
 | 16 | RB-024 | Daily Puzzle on Home | P1 | In Progress | M | TBD | v1.x | [items/daily-puzzle-on-home.md](./items/daily-puzzle-on-home.md) |

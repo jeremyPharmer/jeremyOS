@@ -39,7 +39,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 | 10 | RB-029 | Evening close success: day recap + world news | P0 | Done | M | TBD |
 | 11 | RB-030 | Conversational morning briefing (calendar-first) | P0 | Done | S | TBD |
 | 12 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD |
-| 13 | RB-037 | Save Goals (“Save towards something”) | P0 | Ready | M | TBD |
+| 13 | RB-037 | Save Goals (“Save towards something”) | P0 | In Progress | M | TBD |
 
 ## Now / Next / Later
 
@@ -57,7 +57,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 10. **RB-029 — Evening close success: day recap + world news** — **Done.** Success screen day recap + world news. Active iterate: **RB-032**. Detail: [`items/evening-close-recap-news.md`](./items/evening-close-recap-news.md).
 11. **RB-030 — Conversational morning briefing (calendar-first)** — **Done.** Conversational rules-based surface. Active iterate: **RB-032**. Detail: [`items/morning-briefing-conversational.md`](./items/morning-briefing-conversational.md).
 12. **RB-016 — Five-year / paper journal UX** — same calendar day across years; headline + short summary; journal vibes (not stacked cards). Detail: [`items/five-year-journal-ux.md`](./items/five-year-journal-ux.md). Distinct from RB-010 backfill integrity.
-13. **RB-037 — Save Goals (“Save towards something”)** — **Ready / scope locked 2026-09-27.** Home card: to-go + paydown + target date; $500/mo → daily rate; evening spend + leftover (or deficit) → goals; optional lump sum; **tracking only** — separate from Future/Treat / Venmo Total. Effort **M**. Detail: [`items/save-goals.md`](./items/save-goals.md).
+13. **RB-037 — Save Goals (“Save towards something”)** — **In Progress / scope locked 2026-09-27.** Home card: to-go + paydown + target date; $500/mo → daily rate; evening spend + leftover (or deficit) → goals; optional lump sum; **tracking only** — separate from Future/Treat / Venmo Total. Effort **M**. Detail: [`items/save-goals.md`](./items/save-goals.md).
 14. **RB-021 — Journal photos (attach + paperclip)** — optional pics on journal/evening entries; paperclip (or similar) on year slots when a photo is present; tap to view; **reuse** existing photo infra. Detail: [`items/journal-photos.md`](./items/journal-photos.md).
 
 **Mid-flight (finish thin; do not expand):** RB-011 (fund auto-credit), RB-010 (journal backfill) — personal-tool integrity, ranks 27–28. Do **not** widen RB-010 into edit-past ([RB-022](./items/journal-edit-star-calendar.md)). Save Goals (**RB-037**) is a **new parallel ledger** — do not fold into RB-011 / RB-006.
@@ -99,11 +99,11 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 | Focus | Planned | Notes |
 | --- | --- | --- |
 | Now (framing) | RB-012 rebrand (EA + drop trail) + RB-013 north star | Effort **M** + **S**; docs first, then chrome/copy; Journey label locked keep |
-| Now (personal tools + rituals) | RB-014 todos (**Ready / L**) → **RB-026 task groups + calendar M/D** (**In Progress / M**) → **RB-033 track over time** (**In Progress / S**) → **RB-036 task analytics + motion** (**In Progress / S**) → **RB-002 Gmail inbox** (**Ready / L**; OAuth spike OK; full ship after mid-flight IP) → **RB-032 Daily briefing Open/Close** (**Done / L**, shipped prod 2026-09-12) → RB-016 five-year journal → **RB-037 Save Goals** (**Ready / M**; separate from Future/Treat) → **RB-021 journal photos** | Merged Today’s Items + master page; groups/colors; Tasks page stats + snooze/complete motion; Gmail inbox centralization elevated 2026-09-15; ritual twin redesign shipped; Save Goals intake 2026-09-27 |
+| Now (personal tools + rituals) | RB-014 todos (**Ready / L**) → **RB-026 task groups + calendar M/D** (**In Progress / M**) → **RB-033 track over time** (**In Progress / S**) → **RB-036 task analytics + motion** (**In Progress / S**) → **RB-002 Gmail inbox** (**Ready / L**; OAuth spike OK; full ship after mid-flight IP) → **RB-032 Daily briefing Open/Close** (**Done / L**, shipped prod 2026-09-12) → RB-016 five-year journal → **RB-037 Save Goals** (**In Progress / M**; separate from Future/Treat) → **RB-021 journal photos** | Merged Today’s Items + master page; groups/colors; Tasks page stats + snooze/complete motion; Gmail inbox centralization elevated 2026-09-15; ritual twin redesign shipped; Save Goals intake 2026-09-27 |
 | Next (journal tooling) | **RB-022 edit / star / month calendar** | After RB-016 + RB-021; effort **M**; star entry also on `/evening` (2026-09-15); photo storage risk (no auth, db.json + `.data/photos`); ≠ event calendar |
 | Next (EA + Home) | **RB-024 daily puzzle** → RB-005 podcast (thin; **off Home**) → RB-017 cameras → **RB-028 Journey vitals** (**Done**) → **RB-031 med adherence + drop vitals chart** (**Ready / S**) → RB-018 workout → **RB-034 Bills panel** (**Done / M**; NFL; Aug 1–Mar 1) → **RB-035 Schroeder soccer** (**Ready / M**; under Bills; Warriors; Hudl; Aug 15–Nov 15) → RB-019 recipes → RB-015 hub → RB-003 digest (after RB-002 phase 1b send) | Puzzle = **5×5** crossword replacing On Air; Start→attempt; banner `completed/attempts · success%` (**M**; not fill %); Entertainment park RB-025; **RB-023 calendar Done**; **RB-002** moved to Now (inbox v1); RB-031 = list-only vitals + SupportCompletion % days covered; RB-034 = Home bottom Bills card shipped; RB-035 = soccer Home panel (stub ≠ product) |
 | Finish thin | RB-011, RB-010 | Do not expand money/daily-loop polish; journal UI = RB-016; media = RB-021; edit/star/calendar = RB-022 |
-| Later (personal fund) | RB-006, RB-001 | Locked Future/Treat model; rails demoted. **Save Goals = RB-037** (Now / Ready) — not this row |
+| Later (personal fund) | RB-006, RB-001 | Locked Future/Treat model; rails demoted. **Save Goals = RB-037** (Now / In Progress) — not this row |
 | Later / paused | RB-008, RB-004, **RB-025 Home Entertainment park**, RB-026 v2 group CRUD, RB-032 LLM briefing | Unrequested channels + Entertainment demoted; group add/rename after fixed v1 groups; generative copy after rules-based Daily briefing twin |
 | Done (cut) | RB-020 drop craving stats + Home craving CTA | Surfaces removed; mood loop kept |
 | Done (calendar) | **RB-023** iCal + Google Home agenda | Settings Apple/Work/extra iCal + Google OAuth; Home `TodayAgendaCard`; superseded env/Today’s Build PR |
