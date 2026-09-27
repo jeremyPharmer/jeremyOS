@@ -1,4 +1,4 @@
-import { addDays, newId, parseDate } from "./journey";
+import { addDays, datesInRange, newId, parseDate } from "./journey";
 import type {
   RebuildState,
   SaveGoal,
@@ -254,6 +254,8 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
       })),
       kind: d.kind === "adjust" ? ("adjust" as const) : ("close" as const),
       id: d.id ? String(d.id) : d.kind === "adjust" ? newId("sga") : undefined,
+      source:
+        d.source === "auto" || d.source === "manual" ? d.source : undefined,
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
@@ -478,6 +480,8 @@ export type RecordSaveGoalDayInput = {
   lumpAllocations?: SaveGoalAllocation[];
   /** @deprecated full-pool override — prefer lump* fields */
   allocations?: SaveGoalAllocation[];
+  /** manual approve/evening vs auto catch-up for missed days */
+  source?: "manual" | "auto";
 };
 
 function resolveCustomPoolSplit(
@@ -594,6 +598,7 @@ export function recordSaveGoalDay(
     lumpSum,
     allocations,
     kind: "close",
+    source: input.source ?? "manual",
   };
 
   const days = [
@@ -604,6 +609,60 @@ export function recordSaveGoalDay(
   ];
 
   return normalizeSaveGoals({ ...state, saveGoalDays: days });
+}
+
+/**
+ * If a close row is missing for `date`, credit full daily inbound (spend 0)
+ * using preset chips. Idempotent — does not replace a manual approve.
+ */
+export function ensureSaveGoalDay(
+  state: RebuildState,
+  date: string,
+): RebuildState {
+  if (!DATE_RE.test(date)) return state;
+  if (!activeSaveGoals(state).length) return state;
+  const hasClose = (state.saveGoalDays ?? []).some(
+    (d) => d.date === date && (d.kind ?? "close") === "close",
+  );
+  if (hasClose) return state;
+  return recordSaveGoalDay(state, {
+    date,
+    spendTotal: 0,
+    lumpSum: 0,
+    lumpMode: "preset",
+    source: "auto",
+  });
+}
+
+/** Earliest date to start auto-accrual (first goal createdOn, else today). */
+export function saveGoalAccrualStart(state: RebuildState, today: string): string {
+  const created = (state.saveGoals ?? [])
+    .map((g) => g.createdOn)
+    .filter((d) => DATE_RE.test(d))
+    .sort();
+  if (created.length) return created[0];
+  return today;
+}
+
+/**
+ * Catch up ended calendar days without an approve — full daily inbound
+ * rolls in via preset chips (same spirit as reclaim end-of-day accrual).
+ */
+export function ensureElapsedSaveGoalDays(
+  state: RebuildState,
+  asOfDate: string,
+): RebuildState {
+  if (!activeSaveGoals(state).length) return state;
+  if (!DATE_RE.test(asOfDate)) return state;
+  const lastEnded = addDays(asOfDate, -1);
+  const start = saveGoalAccrualStart(state, asOfDate);
+  if (lastEnded < start) return state;
+
+  let next = state;
+  for (const date of datesInRange(start, lastEnded)) {
+    next = ensureSaveGoalDay(next, date);
+  }
+  return next;
 }
 
 export type ApplySaveGoalAdjustmentInput = {

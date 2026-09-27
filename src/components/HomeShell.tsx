@@ -89,8 +89,8 @@ function layoutBody(
             <TodayRebuildPanel />
           </div>
           <AgendaBlock />
-          <SaveGoalsCard />
           <HubsPair />
+          <SaveGoalsCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -102,13 +102,13 @@ function layoutBody(
           <WeatherBanner />
           <TodayRebuildPanel />
           <AgendaBlock />
-          <SaveGoalsCard />
           <div className="home-split-day">
             <div className="home-split-primary">
               <MoveHubCard />
             </div>
             <CrosswordRail />
           </div>
+          <SaveGoalsCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -120,11 +120,11 @@ function layoutBody(
           <WeatherBanner />
           <TodayRebuildPanel />
           <AgendaBlock />
-          <SaveGoalsCard />
           <div className="home-train-hero">
             <MoveHubCard />
           </div>
           <DailyCrosswordCard />
+          <SaveGoalsCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -142,8 +142,8 @@ function layoutBody(
             <TodayRebuildPanel />
           </div>
           <AgendaBlock />
-          <SaveGoalsCard />
           <HubsPair />
+          <SaveGoalsCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -156,9 +156,9 @@ function layoutBody(
             <TodayRebuildPanel />
           </div>
           <AgendaBlock />
-          <SaveGoalsCard />
           <MoveHubCard />
           <CommandBoard today={today} week={week} />
+          <SaveGoalsCard />
           <SportsPair />
         </>
       );
@@ -168,10 +168,10 @@ function layoutBody(
           <HomeDateHeader date={today} />
           <TodayRebuildPanel />
           <AgendaBlock />
-          <SaveGoalsCard />
           <div className="home-wind-hero">
             <DailyCrosswordCard />
           </div>
+          <SaveGoalsCard />
           <SportsPair />
           <MoveHubCard />
           <WeekPlanPanel today={today} week={week} />
@@ -184,8 +184,8 @@ function layoutBody(
           <WeatherBanner />
           <TodayRebuildPanel />
           <AgendaBlock />
-          <SaveGoalsCard />
           <HubsPair hero />
+          <SaveGoalsCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -198,8 +198,8 @@ function layoutBody(
           <WeatherBanner />
           <TodayRebuildPanel />
           <AgendaBlock />
-          <SaveGoalsCard />
           <HubsPair />
+          <SaveGoalsCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>

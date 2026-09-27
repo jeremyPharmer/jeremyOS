@@ -500,6 +500,12 @@ export type SaveGoalDay = {
   kind?: "close" | "adjust";
   /** Present on adjust rows (multiple adjusts per date OK) */
   id?: string;
+  /**
+   * How the close row was written:
+   * - manual = Approve day / evening Money today
+   * - auto = catch-up when a day ended without approve (full daily inbound)
+   */
+  source?: "manual" | "auto";
 };
 
 export type RebuildState = {

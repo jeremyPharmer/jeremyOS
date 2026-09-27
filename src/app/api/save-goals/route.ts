@@ -119,6 +119,7 @@ export async function POST(req: Request) {
           allocations: Array.isArray(body.allocations)
             ? body.allocations
             : undefined,
+          source: body.source === "auto" ? "auto" : "manual",
         });
       }
 

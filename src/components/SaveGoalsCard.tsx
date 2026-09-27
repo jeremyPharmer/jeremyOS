@@ -15,7 +15,6 @@ import {
   progressRatio,
   projectSaveGoalTargetDate,
 } from "@/lib/save-goals";
-// dailyIncomeRate / normalizeSaveGoalSettings used on detail page only
 import type { SaveGoal } from "@/lib/types";
 
 const NAME_PRESETS = ["Trip", "Gift", "General saving"] as const;
@@ -222,7 +221,7 @@ function AdjustPanel({
   );
 }
 
-/** Home glance — no progress/to-go. Approve or adjust the day; deep page for detail. */
+/** Home glance — no progress/to-go. Percents + approve/adjust; deep page for detail. */
 function HomeSaveGoalsGlance() {
   const { state, today, post } = useApp();
   const [panel, setPanel] = useState<"none" | "approve" | "adjust">("none");
@@ -232,6 +231,8 @@ function HomeSaveGoalsGlance() {
   const [error, setError] = useState("");
   const [justApproved, setJustApproved] = useState(false);
 
+  const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
+  const rate = today ? dailyIncomeRate(today, settings.monthlyIncome) : 0;
   const goals = useMemo(() => activeSaveGoals(state), [state]);
   const dayLogged = useMemo(
     () =>
@@ -243,6 +244,21 @@ function HomeSaveGoalsGlance() {
       ),
     [state.saveGoalDays, today],
   );
+
+  async function claimDailyInbound(goalId: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "setInbound",
+        soleGoalId: goalId,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update inbound");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function approveDay() {
     const spend = Number(spendTotal);
@@ -264,6 +280,7 @@ function HomeSaveGoalsGlance() {
         spendTotal: spend,
         lumpSum: lump,
         lumpMode: "preset",
+        source: "manual",
       });
       setPanel("none");
       setSpendTotal("");
@@ -311,24 +328,47 @@ function HomeSaveGoalsGlance() {
       className="home-card home-card-save-goals home-card-save-goals-glance"
       aria-label="Save goals"
     >
-      <div className="home-card-head">
-        <p className="home-card-kicker">Save goals</p>
-        <h2>Save towards something</h2>
-        <p className="tiny home-card-sub">
-          Approve or adjust today’s money. Progress stays on the save goals page.
+      <div className="home-card-head save-goal-glance-head">
+        <div className="save-goal-glance-titles">
+          <p className="home-card-kicker">Save goals</p>
+          <h2>Save towards something</h2>
+        </div>
+        <p className="save-goal-inbound-figure" aria-label="Daily inbound">
+          {formatMoney(rate)}
         </p>
       </div>
 
+      {goals.length > 0 ? (
+        <div
+          className="save-goal-chip-row"
+          role="group"
+          aria-label="Daily inbound split"
+        >
+          {goals.map((g) => {
+            const pct = inboundPercent(g);
+            return (
+              <button
+                key={g.id}
+                type="button"
+                className={`chip${pct > 0 ? " selected" : ""}`}
+                disabled={busy}
+                onClick={() => void claimDailyInbound(g.id)}
+                title={`Send daily inbound here (${pct}%)`}
+              >
+                {g.name} · {pct}%
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
       {(dayLogged || justApproved) && panel === "none" ? (
-        <p className="tiny save-goal-day-status">Today’s money logged</p>
+        <p className="tiny save-goal-day-status">Today approved</p>
       ) : null}
 
       {panel === "approve" ? (
         <div className="save-goal-create">
           <p className="eyebrow">Approve day</p>
-          <p className="tiny muted" style={{ margin: 0 }}>
-            Leftover after spend goes to your daily inbound chips.
-          </p>
           <label className="field">
             <span className="field-label">Total spend</span>
             <input
@@ -421,6 +461,12 @@ function HomeSaveGoalsGlance() {
             </p>
           )}
         </div>
+      ) : null}
+
+      {error && panel === "none" ? (
+        <p className="tiny" style={{ color: "var(--danger)" }}>
+          {error}
+        </p>
       ) : null}
 
       <Link href="/save-goals" className="btn ghost workout-open-link">

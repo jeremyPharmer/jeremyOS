@@ -7,6 +7,8 @@ import {
   createSaveGoal,
   dailyIncomeRate,
   daysInMonthForDate,
+  ensureElapsedSaveGoalDays,
+  ensureSaveGoalDay,
   inboundPercent,
   leftoverPool,
   projectSaveGoalTargetDate,
@@ -358,6 +360,49 @@ describe("averageSpendLastDays", () => {
       },
     ];
     expect(averageSpendLastDays(days, "2026-04-02", 7)).toBe(15);
+  });
+});
+
+describe("ensureElapsedSaveGoalDays", () => {
+  it("auto-credits missed days with full daily inbound", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    // As of Apr 3 → catch up Apr 1 and Apr 2 (not today)
+    state = ensureElapsedSaveGoalDays(state, "2026-04-03");
+    const closes = (state.saveGoalDays ?? []).filter(
+      (d) => (d.kind ?? "close") === "close",
+    );
+    expect(closes.map((d) => d.date).sort()).toEqual([
+      "2026-04-01",
+      "2026-04-02",
+    ]);
+    expect(closes.every((d) => d.source === "auto")).toBe(true);
+    expect(closes.every((d) => d.spendTotal === 0)).toBe(true);
+    // two days × 16.67
+    expect(state.saveGoals![0].savedAmount).toBeCloseTo(33.34, 2);
+  });
+
+  it("does not overwrite a manual approve", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = recordSaveGoalDay(state, {
+      date: "2026-04-01",
+      spendTotal: 10,
+      lumpSum: 0,
+      source: "manual",
+    });
+    state = ensureSaveGoalDay(state, "2026-04-01");
+    const day = state.saveGoalDays!.find((d) => d.date === "2026-04-01")!;
+    expect(day.source).toBe("manual");
+    expect(day.spendTotal).toBe(10);
   });
 });
 

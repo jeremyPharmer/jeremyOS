@@ -2212,6 +2212,32 @@ h2 {
   color: var(--accent);
 }
 
+.save-goal-glance-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.save-goal-glance-titles {
+  min-width: 0;
+}
+
+.save-goal-glance-titles h2 {
+  margin: 2px 0 0;
+}
+
+.save-goal-inbound-figure {
+  margin: 0;
+  padding-top: 2px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: var(--ink, inherit);
+}
+
 .save-goal-row {
   display: flex;
   flex-direction: column;
