@@ -205,12 +205,14 @@ function DailyLedgerDay({
 /** Daily inbound − spend = leftover ledger (today + recent closes). */
 function DailyLedger({
   today,
-  rate,
   goals,
+  busy,
+  onApply,
 }: {
   today: string;
-  rate: number;
   goals: SaveGoal[];
+  busy?: boolean;
+  onApply?: () => void;
 }) {
   const { state } = useApp();
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -229,17 +231,32 @@ function DailyLedger({
 
   const spendShown = todayClose ? todayClose.spendTotal : running.spend;
   const leftShown = todayClose ? todayClose.leftover : running.left;
+  const applied = Boolean(todayClose);
 
   return (
     <div className="save-goal-ledger" aria-label="Daily ledger">
-      <p className="eyebrow save-goal-ledger-title">Daily</p>
+      <div className="save-goal-ledger-title-row">
+        <p className="eyebrow save-goal-ledger-title">Daily</p>
+        {onApply ? (
+          <PrimaryButton
+            onClick={onApply}
+            disabled={busy}
+          >
+            {busy
+              ? "Saving…"
+              : applied
+                ? "Re-apply totals"
+                : "Apply totals"}
+          </PrimaryButton>
+        ) : null}
+      </div>
       <DailyLedgerDay
         label="Today"
         inbound={todayClose?.dailyIncome ?? running.inbound}
         spend={spendShown}
         leftover={leftShown}
         lump={todayClose?.lumpSum}
-        closed={Boolean(todayClose)}
+        closed={applied}
         goals={goals}
         day={todayClose}
       />
@@ -587,7 +604,7 @@ function AdjustPanel({
   );
 }
 
-/** Home saver — day total, running subtracts, Apply totals. No % chips. */
+/** Home saver — day total + subtract + collapsed ledger. Apply lives on /save-goals + evening. */
 function HomeSaveGoalsGlance() {
   const { state, today, post } = useApp();
   const [subtractOpen, setSubtractOpen] = useState(false);
@@ -643,21 +660,6 @@ function HomeSaveGoalsGlance() {
       await post("/api/save-goals", { action: "removeSpend", id });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not remove");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function applyTotals() {
-    setBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", {
-        action: "applyTotals",
-        date: today,
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not apply");
     } finally {
       setBusy(false);
     }
@@ -732,7 +734,7 @@ function HomeSaveGoalsGlance() {
             </div>
           ) : (
             <div className="save-goal-glance-actions">
-              <SecondaryButton
+              <PrimaryButton
                 onClick={() => {
                   setError("");
                   setSubtractOpen(true);
@@ -740,16 +742,6 @@ function HomeSaveGoalsGlance() {
                 disabled={busy}
               >
                 Subtract
-              </SecondaryButton>
-              <PrimaryButton
-                onClick={() => void applyTotals()}
-                disabled={busy}
-              >
-                {busy
-                  ? "Saving…"
-                  : applied
-                    ? "Re-apply totals"
-                    : "Apply totals"}
               </PrimaryButton>
             </div>
           )}
@@ -979,6 +971,21 @@ function SaveGoalsDetail() {
     }
   }
 
+  async function applyTotals() {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "applyTotals",
+        date: today,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not apply");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (goals.length === 0 && !open) {
     return (
       <section
@@ -1028,7 +1035,12 @@ function SaveGoalsDetail() {
       </div>
 
       {goals.length > 0 && today ? (
-        <DailyLedger today={today} rate={rate} goals={goals} />
+        <DailyLedger
+          today={today}
+          goals={goals}
+          busy={busy}
+          onApply={() => void applyTotals()}
+        />
       ) : null}
 
       {goals.map((g) => (
