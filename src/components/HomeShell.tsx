@@ -10,6 +10,7 @@ import { MoveHubCard } from "@/components/MoveHubCard";
 import { WeekPlanPanel } from "@/components/WeekPlanPanel";
 import { BillsPanelCard } from "@/components/BillsPanelCard";
 import { SoccerPanelCard } from "@/components/SoccerPanelCard";
+import { SaveGoalsCard } from "@/components/SaveGoalsCard";
 import { useHomeLayout } from "@/components/LayoutProvider";
 import type { HomeLayoutId } from "@/lib/home-layouts";
 
@@ -88,6 +89,7 @@ function layoutBody(
             <TodayRebuildPanel />
           </div>
           <AgendaBlock />
+          <SaveGoalsCard />
           <HubsPair />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
@@ -100,6 +102,7 @@ function layoutBody(
           <WeatherBanner />
           <TodayRebuildPanel />
           <AgendaBlock />
+          <SaveGoalsCard />
           <div className="home-split-day">
             <div className="home-split-primary">
               <MoveHubCard />
@@ -117,6 +120,7 @@ function layoutBody(
           <WeatherBanner />
           <TodayRebuildPanel />
           <AgendaBlock />
+          <SaveGoalsCard />
           <div className="home-train-hero">
             <MoveHubCard />
           </div>
@@ -138,6 +142,7 @@ function layoutBody(
             <TodayRebuildPanel />
           </div>
           <AgendaBlock />
+          <SaveGoalsCard />
           <HubsPair />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
@@ -151,6 +156,7 @@ function layoutBody(
             <TodayRebuildPanel />
           </div>
           <AgendaBlock />
+          <SaveGoalsCard />
           <MoveHubCard />
           <CommandBoard today={today} week={week} />
           <SportsPair />
@@ -162,6 +168,7 @@ function layoutBody(
           <HomeDateHeader date={today} />
           <TodayRebuildPanel />
           <AgendaBlock />
+          <SaveGoalsCard />
           <div className="home-wind-hero">
             <DailyCrosswordCard />
           </div>
@@ -177,6 +184,7 @@ function layoutBody(
           <WeatherBanner />
           <TodayRebuildPanel />
           <AgendaBlock />
+          <SaveGoalsCard />
           <HubsPair hero />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
@@ -190,6 +198,7 @@ function layoutBody(
           <WeatherBanner />
           <TodayRebuildPanel />
           <AgendaBlock />
+          <SaveGoalsCard />
           <HubsPair />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />

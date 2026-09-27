@@ -456,6 +456,52 @@ export type VitalsReading = {
   loggedAt: string;
 };
 
+/** Named discretionary save target — separate from Future/Treat (RB-037). */
+export type SaveGoalStatus = "active" | "reached" | "archived";
+
+export type SaveGoal = {
+  id: string;
+  name: string;
+  targetAmount: number;
+  /** Sum of day allocations; may go negative when overspend is applied */
+  savedAmount: number;
+  createdOn: string;
+  status: SaveGoalStatus;
+  /**
+   * Preset share of **daily inbound leftover** (0–100). Active goals’ percents
+   * sum to 100. Bulk add/subtract uses the same split unless overridden.
+   */
+  allocationWeight: number;
+};
+
+export type SaveGoalSettings = {
+  /** Default 500 — lands conceptually on incomeDayOfMonth */
+  monthlyIncome: number;
+  incomeDayOfMonth: number;
+};
+
+export type SaveGoalAllocation = {
+  goalId: string;
+  /** Signed: + toward goal, − drawn from goal */
+  amount: number;
+};
+
+/** Evening close or one-time adjustment row (RB-037). */
+export type SaveGoalDay = {
+  date: string;
+  /** Snapshot of daily rate used that day (0 for one-time adjusts) */
+  dailyIncome: number;
+  spendTotal: number;
+  /** dailyIncome − spendTotal (may be negative) */
+  leftover: number;
+  lumpSum: number;
+  allocations: SaveGoalAllocation[];
+  /** close = evening money; adjust = one-time add/subtract */
+  kind?: "close" | "adjust";
+  /** Present on adjust rows (multiple adjusts per date OK) */
+  id?: string;
+};
+
 export type RebuildState = {
   profile: RebuildProfile | null;
   mornings: MorningCheckIn[];
@@ -517,6 +563,12 @@ export type RebuildState = {
       cells: string[];
     };
   };
+  /** Save Goals settings — monthly income → daily rate (RB-037) */
+  saveGoalSettings?: SaveGoalSettings;
+  /** Named save targets — tracking only, not Venmo Total */
+  saveGoals?: SaveGoal[];
+  /** Evening spend / leftover rows keyed by date */
+  saveGoalDays?: SaveGoalDay[];
 };
 
 export type CustomAgendaEvent = {

@@ -1,7 +1,7 @@
 # JeremyOS — Product decisions (locked)
 
-Last updated: 2026-09-15  
-Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening mood ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). **2026-09-15:** Gmail **inbox** centralization elevated (**RB-002** Ready / rank 6) — connect + read inbox in JeremyOS; outbound send = phase 1b. Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
+Last updated: 2026-09-27  
+Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening mood ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). **2026-09-15:** Gmail **inbox** centralization elevated (**RB-002** Ready / rank 6) — connect + read inbox in JeremyOS; outbound send = phase 1b. **2026-09-27:** **Save Goals** (**RB-037**) — Home “Save towards something”; separate from Future/Treat; tracking only; Ready / rank 13. Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
 
 ---
 
@@ -146,6 +146,20 @@ projected = alreadyReclaimed + waitingReclaim + daysToGo × historicalDailySpend
 (Suggested-save curve that moved money into Treat is **retired**.)
 
 ---
+
+## Save Goals (locked 2026-09-27)
+
+| Decision | Detail |
+| --- | --- |
+| **Ask** | Founder: Home card “Save towards something”; to-go paydown; $500/mo → per day; lump sums; evening spend + leftover (or go negative); target date; tracking only — “let’s go” |
+| **ID** | **RB-037** |
+| **Name** | **Save Goal** (empty CTA: “Save towards something”) |
+| **≠ fund buckets** | Separate from Future / Treat / Venmo Total — see `product/FUND_MODEL.md` § Save Goals |
+| **Money** | Does **not** move real cash; no Venmo; no debit from Future/Treat |
+| **Income math** | `dailyRate = monthlyIncome / daysInMonth` (default monthlyIncome = 500) |
+| **Evening** | Enter total spend; allocate leftover (+ optional lump) to active goals; overspend draws goals down (may go negative) |
+| **Rank / status** | **Rank 13 / P0 / Ready / Effort M** — Now queue after five-year journal; founder-elevated personal tool |
+| **≠** | Reward-moment “Save for the Future” (skip Treat) |
 
 ## Deferred
 
