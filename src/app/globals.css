@@ -2170,6 +2170,19 @@ h2 {
   align-items: center;
 }
 
+.save-goal-split-field .field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.save-goal-split-eta {
+  font-weight: 400;
+  opacity: 0.85;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 .save-goal-row {
   display: flex;
   flex-direction: column;

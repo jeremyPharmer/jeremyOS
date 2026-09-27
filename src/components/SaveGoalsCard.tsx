@@ -125,6 +125,28 @@ export function SaveGoalsCard() {
   const goals = useMemo(() => activeSaveGoals(state), [state]);
   const shown = goals.slice(0, HOME_SAVE_GOAL_CARD_LIMIT);
 
+  /** Live preview while editing Split % — ETA follows draft inbound shares. */
+  const splitPreviewState = useMemo(() => {
+    if (!splitOpen) return state;
+    return {
+      ...state,
+      saveGoals: (state.saveGoals ?? []).map((g) => {
+        const raw = draftPercents[g.id];
+        if (raw === undefined) return g;
+        const n = Number(raw);
+        return {
+          ...g,
+          allocationWeight: Number.isFinite(n) ? Math.max(0, n) : 0,
+        };
+      }),
+    };
+  }, [splitOpen, state, draftPercents]);
+
+  const draftPercentSum = useMemo(() => {
+    if (!splitOpen) return 100;
+    return goals.reduce((s, g) => s + (Number(draftPercents[g.id]) || 0), 0);
+  }, [splitOpen, goals, draftPercents]);
+
   async function create() {
     const targetAmount = Number(target);
     if (!name.trim() || !Number.isFinite(targetAmount) || targetAmount <= 0) {
@@ -316,29 +338,66 @@ export function SaveGoalsCard() {
         <div className="save-goal-create">
           <p className="eyebrow">Daily inbound split</p>
           <p className="tiny muted" style={{ margin: 0 }}>
-            Percents must add to 100%. Target dates update with the share.
+            Percents must add to 100%. Target dates move as you change the share.
           </p>
-          {goals.map((g) => (
-            <label key={g.id} className="field">
-              <span className="field-label">{g.name}</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                max={100}
-                step="1"
-                value={draftPercents[g.id] ?? "0"}
-                onChange={(e) =>
-                  setDraftPercents((prev) => ({
-                    ...prev,
-                    [g.id]: e.target.value,
-                  }))
-                }
-              />
-            </label>
-          ))}
+          {goals.map((g) => {
+            const draftGoal = {
+              ...g,
+              allocationWeight: Number(draftPercents[g.id]) || 0,
+            };
+            const proj = projectSaveGoalTargetDate(
+              splitPreviewState,
+              draftGoal,
+              today,
+            );
+            let eta = "Add leftover to project a date";
+            if (proj.status === "reached") eta = "Reached";
+            else if (draftGoal.allocationWeight <= 0) {
+              eta = "0% — no projected date";
+            } else if (proj.targetDate) {
+              eta = `On track for ${formatTargetDateLabel(proj.targetDate)}`;
+            }
+            return (
+              <label key={g.id} className="field save-goal-split-field">
+                <span className="field-label">
+                  {g.name}
+                  <span className="tiny save-goal-split-eta">{eta}</span>
+                </span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  max={100}
+                  step="1"
+                  value={draftPercents[g.id] ?? "0"}
+                  onChange={(e) =>
+                    setDraftPercents((prev) => ({
+                      ...prev,
+                      [g.id]: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+            );
+          })}
+          <p
+            className="tiny"
+            style={{
+              margin: 0,
+              color:
+                Math.abs(draftPercentSum - 100) > 0.05
+                  ? "var(--danger)"
+                  : undefined,
+            }}
+          >
+            Total {Math.round(draftPercentSum * 10) / 10}%
+            {Math.abs(draftPercentSum - 100) > 0.05 ? " — need 100%" : ""}
+          </p>
           <div className="save-goal-create-actions">
-            <PrimaryButton onClick={() => void saveSplit()} disabled={busy}>
+            <PrimaryButton
+              onClick={() => void saveSplit()}
+              disabled={busy || Math.abs(draftPercentSum - 100) > 0.05}
+            >
               {busy ? "Saving…" : "Save split"}
             </PrimaryButton>
             <SecondaryButton
