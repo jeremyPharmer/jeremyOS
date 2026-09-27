@@ -551,6 +551,7 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     const before = leftoverBeforeApply(state, "2026-04-01");
     expect(before.inbound).toBe(16.67);
     expect(before.spend).toBe(8);
+    expect(before.adds).toBe(0);
     expect(before.left).toBeCloseTo(8.67, 2);
 
     const entryId = state.saveGoalSpendEntries![0].id;
@@ -565,6 +566,41 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     )!;
     expect(close.spendTotal).toBe(3);
     expect(close.leftover).toBeCloseTo(13.67, 2);
+  });
+
+  it("manual adds increase day total and leftover", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 20,
+      kind: "add",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 5,
+      kind: "spend",
+    });
+    const before = leftoverBeforeApply(state, "2026-04-01");
+    expect(before.inbound).toBe(16.67);
+    expect(before.adds).toBe(20);
+    expect(before.spend).toBe(5);
+    expect(before.left).toBeCloseTo(31.67, 2);
+
+    state = applySaveGoalDayTotals(state, { date: "2026-04-01" });
+    const close = state.saveGoalDays!.find(
+      (d) => d.date === "2026-04-01" && (d.kind ?? "close") === "close",
+    )!;
+    expect(close.dailyIncome).toBeCloseTo(36.67, 2);
+    expect(close.spendTotal).toBe(5);
+    expect(close.leftover).toBeCloseTo(31.67, 2);
+    expect(state.saveGoals![0].savedAmount).toBeCloseTo(31.67, 2);
   });
 });
 

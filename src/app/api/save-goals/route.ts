@@ -157,6 +157,7 @@ export async function POST(req: Request) {
           date: String(body.date ?? today),
           amount: Number(body.amount),
           note: body.note !== undefined ? String(body.note) : undefined,
+          kind: body.kind === "add" ? "add" : "spend",
         });
       }
 

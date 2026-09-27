@@ -383,6 +383,7 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
       id: String(e.id),
       date: e.date,
       amount: round2(Math.max(0, Number(e.amount) || 0)),
+      kind: e.kind === "add" ? ("add" as const) : ("spend" as const),
       note: e.note ? String(e.note).trim().slice(0, 80) : undefined,
       at: e.at ? String(e.at) : undefined,
     }))
@@ -411,9 +412,25 @@ export function listSaveGoalSpendEntries(
   return (state.saveGoalSpendEntries ?? []).filter((e) => e.date === date);
 }
 
+function entryKind(e: Pick<SaveGoalSpendEntry, "kind">): "spend" | "add" {
+  return e.kind === "add" ? "add" : "spend";
+}
+
+/** Sum of subtract lines for a date. */
 export function spendTotalForDate(state: RebuildState, date: string): number {
   return round2(
-    listSaveGoalSpendEntries(state, date).reduce((s, e) => s + e.amount, 0),
+    listSaveGoalSpendEntries(state, date)
+      .filter((e) => entryKind(e) === "spend")
+      .reduce((s, e) => s + e.amount, 0),
+  );
+}
+
+/** Sum of manual add lines for a date. */
+export function addTotalForDate(state: RebuildState, date: string): number {
+  return round2(
+    listSaveGoalSpendEntries(state, date)
+      .filter((e) => entryKind(e) === "add")
+      .reduce((s, e) => s + e.amount, 0),
   );
 }
 
@@ -425,7 +442,7 @@ function hasSaveGoalClose(state: RebuildState, date: string): boolean {
 
 /**
  * Day pool before Apply: base daily rate + leftover rolled from prior
- * unapplied days − today’s spend entries.
+ * unapplied days + manual adds − today’s spend entries.
  * Unapplied days do **not** credit goals; their left carries forward.
  */
 export function leftoverBeforeApply(
@@ -435,23 +452,26 @@ export function leftoverBeforeApply(
   base: number;
   carryIn: number;
   inbound: number;
+  adds: number;
   spend: number;
   left: number;
 } {
   const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
   if (!DATE_RE.test(date)) {
-    return { base: 0, carryIn: 0, inbound: 0, spend: 0, left: 0 };
+    return { base: 0, carryIn: 0, inbound: 0, adds: 0, spend: 0, left: 0 };
   }
   const start = saveGoalAccrualStart(state, date);
   if (date < start) {
     const base = dailyIncomeRate(date, settings.monthlyIncome);
+    const adds = addTotalForDate(state, date);
     const spend = spendTotalForDate(state, date);
     return {
       base,
       carryIn: 0,
       inbound: base,
+      adds,
       spend,
-      left: round2(base - spend),
+      left: round2(base + adds - spend),
     };
   }
 
@@ -460,16 +480,18 @@ export function leftoverBeforeApply(
     base: 0,
     carryIn: 0,
     inbound: 0,
+    adds: 0,
     spend: 0,
     left: 0,
   };
   for (const d of datesInRange(start, date)) {
     const base = dailyIncomeRate(d, settings.monthlyIncome);
     const inbound = round2(base + carry);
+    const adds = addTotalForDate(state, d);
     const spend = spendTotalForDate(state, d);
-    const left = round2(inbound - spend);
+    const left = round2(inbound + adds - spend);
     if (d === date) {
-      result = { base, carryIn: carry, inbound, spend, left };
+      result = { base, carryIn: carry, inbound, adds, spend, left };
       break;
     }
     // Applied → spent into goals; nothing rolls. Otherwise left carries on.
@@ -480,7 +502,12 @@ export function leftoverBeforeApply(
 
 export function addSaveGoalSpend(
   state: RebuildState,
-  input: { date: string; amount: number; note?: string },
+  input: {
+    date: string;
+    amount: number;
+    note?: string;
+    kind?: "spend" | "add";
+  },
 ): RebuildState {
   if (!DATE_RE.test(input.date)) {
     throw Object.assign(new Error("date required"), { status: 400 });
@@ -491,10 +518,12 @@ export function addSaveGoalSpend(
       status: 400,
     });
   }
+  const kind = input.kind === "add" ? "add" : "spend";
   const entry: SaveGoalSpendEntry = {
     id: newId("sgs"),
     date: input.date,
     amount,
+    kind,
     note: input.note?.trim().slice(0, 80) || undefined,
     at: new Date().toISOString(),
   };
@@ -817,8 +846,9 @@ export function recordSaveGoalDay(
     throw Object.assign(new Error("lumpSum invalid"), { status: 400 });
   }
 
-  // Day total includes rolled leftover from unapplied prior days
-  const { inbound: dailyIncome } = leftoverBeforeApply(state, input.date);
+  // Day total includes rolled leftover + manual adds
+  const pool = leftoverBeforeApply(state, input.date);
+  const dailyIncome = round2(pool.inbound + pool.adds);
   const leftover = round2(dailyIncome - spendTotal);
   const goals = activeSaveGoals(state);
 

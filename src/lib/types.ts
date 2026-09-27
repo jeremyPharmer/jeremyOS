@@ -508,12 +508,14 @@ export type SaveGoalDay = {
   source?: "manual" | "auto";
 };
 
-/** Mid-day spend subtraction on the Home saver tile (before Apply totals). */
+/** Mid-day ledger line on the Home saver tile (before Apply totals). */
 export type SaveGoalSpendEntry = {
   id: string;
   date: string;
-  /** Positive spend amount subtracted from the day total */
+  /** Positive amount — meaning depends on `kind` */
   amount: number;
+  /** spend = subtract from day total; add = manual top-up */
+  kind?: "spend" | "add";
   note?: string;
   at?: string;
 };

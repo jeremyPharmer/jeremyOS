@@ -149,6 +149,7 @@ function LedgerAllocationLine({
 function DailyLedgerDay({
   label,
   inbound,
+  adds,
   spend,
   leftover,
   lump,
@@ -158,6 +159,7 @@ function DailyLedgerDay({
 }: {
   label: string;
   inbound: number;
+  adds?: number;
   spend: number | null;
   leftover: number | null;
   lump?: number;
@@ -165,6 +167,7 @@ function DailyLedgerDay({
   goals: SaveGoal[];
   day?: SaveGoalDay | null;
 }) {
+  const addTotal = adds ?? 0;
   return (
     <div className={`save-goal-ledger-day${closed ? "" : " open"}`}>
       <div className="save-goal-ledger-day-head">
@@ -176,6 +179,12 @@ function DailyLedgerDay({
           <span>Inbound</span>
           <span>{formatMoney(inbound)}</span>
         </div>
+        {addTotal > 0 ? (
+          <div className="save-goal-ledger-row">
+            <span>Adds</span>
+            <span>+{formatMoney(addTotal)}</span>
+          </div>
+        ) : null}
         <div className="save-goal-ledger-row">
           <span>Spend</span>
           <span>
@@ -252,7 +261,8 @@ function DailyLedger({
       </div>
       <DailyLedgerDay
         label="Today"
-        inbound={todayClose?.dailyIncome ?? running.inbound}
+        inbound={running.inbound}
+        adds={running.adds}
         spend={spendShown}
         leftover={leftShown}
         lump={todayClose?.lumpSum}
@@ -604,11 +614,11 @@ function AdjustPanel({
   );
 }
 
-/** Home saver — day total + subtract + collapsed ledger. Apply lives on /save-goals + evening. */
+/** Home saver — day total + add/subtract + collapsed ledger. Apply on /save-goals + evening. */
 function HomeSaveGoalsGlance() {
   const { state, today, post } = useApp();
-  const [subtractOpen, setSubtractOpen] = useState(false);
-  const [spendAmount, setSpendAmount] = useState("");
+  const [entryKind, setEntryKind] = useState<"add" | "spend" | null>(null);
+  const [entryAmount, setEntryAmount] = useState("");
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -616,11 +626,18 @@ function HomeSaveGoalsGlance() {
   const goals = useMemo(() => activeSaveGoals(state), [state]);
   const day = useMemo(() => {
     if (!today) {
-      return { base: 0, carryIn: 0, inbound: 0, spend: 0, left: 0 };
+      return {
+        base: 0,
+        carryIn: 0,
+        inbound: 0,
+        adds: 0,
+        spend: 0,
+        left: 0,
+      };
     }
     return leftoverBeforeApply(state, today);
   }, [state, today]);
-  const spends = useMemo(
+  const entries = useMemo(
     () => (today ? listSaveGoalSpendEntries(state, today) : []),
     [state, today],
   );
@@ -630,9 +647,9 @@ function HomeSaveGoalsGlance() {
   );
   const applied = Boolean(todayClose);
 
-  async function addSpend() {
-    const amount = Number(spendAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
+  async function submitEntry() {
+    const amount = Number(entryAmount);
+    if (!entryKind || !Number.isFinite(amount) || amount <= 0) {
       setError("Enter an amount greater than 0.");
       return;
     }
@@ -643,17 +660,24 @@ function HomeSaveGoalsGlance() {
         action: "addSpend",
         date: today,
         amount,
+        kind: entryKind,
       });
-      setSpendAmount("");
-      setSubtractOpen(false);
+      setEntryAmount("");
+      setEntryKind(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not subtract");
+      setError(
+        e instanceof Error
+          ? e.message
+          : entryKind === "add"
+            ? "Could not add"
+            : "Could not subtract",
+      );
     } finally {
       setBusy(false);
     }
   }
 
-  async function removeSpend(id: string) {
+  async function removeEntry(id: string) {
     setBusy(true);
     setError("");
     try {
@@ -665,7 +689,8 @@ function HomeSaveGoalsGlance() {
     }
   }
 
-  const ledgerCount = spends.length + (applied ? 1 : 0);
+  const ledgerCount = entries.length + (applied ? 1 : 0);
+  const dayTotalShown = roundMoney(day.inbound + day.adds);
 
   return (
     <section
@@ -676,7 +701,7 @@ function HomeSaveGoalsGlance() {
         <div>
           <p className="home-card-kicker save-goal-glance-kicker">Save goals</p>
           <p className="tiny muted save-goal-day-total-label">
-            Day total {formatMoney(day.inbound)}
+            Day total {formatMoney(dayTotalShown)}
             {day.carryIn !== 0 ? (
               <>
                 {" "}
@@ -697,17 +722,19 @@ function HomeSaveGoalsGlance() {
         </p>
       ) : (
         <>
-          {subtractOpen ? (
+          {entryKind ? (
             <div className="save-goal-create">
               <label className="field">
-                <span className="field-label">Subtract</span>
+                <span className="field-label">
+                  {entryKind === "add" ? "Add" : "Subtract"}
+                </span>
                 <input
                   type="number"
                   inputMode="decimal"
                   min={0}
                   step="0.01"
-                  value={spendAmount}
-                  onChange={(e) => setSpendAmount(e.target.value)}
+                  value={entryAmount}
+                  onChange={(e) => setEntryAmount(e.target.value)}
                   placeholder="5.00"
                   autoFocus
                 />
@@ -718,12 +745,19 @@ function HomeSaveGoalsGlance() {
                 </p>
               ) : null}
               <div className="save-goal-create-actions">
-                <PrimaryButton onClick={() => void addSpend()} disabled={busy}>
-                  {busy ? "Saving…" : "Subtract"}
+                <PrimaryButton
+                  onClick={() => void submitEntry()}
+                  disabled={busy}
+                >
+                  {busy
+                    ? "Saving…"
+                    : entryKind === "add"
+                      ? "Add"
+                      : "Subtract"}
                 </PrimaryButton>
                 <SecondaryButton
                   onClick={() => {
-                    setSubtractOpen(false);
+                    setEntryKind(null);
                     setError("");
                   }}
                   disabled={busy}
@@ -734,10 +768,21 @@ function HomeSaveGoalsGlance() {
             </div>
           ) : (
             <div className="save-goal-glance-actions">
+              <SecondaryButton
+                onClick={() => {
+                  setError("");
+                  setEntryAmount("");
+                  setEntryKind("add");
+                }}
+                disabled={busy}
+              >
+                Add
+              </SecondaryButton>
               <PrimaryButton
                 onClick={() => {
                   setError("");
-                  setSubtractOpen(true);
+                  setEntryAmount("");
+                  setEntryKind("spend");
                 }}
                 disabled={busy}
               >
@@ -746,7 +791,7 @@ function HomeSaveGoalsGlance() {
             </div>
           )}
 
-          {error && !subtractOpen ? (
+          {error && !entryKind ? (
             <p className="tiny" style={{ color: "var(--danger)" }}>
               {error}
             </p>
@@ -782,22 +827,26 @@ function HomeSaveGoalsGlance() {
                     <span>Inbound</span>
                     <span>{formatMoney(day.inbound)}</span>
                   </div>
-                  {spends.map((e) => (
-                    <div key={e.id} className="save-goal-ledger-row spend">
-                      <span>Spend</span>
-                      <span className="save-goal-ledger-spend-val">
-                        −{formatMoney(e.amount)}
-                        <button
-                          type="button"
-                          className="save-goal-add-link"
-                          disabled={busy}
-                          onClick={() => void removeSpend(e.id)}
-                        >
-                          Undo
-                        </button>
-                      </span>
-                    </div>
-                  ))}
+                  {entries.map((e) => {
+                    const isAdd = e.kind === "add";
+                    return (
+                      <div key={e.id} className="save-goal-ledger-row spend">
+                        <span>{isAdd ? "Add" : "Spend"}</span>
+                        <span className="save-goal-ledger-spend-val">
+                          {isAdd ? "+" : "−"}
+                          {formatMoney(e.amount)}
+                          <button
+                            type="button"
+                            className="save-goal-add-link"
+                            disabled={busy}
+                            onClick={() => void removeEntry(e.id)}
+                          >
+                            Undo
+                          </button>
+                        </span>
+                      </div>
+                    );
+                  })}
                   <div className="save-goal-ledger-row leftover">
                     <span>Left</span>
                     <span>{formatMoney(day.left)}</span>
@@ -825,6 +874,10 @@ function HomeSaveGoalsGlance() {
       </Link>
     </section>
   );
+}
+
+function roundMoney(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 /** Full save-goals surface (progress, chips, create) — not shown on Home. */

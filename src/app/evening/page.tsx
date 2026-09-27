@@ -117,8 +117,8 @@ function EveningPageInner() {
   const [standOut, setStandOut] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [applySaveGoals, setApplySaveGoals] = useState(true);
-  const [subtractOpen, setSubtractOpen] = useState(false);
-  const [spendAmount, setSpendAmount] = useState("");
+  const [entryKind, setEntryKind] = useState<"add" | "spend" | null>(null);
+  const [entryAmount, setEntryAmount] = useState("");
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -330,9 +330,11 @@ function EveningPageInner() {
     () =>
       moneyDate
         ? leftoverBeforeApply(state, moneyDate)
-        : { base: 0, carryIn: 0, inbound: 0, spend: 0, left: 0 },
+        : { base: 0, carryIn: 0, inbound: 0, adds: 0, spend: 0, left: 0 },
     [state, moneyDate],
   );
+  const dayTotalShown =
+    Math.round((dayLedger.inbound + dayLedger.adds) * 100) / 100;
   const daySpends = useMemo(
     () => (moneyDate ? listSaveGoalSpendEntries(state, moneyDate) : []),
     [state, moneyDate],
@@ -365,9 +367,9 @@ function EveningPageInner() {
     setStarPending((prev) => !prev);
   }
 
-  async function addEveningSpend() {
-    const amount = Number(spendAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
+  async function submitEveningEntry() {
+    const amount = Number(entryAmount);
+    if (!entryKind || !Number.isFinite(amount) || amount <= 0) {
       setError("Enter an amount greater than 0.");
       return;
     }
@@ -378,11 +380,18 @@ function EveningPageInner() {
         action: "addSpend",
         date: moneyDate,
         amount,
+        kind: entryKind,
       });
-      setSpendAmount("");
-      setSubtractOpen(false);
+      setEntryAmount("");
+      setEntryKind(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not subtract");
+      setError(
+        e instanceof Error
+          ? e.message
+          : entryKind === "add"
+            ? "Could not add"
+            : "Could not subtract",
+      );
     } finally {
       setSaveBusy(false);
     }
@@ -738,7 +747,7 @@ function EveningPageInner() {
           <div className="save-goal-glance-head" style={{ marginTop: 4 }}>
             <div>
               <p className="tiny muted" style={{ margin: 0 }}>
-                Day total {formatMoney(dayLedger.inbound)}
+                Day total {formatMoney(dayTotalShown)}
                 {dayLedger.carryIn !== 0 ? (
                   <>
                     {" "}
@@ -753,31 +762,37 @@ function EveningPageInner() {
             </p>
           </div>
 
-          {subtractOpen ? (
+          {entryKind ? (
             <div className="save-goal-create" style={{ marginTop: 10 }}>
               <label className="field">
-                <span className="field-label">Subtract</span>
+                <span className="field-label">
+                  {entryKind === "add" ? "Add" : "Subtract"}
+                </span>
                 <input
                   type="number"
                   inputMode="decimal"
                   min={0}
                   step="0.01"
-                  value={spendAmount}
-                  onChange={(e) => setSpendAmount(e.target.value)}
+                  value={entryAmount}
+                  onChange={(e) => setEntryAmount(e.target.value)}
                   placeholder="5.00"
                   autoFocus
                 />
               </label>
               <div className="save-goal-create-actions">
                 <PrimaryButton
-                  onClick={() => void addEveningSpend()}
+                  onClick={() => void submitEveningEntry()}
                   disabled={saveBusy}
                 >
-                  {saveBusy ? "Saving…" : "Subtract"}
+                  {saveBusy
+                    ? "Saving…"
+                    : entryKind === "add"
+                      ? "Add"
+                      : "Subtract"}
                 </PrimaryButton>
                 <SecondaryButton
                   onClick={() => {
-                    setSubtractOpen(false);
+                    setEntryKind(null);
                     setError("");
                   }}
                   disabled={saveBusy}
@@ -791,7 +806,18 @@ function EveningPageInner() {
               <SecondaryButton
                 onClick={() => {
                   setError("");
-                  setSubtractOpen(true);
+                  setEntryAmount("");
+                  setEntryKind("add");
+                }}
+                disabled={saveBusy}
+              >
+                Add
+              </SecondaryButton>
+              <SecondaryButton
+                onClick={() => {
+                  setError("");
+                  setEntryAmount("");
+                  setEntryKind("spend");
                 }}
                 disabled={saveBusy}
               >
@@ -844,22 +870,26 @@ function EveningPageInner() {
                     <span>Inbound</span>
                     <span>{formatMoney(dayLedger.inbound)}</span>
                   </div>
-                  {daySpends.map((e) => (
-                    <div key={e.id} className="save-goal-ledger-row spend">
-                      <span>Spend</span>
-                      <span className="save-goal-ledger-spend-val">
-                        −{formatMoney(e.amount)}
-                        <button
-                          type="button"
-                          className="save-goal-add-link"
-                          disabled={saveBusy}
-                          onClick={() => void removeEveningSpend(e.id)}
-                        >
-                          Undo
-                        </button>
-                      </span>
-                    </div>
-                  ))}
+                  {daySpends.map((e) => {
+                    const isAdd = e.kind === "add";
+                    return (
+                      <div key={e.id} className="save-goal-ledger-row spend">
+                        <span>{isAdd ? "Add" : "Spend"}</span>
+                        <span className="save-goal-ledger-spend-val">
+                          {isAdd ? "+" : "−"}
+                          {formatMoney(e.amount)}
+                          <button
+                            type="button"
+                            className="save-goal-add-link"
+                            disabled={saveBusy}
+                            onClick={() => void removeEveningSpend(e.id)}
+                          >
+                            Undo
+                          </button>
+                        </span>
+                      </div>
+                    );
+                  })}
                   <div className="save-goal-ledger-row leftover">
                     <span>Left</span>
                     <span>{formatMoney(dayLedger.left)}</span>
