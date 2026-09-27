@@ -2253,12 +2253,22 @@ h2 {
   gap: 12px;
 }
 
-.save-goal-row-title {
+.save-goal-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.save-goal-detail-head h2 {
+  margin: 0;
+}
+
+.save-goal-inbound-breakdown {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 10px;
-  min-width: 0;
+  gap: 10px 14px;
+  margin-top: 10px;
 }
 
 .save-goal-name {
@@ -2271,8 +2281,18 @@ h2 {
 .save-goal-pct {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   flex-shrink: 0;
+}
+
+.save-goal-pct-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-right: 2px;
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .save-goal-pct-btn {

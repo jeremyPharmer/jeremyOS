@@ -25,10 +25,12 @@ const PCT_STEP = 5;
 function GoalPercentControls({
   percent,
   busy,
+  label,
   onChange,
 }: {
   percent: number;
   busy: boolean;
+  label: string;
   onChange: (next: number) => void;
 }) {
   const rounded = Math.round(percent);
@@ -51,12 +53,13 @@ function GoalPercentControls({
   }
 
   return (
-    <div className="save-goal-pct" aria-label="Daily inbound percent">
+    <div className="save-goal-pct" aria-label={`${label} daily inbound`}>
+      <span className="save-goal-pct-name">{label}</span>
       <button
         type="button"
         className="save-goal-pct-btn"
         disabled={busy || rounded <= 0}
-        aria-label="Decrease percent"
+        aria-label={`Decrease ${label} percent`}
         onClick={() => onChange(Math.max(0, rounded - PCT_STEP))}
       >
         −
@@ -70,7 +73,7 @@ function GoalPercentControls({
         step={1}
         disabled={busy}
         value={draft}
-        aria-label="Inbound percent"
+        aria-label={`${label} inbound percent`}
         onFocus={() => setFocused(true)}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => {
@@ -86,11 +89,40 @@ function GoalPercentControls({
         type="button"
         className="save-goal-pct-btn"
         disabled={busy || rounded >= 100}
-        aria-label="Increase percent"
+        aria-label={`Increase ${label} percent`}
         onClick={() => onChange(Math.min(100, rounded + PCT_STEP))}
       >
         +
       </button>
+    </div>
+  );
+}
+
+function InboundBreakdown({
+  goals,
+  busy,
+  onPercentChange,
+}: {
+  goals: SaveGoal[];
+  busy: boolean;
+  onPercentChange: (id: string, percent: number) => void;
+}) {
+  if (!goals.length) return null;
+  return (
+    <div
+      className="save-goal-inbound-breakdown"
+      role="group"
+      aria-label="Daily inbound split"
+    >
+      {goals.map((g) => (
+        <GoalPercentControls
+          key={g.id}
+          label={g.name}
+          percent={inboundPercent(g)}
+          busy={busy}
+          onChange={(next) => onPercentChange(g.id, next)}
+        />
+      ))}
     </div>
   );
 }
@@ -151,7 +183,6 @@ function GoalAdjustmentLog({
 function GoalProgressRow({
   goal,
   today,
-  onPercentChange,
   onEdit,
   onDelete,
   onRemoveAdjust,
@@ -159,7 +190,6 @@ function GoalProgressRow({
 }: {
   goal: SaveGoal;
   today: string;
-  onPercentChange: (id: string, percent: number) => void;
   onEdit: (goal: SaveGoal) => void;
   onDelete: (goal: SaveGoal) => void;
   onRemoveAdjust: (id: string) => void;
@@ -186,14 +216,7 @@ function GoalProgressRow({
   return (
     <article className="save-goal-row" aria-label={goal.name}>
       <div className="save-goal-row-head">
-        <div className="save-goal-row-title">
-          <h3 className="save-goal-name">{goal.name}</h3>
-          <GoalPercentControls
-            percent={pct}
-            busy={busy}
-            onChange={(next) => onPercentChange(goal.id, next)}
-          />
-        </div>
+        <h3 className="save-goal-name">{goal.name}</h3>
         <p className="save-goal-togo">
           {formatMoney(toGo)} <span className="save-goal-togo-label">to go</span>
         </p>
@@ -861,9 +884,24 @@ function SaveGoalsDetail() {
       aria-label="Save goals"
     >
       <div className="home-card-head">
-        <p className="home-card-kicker">Save goals</p>
-        <h2>{goals.length === 0 ? "Save towards something" : "Saving toward"}</h2>
-        <p className="tiny home-card-sub">{formatMoney(rate)} / day</p>
+        <div className="save-goal-detail-head">
+          <div>
+            <p className="home-card-kicker">Save goals</p>
+            <h2>
+              {goals.length === 0 ? "Save towards something" : "Saving toward"}
+            </h2>
+          </div>
+          <p className="save-goal-inbound-figure" aria-label="Daily inbound">
+            {formatMoney(rate)}
+          </p>
+        </div>
+        {goals.length > 0 ? (
+          <InboundBreakdown
+            goals={goals}
+            busy={busy}
+            onPercentChange={(id, percent) => void setPercent(id, percent)}
+          />
+        ) : null}
       </div>
 
       {goals.map((g) => (
@@ -872,7 +910,6 @@ function SaveGoalsDetail() {
           goal={g}
           today={today}
           busy={busy}
-          onPercentChange={(id, percent) => void setPercent(id, percent)}
           onRemoveAdjust={(id) => void removeAdjust(id)}
           onEdit={(goal) => {
             setEditing(goal);
