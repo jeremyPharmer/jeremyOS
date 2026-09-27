@@ -273,6 +273,11 @@ export function SaveGoalsCard({
         <PrimaryButton onClick={() => setOpen(true)}>
           Add a save goal
         </PrimaryButton>
+        {!isPage ? (
+          <Link href="/save-goals" className="btn ghost workout-open-link">
+            Open save goals →
+          </Link>
+        ) : null}
       </section>
     );
   }
