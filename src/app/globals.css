@@ -2197,13 +2197,15 @@ h2 {
 
 .save-goal-glance-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
+  align-items: stretch;
 }
 
 .save-goal-glance-actions .btn {
-  flex: 1 1 auto;
-  min-width: 7.5rem;
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
 }
 
 .save-goal-day-total-label {
