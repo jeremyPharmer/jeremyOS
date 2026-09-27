@@ -34,6 +34,17 @@ import {
 } from "@/lib/journal";
 import type { NewsHeadline } from "@/lib/news";
 import type { OnThisDayEvent } from "@/lib/on-this-day";
+import {
+  activeSaveGoals,
+  dailyIncomeRate,
+  formatMoney,
+  inboundPercent,
+  leftoverPool,
+  mergeAllocations,
+  normalizeSaveGoalSettings,
+  splitPoolByWeight,
+  splitPoolToOne,
+} from "@/lib/save-goals";
 import { completedTodosForUndo, openTodosOn } from "@/lib/todos";
 import type { DailyForecast } from "@/lib/weather";
 
@@ -109,6 +120,10 @@ function EveningPageInner() {
   const [oneLine, setOneLine] = useState("");
   const [standOut, setStandOut] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
+  const [spendTotal, setSpendTotal] = useState("");
+  const [lumpSum, setLumpSum] = useState("");
+  const [lumpMode, setLumpMode] = useState<"preset" | "custom">("preset");
+  const [lumpGoalId, setLumpGoalId] = useState("");
   const [busy, setBusy] = useState(false);
   const [starBusy, setStarBusy] = useState(false);
   const [starPending, setStarPending] = useState(false);
@@ -312,6 +327,38 @@ function EveningPageInner() {
     return sevenDayTrendInsight(state, editionClosed.date);
   }, [editionClosed, state, today]);
 
+  const saveSettings = normalizeSaveGoalSettings(state.saveGoalSettings);
+  const moneyDate = effectiveDate || today || "";
+  const dayRate = moneyDate
+    ? dailyIncomeRate(moneyDate, saveSettings.monthlyIncome)
+    : 0;
+  const spendNum = spendTotal.trim() === "" ? null : Number(spendTotal);
+  const lumpNum = lumpSum.trim() === "" ? 0 : Number(lumpSum);
+  const moneyPreview = useMemo(() => {
+    if (spendNum == null || !Number.isFinite(spendNum) || spendNum < 0) {
+      return null;
+    }
+    const lump = Number.isFinite(lumpNum) && lumpNum >= 0 ? lumpNum : 0;
+    const { leftover } = leftoverPool(dayRate, spendNum, 0);
+    const goals = activeSaveGoals(state);
+    const leftoverAlloc =
+      goals.length && leftover !== 0 ? splitPoolByWeight(leftover, goals) : [];
+    let lumpAlloc =
+      goals.length && lump !== 0
+        ? lumpMode === "custom" && lumpGoalId
+          ? splitPoolToOne(lump, lumpGoalId)
+          : splitPoolByWeight(lump, goals)
+        : [];
+    const allocations = mergeAllocations([...leftoverAlloc, ...lumpAlloc]);
+    const pool = leftoverPool(dayRate, spendNum, lump).pool;
+    return { leftover, lump, pool, leftoverAlloc, lumpAlloc, allocations, goals };
+  }, [spendNum, lumpNum, dayRate, state, lumpMode, lumpGoalId]);
+  const spendReady =
+    spendTotal.trim() !== "" &&
+    spendNum != null &&
+    Number.isFinite(spendNum) &&
+    spendNum >= 0;
+
   const tomorrowDate = today ? addDays(today, 1) : "";
 
   async function toggleStarNow(date: string) {
@@ -341,6 +388,16 @@ function EveningPageInner() {
       setError("Tap a number for mood and stress.");
       return;
     }
+    const spend = Number(spendTotal);
+    if (spendTotal.trim() === "" || !Number.isFinite(spend) || spend < 0) {
+      setError("Enter today’s total spend (0 or more).");
+      return;
+    }
+    const lump = lumpSum.trim() === "" ? 0 : Number(lumpSum);
+    if (!Number.isFinite(lump) || lump < 0) {
+      setError("Lump sum must be 0 or more.");
+      return;
+    }
     setBusy(true);
     setError("");
     const snapshot: ClosedSnapshot = {
@@ -360,6 +417,13 @@ function EveningPageInner() {
         oneLine: snapshot.headline,
         expandedJournal: snapshot.summary || undefined,
         photoDataUrl: photoDataUrl || undefined,
+        spendTotal: spend,
+        lumpSum: lump,
+        lumpMode: lump > 0 ? lumpMode : "preset",
+        lumpGoalId:
+          lump > 0 && lumpMode === "custom" && lumpGoalId
+            ? lumpGoalId
+            : undefined,
       });
       setStarPending(false);
       setClosed(snapshot);
@@ -647,10 +711,150 @@ function EveningPageInner() {
           />
         </div>
       </section>
+
+      <section className="panel" aria-label="Money today">
+        <p className="eyebrow">Money today</p>
+        <p className="tiny muted" style={{ marginTop: 0 }}>
+          {formatMoney(saveSettings.monthlyIncome)} on the 1st ·{" "}
+          {formatMoney(dayRate)} credited for this day
+        </p>
+        {activeSaveGoals(state).length > 0 ? (
+          <div className="chip-row" style={{ marginTop: 10 }}>
+            {activeSaveGoals(state).map((g) => {
+              const pct = inboundPercent(g);
+              return (
+                <span
+                  key={g.id}
+                  className={`chip${pct >= 100 ? " selected" : ""}`}
+                  title="Daily inbound preset"
+                >
+                  {g.name}
+                  {pct > 0 ? ` · ${pct}%` : ""}
+                </span>
+              );
+            })}
+          </div>
+        ) : null}
+        <label className="field" style={{ marginTop: 10 }}>
+          <span className="field-label">Total spend</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            value={spendTotal}
+            onChange={(e) => setSpendTotal(e.target.value)}
+            placeholder="0"
+          />
+        </label>
+        <label className="field" style={{ marginTop: 12 }}>
+          <span className="field-label">
+            Lump sum
+            <span className="tiny" style={{ marginLeft: 8, fontWeight: 400 }}>
+              optional one-time
+            </span>
+          </span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            value={lumpSum}
+            onChange={(e) => setLumpSum(e.target.value)}
+            placeholder="Extra to put toward goals"
+          />
+        </label>
+        {lumpNum > 0 && activeSaveGoals(state).length > 0 ? (
+          <>
+            <p className="field-label" style={{ marginTop: 12 }}>
+              One-time goes to
+            </p>
+            <div className="chip-row">
+              <button
+                type="button"
+                className={`chip${lumpMode === "preset" ? " selected" : ""}`}
+                onClick={() => setLumpMode("preset")}
+              >
+                Daily chips
+              </button>
+              <button
+                type="button"
+                className={`chip${lumpMode === "custom" ? " selected" : ""}`}
+                onClick={() => {
+                  setLumpMode("custom");
+                  const first = activeSaveGoals(state)[0];
+                  if (!lumpGoalId && first) setLumpGoalId(first.id);
+                }}
+              >
+                Custom (one area)
+              </button>
+            </div>
+            {lumpMode === "custom" ? (
+              <div className="chip-row" style={{ marginTop: 8 }}>
+                {activeSaveGoals(state).map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className={`chip${lumpGoalId === g.id ? " selected" : ""}`}
+                    onClick={() => setLumpGoalId(g.id)}
+                  >
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </>
+        ) : null}
+        {moneyPreview ? (
+          <div
+            className={`evening-money-preview${
+              moneyPreview.pool < 0 ? " negative" : ""
+            }`}
+          >
+            {moneyPreview.leftover !== 0 ? (
+              <p className="tiny">
+                Daily {moneyPreview.leftover >= 0 ? "leftover" : "over"}{" "}
+                {formatMoney(Math.abs(moneyPreview.leftover))}
+                {moneyPreview.goals.length
+                  ? " → daily inbound chips"
+                  : ""}
+              </p>
+            ) : (
+              <p className="tiny">Daily even — nothing from inbound</p>
+            )}
+            {moneyPreview.lump > 0 ? (
+              <p className="tiny">
+                One-time {formatMoney(moneyPreview.lump)}
+                {lumpMode === "custom" && lumpGoalId
+                  ? ` → ${
+                      moneyPreview.goals.find((g) => g.id === lumpGoalId)
+                        ?.name ?? "goal"
+                    }`
+                  : " → daily chips"}
+              </p>
+            ) : null}
+            {moneyPreview.allocations.length > 0 ? (
+              <ul className="tiny">
+                {moneyPreview.allocations.map((a) => {
+                  const g = moneyPreview.goals.find((x) => x.id === a.goalId);
+                  if (!g) return null;
+                  return (
+                    <li key={a.goalId}>
+                      {g.name}: {a.amount >= 0 ? "+" : ""}
+                      {formatMoney(a.amount)}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
       <PrimaryButton
         onClick={submit}
-        disabled={busy || !oneLine.trim() || !scalesReady}
+        disabled={busy || !oneLine.trim() || !scalesReady || !spendReady}
       >
         {busy ? "Saving…" : isBackfill ? "Add journal entry" : "Close the day"}
       </PrimaryButton>

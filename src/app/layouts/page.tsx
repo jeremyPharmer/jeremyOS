@@ -58,6 +58,9 @@ export default function LayoutsPage() {
           <Link href="/layouts/open-modern" className="layouts-board-link">
             Modern Open samples (15) →
           </Link>
+          <Link href="/layouts/open-unified" className="layouts-board-link">
+            Unified Open remodel →
+          </Link>
           <Link href="/settings" className="layouts-board-link">
             Settings
           </Link>

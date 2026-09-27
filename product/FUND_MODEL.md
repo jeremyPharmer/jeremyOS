@@ -1,9 +1,11 @@
 # Fund model (locked)
 
-Last updated: 2026-08-29  
+Last updated: 2026-09-27  
 Status: **Decision locked** — supersedes three-bucket 50/25/25 and the old “Save into Treat” direction.
 
 **JeremyOS context (2026-08-29):** This ledger remains the locked model for Jeremy’s **personal** incentive / recovery money tools. Under the JeremyOS pivot it is **secondary** to the personal-OS north star (todos, email, podcasts, hub) — not deleted. Implementation polish (RB-006) and Venmo rails (RB-001) are demoted in ranking; do not invent a kill without founder confirmation.
+
+**Save Goals (2026-09-27):** A **separate** discretionary tracker (**RB-037**) — named goals (“Save towards something”), monthly income → daily rate, evening spend/leftover. **Not** a third fund bucket; **not** in Venmo Total; actual money does not move. See § Save Goals below.
 
 ## Mental model
 
@@ -77,8 +79,26 @@ Please review Money + reward-moment flows for:
 
 Handoff detail: `product/UX_HANDOFF_FUND_BUCKETS.md`
 
+## Save Goals (separate from this ledger)
+
+Canonical backlog: **RB-037**. Product name: **Save Goal**. Home empty CTA: **“Save towards something.”**
+
+| Rule | Detail |
+| --- | --- |
+| Job | Track progress toward a named target (gift, trip, holiday) |
+| Relation | **Parallel** to Future / Treat — never merges into `state.fund` |
+| Venmo Total | **Excluded** — Save Goal balances do not affect Total |
+| Money movement | **None** — UI + backend tracking only |
+| Income | Default **$500** credited conceptually on the **1st**; daily rate = `monthlyIncome / daysInMonth` |
+| Evening | Enter **total spend**; `leftover = dailyRate − spend` (+ optional lump sum); allocate to active goals; overspend may pull goals **negative** |
+| Home | Card shows **to go**, paydown, projected **target date** |
+
+Do **not** debit Future or Treat when allocating to a Save Goal. Do **not** confuse with reward-moment **Save for the Future** (skip Treat) — different words, different ledger.
+
 ## Implementation note
 
 App code may still use `future / rebuild / treat` and 50/25/25. Migrate ledger + Money UI + milestone reward screen to this model.
 
 Waiting reclaim: keep a single idempotent ensure-by-date path (`ensureReclaimDay`); call it from end-of-day catch-up **and** evening close.
+
+Save Goals: new `saveGoals` / `saveGoalDays` / `saveGoalSettings` state — keep reclaim ensure and Venmo Total paths untouched.

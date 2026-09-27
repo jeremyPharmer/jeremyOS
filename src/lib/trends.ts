@@ -538,7 +538,7 @@ export const CONDITION_METRICS: {
   color: string;
   axis: ConditionAxis;
 }[] = [
-  { key: "sleepHours", label: "Sleep", color: "#5a9a78", axis: "scale" },
+  // sleepHours hidden from charts for now (still stored on morning rows)
   { key: "sleepQuality", label: "Quality", color: "#7fbf9a", axis: "scale" },
   { key: "mood", label: "Mood", color: "#d4844a", axis: "scale" },
   { key: "energy", label: "Energy", color: "#d4a24a", axis: "scale" },

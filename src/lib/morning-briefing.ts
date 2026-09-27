@@ -100,13 +100,13 @@ export function clampSleepHours(n: number): number {
 }
 
 function feelingBody(scores: BriefingScores): string {
-  const { sleepHours, sleepQuality, mood, energy, stress } = scores;
+  const { sleepQuality, mood, energy, stress } = scores;
   const bits: string[] = [];
 
-  // sleepHours is clock hours (half-hour steps); quality stays 1–10.
-  if (sleepHours >= 7 && sleepQuality >= 6) bits.push("Sleep looks solid");
-  else if (sleepHours <= 5 || sleepQuality <= 4) bits.push("Sleep was thin");
-  else bits.push("Sleep was okay");
+  // Clock hours hidden from Open for now — quality only.
+  if (sleepQuality >= 7) bits.push("Sleep quality looks solid");
+  else if (sleepQuality <= 4) bits.push("Sleep quality was thin");
+  else bits.push("Sleep quality was okay");
 
   if (mood >= 7 && energy >= 7) {
     bits.push("mood and energy are both up");
