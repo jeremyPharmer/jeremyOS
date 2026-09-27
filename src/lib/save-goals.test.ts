@@ -374,45 +374,55 @@ describe("averageSpendLastDays", () => {
 });
 
 describe("ensureElapsedSaveGoalDays", () => {
-  it("auto-credits missed days with full daily inbound", () => {
+  it("does not auto-credit — unapplied leftover rolls instead", () => {
     let state = emptyState();
     state = createSaveGoal(state, {
       name: "Trip",
       targetAmount: 500,
       createdOn: "2026-04-01",
     });
-    // As of Apr 3 → catch up Apr 1 and Apr 2 (not today)
     state = ensureElapsedSaveGoalDays(state, "2026-04-03");
     const closes = (state.saveGoalDays ?? []).filter(
       (d) => (d.kind ?? "close") === "close",
     );
-    expect(closes.map((d) => d.date).sort()).toEqual([
-      "2026-04-01",
-      "2026-04-02",
-    ]);
-    expect(closes.every((d) => d.source === "auto")).toBe(true);
-    expect(closes.every((d) => d.spendTotal === 0)).toBe(true);
-    // two days × 16.67
-    expect(state.saveGoals![0].savedAmount).toBeCloseTo(33.34, 2);
+    expect(closes).toHaveLength(0);
+    expect(state.saveGoals![0].savedAmount).toBe(0);
+    // Apr 1 + Apr 2 rates roll into Apr 3 pool
+    const day3 = leftoverBeforeApply(state, "2026-04-03");
+    expect(day3.carryIn).toBeCloseTo(33.34, 2);
+    expect(day3.inbound).toBeCloseTo(50.01, 2);
   });
 
-  it("does not overwrite a manual approve", () => {
+  it("stops rolling after a day is applied", () => {
     let state = emptyState();
     state = createSaveGoal(state, {
       name: "Trip",
       targetAmount: 500,
       createdOn: "2026-04-01",
     });
-    state = recordSaveGoalDay(state, {
-      date: "2026-04-01",
-      spendTotal: 10,
-      lumpSum: 0,
-      source: "manual",
+    state = applySaveGoalDayTotals(state, { date: "2026-04-01" });
+    expect(state.saveGoals![0].savedAmount).toBeCloseTo(16.67, 2);
+    const day2 = leftoverBeforeApply(state, "2026-04-02");
+    expect(day2.carryIn).toBe(0);
+    expect(day2.inbound).toBeCloseTo(16.67, 2);
+  });
+});
+
+describe("leftoverBeforeApply roll-forward", () => {
+  it("rolls unapplied left into the next day total", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
     });
-    state = ensureSaveGoalDay(state, "2026-04-01");
-    const day = state.saveGoalDays!.find((d) => d.date === "2026-04-01")!;
-    expect(day.source).toBe("manual");
-    expect(day.spendTotal).toBe(10);
+    state = addSaveGoalSpend(state, { date: "2026-04-01", amount: 5 });
+    const d1 = leftoverBeforeApply(state, "2026-04-01");
+    expect(d1.left).toBeCloseTo(11.67, 2);
+    const d2 = leftoverBeforeApply(state, "2026-04-02");
+    expect(d2.carryIn).toBeCloseTo(11.67, 2);
+    expect(d2.inbound).toBeCloseTo(28.34, 2);
   });
 });
 

@@ -36,14 +36,10 @@ import type { NewsHeadline } from "@/lib/news";
 import type { OnThisDayEvent } from "@/lib/on-this-day";
 import {
   activeSaveGoals,
-  dailyIncomeRate,
   formatMoney,
-  inboundPercent,
-  leftoverPool,
-  mergeAllocations,
-  normalizeSaveGoalSettings,
-  splitPoolByWeight,
-  splitPoolToOne,
+  leftoverBeforeApply,
+  listSaveGoalSpendEntries,
+  saveGoalCloseForDate,
 } from "@/lib/save-goals";
 import { completedTodosForUndo, openTodosOn } from "@/lib/todos";
 import type { DailyForecast } from "@/lib/weather";
@@ -120,10 +116,11 @@ function EveningPageInner() {
   const [oneLine, setOneLine] = useState("");
   const [standOut, setStandOut] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
-  const [spendTotal, setSpendTotal] = useState("");
-  const [lumpSum, setLumpSum] = useState("");
-  const [lumpMode, setLumpMode] = useState<"preset" | "custom">("preset");
-  const [lumpGoalId, setLumpGoalId] = useState("");
+  const [applySaveGoals, setApplySaveGoals] = useState(true);
+  const [subtractOpen, setSubtractOpen] = useState(false);
+  const [spendAmount, setSpendAmount] = useState("");
+  const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [starBusy, setStarBusy] = useState(false);
   const [starPending, setStarPending] = useState(false);
@@ -327,37 +324,23 @@ function EveningPageInner() {
     return sevenDayTrendInsight(state, editionClosed.date);
   }, [editionClosed, state, today]);
 
-  const saveSettings = normalizeSaveGoalSettings(state.saveGoalSettings);
   const moneyDate = effectiveDate || today || "";
-  const dayRate = moneyDate
-    ? dailyIncomeRate(moneyDate, saveSettings.monthlyIncome)
-    : 0;
-  const spendNum = spendTotal.trim() === "" ? null : Number(spendTotal);
-  const lumpNum = lumpSum.trim() === "" ? 0 : Number(lumpSum);
-  const moneyPreview = useMemo(() => {
-    if (spendNum == null || !Number.isFinite(spendNum) || spendNum < 0) {
-      return null;
-    }
-    const lump = Number.isFinite(lumpNum) && lumpNum >= 0 ? lumpNum : 0;
-    const { leftover } = leftoverPool(dayRate, spendNum, 0);
-    const goals = activeSaveGoals(state);
-    const leftoverAlloc =
-      goals.length && leftover !== 0 ? splitPoolByWeight(leftover, goals) : [];
-    let lumpAlloc =
-      goals.length && lump !== 0
-        ? lumpMode === "custom" && lumpGoalId
-          ? splitPoolToOne(lump, lumpGoalId)
-          : splitPoolByWeight(lump, goals)
-        : [];
-    const allocations = mergeAllocations([...leftoverAlloc, ...lumpAlloc]);
-    const pool = leftoverPool(dayRate, spendNum, lump).pool;
-    return { leftover, lump, pool, leftoverAlloc, lumpAlloc, allocations, goals };
-  }, [spendNum, lumpNum, dayRate, state, lumpMode, lumpGoalId]);
-  const spendReady =
-    spendTotal.trim() !== "" &&
-    spendNum != null &&
-    Number.isFinite(spendNum) &&
-    spendNum >= 0;
+  const saveGoals = useMemo(() => activeSaveGoals(state), [state]);
+  const dayLedger = useMemo(
+    () =>
+      moneyDate
+        ? leftoverBeforeApply(state, moneyDate)
+        : { base: 0, carryIn: 0, inbound: 0, spend: 0, left: 0 },
+    [state, moneyDate],
+  );
+  const daySpends = useMemo(
+    () => (moneyDate ? listSaveGoalSpendEntries(state, moneyDate) : []),
+    [state, moneyDate],
+  );
+  const dayApplied = useMemo(
+    () => (moneyDate ? Boolean(saveGoalCloseForDate(state, moneyDate)) : false),
+    [state, moneyDate],
+  );
 
   const tomorrowDate = today ? addDays(today, 1) : "";
 
@@ -382,20 +365,61 @@ function EveningPageInner() {
     setStarPending((prev) => !prev);
   }
 
+  async function addEveningSpend() {
+    const amount = Number(spendAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Enter an amount greater than 0.");
+      return;
+    }
+    setSaveBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "addSpend",
+        date: moneyDate,
+        amount,
+      });
+      setSpendAmount("");
+      setSubtractOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not subtract");
+    } finally {
+      setSaveBusy(false);
+    }
+  }
+
+  async function removeEveningSpend(id: string) {
+    setSaveBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", { action: "removeSpend", id });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not remove");
+    } finally {
+      setSaveBusy(false);
+    }
+  }
+
+  async function applyEveningTotals() {
+    setSaveBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "applyTotals",
+        date: moneyDate,
+      });
+      setApplySaveGoals(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not apply");
+    } finally {
+      setSaveBusy(false);
+    }
+  }
+
   async function submit() {
     if (!oneLine.trim() || !effectiveDate) return;
     if (mood == null || stress == null) {
       setError("Tap a number for mood and stress.");
-      return;
-    }
-    const spend = Number(spendTotal);
-    if (spendTotal.trim() === "" || !Number.isFinite(spend) || spend < 0) {
-      setError("Enter today’s total spend (0 or more).");
-      return;
-    }
-    const lump = lumpSum.trim() === "" ? 0 : Number(lumpSum);
-    if (!Number.isFinite(lump) || lump < 0) {
-      setError("Lump sum must be 0 or more.");
       return;
     }
     setBusy(true);
@@ -409,6 +433,8 @@ function EveningPageInner() {
       photoDataUrl,
     };
     const shouldStarAfterClose = starPending && !persistedStarred;
+    const shouldApply =
+      saveGoals.length > 0 && applySaveGoals && !dayApplied;
     try {
       await post("/api/evening", {
         date: effectiveDate,
@@ -417,13 +443,7 @@ function EveningPageInner() {
         oneLine: snapshot.headline,
         expandedJournal: snapshot.summary || undefined,
         photoDataUrl: photoDataUrl || undefined,
-        spendTotal: spend,
-        lumpSum: lump,
-        lumpMode: lump > 0 ? lumpMode : "preset",
-        lumpGoalId:
-          lump > 0 && lumpMode === "custom" && lumpGoalId
-            ? lumpGoalId
-            : undefined,
+        applySaveGoals: shouldApply,
       });
       setStarPending(false);
       setClosed(snapshot);
@@ -712,149 +732,149 @@ function EveningPageInner() {
         </div>
       </section>
 
-      <section className="panel" aria-label="Money today">
-        <p className="eyebrow">Money today</p>
-        <p className="tiny muted" style={{ marginTop: 0 }}>
-          {formatMoney(saveSettings.monthlyIncome)} on the 1st ·{" "}
-          {formatMoney(dayRate)} credited for this day
-        </p>
-        {activeSaveGoals(state).length > 0 ? (
-          <div className="chip-row" style={{ marginTop: 10 }}>
-            {activeSaveGoals(state).map((g) => {
-              const pct = inboundPercent(g);
-              return (
-                <span
-                  key={g.id}
-                  className={`chip${pct >= 100 ? " selected" : ""}`}
-                  title="Daily inbound preset"
-                >
-                  {g.name}
-                  {pct > 0 ? ` · ${pct}%` : ""}
-                </span>
-              );
-            })}
-          </div>
-        ) : null}
-        <label className="field" style={{ marginTop: 10 }}>
-          <span className="field-label">Total spend</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
-            value={spendTotal}
-            onChange={(e) => setSpendTotal(e.target.value)}
-            placeholder="0"
-          />
-        </label>
-        <label className="field" style={{ marginTop: 12 }}>
-          <span className="field-label">
-            Lump sum
-            <span className="tiny" style={{ marginLeft: 8, fontWeight: 400 }}>
-              optional one-time
-            </span>
-          </span>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
-            value={lumpSum}
-            onChange={(e) => setLumpSum(e.target.value)}
-            placeholder="Extra to put toward goals"
-          />
-        </label>
-        {lumpNum > 0 && activeSaveGoals(state).length > 0 ? (
-          <>
-            <p className="field-label" style={{ marginTop: 12 }}>
-              One-time goes to
-            </p>
-            <div className="chip-row">
-              <button
-                type="button"
-                className={`chip${lumpMode === "preset" ? " selected" : ""}`}
-                onClick={() => setLumpMode("preset")}
-              >
-                Daily chips
-              </button>
-              <button
-                type="button"
-                className={`chip${lumpMode === "custom" ? " selected" : ""}`}
-                onClick={() => {
-                  setLumpMode("custom");
-                  const first = activeSaveGoals(state)[0];
-                  if (!lumpGoalId && first) setLumpGoalId(first.id);
-                }}
-              >
-                Custom (one area)
-              </button>
+      {saveGoals.length > 0 ? (
+        <section className="panel" aria-label="Save ledger">
+          <p className="eyebrow">Save ledger</p>
+          <div className="save-goal-glance-head" style={{ marginTop: 4 }}>
+            <div>
+              <p className="tiny muted" style={{ margin: 0 }}>
+                Day total {formatMoney(dayLedger.inbound)}
+                {dayLedger.carryIn !== 0 ? (
+                  <>
+                    {" "}
+                    · {dayLedger.carryIn > 0 ? "+" : ""}
+                    {formatMoney(dayLedger.carryIn)} rolled
+                  </>
+                ) : null}
+              </p>
             </div>
-            {lumpMode === "custom" ? (
-              <div className="chip-row" style={{ marginTop: 8 }}>
-                {activeSaveGoals(state).map((g) => (
-                  <button
-                    key={g.id}
-                    type="button"
-                    className={`chip${lumpGoalId === g.id ? " selected" : ""}`}
-                    onClick={() => setLumpGoalId(g.id)}
-                  >
-                    {g.name}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </>
-        ) : null}
-        {moneyPreview ? (
-          <div
-            className={`evening-money-preview${
-              moneyPreview.pool < 0 ? " negative" : ""
-            }`}
-          >
-            {moneyPreview.leftover !== 0 ? (
-              <p className="tiny">
-                Daily {moneyPreview.leftover >= 0 ? "leftover" : "over"}{" "}
-                {formatMoney(Math.abs(moneyPreview.leftover))}
-                {moneyPreview.goals.length
-                  ? " → daily inbound chips"
-                  : ""}
-              </p>
-            ) : (
-              <p className="tiny">Daily even — nothing from inbound</p>
-            )}
-            {moneyPreview.lump > 0 ? (
-              <p className="tiny">
-                One-time {formatMoney(moneyPreview.lump)}
-                {lumpMode === "custom" && lumpGoalId
-                  ? ` → ${
-                      moneyPreview.goals.find((g) => g.id === lumpGoalId)
-                        ?.name ?? "goal"
-                    }`
-                  : " → daily chips"}
-              </p>
-            ) : null}
-            {moneyPreview.allocations.length > 0 ? (
-              <ul className="tiny">
-                {moneyPreview.allocations.map((a) => {
-                  const g = moneyPreview.goals.find((x) => x.id === a.goalId);
-                  if (!g) return null;
-                  return (
-                    <li key={a.goalId}>
-                      {g.name}: {a.amount >= 0 ? "+" : ""}
-                      {formatMoney(a.amount)}
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
+            <p className="save-goal-inbound-figure" aria-label="Left today">
+              {formatMoney(dayLedger.left)}
+            </p>
           </div>
-        ) : null}
-      </section>
+
+          {subtractOpen ? (
+            <div className="save-goal-create" style={{ marginTop: 10 }}>
+              <label className="field">
+                <span className="field-label">Subtract</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={spendAmount}
+                  onChange={(e) => setSpendAmount(e.target.value)}
+                  placeholder="5.00"
+                  autoFocus
+                />
+              </label>
+              <div className="save-goal-create-actions">
+                <PrimaryButton
+                  onClick={() => void addEveningSpend()}
+                  disabled={saveBusy}
+                >
+                  {saveBusy ? "Saving…" : "Subtract"}
+                </PrimaryButton>
+                <SecondaryButton
+                  onClick={() => {
+                    setSubtractOpen(false);
+                    setError("");
+                  }}
+                  disabled={saveBusy}
+                >
+                  Cancel
+                </SecondaryButton>
+              </div>
+            </div>
+          ) : (
+            <div className="save-goal-glance-actions" style={{ marginTop: 10 }}>
+              <SecondaryButton
+                onClick={() => {
+                  setError("");
+                  setSubtractOpen(true);
+                }}
+                disabled={saveBusy}
+              >
+                Subtract
+              </SecondaryButton>
+              <PrimaryButton
+                onClick={() => void applyEveningTotals()}
+                disabled={saveBusy || dayApplied}
+              >
+                {saveBusy
+                  ? "Saving…"
+                  : dayApplied
+                    ? "Applied"
+                    : "Apply totals"}
+              </PrimaryButton>
+            </div>
+          )}
+
+          <label className="check-row" style={{ marginTop: 12 }}>
+            <input
+              type="checkbox"
+              checked={applySaveGoals && !dayApplied}
+              disabled={dayApplied}
+              onChange={(e) => setApplySaveGoals(e.target.checked)}
+            />
+            <span>
+              {dayApplied
+                ? "Leftover already applied to goals"
+                : "Apply leftover when I close the day"}
+            </span>
+          </label>
+          <p className="tiny muted" style={{ margin: "6px 0 0" }}>
+            Skip apply and leftover rolls into tomorrow.
+          </p>
+
+          {daySpends.length > 0 || dayApplied ? (
+            <div className="save-goal-home-ledger" style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                className="save-goal-log-toggle"
+                aria-expanded={ledgerOpen}
+                onClick={() => setLedgerOpen((v) => !v)}
+              >
+                <span aria-hidden="true">{ledgerOpen ? "▾" : "▸"}</span>
+                Ledger ({daySpends.length + (dayApplied ? 1 : 0)})
+              </button>
+              {ledgerOpen ? (
+                <div className="save-goal-ledger-rows home-ledger-body">
+                  <div className="save-goal-ledger-row">
+                    <span>Inbound</span>
+                    <span>{formatMoney(dayLedger.inbound)}</span>
+                  </div>
+                  {daySpends.map((e) => (
+                    <div key={e.id} className="save-goal-ledger-row spend">
+                      <span>Spend</span>
+                      <span className="save-goal-ledger-spend-val">
+                        −{formatMoney(e.amount)}
+                        <button
+                          type="button"
+                          className="save-goal-add-link"
+                          disabled={saveBusy}
+                          onClick={() => void removeEveningSpend(e.id)}
+                        >
+                          Undo
+                        </button>
+                      </span>
+                    </div>
+                  ))}
+                  <div className="save-goal-ledger-row leftover">
+                    <span>Left</span>
+                    <span>{formatMoney(dayLedger.left)}</span>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
       <PrimaryButton
         onClick={submit}
-        disabled={busy || !oneLine.trim() || !scalesReady || !spendReady}
+        disabled={busy || !oneLine.trim() || !scalesReady}
       >
         {busy ? "Saving…" : isBackfill ? "Add journal entry" : "Close the day"}
       </PrimaryButton>

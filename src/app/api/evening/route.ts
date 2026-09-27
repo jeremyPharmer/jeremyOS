@@ -8,7 +8,11 @@ import { pendingCashableMoments } from "@/lib/fund";
 import { applyJournalProseEdit } from "@/lib/journal";
 import { applyEveningSideEffects } from "@/lib/mutations";
 import { savePhotoDataUrl } from "@/lib/photos";
-import { recordSaveGoalDay } from "@/lib/save-goals";
+import {
+  activeSaveGoals,
+  applySaveGoalDayTotals,
+  recordSaveGoalDay,
+} from "@/lib/save-goals";
 import { updateState } from "@/lib/store";
 import type { EveningCheckIn, SaveGoalAllocation } from "@/lib/types";
 
@@ -84,21 +88,32 @@ export async function POST(req: Request) {
         photoId !== undefined ? photoId : undefined,
       );
 
-      // Save Goals day close (RB-037) — optional; does not block journal/reclaim.
-      // When spendTotal is omitted, skip (legacy clients / no money step).
-      if (body.spendTotal !== undefined && body.spendTotal !== null) {
-        const spendTotal = Number(body.spendTotal);
-        if (!Number.isFinite(spendTotal) || spendTotal < 0) {
-          const err = new Error("spendTotal must be ≥ 0");
+      // Save Goals (RB-037) — optional; does not block journal/reclaim.
+      // Prefer ledger Apply totals; legacy spendTotal path still supported.
+      const lumpSum =
+        body.lumpSum !== undefined && body.lumpSum !== null
+          ? Number(body.lumpSum)
+          : 0;
+      if (body.lumpSum !== undefined && body.lumpSum !== null) {
+        if (!Number.isFinite(lumpSum) || lumpSum < 0) {
+          const err = new Error("lumpSum must be ≥ 0");
           (err as Error & { status: number }).status = 400;
           throw err;
         }
-        const lumpSum =
-          body.lumpSum !== undefined && body.lumpSum !== null
-            ? Number(body.lumpSum)
-            : 0;
-        if (!Number.isFinite(lumpSum) || lumpSum < 0) {
-          const err = new Error("lumpSum must be ≥ 0");
+      }
+
+      if (
+        activeSaveGoals(next).length > 0 &&
+        (body.applySaveGoals === true || body.applySaveGoals === "true")
+      ) {
+        next = applySaveGoalDayTotals(next, {
+          date,
+          lumpSum: Number.isFinite(lumpSum) ? lumpSum : 0,
+        });
+      } else if (body.spendTotal !== undefined && body.spendTotal !== null) {
+        const spendTotal = Number(body.spendTotal);
+        if (!Number.isFinite(spendTotal) || spendTotal < 0) {
+          const err = new Error("spendTotal must be ≥ 0");
           (err as Error & { status: number }).status = 400;
           throw err;
         }
@@ -115,7 +130,7 @@ export async function POST(req: Request) {
         next = recordSaveGoalDay(next, {
           date,
           spendTotal,
-          lumpSum,
+          lumpSum: Number.isFinite(lumpSum) ? lumpSum : 0,
           lumpMode: body.lumpMode === "custom" ? "custom" : "preset",
           lumpGoalId:
             body.lumpGoalId !== undefined && body.lumpGoalId !== null

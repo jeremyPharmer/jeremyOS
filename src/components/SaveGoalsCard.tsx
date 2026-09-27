@@ -235,7 +235,7 @@ function DailyLedger({
       <p className="eyebrow save-goal-ledger-title">Daily</p>
       <DailyLedgerDay
         label="Today"
-        inbound={todayClose?.dailyIncome ?? rate}
+        inbound={todayClose?.dailyIncome ?? running.inbound}
         spend={spendShown}
         leftover={leftShown}
         lump={todayClose?.lumpSum}
@@ -598,7 +598,9 @@ function HomeSaveGoalsGlance() {
 
   const goals = useMemo(() => activeSaveGoals(state), [state]);
   const day = useMemo(() => {
-    if (!today) return { inbound: 0, spend: 0, left: 0 };
+    if (!today) {
+      return { base: 0, carryIn: 0, inbound: 0, spend: 0, left: 0 };
+    }
     return leftoverBeforeApply(state, today);
   }, [state, today]);
   const spends = useMemo(
@@ -673,6 +675,13 @@ function HomeSaveGoalsGlance() {
           <p className="home-card-kicker save-goal-glance-kicker">Save goals</p>
           <p className="tiny muted save-goal-day-total-label">
             Day total {formatMoney(day.inbound)}
+            {day.carryIn !== 0 ? (
+              <>
+                {" "}
+                · {day.carryIn > 0 ? "+" : ""}
+                {formatMoney(day.carryIn)} rolled
+              </>
+            ) : null}
           </p>
         </div>
         <p className="save-goal-inbound-figure" aria-label="Left today">

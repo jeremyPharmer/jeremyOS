@@ -417,15 +417,65 @@ export function spendTotalForDate(state: RebuildState, date: string): number {
   );
 }
 
-/** Day total (inbound) minus running spend entries. */
+function hasSaveGoalClose(state: RebuildState, date: string): boolean {
+  return (state.saveGoalDays ?? []).some(
+    (d) => d.date === date && (d.kind ?? "close") === "close",
+  );
+}
+
+/**
+ * Day pool before Apply: base daily rate + leftover rolled from prior
+ * unapplied days − today’s spend entries.
+ * Unapplied days do **not** credit goals; their left carries forward.
+ */
 export function leftoverBeforeApply(
   state: RebuildState,
   date: string,
-): { inbound: number; spend: number; left: number } {
+): {
+  base: number;
+  carryIn: number;
+  inbound: number;
+  spend: number;
+  left: number;
+} {
   const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
-  const inbound = dailyIncomeRate(date, settings.monthlyIncome);
-  const spend = spendTotalForDate(state, date);
-  return { inbound, spend, left: round2(inbound - spend) };
+  if (!DATE_RE.test(date)) {
+    return { base: 0, carryIn: 0, inbound: 0, spend: 0, left: 0 };
+  }
+  const start = saveGoalAccrualStart(state, date);
+  if (date < start) {
+    const base = dailyIncomeRate(date, settings.monthlyIncome);
+    const spend = spendTotalForDate(state, date);
+    return {
+      base,
+      carryIn: 0,
+      inbound: base,
+      spend,
+      left: round2(base - spend),
+    };
+  }
+
+  let carry = 0;
+  let result = {
+    base: 0,
+    carryIn: 0,
+    inbound: 0,
+    spend: 0,
+    left: 0,
+  };
+  for (const d of datesInRange(start, date)) {
+    const base = dailyIncomeRate(d, settings.monthlyIncome);
+    const inbound = round2(base + carry);
+    const spend = spendTotalForDate(state, d);
+    const left = round2(inbound - spend);
+    if (d === date) {
+      result = { base, carryIn: carry, inbound, spend, left };
+      break;
+    }
+    // Applied → spent into goals; nothing rolls. Otherwise left carries on.
+    carry = hasSaveGoalClose(state, d) ? 0 : left;
+  }
+  return result;
 }
 
 export function addSaveGoalSpend(
@@ -473,8 +523,9 @@ export function removeSaveGoalSpend(
 }
 
 /**
- * Apply today’s running spend: leftover (inbound − spends) is allocated by
- * preset inbound % to active goals. Idempotent replace of that date’s close.
+ * Apply today’s running ledger: leftover (day total − spends) is allocated by
+ * preset inbound % to active goals. Stops roll-forward for this date.
+ * Idempotent replace of that date’s close.
  */
 export function applySaveGoalDayTotals(
   state: RebuildState,
@@ -766,9 +817,9 @@ export function recordSaveGoalDay(
     throw Object.assign(new Error("lumpSum invalid"), { status: 400 });
   }
 
-  const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
-  const dailyIncome = dailyIncomeRate(input.date, settings.monthlyIncome);
-  const { leftover } = leftoverPool(dailyIncome, spendTotal, 0);
+  // Day total includes rolled leftover from unapplied prior days
+  const { inbound: dailyIncome } = leftoverBeforeApply(state, input.date);
+  const leftover = round2(dailyIncome - spendTotal);
   const goals = activeSaveGoals(state);
 
   let allocations: SaveGoalAllocation[] = [];
@@ -820,31 +871,17 @@ export function recordSaveGoalDay(
 }
 
 /**
- * If a close row is missing for `date`, apply running spend entries (or 0)
- * and credit leftover via preset chips. Idempotent — does not replace a
- * manual Apply totals / approve.
+ * No-op: unapplied days keep their leftover in the rolling pool instead of
+ * auto-crediting goals. Kept for callers / API compatibility.
  */
 export function ensureSaveGoalDay(
   state: RebuildState,
-  date: string,
+  _date: string,
 ): RebuildState {
-  if (!DATE_RE.test(date)) return state;
-  if (!activeSaveGoals(state).length) return state;
-  const hasClose = (state.saveGoalDays ?? []).some(
-    (d) => d.date === date && (d.kind ?? "close") === "close",
-  );
-  if (hasClose) return state;
-  const spend = spendTotalForDate(state, date);
-  return recordSaveGoalDay(state, {
-    date,
-    spendTotal: spend,
-    lumpSum: 0,
-    lumpMode: "preset",
-    source: "auto",
-  });
+  return state;
 }
 
-/** Earliest date to start auto-accrual (first goal createdOn, else today). */
+/** Earliest date to start accrual / roll chain (first goal createdOn, else today). */
 export function saveGoalAccrualStart(state: RebuildState, today: string): string {
   const created = (state.saveGoals ?? [])
     .map((g) => g.createdOn)
@@ -855,24 +892,14 @@ export function saveGoalAccrualStart(state: RebuildState, today: string): string
 }
 
 /**
- * Catch up ended calendar days without an approve — full daily inbound
- * rolls in via preset chips (same spirit as reclaim end-of-day accrual).
+ * Unapplied days roll leftover forward (see leftoverBeforeApply) — no
+ * auto-apply into goals. Kept as a no-op for /api/state callers.
  */
 export function ensureElapsedSaveGoalDays(
   state: RebuildState,
-  asOfDate: string,
+  _asOfDate: string,
 ): RebuildState {
-  if (!activeSaveGoals(state).length) return state;
-  if (!DATE_RE.test(asOfDate)) return state;
-  const lastEnded = addDays(asOfDate, -1);
-  const start = saveGoalAccrualStart(state, asOfDate);
-  if (lastEnded < start) return state;
-
-  let next = state;
-  for (const date of datesInRange(start, lastEnded)) {
-    next = ensureSaveGoalDay(next, date);
-  }
-  return next;
+  return state;
 }
 
 export type ApplySaveGoalAdjustmentInput = {
