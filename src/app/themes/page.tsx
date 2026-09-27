@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   featuredThemes,
-  rethinkThemes,
   THEMES,
   type ThemeId,
 } from "@/lib/themes";
@@ -89,90 +88,6 @@ const ROLE_COLORS: Partial<Record<ThemeId, Record<RoleKey, string>>> = {
     accent2: "#c98a4a",
     good: "#4a9a78",
     text: "#2a2e35",
-  },
-  "mets-classic": {
-    bg: "#e8eef8",
-    accent: "#002d72",
-    accent2: "#ff5910",
-    good: "#c5e063",
-    text: "#002d72",
-  },
-  "zion-peak": {
-    bg: "#f7f9fc",
-    accent: "#f0c43a",
-    accent2: "#f5d266",
-    good: "#5a9e8a",
-    text: "#1a2744",
-  },
-  "briefing-desk": {
-    bg: "#e6e8ee",
-    accent: "#3b6fd4",
-    accent2: "#5b8ae0",
-    good: "#3d9a78",
-    text: "#1c2430",
-  },
-  "shea-night": {
-    bg: "#0a1220",
-    accent: "#ff5910",
-    accent2: "#ff7a3d",
-    good: "#c5e063",
-    text: "#e8eef8",
-  },
-  "pitch-side": {
-    bg: "#eaf3eb",
-    accent: "#1f6b45",
-    accent2: "#3d8f62",
-    good: "#2f8f5c",
-    text: "#163828",
-  },
-  "iron-hour": {
-    bg: "#121418",
-    accent: "#c47a4a",
-    accent2: "#d49266",
-    good: "#7fbf9a",
-    text: "#ebe6df",
-  },
-  "five-year-paper": {
-    bg: "#f3eee3",
-    accent: "#4a6fa5",
-    accent2: "#6a8cbc",
-    good: "#6a9e7b",
-    text: "#2a2926",
-  },
-  "treat-ledger": {
-    bg: "#0c1814",
-    accent: "#c9a227",
-    accent2: "#dbb84a",
-    good: "#5fbf9a",
-    text: "#e8f4ec",
-  },
-  "dawn-ritual": {
-    bg: "#fff1e4",
-    accent: "#e08a4a",
-    accent2: "#6a9bb8",
-    good: "#6a9e7b",
-    text: "#3a2a1e",
-  },
-  "wind-down": {
-    bg: "#161a24",
-    accent: "#d4a06a",
-    accent2: "#e0b488",
-    good: "#7a9e9a",
-    text: "#e8e4dc",
-  },
-  "kitchen-herb": {
-    bg: "#f0ebe2",
-    accent: "#4f7a52",
-    accent2: "#c4a574",
-    good: "#4f7a52",
-    text: "#2e2a22",
-  },
-  "locker-chalk": {
-    bg: "#e2eeec",
-    accent: "#1f6f6a",
-    accent2: "#3d9490",
-    good: "#2f8f7a",
-    text: "#1a3331",
   },
 };
 
@@ -273,17 +188,16 @@ function PaletteCard({
 
 export default function ThemesPage() {
   const { theme, setTheme } = useTheme();
-  const rethink = rethinkThemes();
-  const current = featuredThemes();
+  const options = featuredThemes();
 
   return (
     <main className="page themes-board">
       <header className="themes-board-header">
-        <p className="eyebrow">Modern rethink · mobile board</p>
+        <p className="eyebrow">Appearance</p>
         <h1>Color palettes</h1>
         <p className="muted">
-          Ten fresh directions — tap any card to restyle the whole OS live.
-          Scroll the current favorites below if you want to compare.
+          Ten modern directions — tap any card to restyle the whole OS live.
+          Same set as Settings → Appearance.
         </p>
         <div className="themes-board-links">
           <Link href="/" className="themes-board-link">
@@ -298,14 +212,8 @@ export default function ThemesPage() {
       <LivePreview />
 
       <section className="themes-board-section">
-        <h2>Rethink options</h2>
-        <p className="muted themes-board-core">
-          Wide variety on purpose: product cyan, acid editorial, nordic cobalt,
-          olive quiet, coral slate, mint night, sandstone teal, midnight lime,
-          porcelain pine, copper fog.
-        </p>
         <div className="palette-grid">
-          {rethink.map((option, index) => (
+          {options.map((option, index) => (
             <PaletteCard
               key={option.id}
               id={option.id}
@@ -316,28 +224,6 @@ export default function ThemesPage() {
               selected={theme === option.id}
               onSelect={() => setTheme(option.id)}
               index={index}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section className="themes-board-section">
-        <h2>Current board</h2>
-        <p className="muted themes-board-core">
-          Mets / Zion, briefing, training, journal, fund, morning/evening —
-          still here for side-by-side.
-        </p>
-        <div className="palette-grid">
-          {current.map((option) => (
-            <PaletteCard
-              key={option.id}
-              id={option.id}
-              label={option.label}
-              description={option.description}
-              layoutHint={option.layoutHint}
-              layout={option.layout}
-              selected={theme === option.id}
-              onSelect={() => setTheme(option.id)}
             />
           ))}
         </div>

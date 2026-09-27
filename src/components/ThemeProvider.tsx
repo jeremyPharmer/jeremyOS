@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  DEFAULT_THEME_ID,
   isThemeId,
   THEME_STORAGE_KEY,
   themeLayout,
@@ -31,7 +32,7 @@ function applyTheme(id: ThemeId) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeId>("mets-classic");
+  const [theme, setThemeState] = useState<ThemeId>(DEFAULT_THEME_ID);
 
   useEffect(() => {
     try {
@@ -44,7 +45,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
-    applyTheme("mets-classic");
+    applyTheme(DEFAULT_THEME_ID);
   }, []);
 
   const setTheme = useCallback((id: ThemeId) => {

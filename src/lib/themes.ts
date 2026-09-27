@@ -68,24 +68,11 @@ export type ThemeOption = {
   featured?: boolean;
 };
 
-/** Curated Jeremy-personal themes (12) for the palette board. */
-export const FEATURED_THEME_IDS: ThemeId[] = [
-  "mets-classic",
-  "zion-peak",
-  "briefing-desk",
-  "shea-night",
-  "pitch-side",
-  "iron-hour",
-  "five-year-paper",
-  "treat-ledger",
-  "dawn-ritual",
-  "wind-down",
-  "kitchen-herb",
-  "locker-chalk",
-];
+/** Default theme when nothing is stored. */
+export const DEFAULT_THEME_ID: ThemeId = "signal-ink";
 
-/** Modern rethink proposals — wide variety for mobile review. */
-export const RETHINK_THEME_IDS: ThemeId[] = [
+/** Themes shown in Settings + palette board (the active 10). */
+export const FEATURED_THEME_IDS: ThemeId[] = [
   "signal-ink",
   "chartreuse-cut",
   "nordic-cobalt",
@@ -97,6 +84,9 @@ export const RETHINK_THEME_IDS: ThemeId[] = [
   "porcelain-pine",
   "copper-fog",
 ];
+
+/** @deprecated Use FEATURED_THEME_IDS — kept as an alias for older imports. */
+export const RETHINK_THEME_IDS: ThemeId[] = FEATURED_THEME_IDS;
 
 export const THEMES: ThemeOption[] = [
   // ── Modern rethink (2026) ──
@@ -197,7 +187,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Stadium energy — Home reads like a game-day briefing.",
     layout: "stadium",
     swatches: ["#e8eef8", "#002d72", "#ff5910"],
-    featured: true,
   },
   {
     id: "zion-peak",
@@ -206,7 +195,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Open-sky day — airy gaps, adventure-forward chrome.",
     layout: "stadium",
     swatches: ["#f7f9fc", "#f0c43a", "#1a2744"],
-    featured: true,
   },
   {
     id: "briefing-desk",
@@ -215,7 +203,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "EA command center — tight stack, todos & plan first.",
     layout: "briefing",
     swatches: ["#eceef2", "#1c2430", "#3b6fd4"],
-    featured: true,
   },
   {
     id: "shea-night",
@@ -224,7 +211,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "After-dark Mets — Journey & evening check-in feel lit.",
     layout: "stadium",
     swatches: ["#0c1424", "#ff5910", "#7eb6ff"],
-    featured: true,
   },
   {
     id: "pitch-side",
@@ -233,7 +219,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Match-day calm — Move hub + week plan front and center.",
     layout: "athletic",
     swatches: ["#eef5ef", "#1f6b45", "#c8d9c4"],
-    featured: true,
   },
   {
     id: "iron-hour",
@@ -242,7 +227,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Training board — compact cards, workout PRs pop.",
     layout: "athletic",
     swatches: ["#16181c", "#c47a4a", "#9aa3ad"],
-    featured: true,
   },
   {
     id: "five-year-paper",
@@ -251,7 +235,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Journal paper — soft radius, headline-first reading.",
     layout: "paper",
     swatches: ["#f7f3ea", "#2a2926", "#4a6fa5"],
-    featured: true,
   },
   {
     id: "treat-ledger",
@@ -260,7 +243,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Money honesty — Future vs Treat Yourself at a glance.",
     layout: "ledger",
     swatches: ["#0f1f1a", "#c9a227", "#5fbf9a"],
-    featured: true,
   },
   {
     id: "dawn-ritual",
@@ -269,7 +251,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Morning start — mood ritual as the hero, gentle pace.",
     layout: "ritual",
     swatches: ["#fff4ea", "#e08a4a", "#6a9bb8"],
-    featured: true,
   },
   {
     id: "wind-down",
@@ -278,7 +259,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Evening close — low glare, journal + feelings elevated.",
     layout: "ritual",
     swatches: ["#1a1e28", "#d4a06a", "#8a96a8"],
-    featured: true,
   },
   {
     id: "kitchen-herb",
@@ -287,7 +267,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Recipe studio — softer panels, food & week plan friendly.",
     layout: "studio",
     swatches: ["#f4efe6", "#4f7a52", "#c4a574"],
-    featured: true,
   },
   {
     id: "locker-chalk",
@@ -296,7 +275,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Athletic OS — Move + entertainment as twin pillars.",
     layout: "athletic",
     swatches: ["#e8f2f1", "#1f6f6a", "#dfe9e7"],
-    featured: true,
   },
   // ── Archive (still selectable if already saved) ──
   {
@@ -482,7 +460,7 @@ export function themeLayout(id: ThemeId): LayoutId {
 }
 
 export function themeMetaColor(id: ThemeId): string {
-  return getTheme(id)?.swatches[0] ?? "#e8eef8";
+  return getTheme(id)?.swatches[0] ?? "#f4f6f8";
 }
 
 export function featuredThemes(): ThemeOption[] {
