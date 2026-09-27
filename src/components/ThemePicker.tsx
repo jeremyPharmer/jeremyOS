@@ -12,8 +12,7 @@ export function ThemePicker() {
     <section className="panel theme-picker">
       <p className="eyebrow">Appearance</p>
       <p className="muted" style={{ marginTop: 0, lineHeight: 1.45 }}>
-        Color palettes for your OS — Mets, Zion, briefing, training, journal,
-        fund, morning/evening.{" "}
+        Ten modern palettes for JeremyOS.{" "}
         <Link href="/themes" style={{ color: "var(--accent)", fontWeight: 600 }}>
           Palette board
         </Link>

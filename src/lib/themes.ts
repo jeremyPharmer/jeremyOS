@@ -44,7 +44,17 @@ export type ThemeId =
   | "dawn-ritual"
   | "wind-down"
   | "kitchen-herb"
-  | "locker-chalk";
+  | "locker-chalk"
+  | "signal-ink"
+  | "chartreuse-cut"
+  | "nordic-cobalt"
+  | "olive-archive"
+  | "slate-coral"
+  | "mint-ledger"
+  | "sandstone-studio"
+  | "midnight-signal"
+  | "porcelain-pine"
+  | "copper-fog";
 
 export type ThemeOption = {
   id: ThemeId;
@@ -58,23 +68,118 @@ export type ThemeOption = {
   featured?: boolean;
 };
 
-/** Curated Jeremy-personal themes (12) for the palette board. */
+/** Default theme when nothing is stored. */
+export const DEFAULT_THEME_ID: ThemeId = "signal-ink";
+
+/** Themes shown in Settings + palette board (the active 10). */
 export const FEATURED_THEME_IDS: ThemeId[] = [
-  "mets-classic",
-  "zion-peak",
-  "briefing-desk",
-  "shea-night",
-  "pitch-side",
-  "iron-hour",
-  "five-year-paper",
-  "treat-ledger",
-  "dawn-ritual",
-  "wind-down",
-  "kitchen-herb",
-  "locker-chalk",
+  "signal-ink",
+  "chartreuse-cut",
+  "nordic-cobalt",
+  "olive-archive",
+  "slate-coral",
+  "mint-ledger",
+  "sandstone-studio",
+  "midnight-signal",
+  "porcelain-pine",
+  "copper-fog",
 ];
 
+/** @deprecated Use FEATURED_THEME_IDS — kept as an alias for older imports. */
+export const RETHINK_THEME_IDS: ThemeId[] = FEATURED_THEME_IDS;
+
 export const THEMES: ThemeOption[] = [
+  // ── Modern rethink (2026) ──
+  {
+    id: "signal-ink",
+    label: "Signal Ink",
+    description: "Porcelain + ink + electric cyan",
+    layoutHint: "Product OS — crisp chrome, todos read as signals.",
+    layout: "briefing",
+    swatches: ["#f4f6f8", "#0b1220", "#00b3c7"],
+    featured: true,
+  },
+  {
+    id: "chartreuse-cut",
+    label: "Chartreuse Cut",
+    description: "Bone white with acid green cut",
+    layoutHint: "Editorial edge — headlines bite, actions glow.",
+    layout: "studio",
+    swatches: ["#f7f5ef", "#141414", "#c6e000"],
+    featured: true,
+  },
+  {
+    id: "nordic-cobalt",
+    label: "Nordic Cobalt",
+    description: "Cool stone with deep cobalt",
+    layoutHint: "Scandi calm — clean stack, focus without noise.",
+    layout: "briefing",
+    swatches: ["#eef1f4", "#1e3a8a", "#64748b"],
+    featured: true,
+  },
+  {
+    id: "olive-archive",
+    label: "Olive Archive",
+    description: "Warm olive with bone + charcoal",
+    layoutHint: "Quiet utility — grounded day, soft surfaces.",
+    layout: "cozy",
+    swatches: ["#f3f0e7", "#4a5240", "#1f1f1c"],
+    featured: true,
+  },
+  {
+    id: "slate-coral",
+    label: "Slate Coral",
+    description: "Cool slate with coral signal",
+    layoutHint: "Modern sports desk — energy without game-day orange.",
+    layout: "athletic",
+    swatches: ["#e9eef2", "#ff6b5a", "#334155"],
+    featured: true,
+  },
+  {
+    id: "mint-ledger",
+    label: "Mint Ledger",
+    description: "Soft black with mint + silver",
+    layoutHint: "Fintech night — Money + progress feel precise.",
+    layout: "ledger",
+    swatches: ["#111418", "#3dd6c6", "#9aa3ad"],
+    featured: true,
+  },
+  {
+    id: "sandstone-studio",
+    label: "Sandstone Studio",
+    description: "Warm sand with graphite + teal",
+    layoutHint: "Architectural day — airy panels, teal for action.",
+    layout: "studio",
+    swatches: ["#ebe4d8", "#1c1c1c", "#0f766e"],
+    featured: true,
+  },
+  {
+    id: "midnight-signal",
+    label: "Midnight Signal",
+    description: "Blue-black with lime signal",
+    layoutHint: "After-hours OS — low glare, status pops lime.",
+    layout: "ritual",
+    swatches: ["#070b14", "#b8f000", "#7eb6ff"],
+    featured: true,
+  },
+  {
+    id: "porcelain-pine",
+    label: "Porcelain Pine",
+    description: "Gallery white with deep pine",
+    layoutHint: "Gallery calm — spa-clean surfaces, pine accents.",
+    layout: "paper",
+    swatches: ["#fafafa", "#1b4332", "#95d5b2"],
+    featured: true,
+  },
+  {
+    id: "copper-fog",
+    label: "Copper Fog",
+    description: "Cool fog with copper wire",
+    layoutHint: "Industrial soft — fog gray day, copper heat.",
+    layout: "cozy",
+    swatches: ["#e8eaed", "#b87333", "#2a2e35"],
+    featured: true,
+  },
   {
     id: "mets-classic",
     label: "Mets Classic",
@@ -82,7 +187,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Stadium energy — Home reads like a game-day briefing.",
     layout: "stadium",
     swatches: ["#e8eef8", "#002d72", "#ff5910"],
-    featured: true,
   },
   {
     id: "zion-peak",
@@ -91,7 +195,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Open-sky day — airy gaps, adventure-forward chrome.",
     layout: "stadium",
     swatches: ["#f7f9fc", "#f0c43a", "#1a2744"],
-    featured: true,
   },
   {
     id: "briefing-desk",
@@ -100,7 +203,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "EA command center — tight stack, todos & plan first.",
     layout: "briefing",
     swatches: ["#eceef2", "#1c2430", "#3b6fd4"],
-    featured: true,
   },
   {
     id: "shea-night",
@@ -109,7 +211,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "After-dark Mets — Journey & evening check-in feel lit.",
     layout: "stadium",
     swatches: ["#0c1424", "#ff5910", "#7eb6ff"],
-    featured: true,
   },
   {
     id: "pitch-side",
@@ -118,7 +219,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Match-day calm — Move hub + week plan front and center.",
     layout: "athletic",
     swatches: ["#eef5ef", "#1f6b45", "#c8d9c4"],
-    featured: true,
   },
   {
     id: "iron-hour",
@@ -127,7 +227,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Training board — compact cards, workout PRs pop.",
     layout: "athletic",
     swatches: ["#16181c", "#c47a4a", "#9aa3ad"],
-    featured: true,
   },
   {
     id: "five-year-paper",
@@ -136,7 +235,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Journal paper — soft radius, headline-first reading.",
     layout: "paper",
     swatches: ["#f7f3ea", "#2a2926", "#4a6fa5"],
-    featured: true,
   },
   {
     id: "treat-ledger",
@@ -145,7 +243,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Money honesty — Future vs Treat Yourself at a glance.",
     layout: "ledger",
     swatches: ["#0f1f1a", "#c9a227", "#5fbf9a"],
-    featured: true,
   },
   {
     id: "dawn-ritual",
@@ -154,7 +251,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Morning start — mood ritual as the hero, gentle pace.",
     layout: "ritual",
     swatches: ["#fff4ea", "#e08a4a", "#6a9bb8"],
-    featured: true,
   },
   {
     id: "wind-down",
@@ -163,7 +259,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Evening close — low glare, journal + feelings elevated.",
     layout: "ritual",
     swatches: ["#1a1e28", "#d4a06a", "#8a96a8"],
-    featured: true,
   },
   {
     id: "kitchen-herb",
@@ -172,7 +267,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Recipe studio — softer panels, food & week plan friendly.",
     layout: "studio",
     swatches: ["#f4efe6", "#4f7a52", "#c4a574"],
-    featured: true,
   },
   {
     id: "locker-chalk",
@@ -181,7 +275,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Athletic OS — Move + entertainment as twin pillars.",
     layout: "athletic",
     swatches: ["#e8f2f1", "#1f6f6a", "#dfe9e7"],
-    featured: true,
   },
   // ── Archive (still selectable if already saved) ──
   {
@@ -367,11 +460,15 @@ export function themeLayout(id: ThemeId): LayoutId {
 }
 
 export function themeMetaColor(id: ThemeId): string {
-  return getTheme(id)?.swatches[0] ?? "#e8eef8";
+  return getTheme(id)?.swatches[0] ?? "#f4f6f8";
 }
 
 export function featuredThemes(): ThemeOption[] {
   return FEATURED_THEME_IDS.map((id) => getTheme(id)!).filter(Boolean);
+}
+
+export function rethinkThemes(): ThemeOption[] {
+  return RETHINK_THEME_IDS.map((id) => getTheme(id)!).filter(Boolean);
 }
 
 /** Compact id→layout map for the pre-hydration boot script. */
