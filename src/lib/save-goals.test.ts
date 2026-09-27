@@ -2,14 +2,18 @@ import { describe, expect, it } from "vitest";
 import { emptyState } from "./journey";
 import {
   amountToGo,
+  applySaveGoalAdjustment,
   averageSpendLastDays,
   createSaveGoal,
   dailyIncomeRate,
   daysInMonthForDate,
+  inboundPercent,
   leftoverPool,
   projectSaveGoalTargetDate,
   recordSaveGoalDay,
   recomputeSavedAmounts,
+  setInboundPercents,
+  setSoleDailyTarget,
   splitPoolByWeight,
   updateSaveGoalSettings,
 } from "./save-goals";
@@ -53,8 +57,77 @@ describe("splitPoolByWeight", () => {
   });
 });
 
+describe("inbound percents", () => {
+  it("gives first goal 100% of daily inbound", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    expect(inboundPercent(state.saveGoals![0])).toBe(100);
+  });
+
+  it("new goal defaults to 0% unless it claims daily inbound", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "Gift",
+      targetAmount: 200,
+      createdOn: "2026-04-01",
+    });
+    expect(inboundPercent(state.saveGoals!.find((g) => g.name === "Trip")!)).toBe(
+      100,
+    );
+    expect(inboundPercent(state.saveGoals!.find((g) => g.name === "Gift")!)).toBe(
+      0,
+    );
+
+    state = createSaveGoal(state, {
+      name: "General saving",
+      targetAmount: 1000,
+      createdOn: "2026-04-01",
+      claimDailyInbound: true,
+    });
+    expect(
+      inboundPercent(state.saveGoals!.find((g) => g.name === "General saving")!),
+    ).toBe(100);
+    expect(inboundPercent(state.saveGoals!.find((g) => g.name === "Trip")!)).toBe(
+      0,
+    );
+  });
+
+  it("changing percent shortens or lengthens target date", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "A",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "B",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    const a = () => state.saveGoals!.find((g) => g.name === "A")!;
+    const b = () => state.saveGoals!.find((g) => g.name === "B")!;
+
+    state = setInboundPercents(state, { [a().id]: 100, [b().id]: 0 });
+    const full = projectSaveGoalTargetDate(state, a(), "2026-04-01");
+    state = setInboundPercents(state, { [a().id]: 50, [b().id]: 50 });
+    const half = projectSaveGoalTargetDate(state, a(), "2026-04-01");
+    expect(full.etaDays).toBeTruthy();
+    expect(half.etaDays).toBeTruthy();
+    expect(half.etaDays!).toBeGreaterThan(full.etaDays!);
+  });
+});
+
 describe("recordSaveGoalDay", () => {
-  it("allocates leftover to active goals and recomputes savedAmount", () => {
+  it("sends leftover to the sole daily inbound target", () => {
     let state = emptyState();
     state = createSaveGoal(state, {
       name: "Hawaii",
@@ -67,7 +140,7 @@ describe("recordSaveGoalDay", () => {
       createdOn: "2026-04-01",
     });
 
-    // Apr daily = 16.67; spend 6.67 → leftover 10; no lump → pool 10
+    // Apr daily = 16.67; spend 6.67 → leftover 10 → all to Hawaii (100%)
     state = recordSaveGoalDay(state, {
       date: "2026-04-01",
       spendTotal: 6.67,
@@ -76,12 +149,41 @@ describe("recordSaveGoalDay", () => {
 
     const hawaii = state.saveGoals!.find((g) => g.name === "Hawaii")!;
     const gift = state.saveGoals!.find((g) => g.name === "Gift")!;
-    expect(hawaii.savedAmount + gift.savedAmount).toBeCloseTo(10, 2);
-    expect(amountToGo(hawaii)).toBeCloseTo(1000 - hawaii.savedAmount, 2);
+    expect(hawaii.savedAmount).toBeCloseTo(10, 2);
+    expect(gift.savedAmount).toBe(0);
 
     const day = state.saveGoalDays!.find((d) => d.date === "2026-04-01")!;
     expect(day.dailyIncome).toBe(16.67);
     expect(day.leftover).toBe(10);
+  });
+
+  it("can send a custom lump all to one goal while leftover uses preset", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Hawaii",
+      targetAmount: 1000,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "Gift",
+      targetAmount: 200,
+      createdOn: "2026-04-01",
+    });
+    const giftId = state.saveGoals!.find((g) => g.name === "Gift")!.id;
+
+    // leftover 16.67 → Hawaii; lump 50 custom → Gift
+    state = recordSaveGoalDay(state, {
+      date: "2026-04-01",
+      spendTotal: 0,
+      lumpSum: 50,
+      lumpMode: "custom",
+      lumpGoalId: giftId,
+    });
+
+    const hawaii = state.saveGoals!.find((g) => g.name === "Hawaii")!;
+    const gift = state.saveGoals!.find((g) => g.name === "Gift")!;
+    expect(hawaii.savedAmount).toBeCloseTo(16.67, 2);
+    expect(gift.savedAmount).toBeCloseTo(50, 2);
   });
 
   it("allows balances to go negative on overspend", () => {
@@ -256,5 +358,62 @@ describe("averageSpendLastDays", () => {
       },
     ];
     expect(averageSpendLastDays(days, "2026-04-02", 7)).toBe(15);
+  });
+});
+
+describe("applySaveGoalAdjustment", () => {
+  it("bulk add uses preset chips; custom can target one area", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "Gift",
+      targetAmount: 200,
+      createdOn: "2026-04-01",
+    });
+    const trip = () => state.saveGoals!.find((g) => g.name === "Trip")!;
+    const gift = () => state.saveGoals!.find((g) => g.name === "Gift")!;
+
+    state = applySaveGoalAdjustment(state, {
+      date: "2026-04-02",
+      amount: 40,
+      mode: "preset",
+    });
+    expect(trip().savedAmount).toBeCloseTo(40, 2);
+    expect(gift().savedAmount).toBe(0);
+
+    state = applySaveGoalAdjustment(state, {
+      date: "2026-04-02",
+      amount: -10,
+      mode: "custom",
+      goalId: gift().id,
+    });
+    expect(gift().savedAmount).toBeCloseTo(-10, 2);
+    expect(trip().savedAmount).toBeCloseTo(40, 2);
+  });
+
+  it("setSoleDailyTarget moves 100% inbound", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "Gift",
+      targetAmount: 200,
+      createdOn: "2026-04-01",
+    });
+    const giftId = state.saveGoals!.find((g) => g.name === "Gift")!.id;
+    state = setSoleDailyTarget(state, giftId);
+    expect(inboundPercent(state.saveGoals!.find((g) => g.name === "Gift")!)).toBe(
+      100,
+    );
+    expect(inboundPercent(state.saveGoals!.find((g) => g.name === "Trip")!)).toBe(
+      0,
+    );
   });
 });

@@ -38,9 +38,12 @@ import {
   activeSaveGoals,
   dailyIncomeRate,
   formatMoney,
+  inboundPercent,
   leftoverPool,
+  mergeAllocations,
   normalizeSaveGoalSettings,
   splitPoolByWeight,
+  splitPoolToOne,
 } from "@/lib/save-goals";
 import { completedTodosForUndo, openTodosOn } from "@/lib/todos";
 import type { DailyForecast } from "@/lib/weather";
@@ -119,6 +122,8 @@ function EveningPageInner() {
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [spendTotal, setSpendTotal] = useState("");
   const [lumpSum, setLumpSum] = useState("");
+  const [lumpMode, setLumpMode] = useState<"preset" | "custom">("preset");
+  const [lumpGoalId, setLumpGoalId] = useState("");
   const [busy, setBusy] = useState(false);
   const [starBusy, setStarBusy] = useState(false);
   const [starPending, setStarPending] = useState(false);
@@ -334,12 +339,20 @@ function EveningPageInner() {
       return null;
     }
     const lump = Number.isFinite(lumpNum) && lumpNum >= 0 ? lumpNum : 0;
-    const { leftover, pool } = leftoverPool(dayRate, spendNum, lump);
+    const { leftover } = leftoverPool(dayRate, spendNum, 0);
     const goals = activeSaveGoals(state);
-    const allocations =
-      goals.length && pool !== 0 ? splitPoolByWeight(pool, goals) : [];
-    return { leftover, pool, allocations, goals };
-  }, [spendNum, lumpNum, dayRate, state]);
+    const leftoverAlloc =
+      goals.length && leftover !== 0 ? splitPoolByWeight(leftover, goals) : [];
+    let lumpAlloc =
+      goals.length && lump !== 0
+        ? lumpMode === "custom" && lumpGoalId
+          ? splitPoolToOne(lump, lumpGoalId)
+          : splitPoolByWeight(lump, goals)
+        : [];
+    const allocations = mergeAllocations([...leftoverAlloc, ...lumpAlloc]);
+    const pool = leftoverPool(dayRate, spendNum, lump).pool;
+    return { leftover, lump, pool, leftoverAlloc, lumpAlloc, allocations, goals };
+  }, [spendNum, lumpNum, dayRate, state, lumpMode, lumpGoalId]);
   const spendReady =
     spendTotal.trim() !== "" &&
     spendNum != null &&
@@ -406,6 +419,11 @@ function EveningPageInner() {
         photoDataUrl: photoDataUrl || undefined,
         spendTotal: spend,
         lumpSum: lump,
+        lumpMode: lump > 0 ? lumpMode : "preset",
+        lumpGoalId:
+          lump > 0 && lumpMode === "custom" && lumpGoalId
+            ? lumpGoalId
+            : undefined,
       });
       setStarPending(false);
       setClosed(snapshot);
@@ -700,6 +718,23 @@ function EveningPageInner() {
           {formatMoney(saveSettings.monthlyIncome)} on the 1st ·{" "}
           {formatMoney(dayRate)} credited for this day
         </p>
+        {activeSaveGoals(state).length > 0 ? (
+          <div className="chip-row" style={{ marginTop: 10 }}>
+            {activeSaveGoals(state).map((g) => {
+              const pct = inboundPercent(g);
+              return (
+                <span
+                  key={g.id}
+                  className={`chip${pct >= 100 ? " selected" : ""}`}
+                  title="Daily inbound preset"
+                >
+                  {g.name}
+                  {pct > 0 ? ` · ${pct}%` : ""}
+                </span>
+              );
+            })}
+          </div>
+        ) : null}
         <label className="field" style={{ marginTop: 10 }}>
           <span className="field-label">Total spend</span>
           <input
@@ -716,7 +751,7 @@ function EveningPageInner() {
           <span className="field-label">
             Lump sum
             <span className="tiny" style={{ marginLeft: 8, fontWeight: 400 }}>
-              optional
+              optional one-time
             </span>
           </span>
           <input
@@ -726,32 +761,78 @@ function EveningPageInner() {
             step="0.01"
             value={lumpSum}
             onChange={(e) => setLumpSum(e.target.value)}
-            placeholder="Extra to split across goals"
+            placeholder="Extra to put toward goals"
           />
         </label>
+        {lumpNum > 0 && activeSaveGoals(state).length > 0 ? (
+          <>
+            <p className="field-label" style={{ marginTop: 12 }}>
+              One-time goes to
+            </p>
+            <div className="chip-row">
+              <button
+                type="button"
+                className={`chip${lumpMode === "preset" ? " selected" : ""}`}
+                onClick={() => setLumpMode("preset")}
+              >
+                Daily chips
+              </button>
+              <button
+                type="button"
+                className={`chip${lumpMode === "custom" ? " selected" : ""}`}
+                onClick={() => {
+                  setLumpMode("custom");
+                  const first = activeSaveGoals(state)[0];
+                  if (!lumpGoalId && first) setLumpGoalId(first.id);
+                }}
+              >
+                Custom (one area)
+              </button>
+            </div>
+            {lumpMode === "custom" ? (
+              <div className="chip-row" style={{ marginTop: 8 }}>
+                {activeSaveGoals(state).map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className={`chip${lumpGoalId === g.id ? " selected" : ""}`}
+                    onClick={() => setLumpGoalId(g.id)}
+                  >
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </>
+        ) : null}
         {moneyPreview ? (
           <div
             className={`evening-money-preview${
               moneyPreview.pool < 0 ? " negative" : ""
             }`}
           >
-            {moneyPreview.pool > 0 ? (
+            {moneyPreview.leftover !== 0 ? (
               <p className="tiny">
-                {formatMoney(moneyPreview.pool)} leftover
+                Daily {moneyPreview.leftover >= 0 ? "leftover" : "over"}{" "}
+                {formatMoney(Math.abs(moneyPreview.leftover))}
                 {moneyPreview.goals.length
-                  ? " → split across save goals"
-                  : " (no active save goals yet)"}
-              </p>
-            ) : moneyPreview.pool < 0 ? (
-              <p className="tiny">
-                {formatMoney(Math.abs(moneyPreview.pool))} over —
-                {moneyPreview.goals.length
-                  ? " drawn from save goals"
-                  : " tracked for the day"}
+                  ? " → daily inbound chips"
+                  : ""}
               </p>
             ) : (
-              <p className="tiny">Even — nothing to allocate</p>
+              <p className="tiny">Daily even — nothing from inbound</p>
             )}
+            {moneyPreview.lump > 0 ? (
+              <p className="tiny">
+                One-time {formatMoney(moneyPreview.lump)}
+                {lumpMode === "custom" && lumpGoalId
+                  ? ` → ${
+                      moneyPreview.goals.find((g) => g.id === lumpGoalId)
+                        ?.name ?? "goal"
+                    }`
+                  : " → daily chips"}
+              </p>
+            ) : null}
             {moneyPreview.allocations.length > 0 ? (
               <ul className="tiny">
                 {moneyPreview.allocations.map((a) => {

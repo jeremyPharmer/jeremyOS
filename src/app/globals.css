@@ -2150,6 +2150,26 @@ h2 {
   opacity: 0.8;
 }
 
+.save-goal-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.save-goal-inbound-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.save-goal-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: center;
+}
+
 .save-goal-row {
   display: flex;
   flex-direction: column;

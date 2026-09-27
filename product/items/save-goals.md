@@ -127,13 +127,15 @@ Insert a thin **Money today** step in evening close (after mood/journal is fine;
    pool = leftover + lumpSum
    ```
 4. **Allocation UI**
-   - If `pool > 0`: split among **active** Save Goals by `allocationWeight` (equal default). Allow manual override of dollar amounts before confirm (must sum to `pool` within $0.01).
-   - If `pool < 0` (overspend, no lump covering it): **draw down** active goals by weight (same weights), increasing each goal’s “to go”. Balances may go **negative**.
+   - **Daily leftover** always uses preset **inbound chips** (`allocationWeight` as 0–100%, sum 100% across actives). Default: 100% to one target area (trip / gift / general saving).
+   - If leftover `< 0` (overspend): draw down by the same preset chips; balances may go **negative**.
+   - **Lump / one-time**: chips — **Daily chips** (same preset) or **Custom (one area)** to send all to a chosen goal.
    - If `pool === 0`: no allocations; still store the day row.
-   - If **no active goals**: skip allocation UI; still store spend/income/lump for history (or soft-prompt create — v1: skip quietly).
-5. Persist `SaveGoalDay` + update `savedAmount`s. Closing again for the same date **replaces** that day’s effect (recompute).
+   - If **no active goals**: skip allocation UI; still store spend/income/lump for history.
+5. Persist `SaveGoalDay` + update `savedAmount`s. Closing again for the same date **replaces** that day’s close row (recompute). One-time Home adjusts append `kind: "adjust"` rows.
+6. Changing inbound % **recalculates target dates** on read (`goalDaily = projectedPool × percent/100`).
 
-**Out of evening:** creating/editing goals, changing monthly income, changing weights (Settings or card sheet).
+**Out of evening:** creating/editing goals, changing monthly income, inbound chips / Split %, one-time add/subtract (Home).
 
 ### 4. Landing (Home) card UX
 

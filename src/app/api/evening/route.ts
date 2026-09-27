@@ -102,10 +102,10 @@ export async function POST(req: Request) {
           (err as Error & { status: number }).status = 400;
           throw err;
         }
-        const allocations: SaveGoalAllocation[] | undefined = Array.isArray(
-          body.allocations,
+        const lumpAllocations: SaveGoalAllocation[] | undefined = Array.isArray(
+          body.lumpAllocations ?? body.allocations,
         )
-          ? body.allocations.map(
+          ? (body.lumpAllocations ?? body.allocations).map(
               (a: { goalId?: unknown; amount?: unknown }) => ({
                 goalId: String(a.goalId ?? ""),
                 amount: Number(a.amount),
@@ -116,7 +116,15 @@ export async function POST(req: Request) {
           date,
           spendTotal,
           lumpSum,
-          allocations,
+          lumpMode: body.lumpMode === "custom" ? "custom" : "preset",
+          lumpGoalId:
+            body.lumpGoalId !== undefined && body.lumpGoalId !== null
+              ? String(body.lumpGoalId)
+              : undefined,
+          lumpGoalIds: Array.isArray(body.lumpGoalIds)
+            ? body.lumpGoalIds.map((id: unknown) => String(id))
+            : undefined,
+          lumpAllocations,
         });
       }
 

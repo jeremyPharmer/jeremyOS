@@ -467,7 +467,10 @@ export type SaveGoal = {
   savedAmount: number;
   createdOn: string;
   status: SaveGoalStatus;
-  /** Share of leftover / lump among active goals; v1 default equal weights */
+  /**
+   * Preset share of **daily inbound leftover** (0–100). Active goals’ percents
+   * sum to 100. Bulk add/subtract uses the same split unless overridden.
+   */
   allocationWeight: number;
 };
 
@@ -483,16 +486,20 @@ export type SaveGoalAllocation = {
   amount: number;
 };
 
-/** One evening money row per calendar date (RB-037). */
+/** Evening close or one-time adjustment row (RB-037). */
 export type SaveGoalDay = {
   date: string;
-  /** Snapshot of daily rate used that day */
+  /** Snapshot of daily rate used that day (0 for one-time adjusts) */
   dailyIncome: number;
   spendTotal: number;
   /** dailyIncome − spendTotal (may be negative) */
   leftover: number;
   lumpSum: number;
   allocations: SaveGoalAllocation[];
+  /** close = evening money; adjust = one-time add/subtract */
+  kind?: "close" | "adjust";
+  /** Present on adjust rows (multiple adjusts per date OK) */
+  id?: string;
 };
 
 export type RebuildState = {

@@ -74,6 +74,15 @@ export function activeSaveGoals(state: RebuildState): SaveGoal[] {
   return (state.saveGoals ?? []).filter((g) => g.status === "active");
 }
 
+/** Preset % of daily inbound for a goal (0–100). */
+export function inboundPercent(
+  goal: Pick<SaveGoal, "allocationWeight">,
+): number {
+  const w = Number(goal.allocationWeight);
+  if (!Number.isFinite(w) || w < 0) return 0;
+  return round2(w);
+}
+
 export function amountToGo(goal: Pick<SaveGoal, "targetAmount" | "savedAmount">): number {
   return round2(Math.max(0, goal.targetAmount - goal.savedAmount));
 }
@@ -83,31 +92,119 @@ export function progressRatio(goal: Pick<SaveGoal, "targetAmount" | "savedAmount
   return Math.min(1, Math.max(0, goal.savedAmount / goal.targetAmount));
 }
 
-/** Split `pool` across goals by weight; last goal absorbs rounding residue. */
+/**
+ * Active goals’ inbound percents must sum to 100.
+ * Migrates legacy equal weights (e.g. all `1`) into equal percents.
+ */
+export function normalizeInboundPercents(goals: SaveGoal[]): SaveGoal[] {
+  const actives = goals.filter((g) => g.status === "active");
+  if (!actives.length) return goals;
+
+  const rawSum = actives.reduce(
+    (s, g) => s + Math.max(0, Number(g.allocationWeight) || 0),
+    0,
+  );
+
+  if (Math.abs(rawSum - 100) <= 0.05) {
+    return goals.map((g) =>
+      g.status === "active"
+        ? { ...g, allocationWeight: round2(Math.max(0, g.allocationWeight)) }
+        : g,
+    );
+  }
+
+  if (rawSum <= 0) {
+    const firstId = actives[0].id;
+    return goals.map((g) =>
+      g.status !== "active"
+        ? g
+        : { ...g, allocationWeight: g.id === firstId ? 100 : 0 },
+    );
+  }
+
+  let assigned = 0;
+  const percents = new Map<string, number>();
+  actives.forEach((g, i) => {
+    const w = Math.max(0, Number(g.allocationWeight) || 0);
+    const isLast = i === actives.length - 1;
+    const p = isLast
+      ? round2(100 - assigned)
+      : round2((w / rawSum) * 100);
+    assigned = round2(assigned + p);
+    percents.set(g.id, p);
+  });
+
+  return goals.map((g) =>
+    percents.has(g.id)
+      ? { ...g, allocationWeight: percents.get(g.id)! }
+      : g,
+  );
+}
+
+/** Merge allocation rows by goalId. */
+export function mergeAllocations(
+  rows: SaveGoalAllocation[],
+): SaveGoalAllocation[] {
+  const map = new Map<string, number>();
+  for (const a of rows) {
+    map.set(a.goalId, round2((map.get(a.goalId) ?? 0) + a.amount));
+  }
+  return [...map.entries()]
+    .filter(([, amount]) => amount !== 0)
+    .map(([goalId, amount]) => ({ goalId, amount }));
+}
+
+/**
+ * Split `pool` by inbound % (or relative weights). Goals at 0% get nothing.
+ * Last positive-share goal absorbs rounding residue.
+ */
 export function splitPoolByWeight(
   pool: number,
   goals: Array<Pick<SaveGoal, "id" | "allocationWeight">>,
 ): SaveGoalAllocation[] {
   if (!goals.length || pool === 0) return [];
-  const weights = goals.map((g) =>
-    Number.isFinite(g.allocationWeight) && g.allocationWeight > 0
-      ? g.allocationWeight
-      : 1,
+  const recipients = goals.filter(
+    (g) => Number.isFinite(g.allocationWeight) && g.allocationWeight > 0,
   );
+  if (!recipients.length) return [];
+
+  const weights = recipients.map((g) => g.allocationWeight);
   const totalW = weights.reduce((a, b) => a + b, 0);
   if (totalW <= 0) return [];
 
   const allocations: SaveGoalAllocation[] = [];
   let assigned = 0;
-  for (let i = 0; i < goals.length; i++) {
-    const isLast = i === goals.length - 1;
+  for (let i = 0; i < recipients.length; i++) {
+    const isLast = i === recipients.length - 1;
     const amount = isLast
       ? round2(pool - assigned)
       : round2((pool * weights[i]) / totalW);
     assigned = round2(assigned + amount);
-    allocations.push({ goalId: goals[i].id, amount });
+    allocations.push({ goalId: recipients[i].id, amount });
   }
   return allocations;
+}
+
+/** Put 100% of an amount on one goal. */
+export function splitPoolToOne(
+  pool: number,
+  goalId: string,
+): SaveGoalAllocation[] {
+  if (pool === 0) return [];
+  return [{ goalId, amount: round2(pool) }];
+}
+
+/** Equal split across selected goal ids (custom one-time). */
+export function splitPoolAcrossIds(
+  pool: number,
+  goalIds: string[],
+): SaveGoalAllocation[] {
+  if (!goalIds.length || pool === 0) return [];
+  const unique = [...new Set(goalIds)];
+  return splitPoolByWeight(
+    pool,
+    unique.map((id) => ({ id, allocationWeight: 1 })),
+  );
 }
 
 export function savedAmountFromDays(
@@ -155,10 +252,12 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
         goalId: String(a.goalId),
         amount: round2(Number(a.amount) || 0),
       })),
+      kind: d.kind === "adjust" ? ("adjust" as const) : ("close" as const),
+      id: d.id ? String(d.id) : d.kind === "adjust" ? newId("sga") : undefined,
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const goals = recomputeSavedAmounts(
+  let goals = recomputeSavedAmounts(
     (state.saveGoals ?? []).map((g) => ({
       id: String(g.id),
       name: String(g.name ?? "").trim() || "Save goal",
@@ -169,13 +268,13 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
         g.status === "archived" || g.status === "reached" || g.status === "active"
           ? g.status
           : "active",
-      allocationWeight:
-        Number.isFinite(g.allocationWeight) && g.allocationWeight > 0
-          ? g.allocationWeight
-          : 1,
+      allocationWeight: Number.isFinite(g.allocationWeight)
+        ? Number(g.allocationWeight)
+        : 0,
     })),
     days,
   );
+  goals = normalizeInboundPercents(goals);
 
   return {
     ...state,
@@ -187,7 +286,13 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
 
 export function createSaveGoal(
   state: RebuildState,
-  input: { name: string; targetAmount: number; createdOn: string },
+  input: {
+    name: string;
+    targetAmount: number;
+    createdOn: string;
+    /** When true (default if first/only), this goal gets 100% of daily inbound */
+    claimDailyInbound?: boolean;
+  },
 ): RebuildState {
   const name = input.name.trim().slice(0, 80);
   const targetAmount = round2(Number(input.targetAmount));
@@ -201,6 +306,12 @@ export function createSaveGoal(
     throw Object.assign(new Error("createdOn required"), { status: 400 });
   }
 
+  const existingActives = activeSaveGoals(state);
+  const claim =
+    input.claimDailyInbound !== undefined
+      ? Boolean(input.claimDailyInbound)
+      : existingActives.length === 0;
+
   const goal: SaveGoal = {
     id: newId("sg"),
     name,
@@ -208,14 +319,76 @@ export function createSaveGoal(
     savedAmount: 0,
     createdOn: input.createdOn,
     status: "active",
-    allocationWeight: 1,
+    allocationWeight: claim ? 100 : 0,
   };
 
-  const next = normalizeSaveGoals({
+  let others = state.saveGoals ?? [];
+  if (claim && existingActives.length > 0) {
+    others = others.map((g) =>
+      g.status === "active" ? { ...g, allocationWeight: 0 } : g,
+    );
+  }
+
+  return normalizeSaveGoals({
     ...state,
-    saveGoals: [...(state.saveGoals ?? []), goal],
+    saveGoals: [...others, goal],
   });
-  return next;
+}
+
+/** Set every active goal’s daily inbound % (must sum to 100). */
+export function setInboundPercents(
+  state: RebuildState,
+  percents: Record<string, number>,
+): RebuildState {
+  const actives = activeSaveGoals(state);
+  if (!actives.length) {
+    throw Object.assign(new Error("No active save goals"), { status: 400 });
+  }
+
+  let sum = 0;
+  const nextMap = new Map<string, number>();
+  for (const g of actives) {
+    const raw =
+      percents[g.id] !== undefined ? Number(percents[g.id]) : inboundPercent(g);
+    if (!Number.isFinite(raw) || raw < 0 || raw > 100) {
+      throw Object.assign(new Error("Each inbound % must be 0–100"), {
+        status: 400,
+      });
+    }
+    const p = round2(raw);
+    nextMap.set(g.id, p);
+    sum = round2(sum + p);
+  }
+  if (Math.abs(sum - 100) > 0.05) {
+    throw Object.assign(new Error("Inbound shares must add up to 100%"), {
+      status: 400,
+    });
+  }
+
+  return normalizeSaveGoals({
+    ...state,
+    saveGoals: (state.saveGoals ?? []).map((g) =>
+      nextMap.has(g.id)
+        ? { ...g, allocationWeight: nextMap.get(g.id)! }
+        : g,
+    ),
+  });
+}
+
+/** Chip shortcut: send 100% of daily inbound to one goal. */
+export function setSoleDailyTarget(
+  state: RebuildState,
+  goalId: string,
+): RebuildState {
+  const id = String(goalId ?? "").trim();
+  if (!activeSaveGoals(state).some((g) => g.id === id)) {
+    throw Object.assign(new Error("Save goal not found"), { status: 404 });
+  }
+  const percents: Record<string, number> = {};
+  for (const g of activeSaveGoals(state)) {
+    percents[g.id] = g.id === id ? 100 : 0;
+  }
+  return setInboundPercents(state, percents);
 }
 
 export function updateSaveGoal(
@@ -288,17 +461,82 @@ export function updateSaveGoalSettings(
   });
 }
 
+export type LumpAllocateMode = "preset" | "custom";
+
 export type RecordSaveGoalDayInput = {
   date: string;
   spendTotal: number;
   lumpSum?: number;
-  /** Optional manual override; must sum to pool within $0.01 */
+  /**
+   * How to place the lump (one-time). Daily leftover always uses preset %.
+   * - preset (default): same chips / inbound % as daily
+   * - custom: `lumpGoalId` (all to one) or `lumpAllocations` / `lumpGoalIds`
+   */
+  lumpMode?: LumpAllocateMode;
+  lumpGoalId?: string;
+  lumpGoalIds?: string[];
+  lumpAllocations?: SaveGoalAllocation[];
+  /** @deprecated full-pool override — prefer lump* fields */
   allocations?: SaveGoalAllocation[];
 };
 
+function resolveCustomPoolSplit(
+  pool: number,
+  goals: SaveGoal[],
+  input: {
+    goalId?: string;
+    goalIds?: string[];
+    allocations?: SaveGoalAllocation[];
+  },
+): SaveGoalAllocation[] {
+  if (pool === 0 || !goals.length) return [];
+  const activeIds = new Set(goals.map((g) => g.id));
+
+  if (input.allocations && input.allocations.length > 0) {
+    const allocations = input.allocations.map((a) => ({
+      goalId: String(a.goalId),
+      amount: round2(Number(a.amount) || 0),
+    }));
+    for (const a of allocations) {
+      if (!activeIds.has(a.goalId)) {
+        throw Object.assign(new Error("Unknown goal in allocations"), {
+          status: 400,
+        });
+      }
+    }
+    const sum = round2(allocations.reduce((s, a) => s + a.amount, 0));
+    if (Math.abs(sum - pool) > 0.01) {
+      throw Object.assign(
+        new Error(`Allocations must sum to ${pool.toFixed(2)}`),
+        { status: 400 },
+      );
+    }
+    return allocations;
+  }
+
+  if (input.goalId) {
+    if (!activeIds.has(input.goalId)) {
+      throw Object.assign(new Error("Unknown goal"), { status: 400 });
+    }
+    return splitPoolToOne(pool, input.goalId);
+  }
+
+  if (input.goalIds && input.goalIds.length > 0) {
+    for (const id of input.goalIds) {
+      if (!activeIds.has(id)) {
+        throw Object.assign(new Error("Unknown goal"), { status: 400 });
+      }
+    }
+    return splitPoolAcrossIds(pool, input.goalIds);
+  }
+
+  // Custom with no picks → fall back to preset
+  return splitPoolByWeight(pool, goals);
+}
+
 /**
- * Persist one evening money row. Replaces any existing row for `date`
- * and recomputes savedAmount from the full ledger.
+ * Persist one evening money row. Replaces the close row for `date`.
+ * Daily leftover uses preset inbound %; lump can follow preset or custom chips.
  */
 export function recordSaveGoalDay(
   state: RebuildState,
@@ -318,35 +556,34 @@ export function recordSaveGoalDay(
 
   const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
   const dailyIncome = dailyIncomeRate(input.date, settings.monthlyIncome);
-  const { leftover, pool } = leftoverPool(dailyIncome, spendTotal, lumpSum);
-
+  const { leftover } = leftoverPool(dailyIncome, spendTotal, 0);
   const goals = activeSaveGoals(state);
+
   let allocations: SaveGoalAllocation[] = [];
 
-  if (goals.length > 0 && pool !== 0) {
-    if (input.allocations && input.allocations.length > 0) {
-      allocations = input.allocations.map((a) => ({
-        goalId: String(a.goalId),
-        amount: round2(Number(a.amount) || 0),
-      }));
-      const activeIds = new Set(goals.map((g) => g.id));
-      for (const a of allocations) {
-        if (!activeIds.has(a.goalId)) {
-          throw Object.assign(new Error("Unknown goal in allocations"), {
-            status: 400,
-          });
-        }
+  // Legacy full-pool override
+  if (input.allocations && input.allocations.length > 0) {
+    const pool = round2(leftover + lumpSum);
+    allocations = resolveCustomPoolSplit(pool, goals, {
+      allocations: input.allocations,
+    });
+  } else if (goals.length > 0) {
+    const leftoverAlloc =
+      leftover !== 0 ? splitPoolByWeight(leftover, goals) : [];
+    let lumpAlloc: SaveGoalAllocation[] = [];
+    if (lumpSum !== 0) {
+      const lumpMode = input.lumpMode ?? "preset";
+      if (lumpMode === "custom") {
+        lumpAlloc = resolveCustomPoolSplit(lumpSum, goals, {
+          goalId: input.lumpGoalId,
+          goalIds: input.lumpGoalIds,
+          allocations: input.lumpAllocations,
+        });
+      } else {
+        lumpAlloc = splitPoolByWeight(lumpSum, goals);
       }
-      const sum = round2(allocations.reduce((s, a) => s + a.amount, 0));
-      if (Math.abs(sum - pool) > 0.01) {
-        throw Object.assign(
-          new Error(`Allocations must sum to ${pool.toFixed(2)}`),
-          { status: 400 },
-        );
-      }
-    } else {
-      allocations = splitPoolByWeight(pool, goals);
     }
+    allocations = mergeAllocations([...leftoverAlloc, ...lumpAlloc]);
   }
 
   const day: SaveGoalDay = {
@@ -356,14 +593,80 @@ export function recordSaveGoalDay(
     leftover,
     lumpSum,
     allocations,
+    kind: "close",
   };
 
   const days = [
-    ...(state.saveGoalDays ?? []).filter((d) => d.date !== input.date),
+    ...(state.saveGoalDays ?? []).filter(
+      (d) => !(d.date === input.date && (d.kind ?? "close") === "close"),
+    ),
     day,
   ];
 
   return normalizeSaveGoals({ ...state, saveGoalDays: days });
+}
+
+export type ApplySaveGoalAdjustmentInput = {
+  date: string;
+  /** Positive = add, negative = subtract */
+  amount: number;
+  /** preset = daily inbound chips; custom = one-time picks */
+  mode?: LumpAllocateMode;
+  goalId?: string;
+  goalIds?: string[];
+  allocations?: SaveGoalAllocation[];
+};
+
+/**
+ * One-time bulk add/subtract. Preset mode uses the same inbound % chips as
+ * daily leftover; custom can send all to one area (or a chosen set).
+ */
+export function applySaveGoalAdjustment(
+  state: RebuildState,
+  input: ApplySaveGoalAdjustmentInput,
+): RebuildState {
+  if (!DATE_RE.test(input.date)) {
+    throw Object.assign(new Error("date required"), { status: 400 });
+  }
+  const amount = round2(Number(input.amount));
+  if (!Number.isFinite(amount) || amount === 0) {
+    throw Object.assign(new Error("amount must be a non-zero number"), {
+      status: 400,
+    });
+  }
+
+  const goals = activeSaveGoals(state);
+  if (!goals.length) {
+    throw Object.assign(new Error("No active save goals"), { status: 400 });
+  }
+
+  const mode = input.mode ?? "preset";
+  let allocations: SaveGoalAllocation[];
+  if (mode === "custom") {
+    allocations = resolveCustomPoolSplit(amount, goals, {
+      goalId: input.goalId,
+      goalIds: input.goalIds,
+      allocations: input.allocations,
+    });
+  } else {
+    allocations = splitPoolByWeight(amount, goals);
+  }
+
+  const day: SaveGoalDay = {
+    id: newId("sga"),
+    date: input.date,
+    kind: "adjust",
+    dailyIncome: 0,
+    spendTotal: 0,
+    leftover: 0,
+    lumpSum: Math.max(0, amount),
+    allocations,
+  };
+
+  return normalizeSaveGoals({
+    ...state,
+    saveGoalDays: [...(state.saveGoalDays ?? []), day],
+  });
 }
 
 /** Mean spend over the last N save-goal days at or before `today` (most recent). */
@@ -427,14 +730,8 @@ export function projectSaveGoalTargetDate(
     };
   }
 
-  const actives = activeSaveGoals(state);
-  const weights = actives.map((g) =>
-    g.allocationWeight > 0 ? g.allocationWeight : 1,
-  );
-  const totalW = weights.reduce((a, b) => a + b, 0) || 1;
-  const w =
-    (goal.allocationWeight > 0 ? goal.allocationWeight : 1) / totalW;
-  const goalDaily = round2(projectedPoolPerDay * w);
+  const share = inboundPercent(goal) / 100;
+  const goalDaily = round2(projectedPoolPerDay * share);
   if (goalDaily <= 0) {
     return {
       goalId: goal.id,
