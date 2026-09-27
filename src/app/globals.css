@@ -2195,6 +2195,23 @@ h2 {
   margin-top: 4px;
 }
 
+.home-card-save-goals-glance .save-goal-glance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.home-card-save-goals-glance .save-goal-glance-actions .btn {
+  flex: 1 1 auto;
+  min-width: 7.5rem;
+}
+
+.save-goal-day-status {
+  margin: 0;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 .save-goal-row {
   display: flex;
   flex-direction: column;
