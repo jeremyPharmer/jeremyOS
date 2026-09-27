@@ -544,7 +544,7 @@ function AdjustPanel({
           type="number"
           inputMode="decimal"
           min={0}
-          step="0.01"
+          step="1"
           value={adjustAmount}
           onChange={(e) => setAdjustAmount(e.target.value)}
           placeholder="50"
@@ -690,7 +690,7 @@ function HomeSaveGoalsGlance() {
   }
 
   const ledgerCount = entries.length + (applied ? 1 : 0);
-  const dayTotalShown = roundMoney(day.inbound + day.adds);
+  const dayTotalShown = day.inbound + day.adds;
 
   return (
     <section
@@ -730,12 +730,12 @@ function HomeSaveGoalsGlance() {
                 </span>
                 <input
                   type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
+                  inputMode="numeric"
+                  min={1}
+                  step="1"
                   value={entryAmount}
                   onChange={(e) => setEntryAmount(e.target.value)}
-                  placeholder="5.00"
+                  placeholder="5"
                   autoFocus
                 />
               </label>
@@ -874,10 +874,6 @@ function HomeSaveGoalsGlance() {
       </Link>
     </section>
   );
-}
-
-function roundMoney(n: number): number {
-  return Math.round(n * 100) / 100;
 }
 
 /** Full save-goals surface (progress, chips, create) — not shown on Home. */

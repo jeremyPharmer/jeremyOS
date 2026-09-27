@@ -101,13 +101,13 @@ daysInMonth(y, m) = calendar days in that month
 dailyIncomeRate(date) = monthlyIncome / daysInMonth(year(date), month(date))
 ```
 
-Examples at `$500`:
+Examples at `$500` (always **floor to whole dollars** — drop cents):
 
 | Month | Days | Per day |
 | --- | --- | --- |
-| January | 31 | `$16.13` (round half-up to 2 decimals at credit time) |
-| February (non-leap) | 28 | `$17.86` |
-| April | 30 | `$16.67` |
+| January | 31 | `$16` |
+| February (non-leap) | 28 | `$17` |
+| April | 30 | `$16` |
 
 - Use the **same local-date convention** as evening / journey (no UTC drift).
 - Snapshot `dailyIncome` onto `SaveGoalDay` when the day is closed so later settings edits do not rewrite history.

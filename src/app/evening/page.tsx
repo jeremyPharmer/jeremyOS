@@ -333,8 +333,7 @@ function EveningPageInner() {
         : { base: 0, carryIn: 0, inbound: 0, adds: 0, spend: 0, left: 0 },
     [state, moneyDate],
   );
-  const dayTotalShown =
-    Math.round((dayLedger.inbound + dayLedger.adds) * 100) / 100;
+  const dayTotalShown = dayLedger.inbound + dayLedger.adds;
   const daySpends = useMemo(
     () => (moneyDate ? listSaveGoalSpendEntries(state, moneyDate) : []),
     [state, moneyDate],
@@ -770,12 +769,12 @@ function EveningPageInner() {
                 </span>
                 <input
                   type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
+                  inputMode="numeric"
+                  min={1}
+                  step="1"
                   value={entryAmount}
                   onChange={(e) => setEntryAmount(e.target.value)}
-                  placeholder="5.00"
+                  placeholder="5"
                   autoFocus
                 />
               </label>
