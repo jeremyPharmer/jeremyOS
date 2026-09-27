@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { todayInTz } from "@/lib/journey";
 import {
+  addSaveGoalSpend,
   applySaveGoalAdjustment,
+  applySaveGoalDayTotals,
   createSaveGoal,
   deleteSaveGoal,
   recordSaveGoalDay,
   removeSaveGoalAdjustment,
+  removeSaveGoalSpend,
   setGoalInboundPercent,
   setInboundPercents,
   setSoleDailyTarget,
@@ -146,6 +149,25 @@ export async function POST(req: Request) {
             ? body.allocations
             : undefined,
           source: body.source === "auto" ? "auto" : "manual",
+        });
+      }
+
+      if (action === "addSpend") {
+        return addSaveGoalSpend(prev, {
+          date: String(body.date ?? today),
+          amount: Number(body.amount),
+          note: body.note !== undefined ? String(body.note) : undefined,
+        });
+      }
+
+      if (action === "removeSpend") {
+        return removeSaveGoalSpend(prev, String(body.id ?? ""));
+      }
+
+      if (action === "applyTotals") {
+        return applySaveGoalDayTotals(prev, {
+          date: String(body.date ?? today),
+          lumpSum: body.lumpSum !== undefined ? Number(body.lumpSum) : 0,
         });
       }
 

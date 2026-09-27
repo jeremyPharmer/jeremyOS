@@ -5,6 +5,7 @@ import type {
   SaveGoalAllocation,
   SaveGoalDay,
   SaveGoalSettings,
+  SaveGoalSpendEntry,
 } from "./types";
 
 export const DEFAULT_MONTHLY_INCOME = 500;
@@ -376,12 +377,121 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
   );
   goals = normalizeInboundPercents(goals);
 
+  const spendEntries = (state.saveGoalSpendEntries ?? [])
+    .filter((e) => e && DATE_RE.test(e.date) && e.id)
+    .map((e) => ({
+      id: String(e.id),
+      date: e.date,
+      amount: round2(Math.max(0, Number(e.amount) || 0)),
+      note: e.note ? String(e.note).trim().slice(0, 80) : undefined,
+      at: e.at ? String(e.at) : undefined,
+    }))
+    .filter((e) => e.amount > 0)
+    .sort((a, b) => {
+      const byDate = a.date.localeCompare(b.date);
+      if (byDate !== 0) return byDate;
+      return String(a.at ?? a.id).localeCompare(String(b.at ?? b.id));
+    });
+
   return {
     ...state,
     saveGoalSettings: settings,
     saveGoals: goals,
     saveGoalDays: days,
+    saveGoalSpendEntries: spendEntries,
   };
+}
+
+/** Spend entries for a calendar day (oldest first). */
+export function listSaveGoalSpendEntries(
+  state: RebuildState,
+  date: string,
+): SaveGoalSpendEntry[] {
+  if (!DATE_RE.test(date)) return [];
+  return (state.saveGoalSpendEntries ?? []).filter((e) => e.date === date);
+}
+
+export function spendTotalForDate(state: RebuildState, date: string): number {
+  return round2(
+    listSaveGoalSpendEntries(state, date).reduce((s, e) => s + e.amount, 0),
+  );
+}
+
+/** Day total (inbound) minus running spend entries. */
+export function leftoverBeforeApply(
+  state: RebuildState,
+  date: string,
+): { inbound: number; spend: number; left: number } {
+  const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
+  const inbound = dailyIncomeRate(date, settings.monthlyIncome);
+  const spend = spendTotalForDate(state, date);
+  return { inbound, spend, left: round2(inbound - spend) };
+}
+
+export function addSaveGoalSpend(
+  state: RebuildState,
+  input: { date: string; amount: number; note?: string },
+): RebuildState {
+  if (!DATE_RE.test(input.date)) {
+    throw Object.assign(new Error("date required"), { status: 400 });
+  }
+  const amount = round2(Number(input.amount));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw Object.assign(new Error("amount must be greater than 0"), {
+      status: 400,
+    });
+  }
+  const entry: SaveGoalSpendEntry = {
+    id: newId("sgs"),
+    date: input.date,
+    amount,
+    note: input.note?.trim().slice(0, 80) || undefined,
+    at: new Date().toISOString(),
+  };
+  return normalizeSaveGoals({
+    ...state,
+    saveGoalSpendEntries: [...(state.saveGoalSpendEntries ?? []), entry],
+  });
+}
+
+export function removeSaveGoalSpend(
+  state: RebuildState,
+  entryId: string,
+): RebuildState {
+  const id = String(entryId ?? "").trim();
+  if (!id) {
+    throw Object.assign(new Error("spend id required"), { status: 400 });
+  }
+  const entries = state.saveGoalSpendEntries ?? [];
+  if (!entries.some((e) => e.id === id)) {
+    throw Object.assign(new Error("Spend entry not found"), { status: 404 });
+  }
+  return normalizeSaveGoals({
+    ...state,
+    saveGoalSpendEntries: entries.filter((e) => e.id !== id),
+  });
+}
+
+/**
+ * Apply today’s running spend: leftover (inbound − spends) is allocated by
+ * preset inbound % to active goals. Idempotent replace of that date’s close.
+ */
+export function applySaveGoalDayTotals(
+  state: RebuildState,
+  input: { date: string; lumpSum?: number } = { date: "" },
+): RebuildState {
+  const date = String(input.date ?? "").trim();
+  if (!DATE_RE.test(date)) {
+    throw Object.assign(new Error("date required"), { status: 400 });
+  }
+  const { spend } = leftoverBeforeApply(state, date);
+  return recordSaveGoalDay(state, {
+    date,
+    spendTotal: spend,
+    lumpSum: input.lumpSum !== undefined ? Number(input.lumpSum) : 0,
+    lumpMode: "preset",
+    source: "manual",
+  });
 }
 
 export function createSaveGoal(
@@ -710,8 +820,9 @@ export function recordSaveGoalDay(
 }
 
 /**
- * If a close row is missing for `date`, credit full daily inbound (spend 0)
- * using preset chips. Idempotent — does not replace a manual approve.
+ * If a close row is missing for `date`, apply running spend entries (or 0)
+ * and credit leftover via preset chips. Idempotent — does not replace a
+ * manual Apply totals / approve.
  */
 export function ensureSaveGoalDay(
   state: RebuildState,
@@ -723,9 +834,10 @@ export function ensureSaveGoalDay(
     (d) => d.date === date && (d.kind ?? "close") === "close",
   );
   if (hasClose) return state;
+  const spend = spendTotalForDate(state, date);
   return recordSaveGoalDay(state, {
     date,
-    spendTotal: 0,
+    spendTotal: spend,
     lumpSum: 0,
     lumpMode: "preset",
     source: "auto",

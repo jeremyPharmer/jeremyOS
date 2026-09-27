@@ -11,9 +11,11 @@ import {
   formatMoney,
   formatTargetDateLabel,
   inboundPercent,
+  leftoverBeforeApply,
   listSaveGoalAdjustments,
   listSaveGoalAdjustmentsForGoal,
   listSaveGoalCloseDays,
+  listSaveGoalSpendEntries,
   normalizeSaveGoalSettings,
   progressRatio,
   projectSaveGoalTargetDate,
@@ -179,9 +181,9 @@ function DailyLedgerDay({
           <span>
             {spend === null
               ? "—"
-              : spend === 0
-                ? formatMoney(0)
-                : `−${formatMoney(spend)}`}
+              : spend > 0
+                ? `−${formatMoney(spend)}`
+                : formatMoney(0)}
           </span>
         </div>
         {lump && lump > 0 ? (
@@ -216,10 +218,17 @@ function DailyLedger({
     () => (today ? saveGoalCloseForDate(state, today) : null),
     [state, today],
   );
+  const running = useMemo(
+    () => leftoverBeforeApply(state, today),
+    [state, today],
+  );
   const history = useMemo(() => {
     const closes = listSaveGoalCloseDays(state).filter((d) => d.date !== today);
     return closes.slice(0, 14);
   }, [state, today]);
+
+  const spendShown = todayClose ? todayClose.spendTotal : running.spend;
+  const leftShown = todayClose ? todayClose.leftover : running.left;
 
   return (
     <div className="save-goal-ledger" aria-label="Daily ledger">
@@ -227,8 +236,8 @@ function DailyLedger({
       <DailyLedgerDay
         label="Today"
         inbound={todayClose?.dailyIncome ?? rate}
-        spend={todayClose ? todayClose.spendTotal : null}
-        leftover={todayClose ? todayClose.leftover : null}
+        spend={spendShown}
+        leftover={leftShown}
         lump={todayClose?.lumpSum}
         closed={Boolean(todayClose)}
         goals={goals}
@@ -578,123 +587,81 @@ function AdjustPanel({
   );
 }
 
-/** Home glance — no progress/to-go. Percents + approve/adjust; deep page for detail. */
+/** Home saver — day total, running subtracts, Apply totals. No % chips. */
 function HomeSaveGoalsGlance() {
   const { state, today, post } = useApp();
-  const [panel, setPanel] = useState<"none" | "approve" | "adjust">("none");
-  const [spendTotal, setSpendTotal] = useState("");
-  const [lumpSum, setLumpSum] = useState("");
+  const [subtractOpen, setSubtractOpen] = useState(false);
+  const [spendAmount, setSpendAmount] = useState("");
+  const [ledgerOpen, setLedgerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [justApproved, setJustApproved] = useState(false);
 
-  const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
-  const rate = today ? dailyIncomeRate(today, settings.monthlyIncome) : 0;
   const goals = useMemo(() => activeSaveGoals(state), [state]);
-  const adjustments = useMemo(
-    () => listSaveGoalAdjustments(state),
-    [state],
+  const day = useMemo(() => {
+    if (!today) return { inbound: 0, spend: 0, left: 0 };
+    return leftoverBeforeApply(state, today);
+  }, [state, today]);
+  const spends = useMemo(
+    () => (today ? listSaveGoalSpendEntries(state, today) : []),
+    [state, today],
   );
-  const dayLogged = useMemo(
-    () =>
-      Boolean(
-        today &&
-          (state.saveGoalDays ?? []).some(
-            (d) => d.date === today && (d.kind ?? "close") === "close",
-          ),
-      ),
-    [state.saveGoalDays, today],
+  const todayClose = useMemo(
+    () => (today ? saveGoalCloseForDate(state, today) : null),
+    [state, today],
   );
+  const applied = Boolean(todayClose);
 
-  async function removeAdjust(id: string) {
-    setBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", { action: "removeAdjust", id });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not undo");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function claimDailyInbound(goalId: string) {
-    setBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", {
-        action: "setInbound",
-        soleGoalId: goalId,
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update inbound");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function approveDay() {
-    const spend = Number(spendTotal);
-    if (spendTotal.trim() === "" || !Number.isFinite(spend) || spend < 0) {
-      setError("Enter today’s total spend (0 or more).");
-      return;
-    }
-    const lump = lumpSum.trim() === "" ? 0 : Number(lumpSum);
-    if (!Number.isFinite(lump) || lump < 0) {
-      setError("Lump sum must be 0 or more.");
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", {
-        action: "closeDay",
-        date: today,
-        spendTotal: spend,
-        lumpSum: lump,
-        lumpMode: "preset",
-        source: "manual",
-      });
-      setPanel("none");
-      setSpendTotal("");
-      setLumpSum("");
-      setJustApproved(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not approve day");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function submitAdjust(input: {
-    amount: number;
-    mode: "preset" | "custom";
-    goalId?: string;
-  }) {
-    if (!Number.isFinite(input.amount) || input.amount === 0) {
+  async function addSpend() {
+    const amount = Number(spendAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
       setError("Enter an amount greater than 0.");
       return;
     }
-    if (input.mode === "custom" && !input.goalId) {
-      setError("Pick a target area.");
-      return;
-    }
     setBusy(true);
     setError("");
     try {
       await post("/api/save-goals", {
-        action: "adjust",
-        amount: input.amount,
-        mode: input.mode,
-        goalId: input.goalId,
+        action: "addSpend",
+        date: today,
+        amount,
       });
-      setPanel("none");
+      setSpendAmount("");
+      setSubtractOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not adjust");
+      setError(e instanceof Error ? e.message : "Could not subtract");
     } finally {
       setBusy(false);
     }
   }
+
+  async function removeSpend(id: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", { action: "removeSpend", id });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not remove");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function applyTotals() {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "applyTotals",
+        date: today,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not apply");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const ledgerCount = spends.length + (applied ? 1 : 0);
 
   return (
     <section
@@ -702,147 +669,155 @@ function HomeSaveGoalsGlance() {
       aria-label="Save goals"
     >
       <div className="home-card-head save-goal-glance-head">
-        <p className="home-card-kicker save-goal-glance-kicker">Save goals</p>
-        <p className="save-goal-inbound-figure" aria-label="Daily inbound">
-          {formatMoney(rate)}
+        <div>
+          <p className="home-card-kicker save-goal-glance-kicker">Save goals</p>
+          <p className="tiny muted save-goal-day-total-label">
+            Day total {formatMoney(day.inbound)}
+          </p>
+        </div>
+        <p className="save-goal-inbound-figure" aria-label="Left today">
+          {formatMoney(day.left)}
         </p>
       </div>
 
-      {goals.length > 0 ? (
-        <div
-          className="save-goal-chip-row"
-          role="group"
-          aria-label="Daily inbound split"
-        >
-          {goals.map((g) => {
-            const pct = inboundPercent(g);
-            return (
-              <button
-                key={g.id}
-                type="button"
-                className={`chip${pct > 0 ? " selected" : ""}`}
+      {goals.length === 0 ? (
+        <p className="tiny muted" style={{ margin: 0 }}>
+          Set up a goal on the save goals page first.
+        </p>
+      ) : (
+        <>
+          {subtractOpen ? (
+            <div className="save-goal-create">
+              <label className="field">
+                <span className="field-label">Subtract</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={spendAmount}
+                  onChange={(e) => setSpendAmount(e.target.value)}
+                  placeholder="5.00"
+                  autoFocus
+                />
+              </label>
+              {error ? (
+                <p className="tiny" style={{ color: "var(--danger)" }}>
+                  {error}
+                </p>
+              ) : null}
+              <div className="save-goal-create-actions">
+                <PrimaryButton onClick={() => void addSpend()} disabled={busy}>
+                  {busy ? "Saving…" : "Subtract"}
+                </PrimaryButton>
+                <SecondaryButton
+                  onClick={() => {
+                    setSubtractOpen(false);
+                    setError("");
+                  }}
+                  disabled={busy}
+                >
+                  Cancel
+                </SecondaryButton>
+              </div>
+            </div>
+          ) : (
+            <div className="save-goal-glance-actions">
+              <SecondaryButton
+                onClick={() => {
+                  setError("");
+                  setSubtractOpen(true);
+                }}
                 disabled={busy}
-                onClick={() => void claimDailyInbound(g.id)}
-                title={`Send daily inbound here (${pct}%)`}
               >
-                {g.name} · {pct}%
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+                Subtract
+              </SecondaryButton>
+              <PrimaryButton
+                onClick={() => void applyTotals()}
+                disabled={busy}
+              >
+                {busy
+                  ? "Saving…"
+                  : applied
+                    ? "Re-apply totals"
+                    : "Apply totals"}
+              </PrimaryButton>
+            </div>
+          )}
 
-      {panel === "approve" ? (
-        <div className="save-goal-create">
-          <p className="eyebrow">Approve day</p>
-          <label className="field">
-            <span className="field-label">Total spend</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={spendTotal}
-              onChange={(e) => setSpendTotal(e.target.value)}
-              placeholder="0"
-              autoFocus
-            />
-          </label>
-          <label className="field">
-            <span className="field-label">
-              Lump sum
-              <span className="tiny" style={{ marginLeft: 8, fontWeight: 400 }}>
-                optional
-              </span>
-            </span>
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={lumpSum}
-              onChange={(e) => setLumpSum(e.target.value)}
-              placeholder="0"
-            />
-          </label>
-          {error ? (
+          {error && !subtractOpen ? (
             <p className="tiny" style={{ color: "var(--danger)" }}>
               {error}
             </p>
           ) : null}
-          <div className="save-goal-create-actions">
-            <PrimaryButton onClick={() => void approveDay()} disabled={busy}>
-              {busy ? "Saving…" : dayLogged ? "Update day" : "Approve"}
-            </PrimaryButton>
-            <SecondaryButton
-              onClick={() => {
-                setPanel("none");
-                setError("");
-              }}
-              disabled={busy}
-            >
-              Cancel
-            </SecondaryButton>
-          </div>
-        </div>
-      ) : null}
 
-      {panel === "adjust" ? (
-        <AdjustPanel
-          goals={goals}
-          busy={busy}
-          error={error}
-          onCancel={() => {
-            setPanel("none");
-            setError("");
-          }}
-          onSubmit={(input) => void submitAdjust(input)}
-        />
-      ) : null}
-
-      {panel === "none" ? (
-        <div className="save-goal-glance-actions">
-          {goals.length > 0 ? (
-            <>
-              <PrimaryButton
-                onClick={() => {
-                  setError("");
-                  setPanel("approve");
-                }}
-              >
-                {dayLogged || justApproved ? "Update day" : "Approve day"}
-              </PrimaryButton>
-              <SecondaryButton
-                onClick={() => {
-                  setError("");
-                  setPanel("adjust");
-                }}
-              >
-                Adjust
-              </SecondaryButton>
-            </>
-          ) : (
-            <p className="tiny muted" style={{ margin: 0 }}>
-              Set up a goal on the save goals page first.
+          {applied && todayClose ? (
+            <p className="tiny save-goal-applied-line">
+              Applied{" "}
+              {(todayClose.allocations ?? [])
+                .filter((a) => a.amount !== 0)
+                .map((a) => {
+                  const g = goals.find((x) => x.id === a.goalId);
+                  return `${g?.name ?? "Goal"} ${formatMoney(a.amount)}`;
+                })
+                .join(" · ") || formatMoney(todayClose.leftover)}
             </p>
-          )}
-        </div>
-      ) : null}
+          ) : null}
 
-      {error && panel === "none" ? (
-        <p className="tiny" style={{ color: "var(--danger)" }}>
-          {error}
-        </p>
-      ) : null}
-
-      {panel === "none" && adjustments.length > 0 ? (
-        <AdjustmentsList
-          adjustments={adjustments}
-          goals={[...(state.saveGoals ?? [])]}
-          busy={busy}
-          onRemove={(id) => void removeAdjust(id)}
-        />
-      ) : null}
+          {ledgerCount > 0 ? (
+            <div className="save-goal-home-ledger">
+              <button
+                type="button"
+                className="save-goal-log-toggle"
+                aria-expanded={ledgerOpen}
+                onClick={() => setLedgerOpen((v) => !v)}
+              >
+                <span aria-hidden="true">{ledgerOpen ? "▾" : "▸"}</span>
+                Ledger ({ledgerCount})
+              </button>
+              {ledgerOpen ? (
+                <div className="save-goal-ledger-rows home-ledger-body">
+                  <div className="save-goal-ledger-row">
+                    <span>Inbound</span>
+                    <span>{formatMoney(day.inbound)}</span>
+                  </div>
+                  {spends.map((e) => (
+                    <div key={e.id} className="save-goal-ledger-row spend">
+                      <span>Spend</span>
+                      <span className="save-goal-ledger-spend-val">
+                        −{formatMoney(e.amount)}
+                        <button
+                          type="button"
+                          className="save-goal-add-link"
+                          disabled={busy}
+                          onClick={() => void removeSpend(e.id)}
+                        >
+                          Undo
+                        </button>
+                      </span>
+                    </div>
+                  ))}
+                  <div className="save-goal-ledger-row leftover">
+                    <span>Left</span>
+                    <span>{formatMoney(day.left)}</span>
+                  </div>
+                  {applied && todayClose ? (
+                    <p className="tiny muted save-goal-ledger-alloc">
+                      {(todayClose.allocations ?? [])
+                        .filter((a) => a.amount !== 0)
+                        .map((a) => {
+                          const g = goals.find((x) => x.id === a.goalId);
+                          return `${g?.name ?? "Goal"} ${formatMoney(a.amount)}`;
+                        })
+                        .join(" · ")}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      )}
 
       <Link href="/save-goals" className="btn ghost workout-open-link">
         Open save goals →

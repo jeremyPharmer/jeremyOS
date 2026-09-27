@@ -502,10 +502,20 @@ export type SaveGoalDay = {
   id?: string;
   /**
    * How the close row was written:
-   * - manual = Approve day / evening Money today
+   * - manual = Approve day / evening Money today / Apply totals
    * - auto = catch-up when a day ended without approve (full daily inbound)
    */
   source?: "manual" | "auto";
+};
+
+/** Mid-day spend subtraction on the Home saver tile (before Apply totals). */
+export type SaveGoalSpendEntry = {
+  id: string;
+  date: string;
+  /** Positive spend amount subtracted from the day total */
+  amount: number;
+  note?: string;
+  at?: string;
 };
 
 export type RebuildState = {
@@ -575,6 +585,8 @@ export type RebuildState = {
   saveGoals?: SaveGoal[];
   /** Evening spend / leftover rows keyed by date */
   saveGoalDays?: SaveGoalDay[];
+  /** Running spend subtractions before Apply totals (Home saver ledger) */
+  saveGoalSpendEntries?: SaveGoalSpendEntry[];
 };
 
 export type CustomAgendaEvent = {

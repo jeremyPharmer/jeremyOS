@@ -7,10 +7,13 @@ import {
   createSaveGoal,
   dailyIncomeRate,
   daysInMonthForDate,
+  addSaveGoalSpend,
+  applySaveGoalDayTotals,
   deleteSaveGoal,
   ensureElapsedSaveGoalDays,
   ensureSaveGoalDay,
   inboundPercent,
+  leftoverBeforeApply,
   leftoverPool,
   listSaveGoalAdjustments,
   listSaveGoalAdjustmentsForGoal,
@@ -18,6 +21,7 @@ import {
   recordSaveGoalDay,
   recomputeSavedAmounts,
   removeSaveGoalAdjustment,
+  removeSaveGoalSpend,
   setGoalInboundPercent,
   setInboundPercents,
   setSoleDailyTarget,
@@ -508,6 +512,49 @@ describe("updateSaveGoal", () => {
     });
     expect(state.saveGoals![0].name).toBe("Hawaii");
     expect(state.saveGoals![0].targetAmount).toBe(800);
+  });
+});
+
+describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
+  it("subtracts through the day then applies leftover by inbound %", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "Gift",
+      targetAmount: 200,
+      createdOn: "2026-04-01",
+    });
+    const trip = () => state.saveGoals!.find((g) => g.name === "Trip")!;
+    const gift = () => state.saveGoals!.find((g) => g.name === "Gift")!;
+    state = setInboundPercents(state, {
+      [trip().id]: 50,
+      [gift().id]: 50,
+    });
+
+    state = addSaveGoalSpend(state, { date: "2026-04-01", amount: 5 });
+    state = addSaveGoalSpend(state, { date: "2026-04-01", amount: 3 });
+    const before = leftoverBeforeApply(state, "2026-04-01");
+    expect(before.inbound).toBe(16.67);
+    expect(before.spend).toBe(8);
+    expect(before.left).toBeCloseTo(8.67, 2);
+
+    const entryId = state.saveGoalSpendEntries![0].id;
+    state = removeSaveGoalSpend(state, entryId);
+    expect(leftoverBeforeApply(state, "2026-04-01").spend).toBe(3);
+
+    state = applySaveGoalDayTotals(state, { date: "2026-04-01" });
+    expect(trip().savedAmount).toBeCloseTo(6.84, 1);
+    expect(gift().savedAmount).toBeCloseTo(6.83, 1);
+    const close = state.saveGoalDays!.find(
+      (d) => d.date === "2026-04-01" && (d.kind ?? "close") === "close",
+    )!;
+    expect(close.spendTotal).toBe(3);
+    expect(close.leftover).toBeCloseTo(13.67, 2);
   });
 });
 

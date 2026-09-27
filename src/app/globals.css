@@ -2206,6 +2206,29 @@ h2 {
   min-width: 7.5rem;
 }
 
+.save-goal-day-total-label {
+  margin: 2px 0 0;
+}
+
+.save-goal-applied-line {
+  margin: 8px 0 0;
+  font-weight: 600;
+}
+
+.save-goal-home-ledger {
+  margin-top: 10px;
+}
+
+.save-goal-home-ledger .home-ledger-body {
+  margin-top: 8px;
+}
+
+.save-goal-ledger-spend-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .save-goal-day-status {
   margin: 0;
   font-weight: 600;
