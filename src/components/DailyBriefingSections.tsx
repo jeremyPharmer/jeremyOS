@@ -454,14 +454,6 @@ export function BodyMind({
       delta: trends.stressVsLastWeek,
     },
     {
-      key: "sleep-hours",
-      label: "Sleep",
-      today: trends.todaySleepHours,
-      avg: trends.sleepHoursAvg,
-      delta: trends.sleepHoursVsLastWeek,
-      hours: true,
-    },
-    {
       key: "sleep-quality",
       label: "Quality",
       today: trends.todaySleepQuality,

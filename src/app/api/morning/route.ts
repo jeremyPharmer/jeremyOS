@@ -90,7 +90,12 @@ export async function POST(req: Request) {
       const quote = pickMorningQuote(prev.quoteLog, date);
       const morning: MorningCheckIn = {
         date,
-        sleepHours: clampSleepHours(Number(body.sleepHours)),
+        // Sleep hours hidden from Open for now — keep a neutral stored default.
+        sleepHours: clampSleepHours(
+          body.sleepHours === undefined || body.sleepHours === null
+            ? Number.NaN
+            : Number(body.sleepHours),
+        ),
         sleepQuality: clampMorningScore(Number(body.sleepQuality)),
         mood: clampMorningScore(Number(body.mood)),
         energy: clampMorningScore(Number(body.energy)),
