@@ -1,12 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  earthThemes,
-  modernThemes,
-  THEMES,
-  type ThemeId,
-} from "@/lib/themes";
+import { earthThemes, THEMES, type ThemeId } from "@/lib/themes";
 import { useTheme } from "@/components/ThemeProvider";
 
 type RoleKey = "bg" | "accent" | "accent2" | "good" | "text";
@@ -20,76 +15,6 @@ const PALETTE_ROLES: { key: RoleKey; label: string }[] = [
 ];
 
 const ROLE_COLORS: Partial<Record<ThemeId, Record<RoleKey, string>>> = {
-  "signal-ink": {
-    bg: "#f4f6f8",
-    accent: "#00b3c7",
-    accent2: "#1ac4d6",
-    good: "#12a37a",
-    text: "#0b1220",
-  },
-  "chartreuse-cut": {
-    bg: "#f7f5ef",
-    accent: "#c6e000",
-    accent2: "#d4ee3a",
-    good: "#3d9a5c",
-    text: "#141414",
-  },
-  "nordic-cobalt": {
-    bg: "#eef1f4",
-    accent: "#1e3a8a",
-    accent2: "#2563eb",
-    good: "#0d9488",
-    text: "#1e293b",
-  },
-  "olive-archive": {
-    bg: "#f3f0e7",
-    accent: "#4a5240",
-    accent2: "#6b7460",
-    good: "#5a8a62",
-    text: "#1f1f1c",
-  },
-  "slate-coral": {
-    bg: "#e9eef2",
-    accent: "#ff6b5a",
-    accent2: "#ff8576",
-    good: "#2f9e7a",
-    text: "#1e293b",
-  },
-  "mint-ledger": {
-    bg: "#111418",
-    accent: "#3dd6c6",
-    accent2: "#5ee0d2",
-    good: "#4ade80",
-    text: "#e8eef4",
-  },
-  "sandstone-studio": {
-    bg: "#ebe4d8",
-    accent: "#0f766e",
-    accent2: "#14b8a6",
-    good: "#2f8f6a",
-    text: "#1c1c1c",
-  },
-  "midnight-signal": {
-    bg: "#070b14",
-    accent: "#b8f000",
-    accent2: "#c8f83a",
-    good: "#5ee0a0",
-    text: "#e8eef8",
-  },
-  "porcelain-pine": {
-    bg: "#fafafa",
-    accent: "#1b4332",
-    accent2: "#2d6a4f",
-    good: "#40916c",
-    text: "#1b4332",
-  },
-  "copper-fog": {
-    bg: "#e8eaed",
-    accent: "#b87333",
-    accent2: "#c98a4a",
-    good: "#4a9a78",
-    text: "#2a2e35",
-  },
   "bone-graphite": {
     bg: "#f3f0ea",
     accent: "#3a3a38",
@@ -269,7 +194,7 @@ function PaletteSection({
 }: {
   title: string;
   blurb: string;
-  options: ReturnType<typeof modernThemes>;
+  options: ReturnType<typeof earthThemes>;
   theme: ThemeId;
   setTheme: (id: ThemeId) => void;
   startIndex?: number;
@@ -299,7 +224,6 @@ function PaletteSection({
 
 export default function ThemesPage() {
   const { theme, setTheme } = useTheme();
-  const modern = modernThemes();
   const earth = earthThemes();
   const earthLight = earth.slice(0, 5);
   const earthDark = earth.slice(5);
@@ -307,11 +231,11 @@ export default function ThemesPage() {
   return (
     <main className="page themes-board">
       <header className="themes-board-header">
-        <p className="eyebrow">Appearance · review board</p>
+        <p className="eyebrow">Appearance</p>
         <h1>Color palettes</h1>
         <p className="muted">
-          Modern accents plus a new earth set — five light neutrals, five dark
-          grounds. Tap to restyle live.
+          Ten earth &amp; neutral directions — five light, five dark. Tap to
+          restyle live. Same set as Settings → Appearance.
         </p>
         <div className="themes-board-links">
           <Link href="/" className="themes-board-link">
@@ -326,24 +250,15 @@ export default function ThemesPage() {
       <LivePreview />
 
       <PaletteSection
-        title="Modern"
-        blurb="Accent-forward looks already on prod."
-        options={modern}
-        theme={theme}
-        setTheme={setTheme}
-      />
-
-      <PaletteSection
-        title="Earth · light"
-        blurb="Neutral bone, stone, wheat, moss, taupe — soft day grounds."
+        title="Light"
+        blurb="Bone, stone, wheat, moss, taupe — soft day grounds."
         options={earthLight}
         theme={theme}
         setTheme={setTheme}
-        startIndex={0}
       />
 
       <PaletteSection
-        title="Earth · dark"
+        title="Dark"
         blurb="Charcoal, espresso, slate, forest, ink — dark grounds, quiet heat."
         options={earthDark}
         theme={theme}

@@ -79,9 +79,9 @@ export type ThemeOption = {
 };
 
 /** Default theme when nothing is stored. */
-export const DEFAULT_THEME_ID: ThemeId = "signal-ink";
+export const DEFAULT_THEME_ID: ThemeId = "bone-graphite";
 
-/** Modern accent set (first board). */
+/** Modern accent set (archived from Settings — still loadable if saved). */
 export const MODERN_THEME_IDS: ThemeId[] = [
   "signal-ink",
   "chartreuse-cut",
@@ -95,7 +95,7 @@ export const MODERN_THEME_IDS: ThemeId[] = [
   "copper-fog",
 ];
 
-/** Neutral / earth set — 5 light + 5 dark. */
+/** Neutral / earth set — 5 light + 5 dark. Active Settings options. */
 export const EARTH_THEME_IDS: ThemeId[] = [
   "bone-graphite",
   "river-stone",
@@ -109,11 +109,8 @@ export const EARTH_THEME_IDS: ThemeId[] = [
   "ink-sienna",
 ];
 
-/** All themes shown in Settings + palette board. */
-export const FEATURED_THEME_IDS: ThemeId[] = [
-  ...MODERN_THEME_IDS,
-  ...EARTH_THEME_IDS,
-];
+/** Themes shown in Settings + palette board. */
+export const FEATURED_THEME_IDS: ThemeId[] = [...EARTH_THEME_IDS];
 
 /** @deprecated Use FEATURED_THEME_IDS — kept as an alias for older imports. */
 export const RETHINK_THEME_IDS: ThemeId[] = FEATURED_THEME_IDS;
@@ -127,7 +124,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Product OS — crisp chrome, todos read as signals.",
     layout: "briefing",
     swatches: ["#f4f6f8", "#0b1220", "#00b3c7"],
-    featured: true,
   },
   {
     id: "chartreuse-cut",
@@ -136,7 +132,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Editorial edge — headlines bite, actions glow.",
     layout: "studio",
     swatches: ["#f7f5ef", "#141414", "#c6e000"],
-    featured: true,
   },
   {
     id: "nordic-cobalt",
@@ -145,7 +140,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Scandi calm — clean stack, focus without noise.",
     layout: "briefing",
     swatches: ["#eef1f4", "#1e3a8a", "#64748b"],
-    featured: true,
   },
   {
     id: "olive-archive",
@@ -154,7 +148,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Quiet utility — grounded day, soft surfaces.",
     layout: "cozy",
     swatches: ["#f3f0e7", "#4a5240", "#1f1f1c"],
-    featured: true,
   },
   {
     id: "slate-coral",
@@ -163,7 +156,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Modern sports desk — energy without game-day orange.",
     layout: "athletic",
     swatches: ["#e9eef2", "#ff6b5a", "#334155"],
-    featured: true,
   },
   {
     id: "mint-ledger",
@@ -172,7 +164,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Fintech night — Money + progress feel precise.",
     layout: "ledger",
     swatches: ["#111418", "#3dd6c6", "#9aa3ad"],
-    featured: true,
   },
   {
     id: "sandstone-studio",
@@ -181,7 +172,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Architectural day — airy panels, teal for action.",
     layout: "studio",
     swatches: ["#ebe4d8", "#1c1c1c", "#0f766e"],
-    featured: true,
   },
   {
     id: "midnight-signal",
@@ -190,7 +180,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "After-hours OS — low glare, status pops lime.",
     layout: "ritual",
     swatches: ["#070b14", "#b8f000", "#7eb6ff"],
-    featured: true,
   },
   {
     id: "porcelain-pine",
@@ -199,7 +188,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Gallery calm — spa-clean surfaces, pine accents.",
     layout: "paper",
     swatches: ["#fafafa", "#1b4332", "#95d5b2"],
-    featured: true,
   },
   {
     id: "copper-fog",
@@ -208,7 +196,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Industrial soft — fog gray day, copper heat.",
     layout: "cozy",
     swatches: ["#e8eaed", "#b87333", "#2a2e35"],
-    featured: true,
   },
   // ── Earth & neutral (5 light + 5 dark) ──
   {
@@ -581,7 +568,7 @@ export function themeLayout(id: ThemeId): LayoutId {
 }
 
 export function themeMetaColor(id: ThemeId): string {
-  return getTheme(id)?.swatches[0] ?? "#f4f6f8";
+  return getTheme(id)?.swatches[0] ?? "#f3f0ea";
 }
 
 export function featuredThemes(): ThemeOption[] {
