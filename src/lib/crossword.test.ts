@@ -17,6 +17,7 @@ import {
   isWordCorrect,
   missedReviewForPuzzle,
   nextCellInDirection,
+  nextEditableCellInDirection,
   puzzleForDate,
   solutionCells,
   todayFillPercent,
@@ -268,6 +269,33 @@ describe("clear entry helpers", () => {
     expect(nextDown).toBe(start + 5);
     const nextAcross = nextCellInDirection(puzzle, start, "across", 1);
     expect(nextAcross).toBe(start + 1);
+  });
+
+  it("skips cells locked by a correct crossing word while typing", () => {
+    const puzzle = MINI_CROSSWORDS.find((p) => p.id === "ache-lemon")!;
+    const cells = emptyCellsForPuzzle(puzzle);
+    // Fill 1-Down correctly so those letters are locked.
+    const downIndexes = wordCellIndexes(puzzle, 1, "down");
+    const downAnswer = answerAt(puzzle, 1, "down");
+    for (let i = 0; i < downIndexes.length; i++) {
+      cells[downIndexes[i]!] = downAnswer[i]!;
+    }
+    expect(isWordCorrect(puzzle, cells, 1, "down")).toBe(true);
+
+    // Typing across from the locked first letter should jump to the next
+    // editable square in 1-Across (skipping the crossing).
+    const acrossIndexes = wordCellIndexes(puzzle, 1, "across");
+    const start = acrossIndexes[0]!;
+    expect(correctWordCellIndexes(puzzle, cells).has(start)).toBe(true);
+    const next = nextEditableCellInDirection(
+      puzzle,
+      cells,
+      start,
+      "across",
+      1,
+    );
+    expect(next).toBe(acrossIndexes[1]!);
+    expect(correctWordCellIndexes(puzzle, cells).has(next!)).toBe(false);
   });
 });
 

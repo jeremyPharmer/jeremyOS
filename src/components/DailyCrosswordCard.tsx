@@ -22,6 +22,7 @@ import {
   isWordCorrect,
   missedReviewForPuzzle,
   nextCellInDirection,
+  nextEditableCellInDirection,
   normalizeDailyCrossword,
   puzzleForDate,
   puzzleSize,
@@ -246,15 +247,34 @@ export function DailyCrosswordCard() {
 
   function setLetterAt(index: number, letter: string, advance: boolean) {
     if (locked) return;
+    const protectedCells = correctWordCellIndexes(puzzle, cells);
+    const entry = entryForCellPrefer(puzzle, index, direction);
+    const dir = entry?.dir ?? direction;
+    if (entry) setDirection(dir);
+
+    let writeAt = index;
+    // Don't overwrite a letter that already belongs to a correct word —
+    // jump forward to the next editable square and type there instead.
+    if (letter && protectedCells.has(index)) {
+      const skipTo = nextEditableCellInDirection(
+        puzzle,
+        cells,
+        index,
+        dir,
+        1,
+      );
+      if (skipTo == null) return;
+      writeAt = skipTo;
+    } else if (!letter && protectedCells.has(index)) {
+      return;
+    }
+
     const next = [...cells];
-    next[index] = letter;
+    next[writeAt] = letter;
     setCells(next);
     queueSave(next);
     if (advance) {
-      const entry = entryForCellPrefer(puzzle, index, direction);
-      const dir = entry?.dir ?? direction;
-      if (entry) setDirection(dir);
-      const n = nextCellInDirection(puzzle, index, dir, 1);
+      const n = nextEditableCellInDirection(puzzle, next, writeAt, dir, 1);
       if (n != null) {
         setSelected(n);
         requestAnimationFrame(() => {
@@ -263,6 +283,13 @@ export function DailyCrosswordCard() {
           el?.select();
         });
       }
+    } else if (writeAt !== index) {
+      setSelected(writeAt);
+      requestAnimationFrame(() => {
+        const el = cellRefs.current.get(writeAt);
+        el?.focus();
+        el?.select();
+      });
     }
   }
 
@@ -304,7 +331,8 @@ export function DailyCrosswordCard() {
       return;
     }
     if (e.key === "Backspace" || e.key === "Delete") {
-      if (cells[index]) {
+      const protectedCells = correctWordCellIndexes(puzzle, cells);
+      if (cells[index] && !protectedCells.has(index)) {
         e.preventDefault();
         setLetterAt(index, "", false);
         return;
@@ -312,7 +340,14 @@ export function DailyCrosswordCard() {
       e.preventDefault();
       const entry = entryForCellPrefer(puzzle, index, direction);
       const dir = entry?.dir ?? direction;
-      const prev = nextCellInDirection(puzzle, index, dir, -1);
+      // Jump back over letters locked by a correct crossing word.
+      const prev = nextEditableCellInDirection(
+        puzzle,
+        cells,
+        index,
+        dir,
+        -1,
+      );
       if (prev != null) {
         const next = [...cells];
         next[prev] = "";
