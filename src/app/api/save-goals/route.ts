@@ -11,6 +11,7 @@ import {
   removeSaveGoalSpend,
   setGoalInboundPercent,
   setInboundPercents,
+  setSaveGoalSavedAmount,
   setSoleDailyTarget,
   updateSaveGoal,
   updateSaveGoalSettings,
@@ -49,8 +50,9 @@ export async function POST(req: Request) {
       }
 
       if (action === "update") {
-        return updateSaveGoal(prev, {
-          id: String(body.id ?? ""),
+        const id = String(body.id ?? "");
+        let next = updateSaveGoal(prev, {
+          id,
           name: body.name !== undefined ? String(body.name) : undefined,
           targetAmount:
             body.targetAmount !== undefined
@@ -58,6 +60,14 @@ export async function POST(req: Request) {
               : undefined,
           status: body.status,
         });
+        if (body.savedAmount !== undefined && body.savedAmount !== null) {
+          next = setSaveGoalSavedAmount(next, {
+            id,
+            savedAmount: Number(body.savedAmount),
+            date: String(body.date ?? today),
+          });
+        }
+        return next;
       }
 
       if (action === "archive") {

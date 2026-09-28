@@ -727,6 +727,38 @@ export function updateSaveGoal(
   return normalizeSaveGoals({ ...state, saveGoals: nextGoals });
 }
 
+/**
+ * Set a goal’s total saved amount by writing a one-time adjust for the
+ * delta vs the ledger-derived total (whole dollars).
+ */
+export function setSaveGoalSavedAmount(
+  state: RebuildState,
+  input: { id: string; savedAmount: number; date: string },
+): RebuildState {
+  const id = String(input.id ?? "").trim();
+  if (!id) throw Object.assign(new Error("id required"), { status: 400 });
+  if (!DATE_RE.test(input.date)) {
+    throw Object.assign(new Error("date required"), { status: 400 });
+  }
+  const goal = (state.saveGoals ?? []).find((g) => g.id === id);
+  if (!goal || goal.status === "archived") {
+    throw Object.assign(new Error("Save goal not found"), { status: 404 });
+  }
+  const desired = floorDollar(Number(input.savedAmount));
+  if (!Number.isFinite(desired)) {
+    throw Object.assign(new Error("Saved amount invalid"), { status: 400 });
+  }
+  const current = savedAmountFromDays(id, state.saveGoalDays ?? []);
+  const delta = floorDollar(desired - current);
+  if (delta === 0) return state;
+  return applySaveGoalAdjustment(state, {
+    date: input.date,
+    amount: delta,
+    mode: "custom",
+    goalId: id,
+  });
+}
+
 export function updateSaveGoalSettings(
   state: RebuildState,
   input: { monthlyIncome?: number; incomeDayOfMonth?: number },

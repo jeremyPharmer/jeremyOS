@@ -9,6 +9,7 @@ import {
   daysInMonthForDate,
   addSaveGoalSpend,
   applySaveGoalDayTotals,
+  setSaveGoalSavedAmount,
   deleteSaveGoal,
   ensureElapsedSaveGoalDays,
   ensureSaveGoalDay,
@@ -676,6 +677,31 @@ describe("setGoalInboundPercent", () => {
     const sum =
       inboundPercent(a()) + inboundPercent(b()) + inboundPercent(c());
     expect(sum).toBe(100);
+  });
+
+  it("sets saved total via a ledger adjust delta", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = applySaveGoalDayTotals(state, { date: "2026-04-01" });
+    expect(state.saveGoals![0].savedAmount).toBe(16);
+
+    state = setSaveGoalSavedAmount(state, {
+      id: state.saveGoals![0].id,
+      savedAmount: 49,
+      date: "2026-04-01",
+    });
+    expect(state.saveGoals![0].savedAmount).toBe(49);
+
+    state = setSaveGoalSavedAmount(state, {
+      id: state.saveGoals![0].id,
+      savedAmount: 40,
+      date: "2026-04-01",
+    });
+    expect(state.saveGoals![0].savedAmount).toBe(40);
   });
 
   it("always keeps inbound percents at 100 when decreasing a share", () => {

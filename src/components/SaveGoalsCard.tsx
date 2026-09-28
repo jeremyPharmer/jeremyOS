@@ -8,6 +8,7 @@ import {
   activeSaveGoals,
   amountToGo,
   dailyIncomeRate,
+  floorDollar,
   formatMoney,
   formatTargetDateLabel,
   inboundPercent,
@@ -396,6 +397,7 @@ function GoalProgressRow({
   onDelete,
   onRemoveAdjust,
   busy,
+  hideDelete,
 }: {
   goal: SaveGoal;
   today: string;
@@ -403,6 +405,8 @@ function GoalProgressRow({
   onDelete: (goal: SaveGoal) => void;
   onRemoveAdjust: (id: string) => void;
   busy: boolean;
+  /** Hide Delete while an edit form is open */
+  hideDelete?: boolean;
 }) {
   const { state } = useApp();
   const toGo = amountToGo(goal);
@@ -465,14 +469,16 @@ function GoalProgressRow({
         >
           Edit
         </button>
-        <button
-          type="button"
-          className="save-goal-add-link"
-          disabled={busy}
-          onClick={() => onDelete(goal)}
-        >
-          Delete
-        </button>
+        {!hideDelete ? (
+          <button
+            type="button"
+            className="save-goal-add-link"
+            disabled={busy}
+            onClick={() => onDelete(goal)}
+          >
+            Delete
+          </button>
+        ) : null}
       </div>
       <GoalAdjustmentLog
         goalId={goal.id}
@@ -923,6 +929,7 @@ function SaveGoalsDetail() {
   const [editing, setEditing] = useState<SaveGoal | null>(null);
   const [editName, setEditName] = useState("");
   const [editTarget, setEditTarget] = useState("");
+  const [editSaved, setEditSaved] = useState("");
   const [deleting, setDeleting] = useState<SaveGoal | null>(null);
   const [reallocateTo, setReallocateTo] = useState<string>("");
 
@@ -1001,8 +1008,13 @@ function SaveGoalsDetail() {
   async function saveEdit() {
     if (!editing) return;
     const targetAmount = Number(editTarget);
+    const savedAmount = Number(editSaved);
     if (!editName.trim() || !Number.isFinite(targetAmount) || targetAmount <= 0) {
       setError("Name and a target over $0 are required.");
+      return;
+    }
+    if (!Number.isFinite(savedAmount)) {
+      setError("Enter a saved total (whole dollars).");
       return;
     }
     setBusy(true);
@@ -1013,6 +1025,8 @@ function SaveGoalsDetail() {
         id: editing.id,
         name: editName.trim(),
         targetAmount,
+        savedAmount,
+        date: today,
       });
       setEditing(null);
     } catch (e) {
@@ -1129,73 +1143,85 @@ function SaveGoalsDetail() {
       ) : null}
 
       {goals.map((g) => (
-        <GoalProgressRow
-          key={g.id}
-          goal={g}
-          today={today}
-          busy={busy}
-          onRemoveAdjust={(id) => void removeAdjust(id)}
-          onEdit={(goal) => {
-            setEditing(goal);
-            setEditName(goal.name);
-            setEditTarget(String(goal.targetAmount));
-            setDeleting(null);
-            setError("");
-          }}
-          onDelete={(goal) => {
-            setDeleting(goal);
-            setReallocateTo("");
-            setEditing(null);
-            setError("");
-          }}
-        />
+        <div key={g.id}>
+          <GoalProgressRow
+            goal={g}
+            today={today}
+            busy={busy}
+            hideDelete={Boolean(editing)}
+            onRemoveAdjust={(id) => void removeAdjust(id)}
+            onEdit={(goal) => {
+              setEditing(goal);
+              setEditName(goal.name);
+              setEditTarget(String(goal.targetAmount));
+              setEditSaved(String(floorDollar(goal.savedAmount)));
+              setDeleting(null);
+              setError("");
+            }}
+            onDelete={(goal) => {
+              setDeleting(goal);
+              setReallocateTo("");
+              setEditing(null);
+              setError("");
+            }}
+          />
+          {editing?.id === g.id ? (
+            <div className="save-goal-create" style={{ marginTop: 8 }}>
+              <p className="eyebrow">Edit</p>
+              <label className="field">
+                <span className="field-label">Name</span>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  maxLength={80}
+                  autoFocus
+                />
+              </label>
+              <label className="field">
+                <span className="field-label">Target</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  step="1"
+                  value={editTarget}
+                  onChange={(e) => setEditTarget(e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span className="field-label">Saved toward goal</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  step="1"
+                  value={editSaved}
+                  onChange={(e) => setEditSaved(e.target.value)}
+                />
+              </label>
+              <div className="save-goal-create-actions">
+                <PrimaryButton onClick={() => void saveEdit()} disabled={busy}>
+                  {busy ? "Saving…" : "Save"}
+                </PrimaryButton>
+                <SecondaryButton
+                  onClick={() => {
+                    setEditing(null);
+                    setError("");
+                  }}
+                  disabled={busy}
+                >
+                  Cancel
+                </SecondaryButton>
+              </div>
+            </div>
+          ) : null}
+        </div>
       ))}
 
       {error ? (
         <p className="tiny" style={{ color: "var(--danger)" }}>
           {error}
         </p>
-      ) : null}
-
-      {editing ? (
-        <div className="save-goal-create">
-          <p className="eyebrow">Edit</p>
-          <label className="field">
-            <span className="field-label">Name</span>
-            <input
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              maxLength={80}
-              autoFocus
-            />
-          </label>
-          <label className="field">
-            <span className="field-label">Target</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              min={1}
-              step="1"
-              value={editTarget}
-              onChange={(e) => setEditTarget(e.target.value)}
-            />
-          </label>
-          <div className="save-goal-create-actions">
-            <PrimaryButton onClick={() => void saveEdit()} disabled={busy}>
-              {busy ? "Saving…" : "Save"}
-            </PrimaryButton>
-            <SecondaryButton
-              onClick={() => {
-                setEditing(null);
-                setError("");
-              }}
-              disabled={busy}
-            >
-              Cancel
-            </SecondaryButton>
-          </div>
-        </div>
       ) : null}
 
       {deleting ? (
