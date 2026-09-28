@@ -18,9 +18,9 @@ export const SAVE_GOAL_SPEND_CATEGORIES: {
   label: string;
 }[] = [
   { id: "food", label: "Food" },
-  { id: "books_movies", label: "Books/movies" },
+  { id: "books_movies", label: "Books" },
   { id: "clothes", label: "Clothes" },
-  { id: "maintenance", label: "Maintenance" },
+  { id: "maintenance", label: "Maint." },
 ];
 
 const SPEND_CATEGORY_IDS = new Set(
