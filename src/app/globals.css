@@ -11325,3 +11325,92 @@ button.layout-pick-card {
     padding-top: 16px;
   }
 }
+
+/* Close edition — journal / money inside the Open edition box */
+.open-edition-journal-block,
+.open-edition-money {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.open-edition-journal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.open-edition-lead-field textarea,
+.open-edition-select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-strong) 55%, transparent);
+  padding: 12px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--text);
+  resize: vertical;
+}
+
+.open-edition-select {
+  appearance: none;
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 550;
+  letter-spacing: -0.02em;
+  padding-right: 28px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) calc(50% - 2px),
+    calc(100% - 9px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.open-edition-lead-field textarea:disabled,
+.open-edition-lead-field input:disabled,
+.open-edition-select:disabled {
+  opacity: 0.85;
+}
+
+.open-edition-photo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.open-edition-money-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.open-edition-deck {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.open-edition-box .evening-money-preview {
+  margin-top: 2px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-strong) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.tap-scale-disabled {
+  opacity: 0.85;
+}
+
+.tap-scale-disabled .tap-scale-tick:disabled {
+  cursor: default;
+}

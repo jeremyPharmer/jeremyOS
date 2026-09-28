@@ -130,6 +130,8 @@ function EveningPageInner() {
   const [result, setResult] = useState(false);
   const [closed, setClosed] = useState<ClosedSnapshot | null>(null);
   const [error, setError] = useState("");
+  /** After close (or reopen), check-in sits collapsed above the paper. */
+  const [checkinOpen, setCheckinOpen] = useState(false);
   const [news, setNews] = useState<NewsHeadline[]>([]);
   const [newsLoading, setNewsLoading] = useState(false);
   const [weatherDays, setWeatherDays] = useState<DailyForecast[]>([]);
@@ -187,9 +189,15 @@ function EveningPageInner() {
     };
   }, [closed, alreadyClosedToday, missing.length, today, state.evenings]);
 
+  const closeDone = Boolean(editionClosed);
+  const showCheckin = !closeDone || checkinOpen;
+  const paperLive = closeDone && !checkinOpen;
+
   const closedStarred = Boolean(
     editionClosed && isStarredDay(state.starredDays, editionClosed.date),
   );
+
+  const briefingDate = editionClosed?.date || effectiveDate || today || "";
 
   // Cancel pending star intent if the headline is cleared before close.
   useEffect(() => {
@@ -223,9 +231,18 @@ function EveningPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
   }, [effectiveDate, result, editionClosed]);
 
-  // Pull news + tomorrow weather whenever the Close edition is on screen.
+  // Prefill scales when reopening an already-closed evening.
   useEffect(() => {
-    if (!editionClosed || !today) return;
+    if (!editionClosed || !checkinOpen) return;
+    setMood(editionClosed.mood);
+    setStress(editionClosed.stress);
+    setOneLine(editionClosed.headline);
+    setStandOut(editionClosed.summary);
+  }, [editionClosed, checkinOpen]);
+
+  // Pull news + tomorrow weather for the Close paper (compose wait + closed live).
+  useEffect(() => {
+    if (!briefingDate) return;
     let cancelled = false;
     setNewsLoading(true);
     setWeatherLoading(true);
@@ -243,11 +260,9 @@ function EveningPageInner() {
           }
         }
         const [newsRes, weatherRes, onThisDayRes] = await Promise.all([
-          fetch(`/api/news?date=${encodeURIComponent(editionClosed.date)}`),
+          fetch(`/api/news?date=${encodeURIComponent(briefingDate)}`),
           fetch(`/api/weather?${weatherQs.toString()}`),
-          fetch(
-            `/api/on-this-day?date=${encodeURIComponent(editionClosed.date)}`,
-          ),
+          fetch(`/api/on-this-day?date=${encodeURIComponent(briefingDate)}`),
         ]);
         if (cancelled) return;
         if (newsRes.ok) {
@@ -284,13 +299,13 @@ function EveningPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [editionClosed, today]);
+  }, [briefingDate]);
 
   const briefingTasks: BriefingTaskRow[] = useMemo(() => {
-    if (!editionClosed) return [];
+    if (!briefingDate) return [];
     const done = completedTodosForUndo(
       state.dayProvisions ?? [],
-      editionClosed.date,
+      briefingDate,
     ).map((t) => ({
       id: t.id,
       label: t.label,
@@ -298,7 +313,7 @@ function EveningPageInner() {
       group: t.group,
       status: "done" as const,
     }));
-    const open = openTodosOn(state.dayProvisions ?? [], editionClosed.date).map(
+    const open = openTodosOn(state.dayProvisions ?? [], briefingDate).map(
       (t) => ({
         id: t.id,
         label: t.label,
@@ -308,24 +323,24 @@ function EveningPageInner() {
       }),
     );
     return [...done, ...open];
-  }, [editionClosed, state.dayProvisions]);
+  }, [briefingDate, state.dayProvisions]);
 
   const historyEntries = useMemo(() => {
-    if (!editionClosed) return [];
-    return thisDayInHistory(state.journals ?? [], editionClosed.date);
-  }, [editionClosed, state.journals]);
+    if (!briefingDate) return [];
+    return thisDayInHistory(state.journals ?? [], briefingDate);
+  }, [briefingDate, state.journals]);
 
   const workoutGaps = useMemo(() => {
-    if (!editionClosed) return workoutGapInsight([], today || "");
-    return workoutGapInsight(state.workouts, editionClosed.date);
-  }, [editionClosed, state.workouts, today]);
+    if (!briefingDate) return workoutGapInsight([], today || "");
+    return workoutGapInsight(state.workouts, briefingDate);
+  }, [briefingDate, state.workouts, today]);
 
   const trends = useMemo(() => {
-    if (!editionClosed) {
+    if (!briefingDate) {
       return sevenDayTrendInsight(state, today || "");
     }
-    return sevenDayTrendInsight(state, editionClosed.date);
-  }, [editionClosed, state, today]);
+    return sevenDayTrendInsight(state, briefingDate);
+  }, [briefingDate, state, today]);
 
   const saveSettings = normalizeSaveGoalSettings(state.saveGoalSettings);
   const moneyDate = effectiveDate || today || "";
@@ -343,7 +358,7 @@ function EveningPageInner() {
     const goals = activeSaveGoals(state);
     const leftoverAlloc =
       goals.length && leftover !== 0 ? splitPoolByWeight(leftover, goals) : [];
-    let lumpAlloc =
+    const lumpAlloc =
       goals.length && lump !== 0
         ? lumpMode === "custom" && lumpGoalId
           ? splitPoolToOne(lump, lumpGoalId)
@@ -360,6 +375,14 @@ function EveningPageInner() {
     spendNum >= 0;
 
   const tomorrowDate = today ? addDays(today, 1) : "";
+
+  const collapsedSummary = useMemo(() => {
+    const src = editionClosed
+      ? { mood: editionClosed.mood, stress: editionClosed.stress }
+      : { mood, stress };
+    if (src.mood == null || src.stress == null) return null;
+    return `M ${src.mood} · St ${src.stress}`;
+  }, [editionClosed, mood, stress]);
 
   async function toggleStarNow(date: string) {
     setStarBusy(true);
@@ -428,6 +451,7 @@ function EveningPageInner() {
       setStarPending(false);
       setClosed(snapshot);
       setResult(true);
+      setCheckinOpen(false);
       if (shouldStarAfterClose) {
         try {
           await post("/api/journal", {
@@ -451,10 +475,11 @@ function EveningPageInner() {
 
   if (requestedAlreadyClosed && !result && requested !== today) {
     return (
-      <main className="stack daily-briefing paper-edition">
-        <header className="paper-masthead paper-masthead-compact">
-          <p className="paper-masthead-flag">Evening edition</p>
-          <h1 className="paper-masthead-title">The Daily Close</h1>
+      <main className="stack open-edition fade-in">
+        <header className="open-edition-mast">
+          <p className="open-edition-flag">Evening edition</p>
+          <h1 className="open-edition-title">The Daily Close</h1>
+          <div className="open-edition-rule" aria-hidden />
         </header>
         <p className="muted">
           {formatDisplayDate(requested)} already has a close.
@@ -469,118 +494,13 @@ function EveningPageInner() {
     );
   }
 
-  if (editionClosed) {
-    const editionDate = formatHomeHeaderDate(editionClosed.date);
-    const morningLead =
-      state.mornings
-        .find((m) => m.date === editionClosed.date)
-        ?.intention?.trim() || "";
+  if (!effectiveDate && !editionClosed) {
     return (
-      <main
-        className={`stack daily-briefing evening-recap paper-edition paper-rundown${
-          result ? " success-pop" : " fade-in"
-        }`}
-      >
-        <header className="paper-masthead">
-          <p className="paper-masthead-flag">Evening edition</p>
-          <h1 className="paper-masthead-title">The Daily Close</h1>
-          <div className="paper-masthead-rule" aria-hidden />
-          <p className="paper-masthead-dateline">
-            <span>{editionDate}</span>
-            <span className="paper-masthead-dot" aria-hidden>
-              ·
-            </span>
-            <span>Day put to bed</span>
-          </p>
-          {morningLead ? (
-            <div className="paper-lead-story">
-              <p className="paper-kicker">Today&apos;s lead</p>
-              <h2 className="paper-front-headline">{morningLead}</h2>
-            </div>
-          ) : null}
-        </header>
-        {editionClosed.date !== today && (
-          <p className="muted paper-checkin-note">
-            Backfilled {formatDisplayDate(editionClosed.date)}
-          </p>
-        )}
-
-        <section className="paper-front" aria-label="Remember">
-          <div className="evening-remember-row">
-            <div>
-              <p className="paper-kicker">Remember</p>
-              <h2 className="paper-headline">{editionClosed.headline}</h2>
-              {editionClosed.summary ? (
-                <p className="paper-deck">{editionClosed.summary}</p>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              className="fy-star-btn"
-              aria-label={
-                closedStarred
-                  ? "Unstar day to remember"
-                  : "Star as day to remember"
-              }
-              disabled={starBusy}
-              onClick={() => void toggleStarNow(editionClosed.date)}
-            >
-              <StarIcon filled={closedStarred} />
-            </button>
-          </div>
-        </section>
-        {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-        {editionClosed.photoDataUrl ? (
-          <div className="photo-subtle-preview">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={editionClosed.photoDataUrl} alt="Attached photo" />
-          </div>
-        ) : null}
-
-        <div className="paper-pages paper-card-stack">
-          <WeatherExpanded
-            mode="tomorrow"
-            locationLabel={weatherLocation}
-            days={weatherDays}
-            focusDate={tomorrowDate}
-            loading={weatherLoading}
-          />
-
-          <BriefingTasks
-            tasks={briefingTasks}
-            emptyLabel="No tasks logged for this day."
-            hideWhenEmpty
-          />
-          <BodyMind workouts={workoutGaps} trends={trends} />
-          <WorldHeadlines
-            headlines={news}
-            loading={newsLoading}
-            hideWhenEmpty
-          />
-          <ThisDayInHistory
-            today={editionClosed.date}
-            entries={historyEntries}
-            worldEvent={worldEvent}
-            worldLoading={worldLoading}
-            hideWhenEmpty
-          />
-        </div>
-
-        <PrimaryButton onClick={() => router.push("/journal")}>
-          Open journal
-        </PrimaryButton>
-
-        <SecondaryButton onClick={() => router.push("/")}>Home</SecondaryButton>
-      </main>
-    );
-  }
-
-  if (!effectiveDate) {
-    return (
-      <main className="stack daily-briefing paper-edition">
-        <header className="paper-masthead paper-masthead-compact">
-          <p className="paper-masthead-flag">Evening edition</p>
-          <h1 className="paper-masthead-title">The Daily Close</h1>
+      <main className="stack open-edition fade-in">
+        <header className="open-edition-mast">
+          <p className="open-edition-flag">Evening edition</p>
+          <h1 className="open-edition-title">The Daily Close</h1>
+          <div className="open-edition-rule" aria-hidden />
         </header>
         <p className="muted">Nothing to close.</p>
         <SecondaryButton onClick={() => router.push("/")}>Home</SecondaryButton>
@@ -588,276 +508,488 @@ function EveningPageInner() {
     );
   }
 
-  const isBackfill = effectiveDate !== today;
+  const isBackfill = Boolean(
+    effectiveDate && today && effectiveDate !== today && !editionClosed,
+  );
   const showDayPicker =
-    missing.length > 1 || (alreadyClosedToday && missing.length > 0);
+    !editionClosed &&
+    (missing.length > 1 || (alreadyClosedToday && missing.length > 0));
   const scalesReady = mood != null && stress != null;
+  const mastDate = formatHomeHeaderDate(
+    editionClosed?.date || effectiveDate || today,
+  );
+  const morningLead =
+    (editionClosed
+      ? state.mornings
+          .find((m) => m.date === editionClosed.date)
+          ?.intention?.trim()
+      : state.mornings.find((m) => m.date === effectiveDate)?.intention?.trim()) ||
+    "";
+  const rememberHeadline =
+    editionClosed?.headline || oneLine.trim() || "";
+  const rememberSummary =
+    editionClosed?.summary || standOut.trim() || "";
+  const rememberPhoto =
+    editionClosed?.photoDataUrl || photoDataUrl || null;
 
   return (
-    <main className="stack fade-in daily-briefing paper-edition">
-      <header className="paper-masthead paper-masthead-compact">
-        <p className="paper-masthead-flag">
-          {isBackfill ? "Catch up" : "Evening edition"}
+    <main
+      className={`stack open-edition${result ? " success-pop" : " fade-in"}`}
+    >
+      <header className="open-edition-mast">
+        <p className="open-edition-flag">
+          {isBackfill
+            ? `Catch up · ${formatDisplayDate(effectiveDate)}`
+            : `${mastDate} · Evening edition`}
         </p>
-        <h1 className="paper-masthead-title">
+        <h1 className="open-edition-title">
           {isBackfill ? "Missed close" : "The Daily Close"}
         </h1>
-        <div className="paper-masthead-rule" aria-hidden />
+        <div className="open-edition-rule" aria-hidden />
       </header>
-      {isBackfill ? (
-        <p className="muted paper-checkin-note">
-          Closing {formatDisplayDate(effectiveDate)} — same mood, stress,
-          headline, and summary as tonight.
-        </p>
-      ) : (
-        <p className="muted paper-checkin-note">
-          Check in first — then tonight&apos;s edition.
-        </p>
-      )}
 
-      {showDayPicker && (
-        <section className="panel">
-          <label className="field">
-            <span className="field-label">Which day?</span>
-            <select
-              value={effectiveDate}
-              onChange={(e) => setCloseDate(e.target.value)}
-            >
-              {missing.map((d) => (
-                <option key={d} value={d}>
-                  {formatDisplayDate(d)}
-                  {d === today ? " (today)" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
-      )}
-
-      <section className="panel">
-        <p className="eyebrow">How did {isBackfill ? "that day" : "today"} go?</p>
-        <TapScale label="Mood" value={mood} onChange={setMood} />
-        <TapScale label="Stress" value={stress} onChange={setStress} />
-      </section>
-
-      <section className="panel">
-        <div className="evening-journal-head">
-          <p className="eyebrow">Journal page</p>
-          <button
-            type="button"
-            className="fy-star-btn"
-            aria-label={
-              composeStarred
-                ? "Unstar day to remember"
-                : "Star as day to remember"
-            }
-            title={
-              oneLine.trim()
-                ? composeStarred
-                  ? "Saved day"
-                  : "Mark as a saved day"
-                : "Add a headline to star this day"
-            }
-            disabled={busy || starBusy || !oneLine.trim()}
-            onClick={() => void onComposeStarClick()}
-          >
-            <StarIcon filled={composeStarred} />
-          </button>
-        </div>
-        <label className="field">
-          <span className="field-label">Headline</span>
-          <input
-            type="text"
-            value={oneLine}
-            onChange={(e) => setOneLine(e.target.value)}
-            placeholder="One line for this day"
-            maxLength={120}
-          />
-        </label>
-        <label className="field" style={{ marginTop: 12 }}>
-          <span className="field-label">
-            Short summary
-            <span className="tiny" style={{ marginLeft: 8, fontWeight: 400 }}>
-              ~{SUMMARY_SENTENCE_SOFT_LIMIT} sentences
+      {showCheckin ? (
+        <section
+          className="open-edition-box"
+          aria-label={closeDone ? "Evening check-in" : "Close check-in"}
+        >
+          <div className="open-edition-box-head">
+            <p className="open-edition-kicker">Check in</p>
+            <span className="open-edition-note">
+              {closeDone
+                ? "Closed"
+                : isBackfill
+                  ? "Same as tonight"
+                  : "About a minute"}
             </span>
-          </span>
-          <textarea
-            rows={4}
-            value={standOut}
-            onChange={(e) => setStandOut(e.target.value)}
-            placeholder="A few sentences — what you want to remember"
-          />
-          {standOut.trim() && (
-            <span
-              className="tiny"
-              style={{
-                marginTop: 6,
-                color: summaryOver ? "var(--warn)" : undefined,
-              }}
-            >
-              {summarySentences} / {SUMMARY_SENTENCE_SOFT_LIMIT} sentences
-              {summaryOver ? " — trim a little if you can" : ""}
-            </span>
-          )}
-        </label>
-        <div style={{ marginTop: 14 }}>
-          <span className="field-label">Photo · optional</span>
-          <SubtlePhotoPicker
-            preview={photoDataUrl}
-            onPick={setPhotoDataUrl}
-            onClear={() => setPhotoDataUrl(null)}
-            cameraLabel="Take a photo"
-            libraryLabel="Choose from Photos"
-          />
-        </div>
-      </section>
-
-      <section className="panel" aria-label="Money today">
-        <p className="eyebrow">Money today</p>
-        <p className="tiny muted" style={{ marginTop: 0 }}>
-          {formatMoney(saveSettings.monthlyIncome)} on the 1st ·{" "}
-          {formatMoney(dayRate)} credited for this day
-        </p>
-        {activeSaveGoals(state).length > 0 ? (
-          <div className="chip-row" style={{ marginTop: 10 }}>
-            {activeSaveGoals(state).map((g) => {
-              const pct = inboundPercent(g);
-              return (
-                <span
-                  key={g.id}
-                  className={`chip${pct >= 100 ? " selected" : ""}`}
-                  title="Daily inbound preset"
-                >
-                  {g.name}
-                  {pct > 0 ? ` · ${pct}%` : ""}
-                </span>
-              );
-            })}
           </div>
-        ) : null}
-        <label className="field" style={{ marginTop: 10 }}>
-          <span className="field-label">Total spend</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
-            value={spendTotal}
-            onChange={(e) => setSpendTotal(e.target.value)}
-            placeholder="0"
-          />
-        </label>
-        <label className="field" style={{ marginTop: 12 }}>
-          <span className="field-label">
-            Lump sum
-            <span className="tiny" style={{ marginLeft: 8, fontWeight: 400 }}>
-              optional one-time
-            </span>
-          </span>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
-            value={lumpSum}
-            onChange={(e) => setLumpSum(e.target.value)}
-            placeholder="Extra to put toward goals"
-          />
-        </label>
-        {lumpNum > 0 && activeSaveGoals(state).length > 0 ? (
-          <>
-            <p className="field-label" style={{ marginTop: 12 }}>
-              One-time goes to
-            </p>
-            <div className="chip-row">
-              <button
-                type="button"
-                className={`chip${lumpMode === "preset" ? " selected" : ""}`}
-                onClick={() => setLumpMode("preset")}
+
+          {showDayPicker ? (
+            <label className="open-edition-lead-field">
+              <span className="open-edition-kicker">Which day?</span>
+              <select
+                className="open-edition-select"
+                value={effectiveDate}
+                onChange={(e) => setCloseDate(e.target.value)}
+                disabled={closeDone}
               >
-                Daily chips
-              </button>
+                {missing.map((d) => (
+                  <option key={d} value={d}>
+                    {formatDisplayDate(d)}
+                    {d === today ? " (today)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          <div className="open-edition-vitals">
+            <TapScale
+              label="Mood"
+              value={mood}
+              onChange={setMood}
+              disabled={closeDone}
+            />
+            <TapScale
+              label="Stress"
+              value={stress}
+              onChange={setStress}
+              disabled={closeDone}
+            />
+          </div>
+
+          <div className="open-edition-journal-block">
+            <div className="open-edition-journal-head">
+              <p className="open-edition-kicker">Journal</p>
               <button
                 type="button"
-                className={`chip${lumpMode === "custom" ? " selected" : ""}`}
+                className="fy-star-btn"
+                aria-label={
+                  (closeDone ? closedStarred : composeStarred)
+                    ? "Unstar day to remember"
+                    : "Star as day to remember"
+                }
+                title={
+                  (closeDone ? rememberHeadline : oneLine).trim()
+                    ? closeDone
+                      ? closedStarred
+                        ? "Saved day"
+                        : "Mark as a saved day"
+                      : composeStarred
+                        ? "Saved day"
+                        : "Mark as a saved day"
+                    : "Add a headline to star this day"
+                }
+                disabled={
+                  busy ||
+                  starBusy ||
+                  !(closeDone ? rememberHeadline : oneLine).trim()
+                }
                 onClick={() => {
-                  setLumpMode("custom");
-                  const first = activeSaveGoals(state)[0];
-                  if (!lumpGoalId && first) setLumpGoalId(first.id);
+                  if (closeDone && editionClosed) {
+                    void toggleStarNow(editionClosed.date);
+                    return;
+                  }
+                  void onComposeStarClick();
                 }}
               >
-                Custom (one area)
+                <StarIcon
+                  filled={closeDone ? closedStarred : composeStarred}
+                />
               </button>
             </div>
-            {lumpMode === "custom" ? (
-              <div className="chip-row" style={{ marginTop: 8 }}>
-                {activeSaveGoals(state).map((g) => (
-                  <button
-                    key={g.id}
-                    type="button"
-                    className={`chip${lumpGoalId === g.id ? " selected" : ""}`}
-                    onClick={() => setLumpGoalId(g.id)}
-                  >
-                    {g.name}
-                  </button>
-                ))}
+
+            <label className="open-edition-lead-field">
+              <span className="open-edition-kicker">Headline</span>
+              <input
+                type="text"
+                value={closeDone ? rememberHeadline : oneLine}
+                onChange={(e) => setOneLine(e.target.value)}
+                placeholder="One line for this day"
+                maxLength={120}
+                disabled={closeDone}
+              />
+            </label>
+
+            <label className="open-edition-lead-field">
+              <span className="open-edition-kicker">
+                Short summary
+                <span className="open-edition-note" style={{ marginLeft: 8 }}>
+                  ~{SUMMARY_SENTENCE_SOFT_LIMIT} sentences
+                </span>
+              </span>
+              <textarea
+                rows={4}
+                value={closeDone ? rememberSummary : standOut}
+                onChange={(e) => setStandOut(e.target.value)}
+                placeholder="A few sentences — what you want to remember"
+                disabled={closeDone}
+              />
+              {!closeDone && standOut.trim() ? (
+                <span
+                  className="tiny"
+                  style={{
+                    color: summaryOver ? "var(--warn)" : undefined,
+                  }}
+                >
+                  {summarySentences} / {SUMMARY_SENTENCE_SOFT_LIMIT} sentences
+                  {summaryOver ? " — trim a little if you can" : ""}
+                </span>
+              ) : null}
+            </label>
+
+            {!closeDone ? (
+              <div className="open-edition-photo">
+                <span className="open-edition-kicker">Photo · optional</span>
+                <SubtlePhotoPicker
+                  preview={photoDataUrl}
+                  onPick={setPhotoDataUrl}
+                  onClear={() => setPhotoDataUrl(null)}
+                  cameraLabel="Take a photo"
+                  libraryLabel="Choose from Photos"
+                />
+              </div>
+            ) : rememberPhoto ? (
+              <div className="photo-subtle-preview">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={rememberPhoto} alt="Attached photo" />
               </div>
             ) : null}
-          </>
+          </div>
+
+          {!closeDone ? (
+            <div className="open-edition-money" aria-label="Money today">
+              <p className="open-edition-kicker">Money today</p>
+              <p className="open-edition-money-note">
+                {formatMoney(saveSettings.monthlyIncome)} on the 1st ·{" "}
+                {formatMoney(dayRate)} credited for this day
+              </p>
+              {activeSaveGoals(state).length > 0 ? (
+                <div className="chip-row" style={{ marginTop: 8 }}>
+                  {activeSaveGoals(state).map((g) => {
+                    const pct = inboundPercent(g);
+                    return (
+                      <span
+                        key={g.id}
+                        className={`chip${pct >= 100 ? " selected" : ""}`}
+                        title="Daily inbound preset"
+                      >
+                        {g.name}
+                        {pct > 0 ? ` · ${pct}%` : ""}
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : null}
+              <label className="open-edition-lead-field">
+                <span className="open-edition-kicker">Total spend</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={spendTotal}
+                  onChange={(e) => setSpendTotal(e.target.value)}
+                  placeholder="0"
+                />
+              </label>
+              <label className="open-edition-lead-field">
+                <span className="open-edition-kicker">
+                  Lump sum
+                  <span className="open-edition-note" style={{ marginLeft: 8 }}>
+                    optional
+                  </span>
+                </span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={lumpSum}
+                  onChange={(e) => setLumpSum(e.target.value)}
+                  placeholder="Extra toward goals"
+                />
+              </label>
+              {lumpNum > 0 && activeSaveGoals(state).length > 0 ? (
+                <>
+                  <p className="open-edition-kicker" style={{ marginTop: 4 }}>
+                    One-time goes to
+                  </p>
+                  <div className="chip-row">
+                    <button
+                      type="button"
+                      className={`chip${lumpMode === "preset" ? " selected" : ""}`}
+                      onClick={() => setLumpMode("preset")}
+                    >
+                      Daily chips
+                    </button>
+                    <button
+                      type="button"
+                      className={`chip${lumpMode === "custom" ? " selected" : ""}`}
+                      onClick={() => {
+                        setLumpMode("custom");
+                        const first = activeSaveGoals(state)[0];
+                        if (!lumpGoalId && first) setLumpGoalId(first.id);
+                      }}
+                    >
+                      Custom (one area)
+                    </button>
+                  </div>
+                  {lumpMode === "custom" ? (
+                    <div className="chip-row" style={{ marginTop: 8 }}>
+                      {activeSaveGoals(state).map((g) => (
+                        <button
+                          key={g.id}
+                          type="button"
+                          className={`chip${lumpGoalId === g.id ? " selected" : ""}`}
+                          onClick={() => setLumpGoalId(g.id)}
+                        >
+                          {g.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+              {moneyPreview ? (
+                <div
+                  className={`evening-money-preview${
+                    moneyPreview.pool < 0 ? " negative" : ""
+                  }`}
+                >
+                  {moneyPreview.leftover !== 0 ? (
+                    <p className="tiny">
+                      Daily {moneyPreview.leftover >= 0 ? "leftover" : "over"}{" "}
+                      {formatMoney(Math.abs(moneyPreview.leftover))}
+                      {moneyPreview.goals.length
+                        ? " → daily inbound chips"
+                        : ""}
+                    </p>
+                  ) : (
+                    <p className="tiny">Daily even — nothing from inbound</p>
+                  )}
+                  {moneyPreview.lump > 0 ? (
+                    <p className="tiny">
+                      One-time {formatMoney(moneyPreview.lump)}
+                      {lumpMode === "custom" && lumpGoalId
+                        ? ` → ${
+                            moneyPreview.goals.find((g) => g.id === lumpGoalId)
+                              ?.name ?? "goal"
+                          }`
+                        : " → daily chips"}
+                    </p>
+                  ) : null}
+                  {moneyPreview.allocations.length > 0 ? (
+                    <ul className="tiny">
+                      {moneyPreview.allocations.map((a) => {
+                        const g = moneyPreview.goals.find(
+                          (x) => x.id === a.goalId,
+                        );
+                        if (!g) return null;
+                        return (
+                          <li key={a.goalId}>
+                            {g.name}: {a.amount >= 0 ? "+" : ""}
+                            {formatMoney(a.amount)}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {error ? <p style={{ color: "var(--danger)" }}>{error}</p> : null}
+
+          {closeDone ? (
+            <PrimaryButton onClick={() => setCheckinOpen(false)}>
+              Done
+            </PrimaryButton>
+          ) : (
+            <PrimaryButton
+              onClick={submit}
+              disabled={
+                busy || !oneLine.trim() || !scalesReady || !spendReady
+              }
+            >
+              {busy ? "Saving…" : "Close the paper"}
+            </PrimaryButton>
+          )}
+        </section>
+      ) : (
+        <button
+          type="button"
+          className="open-edition-collapsed"
+          onClick={() => setCheckinOpen(true)}
+          aria-label="Expand check-in"
+        >
+          <span className="open-edition-collapsed-lead">
+            {rememberHeadline || "Today’s close"}
+          </span>
+          {collapsedSummary ? (
+            <span className="open-edition-collapsed-meta">
+              {collapsedSummary}
+            </span>
+          ) : null}
+          <span className="open-edition-collapsed-edit">Edit</span>
+        </button>
+      )}
+
+      <div
+        className={`open-edition-paper${
+          paperLive ? " open-edition-paper-live" : " open-edition-paper-wait"
+        }`}
+      >
+        {paperLive && morningLead ? (
+          <section className="open-edition-story open-edition-story-lead">
+            <p className="open-edition-kicker">Today&apos;s lead</p>
+            <h2 className="open-edition-commit">{morningLead}</h2>
+          </section>
         ) : null}
-        {moneyPreview ? (
-          <div
-            className={`evening-money-preview${
-              moneyPreview.pool < 0 ? " negative" : ""
-            }`}
+
+        {paperLive && rememberHeadline ? (
+          <section
+            className="open-edition-story"
+            aria-label="Remember"
           >
-            {moneyPreview.leftover !== 0 ? (
-              <p className="tiny">
-                Daily {moneyPreview.leftover >= 0 ? "leftover" : "over"}{" "}
-                {formatMoney(Math.abs(moneyPreview.leftover))}
-                {moneyPreview.goals.length
-                  ? " → daily inbound chips"
-                  : ""}
-              </p>
-            ) : (
-              <p className="tiny">Daily even — nothing from inbound</p>
-            )}
-            {moneyPreview.lump > 0 ? (
-              <p className="tiny">
-                One-time {formatMoney(moneyPreview.lump)}
-                {lumpMode === "custom" && lumpGoalId
-                  ? ` → ${
-                      moneyPreview.goals.find((g) => g.id === lumpGoalId)
-                        ?.name ?? "goal"
-                    }`
-                  : " → daily chips"}
-              </p>
+            <div className="open-edition-sec-head">
+              <p className="open-edition-kicker">Remember</p>
+              <button
+                type="button"
+                className="fy-star-btn"
+                aria-label={
+                  closedStarred
+                    ? "Unstar day to remember"
+                    : "Star as day to remember"
+                }
+                disabled={starBusy || !editionClosed}
+                onClick={() => {
+                  if (editionClosed) void toggleStarNow(editionClosed.date);
+                }}
+              >
+                <StarIcon filled={closedStarred} />
+              </button>
+            </div>
+            <h2 className="open-edition-commit">{rememberHeadline}</h2>
+            {rememberSummary ? (
+              <p className="open-edition-deck">{rememberSummary}</p>
             ) : null}
-            {moneyPreview.allocations.length > 0 ? (
-              <ul className="tiny">
-                {moneyPreview.allocations.map((a) => {
-                  const g = moneyPreview.goals.find((x) => x.id === a.goalId);
-                  if (!g) return null;
-                  return (
-                    <li key={a.goalId}>
-                      {g.name}: {a.amount >= 0 ? "+" : ""}
-                      {formatMoney(a.amount)}
-                    </li>
-                  );
-                })}
-              </ul>
+            {rememberPhoto ? (
+              <div className="photo-subtle-preview">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={rememberPhoto} alt="Attached photo" />
+              </div>
             ) : null}
+            {error && !showCheckin ? (
+              <p style={{ color: "var(--danger)" }}>{error}</p>
+            ) : null}
+          </section>
+        ) : null}
+
+        <div className="open-edition-story open-edition-wx-wrap">
+          <WeatherExpanded
+            mode="tomorrow"
+            locationLabel={weatherLocation}
+            days={weatherDays}
+            focusDate={tomorrowDate}
+            loading={weatherLoading}
+          />
+        </div>
+
+        {briefingTasks.length > 0 ? (
+          <div className="open-edition-story open-edition-tasks-wrap">
+            <BriefingTasks
+              tasks={briefingTasks}
+              kicker="Today’s tasks"
+              linkHref="/items"
+              linkLabel="Tasks →"
+              emptyLabel="No tasks logged for this day."
+              hideWhenEmpty
+            />
           </div>
         ) : null}
-      </section>
 
-      {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-      <PrimaryButton
-        onClick={submit}
-        disabled={busy || !oneLine.trim() || !scalesReady || !spendReady}
-      >
-        {busy ? "Saving…" : isBackfill ? "Add journal entry" : "Close the day"}
-      </PrimaryButton>
+        <div className="open-edition-story">
+          <BodyMind workouts={workoutGaps} trends={trends} />
+        </div>
+
+        {newsLoading || news.length > 0 ? (
+          <div className="open-edition-story">
+            <WorldHeadlines
+              headlines={news}
+              loading={newsLoading}
+              hideWhenEmpty
+            />
+          </div>
+        ) : null}
+
+        {briefingDate &&
+        (historyEntries.length > 0 ||
+          worldEvent ||
+          worldLoading) ? (
+          <div className="open-edition-story">
+            <ThisDayInHistory
+              today={briefingDate}
+              entries={historyEntries}
+              worldEvent={worldEvent}
+              worldLoading={worldLoading}
+              hideWhenEmpty
+            />
+          </div>
+        ) : null}
+      </div>
+
+      {paperLive ? (
+        <>
+          <PrimaryButton onClick={() => router.push("/journal")}>
+            Open journal
+          </PrimaryButton>
+          <SecondaryButton onClick={() => router.push("/")}>
+            Home
+          </SecondaryButton>
+        </>
+      ) : null}
     </main>
   );
 }
