@@ -1377,6 +1377,30 @@ export function nextCellInDirection(
   return r * size + c;
 }
 
+/**
+ * Next white cell in Across/Down that is not already locked by a fully
+ * correct crossing word — so typing skips those letters and continues.
+ */
+export function nextEditableCellInDirection(
+  puzzle: MiniCrosswordPuzzle,
+  cells: string[],
+  index: number,
+  dir: CrosswordDir,
+  step: 1 | -1,
+): number | null {
+  const locked = correctWordCellIndexes(puzzle, cells);
+  let cur = index;
+  // Bound the walk to the grid size so a fully-locked entry cannot loop.
+  const size = puzzleSize(puzzle);
+  for (let hops = 0; hops < size; hops++) {
+    const n = nextCellInDirection(puzzle, cur, dir, step);
+    if (n == null) return null;
+    if (!locked.has(n)) return n;
+    cur = n;
+  }
+  return null;
+}
+
 /** True when every letter of that entry is filled and matches the solution. */
 export function isWordCorrect(
   puzzle: MiniCrosswordPuzzle,
