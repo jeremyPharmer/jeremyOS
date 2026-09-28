@@ -1109,14 +1109,15 @@ function SaveGoalsDetail() {
             {formatMoney(rate)}
           </p>
         </div>
-        {goals.length > 0 ? (
-          <InboundBreakdown
-            goals={goals}
-            busy={busy}
-            onPercentChange={(id, percent) => void setPercent(id, percent)}
-          />
-        ) : null}
       </div>
+
+      {goals.length > 0 ? (
+        <InboundBreakdown
+          goals={goals}
+          busy={busy}
+          onPercentChange={(id, percent) => void setPercent(id, percent)}
+        />
+      ) : null}
 
       {goals.length > 0 && today ? (
         <DailyLedger

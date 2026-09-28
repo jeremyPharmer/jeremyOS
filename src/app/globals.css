@@ -2291,9 +2291,10 @@ h2 {
 
 .save-goal-inbound-breakdown {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  margin-top: 10px;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin: 12px 0 4px;
 }
 
 .save-goal-ledger {
@@ -2391,17 +2392,18 @@ h2 {
 }
 
 .save-goal-pct {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
+  gap: 4px;
+  width: 100%;
 }
 
 .save-goal-pct-name {
-  font-size: 0.85rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.9rem;
   font-weight: 600;
-  margin-right: 2px;
-  max-width: 7rem;
+  margin-right: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
