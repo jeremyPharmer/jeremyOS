@@ -241,6 +241,7 @@ function DailyLedger({
   const [drawFromGoalId, setDrawFromGoalId] = useState("");
   const [rollPrompt, setRollPrompt] = useState(false);
   const [rollScope, setRollScope] = useState<"all" | "rolled">("all");
+  const [rollAutoShown, setRollAutoShown] = useState(false);
   const todayClose = useMemo(
     () => (today ? saveGoalCloseForDate(state, today) : null),
     [state, today],
@@ -265,6 +266,14 @@ function DailyLedger({
       (rollPrompt && rollScope === "rolled" && running.carryIn < 0));
   const canApply =
     !needsDrawPick || Boolean(drawFromGoalId) || goals.length === 1;
+
+  // Opening /save-goals with rolled leftover: ask apply-all vs rolled-only.
+  useEffect(() => {
+    if (!onApply || rollAutoShown || !hasRolled) return;
+    setRollScope("all");
+    setRollPrompt(true);
+    setRollAutoShown(true);
+  }, [onApply, hasRolled, rollAutoShown]);
 
   function applyOpts(scope: "all" | "rolled" = "all") {
     const needsDraw =
