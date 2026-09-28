@@ -2331,6 +2331,22 @@ h2 {
   margin: 10px 0 4px;
 }
 
+.save-goal-spend-category .chip-row {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.save-goal-spend-category .chip {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 6px 4px;
+  font-size: 0.72rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .save-goal-ledger-day {
   display: flex;
   flex-direction: column;
