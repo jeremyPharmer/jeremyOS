@@ -46,6 +46,7 @@ export function TapScale({
   min = 1,
   max = 10,
   step = 1,
+  disabled = false,
 }: {
   label: string;
   /** null = nothing chosen yet (no preselect). */
@@ -54,6 +55,7 @@ export function TapScale({
   min?: number;
   max?: number;
   step?: number;
+  disabled?: boolean;
 }) {
   const ticks: number[] = [];
   const stepSafe = step > 0 ? step : 1;
@@ -62,7 +64,11 @@ export function TapScale({
   }
   const dense = stepSafe < 1 || ticks.length > 11;
   return (
-    <div className={`field tap-scale${dense ? " tap-scale-dense" : ""}`}>
+    <div
+      className={`field tap-scale${dense ? " tap-scale-dense" : ""}${
+        disabled ? " tap-scale-disabled" : ""
+      }`}
+    >
       <div className="field-label">
         <span>{label}</span>
       </div>
@@ -78,6 +84,7 @@ export function TapScale({
               role="radio"
               aria-checked={selected}
               className={`tap-scale-tick${selected ? " selected" : ""}`}
+              disabled={disabled}
               onClick={() => onChange(n)}
             >
               {labelText}
