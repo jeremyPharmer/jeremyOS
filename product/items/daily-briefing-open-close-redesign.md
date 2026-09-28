@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-032 |
-| Rank | 8 |
+| Rank | 9 |
 | Priority | P0 |
 | Status | Done |
 | Effort | L |
@@ -83,3 +83,4 @@ Open and Close are **matching Daily briefing rituals**: same shell and check-in-
 - Why rank **5 / P0:** founder-locked daily-loop twin; sits after framing / todos / task groups (**RB-012–014**, **RB-026**); ahead of journal polish cluster so Open/Close stop living under Tasks and feel like one ritual. Done parents **RB-027 / RB-029 / RB-030** renumbered below this active iterate.
 - Effort **L:** full ship across Home header, shared shell, Open + Close content parity — not a thin copy pass.
 - Related Later: LLM generative morning/evening briefing still deferred until after this rules-based twin.
+- **2026-09-28:** Open evolved to **The Daily Open / edition-box**; Close still on older `paper-edition` shell. Active Close chrome iterate → **[RB-038](./close-edition-open-parity.md)** (rank 8). Do not reopen this Done item.
