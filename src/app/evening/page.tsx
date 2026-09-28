@@ -127,6 +127,8 @@ function EveningPageInner() {
   const [spendCategory, setSpendCategory] =
     useState<SaveGoalSpendCategory | "">("");
   const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [rollPrompt, setRollPrompt] = useState(false);
+  const [rollScope, setRollScope] = useState<"all" | "rolled">("all");
   const [saveBusy, setSaveBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [starBusy, setStarBusy] = useState(false);
@@ -449,8 +451,11 @@ function EveningPageInner() {
     }
   }
 
-  async function applyEveningTotals() {
-    if (dayLedger.left < 0 && !resolvedDrawFrom) {
+  async function applyEveningTotals(scope: "all" | "rolled" = "all") {
+    const needsDraw =
+      (scope === "all" && dayLedger.left < 0) ||
+      (scope === "rolled" && dayLedger.carryIn < 0);
+    if (needsDraw && !resolvedDrawFrom) {
       setError("Pick a goal to take from.");
       return;
     }
@@ -460,14 +465,26 @@ function EveningPageInner() {
       await post("/api/save-goals", {
         action: "applyTotals",
         date: moneyDate,
-        drawFromGoalId: dayLedger.left < 0 ? resolvedDrawFrom : undefined,
+        scope,
+        drawFromGoalId: needsDraw ? resolvedDrawFrom : undefined,
       });
       setApplySaveGoals(false);
+      setRollPrompt(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not apply");
     } finally {
       setSaveBusy(false);
     }
+  }
+
+  function requestEveningApply() {
+    if (dayLedger.carryIn !== 0 && !dayApplied) {
+      setRollScope("all");
+      setRollPrompt(true);
+      setError("");
+      return;
+    }
+    void applyEveningTotals("all");
   }
 
   async function submit() {
@@ -864,20 +881,98 @@ function EveningPageInner() {
                   >
                     Subtract
                   </SecondaryButton>
-                  <PrimaryButton
-                    onClick={() => void applyEveningTotals()}
-                    disabled={saveBusy || dayApplied || !canApplyNegative}
-                  >
-                    {saveBusy
-                      ? "Saving…"
-                      : dayApplied
-                        ? "Applied"
-                        : "Apply totals"}
-                  </PrimaryButton>
+                  {!rollPrompt ? (
+                    <PrimaryButton
+                      onClick={requestEveningApply}
+                      disabled={saveBusy || dayApplied || !canApplyNegative}
+                    >
+                      {saveBusy
+                        ? "Saving…"
+                        : dayApplied
+                          ? "Applied"
+                          : "Apply totals"}
+                    </PrimaryButton>
+                  ) : null}
                 </div>
               )}
 
-              {needsDrawPick && !dayApplied ? (
+              {rollPrompt && !dayApplied ? (
+                <div
+                  className="save-goal-roll-prompt"
+                  style={{ marginTop: 12 }}
+                  role="group"
+                  aria-label="Apply rolled amount"
+                >
+                  <p className="tiny" style={{ margin: "0 0 10px" }}>
+                    <strong>{formatMoney(dayLedger.left)} left</strong> includes{" "}
+                    <strong>
+                      {formatMoney(Math.abs(dayLedger.carryIn))}
+                    </strong>{" "}
+                    that rolled in.
+                  </p>
+                  <div className="save-goal-roll-options">
+                    <button
+                      type="button"
+                      className={`save-goal-roll-option${rollScope === "all" ? " selected" : ""}`}
+                      onClick={() => setRollScope("all")}
+                      disabled={saveBusy}
+                    >
+                      <span className="save-goal-roll-option-label">
+                        Apply all {formatMoney(Math.abs(dayLedger.left))}
+                      </span>
+                      <span className="tiny muted">
+                        {dayLedger.left < 0
+                          ? "Takes the full left from your goals — rolled + today."
+                          : "Puts the full left into your goals — rolled + today."}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`save-goal-roll-option${rollScope === "rolled" ? " selected" : ""}`}
+                      onClick={() => setRollScope("rolled")}
+                      disabled={saveBusy}
+                    >
+                      <span className="save-goal-roll-option-label">
+                        Apply only the{" "}
+                        {formatMoney(Math.abs(dayLedger.carryIn))} rolled
+                      </span>
+                      <span className="tiny muted">
+                        {dayLedger.carryIn < 0
+                          ? "Goals take the rolled amount; today’s leftover keeps rolling."
+                          : "Goals get the rolled amount; today’s leftover keeps rolling."}
+                      </span>
+                    </button>
+                  </div>
+                  <div className="save-goal-create-actions" style={{ marginTop: 12 }}>
+                    <PrimaryButton
+                      onClick={() => void applyEveningTotals(rollScope)}
+                      disabled={
+                        saveBusy ||
+                        ((rollScope === "all"
+                          ? dayLedger.left < 0
+                          : dayLedger.carryIn < 0) &&
+                          saveGoals.length > 1 &&
+                          !drawFromGoalId)
+                      }
+                    >
+                      {saveBusy ? "Saving…" : "Confirm"}
+                    </PrimaryButton>
+                    <SecondaryButton
+                      onClick={() => setRollPrompt(false)}
+                      disabled={saveBusy}
+                    >
+                      Cancel
+                    </SecondaryButton>
+                  </div>
+                </div>
+              ) : null}
+
+              {(needsDrawPick ||
+                (rollPrompt &&
+                  rollScope === "rolled" &&
+                  dayLedger.carryIn < 0 &&
+                  saveGoals.length > 1)) &&
+              !dayApplied ? (
                 <div className="save-goal-draw-from" style={{ marginTop: 12 }}>
                   <p className="open-edition-kicker" style={{ marginBottom: 6 }}>
                     Take from

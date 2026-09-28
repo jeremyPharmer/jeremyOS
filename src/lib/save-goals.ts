@@ -602,6 +602,29 @@ export function removeSaveGoalSpend(
 }
 
 /**
+ * Prior open days that still roll into `asOfDate` (contiguous unapplied
+ * chain after the last close). Does not include `asOfDate` itself.
+ */
+export function listRolledOpenDatesBefore(
+  state: RebuildState,
+  asOfDate: string,
+): string[] {
+  if (!DATE_RE.test(asOfDate)) return [];
+  const start = saveGoalAccrualStart(state, asOfDate);
+  if (asOfDate <= start) return [];
+  const opens: string[] = [];
+  for (const d of datesInRange(start, asOfDate)) {
+    if (d === asOfDate) break;
+    if (hasSaveGoalClose(state, d)) {
+      opens.length = 0;
+    } else {
+      opens.push(d);
+    }
+  }
+  return opens;
+}
+
+/**
  * Apply today’s running ledger: positive leftover uses inbound %;
  * negative leftover draws from `drawFromGoalId` (required when >1 goals).
  * Stops roll-forward for this date. Idempotent replace of that date’s close.
@@ -628,6 +651,39 @@ export function applySaveGoalDayTotals(
     drawFromGoalId: input.drawFromGoalId,
     source: "manual",
   });
+}
+
+/**
+ * Apply only rolled history before `date` (close each prior open day in
+ * the roll chain). Does **not** close `date` — today’s leftover keeps rolling.
+ */
+export function applySaveGoalRolledOnly(
+  state: RebuildState,
+  input: {
+    date: string;
+    /** When a prior day leftover is negative: goal to draw from */
+    drawFromGoalId?: string;
+  },
+): RebuildState {
+  const date = String(input.date ?? "").trim();
+  if (!DATE_RE.test(date)) {
+    throw Object.assign(new Error("date required"), { status: 400 });
+  }
+  const prior = listRolledOpenDatesBefore(state, date);
+  if (!prior.length) {
+    throw Object.assign(new Error("Nothing rolled in to apply"), {
+      status: 400,
+    });
+  }
+  let next = state;
+  for (const d of prior) {
+    const { left } = leftoverBeforeApply(next, d);
+    next = applySaveGoalDayTotals(next, {
+      date: d,
+      drawFromGoalId: left < 0 ? input.drawFromGoalId : undefined,
+    });
+  }
+  return next;
 }
 
 /** Remove today’s close so leftover rolls again and goal saves reverse. */

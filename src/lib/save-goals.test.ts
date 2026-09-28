@@ -9,8 +9,11 @@ import {
   daysInMonthForDate,
   addSaveGoalSpend,
   applySaveGoalDayTotals,
+  applySaveGoalRolledOnly,
   setSaveGoalSavedAmount,
   deleteSaveGoal,
+  listRolledOpenDatesBefore,
+  saveGoalCloseForDate,
   undoApplySaveGoalDayTotals,
   ensureElapsedSaveGoalDays,
   ensureSaveGoalDay,
@@ -722,6 +725,30 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       ),
     ).toBe(false);
     expect(leftoverBeforeApply(state, "2026-04-01").left).toBe(16);
+  });
+
+  it("applies only rolled history and leaves today open", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    // Apr 1 + Apr 2 unapplied → Apr 3 carryIn 32
+    expect(leftoverBeforeApply(state, "2026-04-03").carryIn).toBe(32);
+    expect(leftoverBeforeApply(state, "2026-04-03").left).toBe(48);
+    expect(listRolledOpenDatesBefore(state, "2026-04-03")).toEqual([
+      "2026-04-01",
+      "2026-04-02",
+    ]);
+
+    state = applySaveGoalRolledOnly(state, { date: "2026-04-03" });
+    expect(state.saveGoals![0].savedAmount).toBe(32);
+    expect(saveGoalCloseForDate(state, "2026-04-03")).toBeNull();
+    const today = leftoverBeforeApply(state, "2026-04-03");
+    expect(today.carryIn).toBe(0);
+    expect(today.left).toBe(16);
   });
 });
 
