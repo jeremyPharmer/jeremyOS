@@ -2332,14 +2332,16 @@ h2 {
 }
 
 .save-goal-spend-category .chip-row {
+  display: flex;
   flex-wrap: nowrap;
+  justify-content: center;
   gap: 6px;
 }
 
 .save-goal-spend-category .chip {
-  flex: 1 1 0;
+  flex: 0 0 auto;
   min-width: 0;
-  padding: 7px 6px;
+  padding: 7px 10px;
   font-size: 0.78rem;
   font-weight: 600;
   text-align: center;
