@@ -24,7 +24,7 @@ import {
 import type { SaveGoal, SaveGoalDay } from "@/lib/types";
 
 const NAME_PRESETS = ["Trip", "Gift", "General saving"] as const;
-const PCT_STEP = 5;
+const PCT_STEP = 1;
 
 function GoalPercentControls({
   percent,
@@ -248,9 +248,40 @@ function DailyLedger({
 
   return (
     <div className="save-goal-ledger" aria-label="Daily ledger">
-      <div className="save-goal-ledger-title-row">
-        <p className="eyebrow save-goal-ledger-title">Daily</p>
-        {onApply ? (
+      <p className="eyebrow save-goal-ledger-title">Daily</p>
+      <DailyLedgerDay
+        label="Today"
+        inbound={running.inbound}
+        adds={running.adds}
+        spend={spendShown}
+        leftover={leftShown}
+        lump={todayClose?.lumpSum}
+        closed={applied}
+        goals={goals}
+        day={todayClose}
+      />
+      {needsDrawPick ? (
+        <div className="save-goal-draw-from">
+          <p className="field-label" style={{ marginBottom: 6 }}>
+            Take from
+          </p>
+          <div className="chip-row">
+            {goals.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                className={`chip${drawFromGoalId === g.id ? " selected" : ""}`}
+                onClick={() => setDrawFromGoalId(g.id)}
+                disabled={busy}
+              >
+                {g.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {onApply ? (
+        <div className="save-goal-ledger-apply">
           <PrimaryButton
             onClick={() =>
               onApply(
@@ -271,39 +302,8 @@ function DailyLedger({
                 ? "Re-apply totals"
                 : "Apply totals"}
           </PrimaryButton>
-        ) : null}
-      </div>
-      {needsDrawPick ? (
-        <div className="save-goal-draw-from" style={{ marginBottom: 10 }}>
-          <p className="field-label" style={{ marginBottom: 6 }}>
-            Take from
-          </p>
-          <div className="chip-row">
-            {goals.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                className={`chip${drawFromGoalId === g.id ? " selected" : ""}`}
-                onClick={() => setDrawFromGoalId(g.id)}
-                disabled={busy}
-              >
-                {g.name}
-              </button>
-            ))}
-          </div>
         </div>
       ) : null}
-      <DailyLedgerDay
-        label="Today"
-        inbound={running.inbound}
-        adds={running.adds}
-        spend={spendShown}
-        leftover={leftShown}
-        lump={todayClose?.lumpSum}
-        closed={applied}
-        goals={goals}
-        day={todayClose}
-      />
       {history.length > 0 ? (
         <div className="save-goal-ledger-history">
           <button

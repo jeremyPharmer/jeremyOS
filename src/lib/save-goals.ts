@@ -184,8 +184,9 @@ export function normalizeInboundPercents(goals: SaveGoal[]): SaveGoal[] {
 }
 
 /**
- * Set one goal’s inbound %. If the new total would exceed 100, equally
- * reduce the other active goals (floored at 0) until the sum is 100.
+ * Set one goal’s inbound % (whole percents). Always rebalances so active
+ * goals sum to exactly 100 — others share the remainder by prior weight
+ * (equal if all others are 0).
  */
 export function setGoalInboundPercent(
   state: RebuildState,
@@ -197,46 +198,37 @@ export function setGoalInboundPercent(
   if (!actives.some((g) => g.id === id)) {
     throw Object.assign(new Error("Save goal not found"), { status: 404 });
   }
-  const nextPct = round2(Number(percent));
+  const nextPct = Math.round(Number(percent));
   if (!Number.isFinite(nextPct) || nextPct < 0 || nextPct > 100) {
     throw Object.assign(new Error("Inbound % must be 0–100"), { status: 400 });
   }
 
   const map = new Map<string, number>();
-  for (const g of actives) {
-    map.set(g.id, inboundPercent(g));
-  }
-  map.set(id, nextPct);
-
-  let sum = round2([...map.values()].reduce((a, b) => a + b, 0));
-  if (sum > 100) {
-    let excess = round2(sum - 100);
+  if (actives.length === 1) {
+    map.set(id, 100);
+  } else {
+    const clamped = Math.min(100, Math.max(0, nextPct));
+    map.set(id, clamped);
     const others = actives.filter((g) => g.id !== id);
-    // Equally shave others; if some hit 0, redistributing remaining excess.
-    while (excess > 0.05 && others.some((g) => (map.get(g.id) ?? 0) > 0)) {
-      const reducible = others.filter((g) => (map.get(g.id) ?? 0) > 0);
-      if (!reducible.length) break;
-      const share = round2(excess / reducible.length);
-      let taken = 0;
-      for (let i = 0; i < reducible.length; i++) {
-        const gid = reducible[i].id;
-        const cur = map.get(gid) ?? 0;
-        const isLast = i === reducible.length - 1;
-        const want = isLast ? round2(excess - taken) : share;
-        const cut = round2(Math.min(cur, Math.max(0, want)));
-        map.set(gid, round2(cur - cut));
-        taken = round2(taken + cut);
+    const remaining = 100 - clamped;
+    const weights = others.map((g) => {
+      const w = inboundPercent(g);
+      return w > 0 ? w : 0;
+    });
+    const weightSum = weights.reduce((a, b) => a + b, 0);
+    let assigned = 0;
+    for (let i = 0; i < others.length; i++) {
+      const isLast = i === others.length - 1;
+      let share: number;
+      if (isLast) {
+        share = remaining - assigned;
+      } else if (weightSum > 0) {
+        share = Math.floor((remaining * weights[i]) / weightSum);
+      } else {
+        share = Math.floor(remaining / others.length);
       }
-      excess = round2(excess - taken);
-      if (taken <= 0) break;
-    }
-    // If others couldn't absorb (all zero), clamp this goal to remaining room.
-    sum = round2([...map.values()].reduce((a, b) => a + b, 0));
-    if (sum > 100) {
-      const othersSum = round2(
-        others.reduce((s, g) => s + (map.get(g.id) ?? 0), 0),
-      );
-      map.set(id, round2(Math.max(0, 100 - othersSum)));
+      map.set(others[i].id, share);
+      assigned += share;
     }
   }
 

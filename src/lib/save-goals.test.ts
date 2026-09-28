@@ -670,14 +670,15 @@ describe("setGoalInboundPercent", () => {
     });
     state = setGoalInboundPercent(state, a().id, 70);
     expect(inboundPercent(a())).toBe(70);
-    expect(inboundPercent(b())).toBe(25);
-    expect(inboundPercent(c())).toBe(5);
+    // Remaining 30 split by prior B:C = 40:20 → 20 and 10
+    expect(inboundPercent(b())).toBe(20);
+    expect(inboundPercent(c())).toBe(10);
     const sum =
       inboundPercent(a()) + inboundPercent(b()) + inboundPercent(c());
-    expect(sum).toBeCloseTo(100, 1);
+    expect(sum).toBe(100);
   });
 
-  it("allows under-100 totals when decreasing a share", () => {
+  it("always keeps inbound percents at 100 when decreasing a share", () => {
     let state = emptyState();
     state = createSaveGoal(state, {
       name: "Trip",
@@ -693,7 +694,10 @@ describe("setGoalInboundPercent", () => {
     const gift = () => state.saveGoals!.find((g) => g.name === "Gift")!;
     state = setGoalInboundPercent(state, trip().id, 60);
     expect(inboundPercent(trip())).toBe(60);
-    expect(inboundPercent(gift())).toBe(0);
+    expect(inboundPercent(gift())).toBe(40);
+    state = setGoalInboundPercent(state, trip().id, 59);
+    expect(inboundPercent(trip())).toBe(59);
+    expect(inboundPercent(gift())).toBe(41);
   });
 });
 
