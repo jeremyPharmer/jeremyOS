@@ -158,7 +158,7 @@ projected = alreadyReclaimed + waitingReclaim + daysToGo × historicalDailySpend
 | **Money** | Does **not** move real cash; no Venmo; no debit from Future/Treat |
 | **Income math** | `dailyRate = monthlyIncome / daysInMonth` (default monthlyIncome = 500) |
 | **Evening** | Enter total spend; allocate leftover (+ optional lump) to active goals; overspend draws goals down (may go negative) |
-| **Rank / status** | **Rank 13 / P0 / Ready / Effort M** — Now queue after five-year journal; founder-elevated personal tool |
+| **Rank / status** | **Rank 14 / P0 / In Progress / Effort M** — Now queue after five-year journal; founder-elevated personal tool |
 | **≠** | Reward-moment “Save for the Future” (skip Treat) |
 
 ## Deferred
@@ -187,7 +187,7 @@ Money integrity items already In Progress (e.g. end-of-day reclaim auto-credit) 
 | **v1** | Settings Google OAuth → **read-only** inbox list + message read; single Gmail account; prefer `gmail.readonly` |
 | **Out of v1** | Full client (compose/labels/archive), multi-mailbox, AI triage, replacing Gmail app |
 | **Phase 1b** | Outbound transactional send (unblocks forgot-password + RB-003 digest) — same ID, after inbox |
-| **Rank / status** | **Rank 6 / P0 / Ready / Effort L** — Now queue after framing + todos + mid-flight task IP |
+| **Rank / status** | **Rank 7 / P0 / Ready / Effort L** — Now queue after framing + todos + mid-flight task IP |
 | **Start eng?** | **Not full ship yet** — finish or free-lane around In Progress RB-026 / RB-033 / journal; **OAuth/consent spike OK early** (restricted Gmail scopes) |
 | **≠ calendar** | Google Calendar OAuth remains **RB-023** (Done); separate grant from Gmail |
 
