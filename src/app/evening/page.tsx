@@ -134,6 +134,8 @@ function EveningPageInner() {
   const [result, setResult] = useState(false);
   const [closed, setClosed] = useState<ClosedSnapshot | null>(null);
   const [error, setError] = useState("");
+  /** After close (or reopen), check-in sits collapsed above the paper. */
+  const [checkinOpen, setCheckinOpen] = useState(false);
   const [news, setNews] = useState<NewsHeadline[]>([]);
   const [newsLoading, setNewsLoading] = useState(false);
   const [weatherDays, setWeatherDays] = useState<DailyForecast[]>([]);
@@ -191,9 +193,15 @@ function EveningPageInner() {
     };
   }, [closed, alreadyClosedToday, missing.length, today, state.evenings]);
 
+  const closeDone = Boolean(editionClosed);
+  const showCheckin = !closeDone || checkinOpen;
+  const paperLive = closeDone && !checkinOpen;
+
   const closedStarred = Boolean(
     editionClosed && isStarredDay(state.starredDays, editionClosed.date),
   );
+
+  const briefingDate = editionClosed?.date || effectiveDate || today || "";
 
   // Cancel pending star intent if the headline is cleared before close.
   useEffect(() => {
@@ -227,9 +235,18 @@ function EveningPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
   }, [effectiveDate, result, editionClosed]);
 
-  // Pull news + tomorrow weather whenever the Close edition is on screen.
+  // Prefill scales when reopening an already-closed evening.
   useEffect(() => {
-    if (!editionClosed || !today) return;
+    if (!editionClosed || !checkinOpen) return;
+    setMood(editionClosed.mood);
+    setStress(editionClosed.stress);
+    setOneLine(editionClosed.headline);
+    setStandOut(editionClosed.summary);
+  }, [editionClosed, checkinOpen]);
+
+  // Pull news + tomorrow weather for the Close paper (compose wait + closed live).
+  useEffect(() => {
+    if (!briefingDate) return;
     let cancelled = false;
     setNewsLoading(true);
     setWeatherLoading(true);
@@ -247,11 +264,9 @@ function EveningPageInner() {
           }
         }
         const [newsRes, weatherRes, onThisDayRes] = await Promise.all([
-          fetch(`/api/news?date=${encodeURIComponent(editionClosed.date)}`),
+          fetch(`/api/news?date=${encodeURIComponent(briefingDate)}`),
           fetch(`/api/weather?${weatherQs.toString()}`),
-          fetch(
-            `/api/on-this-day?date=${encodeURIComponent(editionClosed.date)}`,
-          ),
+          fetch(`/api/on-this-day?date=${encodeURIComponent(briefingDate)}`),
         ]);
         if (cancelled) return;
         if (newsRes.ok) {
@@ -288,13 +303,13 @@ function EveningPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [editionClosed, today]);
+  }, [briefingDate]);
 
   const briefingTasks: BriefingTaskRow[] = useMemo(() => {
-    if (!editionClosed) return [];
+    if (!briefingDate) return [];
     const done = completedTodosForUndo(
       state.dayProvisions ?? [],
-      editionClosed.date,
+      briefingDate,
     ).map((t) => ({
       id: t.id,
       label: t.label,
@@ -302,7 +317,7 @@ function EveningPageInner() {
       group: t.group,
       status: "done" as const,
     }));
-    const open = openTodosOn(state.dayProvisions ?? [], editionClosed.date).map(
+    const open = openTodosOn(state.dayProvisions ?? [], briefingDate).map(
       (t) => ({
         id: t.id,
         label: t.label,
@@ -312,24 +327,24 @@ function EveningPageInner() {
       }),
     );
     return [...done, ...open];
-  }, [editionClosed, state.dayProvisions]);
+  }, [briefingDate, state.dayProvisions]);
 
   const historyEntries = useMemo(() => {
-    if (!editionClosed) return [];
-    return thisDayInHistory(state.journals ?? [], editionClosed.date);
-  }, [editionClosed, state.journals]);
+    if (!briefingDate) return [];
+    return thisDayInHistory(state.journals ?? [], briefingDate);
+  }, [briefingDate, state.journals]);
 
   const workoutGaps = useMemo(() => {
-    if (!editionClosed) return workoutGapInsight([], today || "");
-    return workoutGapInsight(state.workouts, editionClosed.date);
-  }, [editionClosed, state.workouts, today]);
+    if (!briefingDate) return workoutGapInsight([], today || "");
+    return workoutGapInsight(state.workouts, briefingDate);
+  }, [briefingDate, state.workouts, today]);
 
   const trends = useMemo(() => {
-    if (!editionClosed) {
+    if (!briefingDate) {
       return sevenDayTrendInsight(state, today || "");
     }
-    return sevenDayTrendInsight(state, editionClosed.date);
-  }, [editionClosed, state, today]);
+    return sevenDayTrendInsight(state, briefingDate);
+  }, [briefingDate, state, today]);
 
   const moneyDate = effectiveDate || today || "";
   const saveGoals = useMemo(() => activeSaveGoals(state), [state]);
@@ -356,6 +371,14 @@ function EveningPageInner() {
   const canApplyNegative = !needsDrawPick || Boolean(drawFromGoalId);
 
   const tomorrowDate = today ? addDays(today, 1) : "";
+
+  const collapsedSummary = useMemo(() => {
+    const src = editionClosed
+      ? { mood: editionClosed.mood, stress: editionClosed.stress }
+      : { mood, stress };
+    if (src.mood == null || src.stress == null) return null;
+    return `M ${src.mood} · St ${src.stress}`;
+  }, [editionClosed, mood, stress]);
 
   async function toggleStarNow(date: string) {
     setStarBusy(true);
@@ -437,8 +460,7 @@ function EveningPageInner() {
       await post("/api/save-goals", {
         action: "applyTotals",
         date: moneyDate,
-        drawFromGoalId:
-          dayLedger.left < 0 ? resolvedDrawFrom : undefined,
+        drawFromGoalId: dayLedger.left < 0 ? resolvedDrawFrom : undefined,
       });
       setApplySaveGoals(false);
     } catch (e) {
@@ -454,6 +476,12 @@ function EveningPageInner() {
       setError("Tap a number for mood and stress.");
       return;
     }
+    const shouldApply =
+      saveGoals.length > 0 && applySaveGoals && !dayApplied;
+    if (shouldApply && dayLedger.left < 0 && !resolvedDrawFrom) {
+      setError("Pick a goal to take from.");
+      return;
+    }
     setBusy(true);
     setError("");
     const snapshot: ClosedSnapshot = {
@@ -465,12 +493,6 @@ function EveningPageInner() {
       photoDataUrl,
     };
     const shouldStarAfterClose = starPending && !persistedStarred;
-    const shouldApply =
-      saveGoals.length > 0 && applySaveGoals && !dayApplied;
-    if (shouldApply && dayLedger.left < 0 && !resolvedDrawFrom) {
-      setError("Pick a goal to take from.");
-      return;
-    }
     try {
       await post("/api/evening", {
         date: effectiveDate,
@@ -481,13 +503,12 @@ function EveningPageInner() {
         photoDataUrl: photoDataUrl || undefined,
         applySaveGoals: shouldApply,
         drawFromGoalId:
-          shouldApply && dayLedger.left < 0
-            ? resolvedDrawFrom
-            : undefined,
+          shouldApply && dayLedger.left < 0 ? resolvedDrawFrom : undefined,
       });
       setStarPending(false);
       setClosed(snapshot);
       setResult(true);
+      setCheckinOpen(false);
       if (shouldStarAfterClose) {
         try {
           await post("/api/journal", {
@@ -511,10 +532,11 @@ function EveningPageInner() {
 
   if (requestedAlreadyClosed && !result && requested !== today) {
     return (
-      <main className="stack daily-briefing paper-edition">
-        <header className="paper-masthead paper-masthead-compact">
-          <p className="paper-masthead-flag">Evening edition</p>
-          <h1 className="paper-masthead-title">The Daily Close</h1>
+      <main className="stack open-edition fade-in">
+        <header className="open-edition-mast">
+          <p className="open-edition-flag">Evening edition</p>
+          <h1 className="open-edition-title">The Daily Close</h1>
+          <div className="open-edition-rule" aria-hidden />
         </header>
         <p className="muted">
           {formatDisplayDate(requested)} already has a close.
@@ -529,118 +551,13 @@ function EveningPageInner() {
     );
   }
 
-  if (editionClosed) {
-    const editionDate = formatHomeHeaderDate(editionClosed.date);
-    const morningLead =
-      state.mornings
-        .find((m) => m.date === editionClosed.date)
-        ?.intention?.trim() || "";
+  if (!effectiveDate && !editionClosed) {
     return (
-      <main
-        className={`stack daily-briefing evening-recap paper-edition paper-rundown${
-          result ? " success-pop" : " fade-in"
-        }`}
-      >
-        <header className="paper-masthead">
-          <p className="paper-masthead-flag">Evening edition</p>
-          <h1 className="paper-masthead-title">The Daily Close</h1>
-          <div className="paper-masthead-rule" aria-hidden />
-          <p className="paper-masthead-dateline">
-            <span>{editionDate}</span>
-            <span className="paper-masthead-dot" aria-hidden>
-              ·
-            </span>
-            <span>Day put to bed</span>
-          </p>
-          {morningLead ? (
-            <div className="paper-lead-story">
-              <p className="paper-kicker">Today&apos;s lead</p>
-              <h2 className="paper-front-headline">{morningLead}</h2>
-            </div>
-          ) : null}
-        </header>
-        {editionClosed.date !== today && (
-          <p className="muted paper-checkin-note">
-            Backfilled {formatDisplayDate(editionClosed.date)}
-          </p>
-        )}
-
-        <section className="paper-front" aria-label="Remember">
-          <div className="evening-remember-row">
-            <div>
-              <p className="paper-kicker">Remember</p>
-              <h2 className="paper-headline">{editionClosed.headline}</h2>
-              {editionClosed.summary ? (
-                <p className="paper-deck">{editionClosed.summary}</p>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              className="fy-star-btn"
-              aria-label={
-                closedStarred
-                  ? "Unstar day to remember"
-                  : "Star as day to remember"
-              }
-              disabled={starBusy}
-              onClick={() => void toggleStarNow(editionClosed.date)}
-            >
-              <StarIcon filled={closedStarred} />
-            </button>
-          </div>
-        </section>
-        {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-        {editionClosed.photoDataUrl ? (
-          <div className="photo-subtle-preview">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={editionClosed.photoDataUrl} alt="Attached photo" />
-          </div>
-        ) : null}
-
-        <div className="paper-pages paper-card-stack">
-          <WeatherExpanded
-            mode="tomorrow"
-            locationLabel={weatherLocation}
-            days={weatherDays}
-            focusDate={tomorrowDate}
-            loading={weatherLoading}
-          />
-
-          <BriefingTasks
-            tasks={briefingTasks}
-            emptyLabel="No tasks logged for this day."
-            hideWhenEmpty
-          />
-          <BodyMind workouts={workoutGaps} trends={trends} />
-          <WorldHeadlines
-            headlines={news}
-            loading={newsLoading}
-            hideWhenEmpty
-          />
-          <ThisDayInHistory
-            today={editionClosed.date}
-            entries={historyEntries}
-            worldEvent={worldEvent}
-            worldLoading={worldLoading}
-            hideWhenEmpty
-          />
-        </div>
-
-        <PrimaryButton onClick={() => router.push("/journal")}>
-          Open journal
-        </PrimaryButton>
-
-        <SecondaryButton onClick={() => router.push("/")}>Home</SecondaryButton>
-      </main>
-    );
-  }
-
-  if (!effectiveDate) {
-    return (
-      <main className="stack daily-briefing paper-edition">
-        <header className="paper-masthead paper-masthead-compact">
-          <p className="paper-masthead-flag">Evening edition</p>
-          <h1 className="paper-masthead-title">The Daily Close</h1>
+      <main className="stack open-edition fade-in">
+        <header className="open-edition-mast">
+          <p className="open-edition-flag">Evening edition</p>
+          <h1 className="open-edition-title">The Daily Close</h1>
+          <div className="open-edition-rule" aria-hidden />
         </header>
         <p className="muted">Nothing to close.</p>
         <SecondaryButton onClick={() => router.push("/")}>Home</SecondaryButton>
@@ -648,355 +565,567 @@ function EveningPageInner() {
     );
   }
 
-  const isBackfill = effectiveDate !== today;
+  const isBackfill = Boolean(
+    effectiveDate && today && effectiveDate !== today && !editionClosed,
+  );
   const showDayPicker =
-    missing.length > 1 || (alreadyClosedToday && missing.length > 0);
+    !editionClosed &&
+    (missing.length > 1 || (alreadyClosedToday && missing.length > 0));
   const scalesReady = mood != null && stress != null;
+  const mastDate = formatHomeHeaderDate(
+    editionClosed?.date || effectiveDate || today,
+  );
+  const morningLead =
+    (editionClosed
+      ? state.mornings
+          .find((m) => m.date === editionClosed.date)
+          ?.intention?.trim()
+      : state.mornings.find((m) => m.date === effectiveDate)?.intention?.trim()) ||
+    "";
+  const rememberHeadline =
+    editionClosed?.headline || oneLine.trim() || "";
+  const rememberSummary =
+    editionClosed?.summary || standOut.trim() || "";
+  const rememberPhoto =
+    editionClosed?.photoDataUrl || photoDataUrl || null;
 
   return (
-    <main className="stack fade-in daily-briefing paper-edition">
-      <header className="paper-masthead paper-masthead-compact">
-        <p className="paper-masthead-flag">
-          {isBackfill ? "Catch up" : "Evening edition"}
+    <main
+      className={`stack open-edition${result ? " success-pop" : " fade-in"}`}
+    >
+      <header className="open-edition-mast">
+        <p className="open-edition-flag">
+          {isBackfill
+            ? `Catch up · ${formatDisplayDate(effectiveDate)}`
+            : `${mastDate} · Evening edition`}
         </p>
-        <h1 className="paper-masthead-title">
+        <h1 className="open-edition-title">
           {isBackfill ? "Missed close" : "The Daily Close"}
         </h1>
-        <div className="paper-masthead-rule" aria-hidden />
+        <div className="open-edition-rule" aria-hidden />
       </header>
-      {isBackfill ? (
-        <p className="muted paper-checkin-note">
-          Closing {formatDisplayDate(effectiveDate)} — same mood, stress,
-          headline, and summary as tonight.
-        </p>
-      ) : (
-        <p className="muted paper-checkin-note">
-          Check in first — then tonight&apos;s edition.
-        </p>
-      )}
 
-      {showDayPicker && (
-        <section className="panel">
-          <label className="field">
-            <span className="field-label">Which day?</span>
-            <select
-              value={effectiveDate}
-              onChange={(e) => setCloseDate(e.target.value)}
-            >
-              {missing.map((d) => (
-                <option key={d} value={d}>
-                  {formatDisplayDate(d)}
-                  {d === today ? " (today)" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
-      )}
-
-      <section className="panel">
-        <p className="eyebrow">How did {isBackfill ? "that day" : "today"} go?</p>
-        <TapScale label="Mood" value={mood} onChange={setMood} />
-        <TapScale label="Stress" value={stress} onChange={setStress} />
-      </section>
-
-      <section className="panel">
-        <div className="evening-journal-head">
-          <p className="eyebrow">Journal page</p>
-          <button
-            type="button"
-            className="fy-star-btn"
-            aria-label={
-              composeStarred
-                ? "Unstar day to remember"
-                : "Star as day to remember"
-            }
-            title={
-              oneLine.trim()
-                ? composeStarred
-                  ? "Saved day"
-                  : "Mark as a saved day"
-                : "Add a headline to star this day"
-            }
-            disabled={busy || starBusy || !oneLine.trim()}
-            onClick={() => void onComposeStarClick()}
-          >
-            <StarIcon filled={composeStarred} />
-          </button>
-        </div>
-        <label className="field">
-          <span className="field-label">Headline</span>
-          <input
-            type="text"
-            value={oneLine}
-            onChange={(e) => setOneLine(e.target.value)}
-            placeholder="One line for this day"
-            maxLength={120}
-          />
-        </label>
-        <label className="field" style={{ marginTop: 12 }}>
-          <span className="field-label">
-            Short summary
-            <span className="tiny" style={{ marginLeft: 8, fontWeight: 400 }}>
-              ~{SUMMARY_SENTENCE_SOFT_LIMIT} sentences
+      {showCheckin ? (
+        <section
+          className="open-edition-box"
+          aria-label={closeDone ? "Evening check-in" : "Close check-in"}
+        >
+          <div className="open-edition-box-head">
+            <p className="open-edition-kicker">Check in</p>
+            <span className="open-edition-note">
+              {closeDone
+                ? "Closed"
+                : isBackfill
+                  ? "Same as tonight"
+                  : "About a minute"}
             </span>
-          </span>
-          <textarea
-            rows={4}
-            value={standOut}
-            onChange={(e) => setStandOut(e.target.value)}
-            placeholder="A few sentences — what you want to remember"
-          />
-          {standOut.trim() && (
-            <span
-              className="tiny"
-              style={{
-                marginTop: 6,
-                color: summaryOver ? "var(--warn)" : undefined,
-              }}
-            >
-              {summarySentences} / {SUMMARY_SENTENCE_SOFT_LIMIT} sentences
-              {summaryOver ? " — trim a little if you can" : ""}
-            </span>
-          )}
-        </label>
-        <div style={{ marginTop: 14 }}>
-          <span className="field-label">Photo · optional</span>
-          <SubtlePhotoPicker
-            preview={photoDataUrl}
-            onPick={setPhotoDataUrl}
-            onClear={() => setPhotoDataUrl(null)}
-            cameraLabel="Take a photo"
-            libraryLabel="Choose from Photos"
-          />
-        </div>
-      </section>
-
-      {saveGoals.length > 0 ? (
-        <section className="panel" aria-label="Save ledger">
-          <p className="eyebrow">Save ledger</p>
-          <div className="save-goal-glance-head" style={{ marginTop: 4 }}>
-            <div>
-              <p className="tiny muted" style={{ margin: 0 }}>
-                Day total {formatMoneyDown(dayTotalShown)}
-                {dayLedger.carryIn !== 0 ? (
-                  <>
-                    {" "}
-                    · {dayLedger.carryIn > 0 ? "+" : ""}
-                    {formatMoneyDown(dayLedger.carryIn)} rolled
-                  </>
-                ) : null}
-              </p>
-            </div>
-            <p className="save-goal-inbound-figure" aria-label="Left today">
-              {formatMoneyDown(dayLedger.left)}
-            </p>
           </div>
 
-          {entryKind ? (
-            <div className="save-goal-create" style={{ marginTop: 10 }}>
-              <label className="field">
-                <span className="field-label">
-                  {entryKind === "add" ? "Add" : "Subtract"}
-                </span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0.01}
-                  step="0.01"
-                  value={entryAmount}
-                  onChange={(e) => setEntryAmount(e.target.value)}
-                  placeholder="8.18"
-                  autoFocus
+          {showDayPicker ? (
+            <label className="open-edition-lead-field">
+              <span className="open-edition-kicker">Which day?</span>
+              <select
+                className="open-edition-select"
+                value={effectiveDate}
+                onChange={(e) => setCloseDate(e.target.value)}
+                disabled={closeDone}
+              >
+                {missing.map((d) => (
+                  <option key={d} value={d}>
+                    {formatDisplayDate(d)}
+                    {d === today ? " (today)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          <div className="open-edition-vitals">
+            <TapScale
+              label="Mood"
+              value={mood}
+              onChange={setMood}
+              disabled={closeDone}
+            />
+            <TapScale
+              label="Stress"
+              value={stress}
+              onChange={setStress}
+              disabled={closeDone}
+            />
+          </div>
+
+          <div className="open-edition-journal-block">
+            <div className="open-edition-journal-head">
+              <p className="open-edition-kicker">Journal</p>
+              <button
+                type="button"
+                className="fy-star-btn"
+                aria-label={
+                  (closeDone ? closedStarred : composeStarred)
+                    ? "Unstar day to remember"
+                    : "Star as day to remember"
+                }
+                title={
+                  (closeDone ? rememberHeadline : oneLine).trim()
+                    ? closeDone
+                      ? closedStarred
+                        ? "Saved day"
+                        : "Mark as a saved day"
+                      : composeStarred
+                        ? "Saved day"
+                        : "Mark as a saved day"
+                    : "Add a headline to star this day"
+                }
+                disabled={
+                  busy ||
+                  starBusy ||
+                  !(closeDone ? rememberHeadline : oneLine).trim()
+                }
+                onClick={() => {
+                  if (closeDone && editionClosed) {
+                    void toggleStarNow(editionClosed.date);
+                    return;
+                  }
+                  void onComposeStarClick();
+                }}
+              >
+                <StarIcon
+                  filled={closeDone ? closedStarred : composeStarred}
                 />
-              </label>
-              {entryKind === "spend" ? (
-                <div className="save-goal-spend-category">
-                  <p className="field-label" style={{ marginBottom: 6 }}>
-                    Category
+              </button>
+            </div>
+
+            <label className="open-edition-lead-field">
+              <span className="open-edition-kicker">Headline</span>
+              <input
+                type="text"
+                value={closeDone ? rememberHeadline : oneLine}
+                onChange={(e) => setOneLine(e.target.value)}
+                placeholder="One line for this day"
+                maxLength={120}
+                disabled={closeDone}
+              />
+            </label>
+
+            <label className="open-edition-lead-field">
+              <span className="open-edition-kicker">
+                Short summary
+                <span className="open-edition-note" style={{ marginLeft: 8 }}>
+                  ~{SUMMARY_SENTENCE_SOFT_LIMIT} sentences
+                </span>
+              </span>
+              <textarea
+                rows={4}
+                value={closeDone ? rememberSummary : standOut}
+                onChange={(e) => setStandOut(e.target.value)}
+                placeholder="A few sentences — what you want to remember"
+                disabled={closeDone}
+              />
+              {!closeDone && standOut.trim() ? (
+                <span
+                  className="tiny"
+                  style={{
+                    color: summaryOver ? "var(--warn)" : undefined,
+                  }}
+                >
+                  {summarySentences} / {SUMMARY_SENTENCE_SOFT_LIMIT} sentences
+                  {summaryOver ? " — trim a little if you can" : ""}
+                </span>
+              ) : null}
+            </label>
+
+            {!closeDone ? (
+              <div className="open-edition-photo">
+                <span className="open-edition-kicker">Photo · optional</span>
+                <SubtlePhotoPicker
+                  preview={photoDataUrl}
+                  onPick={setPhotoDataUrl}
+                  onClear={() => setPhotoDataUrl(null)}
+                  cameraLabel="Take a photo"
+                  libraryLabel="Choose from Photos"
+                />
+              </div>
+            ) : rememberPhoto ? (
+              <div className="photo-subtle-preview">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={rememberPhoto} alt="Attached photo" />
+              </div>
+            ) : null}
+          </div>
+
+          {!closeDone && saveGoals.length > 0 ? (
+            <div className="open-edition-money" aria-label="Save ledger">
+              <p className="open-edition-kicker">Save ledger</p>
+              <div className="save-goal-glance-head" style={{ marginTop: 4 }}>
+                <div>
+                  <p className="open-edition-money-note" style={{ margin: 0 }}>
+                    Day total {formatMoneyDown(dayTotalShown)}
+                    {dayLedger.carryIn !== 0 ? (
+                      <>
+                        {" "}
+                        · {dayLedger.carryIn > 0 ? "+" : ""}
+                        {formatMoneyDown(dayLedger.carryIn)} rolled
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+                <p className="save-goal-inbound-figure" aria-label="Left today">
+                  {formatMoneyDown(dayLedger.left)}
+                </p>
+              </div>
+
+              {entryKind ? (
+                <div className="save-goal-create" style={{ marginTop: 10 }}>
+                  <label className="open-edition-lead-field">
+                    <span className="open-edition-kicker">
+                      {entryKind === "add" ? "Add" : "Subtract"}
+                    </span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0.01}
+                      step="0.01"
+                      value={entryAmount}
+                      onChange={(e) => setEntryAmount(e.target.value)}
+                      placeholder="8.18"
+                      autoFocus
+                    />
+                  </label>
+                  {entryKind === "spend" ? (
+                    <div className="save-goal-spend-category">
+                      <p className="open-edition-kicker" style={{ marginBottom: 6 }}>
+                        Category
+                      </p>
+                      <div className="chip-row">
+                        {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className={`chip${spendCategory === c.id ? " selected" : ""}`}
+                            onClick={() => setSpendCategory(c.id)}
+                            disabled={saveBusy}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="save-goal-create-actions">
+                    <PrimaryButton
+                      onClick={() => void submitEveningEntry()}
+                      disabled={
+                        saveBusy || (entryKind === "spend" && !spendCategory)
+                      }
+                    >
+                      {saveBusy
+                        ? "Saving…"
+                        : entryKind === "add"
+                          ? "Add"
+                          : "Subtract"}
+                    </PrimaryButton>
+                    <SecondaryButton
+                      onClick={() => {
+                        setEntryKind(null);
+                        setSpendCategory("");
+                        setError("");
+                      }}
+                      disabled={saveBusy}
+                    >
+                      Cancel
+                    </SecondaryButton>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="save-goal-glance-actions"
+                  style={{ marginTop: 10 }}
+                >
+                  <SecondaryButton
+                    onClick={() => {
+                      setError("");
+                      setEntryAmount("");
+                      setSpendCategory("");
+                      setEntryKind("add");
+                    }}
+                    disabled={saveBusy}
+                  >
+                    Add
+                  </SecondaryButton>
+                  <SecondaryButton
+                    onClick={() => {
+                      setError("");
+                      setEntryAmount("");
+                      setSpendCategory("");
+                      setEntryKind("spend");
+                    }}
+                    disabled={saveBusy}
+                  >
+                    Subtract
+                  </SecondaryButton>
+                  <PrimaryButton
+                    onClick={() => void applyEveningTotals()}
+                    disabled={saveBusy || dayApplied || !canApplyNegative}
+                  >
+                    {saveBusy
+                      ? "Saving…"
+                      : dayApplied
+                        ? "Applied"
+                        : "Apply totals"}
+                  </PrimaryButton>
+                </div>
+              )}
+
+              {needsDrawPick && !dayApplied ? (
+                <div className="save-goal-draw-from" style={{ marginTop: 12 }}>
+                  <p className="open-edition-kicker" style={{ marginBottom: 6 }}>
+                    Take from
                   </p>
                   <div className="chip-row">
-                    {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
+                    {saveGoals.map((g) => (
                       <button
-                        key={c.id}
+                        key={g.id}
                         type="button"
-                        className={`chip${spendCategory === c.id ? " selected" : ""}`}
-                        onClick={() => setSpendCategory(c.id)}
-                        disabled={saveBusy}
+                        className={`chip${drawFromGoalId === g.id ? " selected" : ""}`}
+                        onClick={() => setDrawFromGoalId(g.id)}
+                        disabled={saveBusy || busy}
                       >
-                        {c.label}
+                        {g.name}
                       </button>
                     ))}
                   </div>
                 </div>
               ) : null}
-              <div className="save-goal-create-actions">
-                <PrimaryButton
-                  onClick={() => void submitEveningEntry()}
-                  disabled={
-                    saveBusy || (entryKind === "spend" && !spendCategory)
-                  }
-                >
-                  {saveBusy
-                    ? "Saving…"
-                    : entryKind === "add"
-                      ? "Add"
-                      : "Subtract"}
-                </PrimaryButton>
-                <SecondaryButton
-                  onClick={() => {
-                    setEntryKind(null);
-                    setSpendCategory("");
-                    setError("");
-                  }}
-                  disabled={saveBusy}
-                >
-                  Cancel
-                </SecondaryButton>
-              </div>
-            </div>
-          ) : (
-            <div className="save-goal-glance-actions" style={{ marginTop: 10 }}>
-              <SecondaryButton
-                onClick={() => {
-                  setError("");
-                  setEntryAmount("");
-                  setSpendCategory("");
-                  setEntryKind("add");
-                }}
-                disabled={saveBusy}
-              >
-                Add
-              </SecondaryButton>
-              <SecondaryButton
-                onClick={() => {
-                  setError("");
-                  setEntryAmount("");
-                  setSpendCategory("");
-                  setEntryKind("spend");
-                }}
-                disabled={saveBusy}
-              >
-                Subtract
-              </SecondaryButton>
-              <PrimaryButton
-                onClick={() => void applyEveningTotals()}
-                disabled={saveBusy || dayApplied || !canApplyNegative}
-              >
-                {saveBusy
-                  ? "Saving…"
-                  : dayApplied
-                    ? "Applied"
-                    : "Apply totals"}
-              </PrimaryButton>
-            </div>
-          )}
 
-          {needsDrawPick && !dayApplied ? (
-            <div className="save-goal-draw-from" style={{ marginTop: 12 }}>
-              <p className="field-label" style={{ marginBottom: 6 }}>
-                Take from
+              <label className="check-row" style={{ marginTop: 12 }}>
+                <input
+                  type="checkbox"
+                  checked={dayApplied || applySaveGoals}
+                  disabled={dayApplied}
+                  onChange={(e) => setApplySaveGoals(e.target.checked)}
+                />
+                <span>
+                  {dayApplied
+                    ? "Leftover already applied to goals"
+                    : "Apply leftover when I close the day"}
+                </span>
+              </label>
+              <p className="open-edition-money-note" style={{ marginTop: 6 }}>
+                Skip apply and leftover rolls into tomorrow.
               </p>
-              <div className="chip-row">
-                {saveGoals.map((g) => (
+
+              {daySpends.length > 0 || dayApplied ? (
+                <div className="save-goal-home-ledger" style={{ marginTop: 10 }}>
                   <button
-                    key={g.id}
                     type="button"
-                    className={`chip${drawFromGoalId === g.id ? " selected" : ""}`}
-                    onClick={() => setDrawFromGoalId(g.id)}
-                    disabled={saveBusy || busy}
+                    className="save-goal-log-toggle"
+                    aria-expanded={ledgerOpen}
+                    onClick={() => setLedgerOpen((v) => !v)}
                   >
-                    {g.name}
+                    <span aria-hidden="true">{ledgerOpen ? "▾" : "▸"}</span>
+                    Ledger ({daySpends.length + (dayApplied ? 1 : 0)})
                   </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          <label className="check-row" style={{ marginTop: 12 }}>
-            <input
-              type="checkbox"
-              checked={dayApplied || applySaveGoals}
-              disabled={dayApplied}
-              onChange={(e) => setApplySaveGoals(e.target.checked)}
-            />
-            <span>
-              {dayApplied
-                ? "Leftover already applied to goals"
-                : "Apply leftover when I close the day"}
-            </span>
-          </label>
-          <p className="tiny muted" style={{ margin: "6px 0 0" }}>
-            Skip apply and leftover rolls into tomorrow.
-          </p>
-
-          {daySpends.length > 0 || dayApplied ? (
-            <div className="save-goal-home-ledger" style={{ marginTop: 10 }}>
-              <button
-                type="button"
-                className="save-goal-log-toggle"
-                aria-expanded={ledgerOpen}
-                onClick={() => setLedgerOpen((v) => !v)}
-              >
-                <span aria-hidden="true">{ledgerOpen ? "▾" : "▸"}</span>
-                Ledger ({daySpends.length + (dayApplied ? 1 : 0)})
-              </button>
-              {ledgerOpen ? (
-                <div className="save-goal-ledger-rows home-ledger-body">
-                  <div className="save-goal-ledger-row">
-                    <span>Inbound</span>
-                    <span>{formatMoney(dayLedger.inbound)}</span>
-                  </div>
-                  {daySpends.map((e) => {
-                    const isAdd = e.kind === "add";
-                    return (
-                      <div key={e.id} className="save-goal-ledger-row spend">
-                        <span>
-                          {isAdd
-                            ? "Add"
-                            : saveGoalSpendCategoryLabel(e.category)}
-                        </span>
-                        <span className="save-goal-ledger-spend-val">
-                          {isAdd ? "+" : "−"}
-                          {formatMoney(e.amount)}
-                          <button
-                            type="button"
-                            className="save-goal-add-link"
-                            disabled={saveBusy}
-                            onClick={() => void removeEveningSpend(e.id)}
-                          >
-                            Undo
-                          </button>
-                        </span>
+                  {ledgerOpen ? (
+                    <div className="save-goal-ledger-rows home-ledger-body">
+                      <div className="save-goal-ledger-row">
+                        <span>Inbound</span>
+                        <span>{formatMoney(dayLedger.inbound)}</span>
                       </div>
-                    );
-                  })}
-                  <div className="save-goal-ledger-row leftover">
-                    <span>Left</span>
-                    <span>{formatMoney(dayLedger.left)}</span>
-                  </div>
+                      {daySpends.map((e) => {
+                        const isAdd = e.kind === "add";
+                        return (
+                          <div
+                            key={e.id}
+                            className="save-goal-ledger-row spend"
+                          >
+                            <span>
+                              {isAdd
+                                ? "Add"
+                                : saveGoalSpendCategoryLabel(e.category)}
+                            </span>
+                            <span className="save-goal-ledger-spend-val">
+                              {isAdd ? "+" : "−"}
+                              {formatMoney(e.amount)}
+                              <button
+                                type="button"
+                                className="save-goal-add-link"
+                                disabled={saveBusy}
+                                onClick={() => void removeEveningSpend(e.id)}
+                              >
+                                Undo
+                              </button>
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <div className="save-goal-ledger-row leftover">
+                        <span>Left</span>
+                        <span>{formatMoney(dayLedger.left)}</span>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
           ) : null}
-        </section>
-      ) : null}
 
-      {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-      <PrimaryButton
-        onClick={submit}
-        disabled={
-          busy ||
-          !oneLine.trim() ||
-          !scalesReady ||
-          (applySaveGoals &&
-            !dayApplied &&
-            needsDrawPick &&
-            !drawFromGoalId)
-        }
+          {error ? <p style={{ color: "var(--danger)" }}>{error}</p> : null}
+
+          {closeDone ? (
+            <PrimaryButton onClick={() => setCheckinOpen(false)}>
+              Done
+            </PrimaryButton>
+          ) : (
+            <PrimaryButton
+              onClick={submit}
+              disabled={
+                busy ||
+                !oneLine.trim() ||
+                !scalesReady ||
+                (applySaveGoals &&
+                  !dayApplied &&
+                  needsDrawPick &&
+                  !drawFromGoalId)
+              }
+            >
+              {busy ? "Saving…" : "Close the paper"}
+            </PrimaryButton>
+          )}
+        </section>
+      ) : (
+        <button
+          type="button"
+          className="open-edition-collapsed"
+          onClick={() => setCheckinOpen(true)}
+          aria-label="Expand check-in"
+        >
+          <span className="open-edition-collapsed-lead">
+            {rememberHeadline || "Today’s close"}
+          </span>
+          {collapsedSummary ? (
+            <span className="open-edition-collapsed-meta">
+              {collapsedSummary}
+            </span>
+          ) : null}
+          <span className="open-edition-collapsed-edit">Edit</span>
+        </button>
+      )}
+
+      <div
+        className={`open-edition-paper${
+          paperLive ? " open-edition-paper-live" : " open-edition-paper-wait"
+        }`}
       >
-        {busy ? "Saving…" : isBackfill ? "Add journal entry" : "Close the day"}
-      </PrimaryButton>
+        {paperLive && morningLead ? (
+          <section className="open-edition-story open-edition-story-lead">
+            <p className="open-edition-kicker">Today&apos;s lead</p>
+            <h2 className="open-edition-commit">{morningLead}</h2>
+          </section>
+        ) : null}
+
+        {paperLive && rememberHeadline ? (
+          <section
+            className="open-edition-story"
+            aria-label="Remember"
+          >
+            <div className="open-edition-sec-head">
+              <p className="open-edition-kicker">Remember</p>
+              <button
+                type="button"
+                className="fy-star-btn"
+                aria-label={
+                  closedStarred
+                    ? "Unstar day to remember"
+                    : "Star as day to remember"
+                }
+                disabled={starBusy || !editionClosed}
+                onClick={() => {
+                  if (editionClosed) void toggleStarNow(editionClosed.date);
+                }}
+              >
+                <StarIcon filled={closedStarred} />
+              </button>
+            </div>
+            <h2 className="open-edition-commit">{rememberHeadline}</h2>
+            {rememberSummary ? (
+              <p className="open-edition-deck">{rememberSummary}</p>
+            ) : null}
+            {rememberPhoto ? (
+              <div className="photo-subtle-preview">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={rememberPhoto} alt="Attached photo" />
+              </div>
+            ) : null}
+            {error && !showCheckin ? (
+              <p style={{ color: "var(--danger)" }}>{error}</p>
+            ) : null}
+          </section>
+        ) : null}
+
+        <div className="open-edition-story open-edition-wx-wrap">
+          <WeatherExpanded
+            mode="tomorrow"
+            locationLabel={weatherLocation}
+            days={weatherDays}
+            focusDate={tomorrowDate}
+            loading={weatherLoading}
+          />
+        </div>
+
+        {briefingTasks.length > 0 ? (
+          <div className="open-edition-story open-edition-tasks-wrap">
+            <BriefingTasks
+              tasks={briefingTasks}
+              kicker="Today’s tasks"
+              linkHref="/items"
+              linkLabel="Tasks →"
+              emptyLabel="No tasks logged for this day."
+              hideWhenEmpty
+            />
+          </div>
+        ) : null}
+
+        <div className="open-edition-story">
+          <BodyMind workouts={workoutGaps} trends={trends} />
+        </div>
+
+        {newsLoading || news.length > 0 ? (
+          <div className="open-edition-story">
+            <WorldHeadlines
+              headlines={news}
+              loading={newsLoading}
+              hideWhenEmpty
+            />
+          </div>
+        ) : null}
+
+        {briefingDate &&
+        (historyEntries.length > 0 ||
+          worldEvent ||
+          worldLoading) ? (
+          <div className="open-edition-story">
+            <ThisDayInHistory
+              today={briefingDate}
+              entries={historyEntries}
+              worldEvent={worldEvent}
+              worldLoading={worldLoading}
+              hideWhenEmpty
+            />
+          </div>
+        ) : null}
+      </div>
+
+      {paperLive ? (
+        <>
+          <PrimaryButton onClick={() => router.push("/journal")}>
+            Open journal
+          </PrimaryButton>
+          <SecondaryButton onClick={() => router.push("/")}>
+            Home
+          </SecondaryButton>
+        </>
+      ) : null}
     </main>
   );
 }

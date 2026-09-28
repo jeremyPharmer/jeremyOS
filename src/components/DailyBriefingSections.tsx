@@ -354,29 +354,50 @@ export function BriefingTasks({
 /** Newspaper timetable — time left, title right (Option A). */
 export function PaperTimetable({
   rows,
+  onRemove,
+  removingId,
 }: {
-  rows: { when: string; title: string; muted?: boolean }[];
+  rows: { when: string; title: string; muted?: boolean; eventId?: string }[];
+  /** When set, removable rows show a × control. */
+  onRemove?: (eventId: string) => void | Promise<void>;
+  removingId?: string | null;
 }) {
   if (rows.length === 0) return null;
   return (
     <ul className="paper-timetable">
-      {rows.map((row, i) => (
-        <li
-          key={`${row.when}-${row.title}-${i}`}
-          className={
-            row.muted
-              ? "paper-timetable-row paper-timetable-row-muted"
-              : "paper-timetable-row"
-          }
-        >
-          {row.when ? (
-            <span className="paper-timetable-when">{row.when}</span>
-          ) : (
-            <span className="paper-timetable-when" aria-hidden />
-          )}
-          <span className="paper-timetable-title">{row.title}</span>
-        </li>
-      ))}
+      {rows.map((row, i) => {
+        const canRemove = Boolean(onRemove && row.eventId && !row.muted);
+        return (
+          <li
+            key={`${row.eventId ?? row.when}-${row.title}-${i}`}
+            className={
+              row.muted
+                ? "paper-timetable-row paper-timetable-row-muted"
+                : "paper-timetable-row"
+            }
+          >
+            {row.when ? (
+              <span className="paper-timetable-when">{row.when}</span>
+            ) : (
+              <span className="paper-timetable-when" aria-hidden />
+            )}
+            <span className="paper-timetable-title">{row.title}</span>
+            {canRemove ? (
+              <button
+                type="button"
+                className="paper-timetable-remove"
+                aria-label={`Remove ${row.title}`}
+                disabled={removingId === row.eventId}
+                onClick={() => {
+                  if (row.eventId && onRemove) void onRemove(row.eventId);
+                }}
+              >
+                ×
+              </button>
+            ) : null}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -452,14 +473,6 @@ export function BodyMind({
       today: trends.todayStress,
       avg: trends.stressAvg,
       delta: trends.stressVsLastWeek,
-    },
-    {
-      key: "sleep-hours",
-      label: "Sleep",
-      today: trends.todaySleepHours,
-      avg: trends.sleepHoursAvg,
-      delta: trends.sleepHoursVsLastWeek,
-      hours: true,
     },
     {
       key: "sleep-quality",

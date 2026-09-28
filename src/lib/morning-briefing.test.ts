@@ -36,6 +36,40 @@ describe("formatBriefingWhen", () => {
 });
 
 describe("buildMorningBriefing", () => {
+  it("lists every calendar event without truncating", () => {
+    const events = Array.from({ length: 7 }, (_, i) => ({
+      id: `e${i}`,
+      title: `Meeting ${i + 1}`,
+      startTime: `${9 + i}:00 AM`,
+      endTime: `${9 + i}:30 AM`,
+    }));
+    const allDay = [
+      { id: "a1", title: "Holiday", startTime: "All day", allDay: true as const },
+      { id: "a2", title: "Travel day", startTime: "All day", allDay: true as const },
+      { id: "a3", title: "OOO", startTime: "All day", allDay: true as const },
+    ];
+    const briefing = buildMorningBriefing({
+      scores: {
+        sleepHours: 7,
+        sleepQuality: 7,
+        mood: 7,
+        energy: 6,
+        stress: 4,
+      },
+      weather: null,
+      events: [...events, ...allDay],
+      tasks: [],
+    });
+    expect(briefing.calendarStory.lead).toBe("10 on the books.");
+    expect(briefing.calendarStory.rows).toHaveLength(10);
+    expect(
+      briefing.calendarStory.rows.every((r) => Boolean(r.eventId)),
+    ).toBe(true);
+    expect(
+      briefing.calendarStory.rows.some((r) => /more/i.test(r.title)),
+    ).toBe(false);
+  });
+
   it("leads with calendar + plan, and suggests snoozed work into a gap", () => {
     const briefing = buildMorningBriefing({
       scores: {
@@ -72,7 +106,7 @@ describe("buildMorningBriefing", () => {
       ],
     });
 
-    expect(briefing.feeling).toMatch(/Sleep looks solid/i);
+    expect(briefing.feeling).toMatch(/Sleep quality looks solid/i);
     expect(briefing.weather).toMatch(/partly cloudy/i);
     expect(briefing.calendarStory.lead).toMatch(/on the books/i);
     expect(briefing.calendarStory.rows.some((r) => /Standup/.test(r.title))).toBe(

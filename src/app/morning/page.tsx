@@ -10,8 +10,15 @@ import {
   WeatherExpanded,
   type BriefingTaskRow,
 } from "@/components/DailyBriefingSections";
-import { PrimaryButton, SecondaryButton, TapScale } from "@/components/ui";
+import { PrimaryButton, TapScale } from "@/components/ui";
 import { workoutGapInsight } from "@/lib/briefing";
+import {
+  applyCalendarTitleOverrides,
+  calendarHiddenEventIds,
+  calendarTitleOverrides,
+  filterHiddenCalendarEvents,
+} from "@/lib/calendar-overrides";
+import { isCustomAgendaId } from "@/lib/custom-agenda-shared";
 import { formatHomeHeaderDate } from "@/lib/journey";
 import {
   buildMorningBriefing,
@@ -84,7 +91,6 @@ export default function MorningPage() {
   const router = useRouter();
   const timezone = state.profile?.timezone ?? "America/New_York";
 
-  const [sleepHours, setSleepHours] = useState<number | null>(null);
   const [sleepQuality, setSleepQuality] = useState<number | null>(null);
   const [mood, setMood] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number | null>(null);
@@ -93,11 +99,14 @@ export default function MorningPage() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  /** After save (or reopen), check-in sits collapsed above the paper. */
+  const [checkinOpen, setCheckinOpen] = useState(false);
 
   const [weatherDays, setWeatherDays] = useState<DailyForecast[]>([]);
   const [weatherLocation, setWeatherLocation] = useState("");
   const [events, setEvents] = useState<BriefingEvent[]>([]);
   const [briefingLoading, setBriefingLoading] = useState(false);
+  const [removingEventId, setRemovingEventId] = useState<string | null>(null);
 
   const todayMorning = state.mornings.find((m) => m.date === today);
   const shownIntention =
@@ -105,6 +114,7 @@ export default function MorningPage() {
   /** Morning already saved for today (or just submitted this session). */
   const morningDone = Boolean(todayMorning) || done;
   const editionDate = formatHomeHeaderDate(today);
+  const showCheckin = !morningDone || checkinOpen;
 
   const briefingTasks: BriefingTask[] = useMemo(() => {
     return dueTodosOn(state.dayProvisions ?? [], today).map((t) => ({
@@ -133,17 +143,13 @@ export default function MorningPage() {
   );
 
   const scalesReady =
-    sleepHours != null &&
-    sleepQuality != null &&
-    mood != null &&
-    energy != null &&
-    stress != null;
+    sleepQuality != null && mood != null && energy != null && stress != null;
 
   const liveScores: BriefingScores = useMemo(() => {
     if (todayMorning) return scoresFromMorning(todayMorning);
     if (!scalesReady) {
       return {
-        sleepHours: 5,
+        sleepHours: 7,
         sleepQuality: 5,
         mood: 5,
         energy: 5,
@@ -151,13 +157,13 @@ export default function MorningPage() {
       };
     }
     return {
-      sleepHours,
+      sleepHours: 7,
       sleepQuality,
       mood,
       energy,
       stress,
     };
-  }, [todayMorning, scalesReady, sleepHours, sleepQuality, mood, energy, stress]);
+  }, [todayMorning, scalesReady, sleepQuality, mood, energy, stress]);
 
   const thinWeather: BriefingWeather = useMemo(() => {
     const day = weatherDays.find((d) => d.date === today) ?? weatherDays[0];
@@ -181,8 +187,42 @@ export default function MorningPage() {
     [liveScores, thinWeather, events, briefingTasks],
   );
 
+  const collapsedSummary = useMemo(() => {
+    const src = todayMorning
+      ? {
+          quality: todayMorning.sleepQuality,
+          mood: todayMorning.mood,
+          energy: todayMorning.energy,
+          stress: todayMorning.stress,
+        }
+      : {
+          quality: sleepQuality,
+          mood,
+          energy,
+          stress,
+        };
+    if (
+      src.quality == null ||
+      src.mood == null ||
+      src.energy == null ||
+      src.stress == null
+    ) {
+      return null;
+    }
+    return `Q ${src.quality} · M ${src.mood} · E ${src.energy} · St ${src.stress}`;
+  }, [todayMorning, sleepQuality, mood, energy, stress]);
+
+  // Prefill scales when reopening an already-saved morning.
   useEffect(() => {
-    if (!morningDone) return;
+    if (!todayMorning || !checkinOpen) return;
+    setSleepQuality(todayMorning.sleepQuality);
+    setMood(todayMorning.mood);
+    setEnergy(todayMorning.energy);
+    setStress(todayMorning.stress);
+    setIntention(todayMorning.intention ?? "");
+  }, [todayMorning, checkinOpen]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function loadBriefingContext() {
@@ -216,8 +256,13 @@ export default function MorningPage() {
           const data = (await calRes.json()) as {
             events?: WorkCalendarEvent[];
           };
+          const hidden = calendarHiddenEventIds(state);
+          const titled = applyCalendarTitleOverrides(
+            data.events ?? [],
+            calendarTitleOverrides(state),
+          );
           setEvents(
-            (data.events ?? []).map((e) => ({
+            filterHiddenCalendarEvents(titled, hidden).map((e) => ({
               id: e.id,
               title: e.title,
               startTime: e.startTime,
@@ -239,7 +284,24 @@ export default function MorningPage() {
     return () => {
       cancelled = true;
     };
-  }, [morningDone, today, timezone]);
+  }, [today, timezone, state]);
+
+  async function removeCalendarEvent(eventId: string) {
+    setRemovingEventId(eventId);
+    setError("");
+    try {
+      if (isCustomAgendaId(eventId)) {
+        await post("/api/calendar/custom", { action: "delete", id: eventId });
+      } else {
+        await post("/api/calendar/overrides", { eventId, hide: true });
+      }
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn’t remove event");
+    } finally {
+      setRemovingEventId(null);
+    }
+  }
 
   async function submit() {
     const focus = intention.trim();
@@ -248,7 +310,6 @@ export default function MorningPage() {
       return;
     }
     if (
-      sleepHours == null ||
       sleepQuality == null ||
       mood == null ||
       energy == null ||
@@ -261,9 +322,9 @@ export default function MorningPage() {
     setError("");
     try {
       setDone(true);
+      setCheckinOpen(false);
       await post("/api/morning", {
         date: today,
-        sleepHours,
         sleepQuality,
         mood,
         energy,
@@ -273,171 +334,179 @@ export default function MorningPage() {
       await refresh();
     } catch (e) {
       setDone(false);
+      setCheckinOpen(true);
       setError(e instanceof Error ? e.message : "Failed");
     } finally {
       setBusy(false);
     }
   }
 
-  if (morningDone) {
-    return (
-      <main className="stack fade-in open-river">
-        <header className="open-river-mast">
-          <p className="open-river-flag">{editionDate} · Open</p>
-          <h1 className="open-river-title">Morning</h1>
-        </header>
+  return (
+    <main className="stack fade-in open-edition">
+      <header className="open-edition-mast">
+        <p className="open-edition-flag">{editionDate} · Morning edition</p>
+        <h1 className="open-edition-title">The Daily Open</h1>
+        <div className="open-edition-rule" aria-hidden />
+      </header>
 
-        <div className="open-river-grid">
-          <div className="open-river-main">
-            {shownIntention ? (
-              <section
-                className="open-river-tile open-river-commit"
-                id="commitment"
-                aria-label="Do well today"
-              >
-                <div className="open-river-sec-head">
-                  <p className="open-river-kicker">Do well today</p>
-                </div>
-                <h2 className="open-river-commit-text">{shownIntention}</h2>
-              </section>
-            ) : null}
-
-            <div className="open-river-tile open-river-tasks-wrap">
-              <BriefingTasks
-                tasks={expandedTasks}
-                kicker="Start the day"
-                linkHref="/items"
-                linkLabel="Tasks →"
-                hideWhenEmpty={false}
-                emptyLabel="Nothing queued to start — add one on Tasks."
-              />
-            </div>
+      {showCheckin ? (
+        <section className="open-edition-box" aria-label="Morning check-in">
+          <div className="open-edition-box-head">
+            <p className="open-edition-kicker">Check in</p>
+            <span className="open-edition-note">About a minute</span>
           </div>
 
-          <div className="open-river-side">
-            <section
-              className="open-river-tile open-river-cal"
-              id="calendar"
-              aria-live="polite"
-              aria-label="Calendar"
-            >
-              <div className="open-river-sec-head">
-                <p className="open-river-kicker">Calendar</p>
-                <Link className="open-river-jump" href="/">
-                  Home →
-                </Link>
-              </div>
-              {briefingLoading && events.length === 0 ? (
-                <p className="muted tiny">Pulling calendar…</p>
-              ) : (
-                <>
-                  <p className="open-river-cal-lead">
-                    {briefing.calendarStory.lead}
-                  </p>
-                  <PaperTimetable rows={briefing.calendarStory.rows} />
-                  {briefing.calendarStory.rows.length === 0 ? (
-                    <p className="muted tiny">No timed events on the books.</p>
-                  ) : null}
-                </>
-              )}
-            </section>
-
-            <div className="open-river-tile open-river-wx-wrap">
-              <WeatherExpanded
-                mode="today"
-                locationLabel={weatherLocation}
-                days={weatherDays}
-                focusDate={today}
-                loading={briefingLoading}
-                showRadar
-              />
-            </div>
-
-            <section
-              className="open-river-tile open-river-workout"
-              id="workout"
-              aria-label="Workout"
-            >
-              <div className="open-river-sec-head">
-                <p className="open-river-kicker">Workout</p>
-                <Link className="open-river-jump" href="/workouts">
-                  Log →
-                </Link>
-              </div>
-              <p className="open-river-wo-status">
-                {workoutGaps.daysSinceAny === 0
-                  ? "Moved today"
-                  : workoutGaps.daysSinceAny == null
-                    ? "No session yet"
-                    : `${workoutGaps.daysSinceAny}d since last`}
-              </p>
-              <p className="open-river-wo-hint">{workoutGaps.anyLabel}</p>
-            </section>
+          <div className="open-edition-vitals">
+            <TapScale
+              label="Sleep quality"
+              value={sleepQuality}
+              onChange={setSleepQuality}
+            />
+            <TapScale label="Mood" value={mood} onChange={setMood} />
+            <TapScale label="Energy" value={energy} onChange={setEnergy} />
+            <TapScale label="Stress" value={stress} onChange={setStress} />
           </div>
+
+          <label className="open-edition-lead-field">
+            <span className="open-edition-kicker">Do well today</span>
+            <input
+              type="text"
+              value={intention}
+              onChange={(e) => setIntention(e.target.value)}
+              placeholder="One short line"
+              disabled={Boolean(todayMorning)}
+            />
+          </label>
+
+          {error ? <p style={{ color: "var(--danger)" }}>{error}</p> : null}
+
+          {todayMorning ? (
+            <PrimaryButton onClick={() => setCheckinOpen(false)}>
+              Done
+            </PrimaryButton>
+          ) : (
+            <PrimaryButton
+              onClick={submit}
+              disabled={busy || !intention.trim() || !scalesReady}
+            >
+              {busy ? "Saving…" : "Open the paper"}
+            </PrimaryButton>
+          )}
+        </section>
+      ) : (
+        <button
+          type="button"
+          className="open-edition-collapsed"
+          onClick={() => setCheckinOpen(true)}
+          aria-label="Expand check-in"
+        >
+          <span className="open-edition-collapsed-lead">
+            {shownIntention || "Today’s lead"}
+          </span>
+          {collapsedSummary ? (
+            <span className="open-edition-collapsed-meta">
+              {collapsedSummary}
+            </span>
+          ) : null}
+          <span className="open-edition-collapsed-edit">Edit</span>
+        </button>
+      )}
+
+      <div
+        className={`open-edition-paper${
+          morningDone && !checkinOpen
+            ? " open-edition-paper-live"
+            : " open-edition-paper-wait"
+        }`}
+      >
+        {morningDone && shownIntention && !checkinOpen ? (
+          <section className="open-edition-story open-edition-story-lead">
+            <p className="open-edition-kicker">Today&apos;s lead</p>
+            <h2 className="open-edition-commit">{shownIntention}</h2>
+          </section>
+        ) : null}
+
+        <div className="open-edition-story open-edition-tasks-wrap">
+          <BriefingTasks
+            tasks={expandedTasks}
+            kicker="Start the day"
+            linkHref="/items"
+            linkLabel="Tasks →"
+            hideWhenEmpty={false}
+            emptyLabel="Nothing queued to start — add one on Tasks."
+          />
         </div>
 
-        {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
+        <section
+          className="open-edition-story"
+          id="calendar"
+          aria-live="polite"
+          aria-label="Calendar"
+        >
+          <div className="open-edition-sec-head">
+            <p className="open-edition-kicker">Calendar</p>
+            <Link className="open-edition-jump" href="/">
+              Home →
+            </Link>
+          </div>
+          {briefingLoading && events.length === 0 ? (
+            <p className="muted tiny">Pulling calendar…</p>
+          ) : (
+            <>
+              <p className="open-edition-cal-lead">
+                {briefing.calendarStory.lead}
+              </p>
+              <PaperTimetable
+                rows={briefing.calendarStory.rows}
+                onRemove={removeCalendarEvent}
+                removingId={removingEventId}
+              />
+              {briefing.calendarStory.rows.length === 0 ? (
+                <p className="muted tiny">No timed events on the books.</p>
+              ) : null}
+            </>
+          )}
+        </section>
+
+        <div className="open-edition-pair">
+          <div className="open-edition-story open-edition-wx-wrap">
+            <WeatherExpanded
+              mode="today"
+              locationLabel={weatherLocation}
+              days={weatherDays}
+              focusDate={today}
+              loading={briefingLoading}
+              showRadar
+            />
+          </div>
+          <section
+            className="open-edition-story"
+            id="workout"
+            aria-label="Workout"
+          >
+            <div className="open-edition-sec-head">
+              <p className="open-edition-kicker">Workout</p>
+              <Link className="open-edition-jump" href="/workouts">
+                Log →
+              </Link>
+            </div>
+            <p className="open-edition-wo-status">
+              {workoutGaps.daysSinceAny === 0
+                ? "Moved today"
+                : workoutGaps.daysSinceAny == null
+                  ? "No session yet"
+                  : `${workoutGaps.daysSinceAny}d since last`}
+            </p>
+            <p className="open-edition-wo-hint">{workoutGaps.anyLabel}</p>
+          </section>
+        </div>
+      </div>
+
+      {morningDone && !checkinOpen ? (
         <PrimaryButton onClick={() => router.push("/")}>
           Into the day
         </PrimaryButton>
-      </main>
-    );
-  }
-
-  return (
-    <main className="stack fade-in open-river open-river-compose">
-      <header className="open-river-mast">
-        <p className="open-river-flag">{editionDate} · Open</p>
-        <h1 className="open-river-title">Morning</h1>
-        <p className="muted open-river-note">Check in, then your day.</p>
-      </header>
-
-      <section className="panel open-river-panel">
-        <p className="eyebrow">Sleep</p>
-        <TapScale
-          label="Hours slept"
-          value={sleepHours}
-          onChange={setSleepHours}
-          min={4}
-          max={10}
-          step={0.5}
-        />
-        <TapScale
-          label="Sleep quality"
-          value={sleepQuality}
-          onChange={setSleepQuality}
-        />
-      </section>
-
-      <section className="panel open-river-panel">
-        <p className="eyebrow">Current state</p>
-        <TapScale label="Mood" value={mood} onChange={setMood} />
-        <TapScale label="Energy" value={energy} onChange={setEnergy} />
-        <TapScale label="Stress" value={stress} onChange={setStress} />
-      </section>
-
-      <section className="panel open-river-panel">
-        <label className="field">
-          <span className="field-label">
-            What&apos;s the one thing you want to do well today?
-          </span>
-          <input
-            type="text"
-            value={intention}
-            onChange={(e) => setIntention(e.target.value)}
-            placeholder="One short line"
-          />
-        </label>
-      </section>
-
-      {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-      <PrimaryButton
-        onClick={submit}
-        disabled={busy || !intention.trim() || !scalesReady}
-      >
-        {busy ? "Saving…" : "Continue"}
-      </PrimaryButton>
-      <SecondaryButton onClick={() => router.push("/")}>Cancel</SecondaryButton>
+      ) : null}
     </main>
   );
 }

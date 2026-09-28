@@ -237,7 +237,7 @@ function ConditionsChart({
   const [customStart, setCustomStart] = useState(journeyStart);
   const [customEnd, setCustomEnd] = useState(today);
   const [active, setActive] = useState<Record<ConditionMetric, boolean>>({
-    sleepHours: true,
+    sleepHours: false,
     sleepQuality: true,
     mood: true,
     energy: true,
@@ -344,7 +344,7 @@ function ConditionsChart({
         rangeStart={range.start}
         rangeEnd={range.end}
         emptyMessage="Trends appear as you log mornings."
-        footer="Sleep, quality, mood, energy, stress (1–10). Tap to show or hide."
+        footer="Quality, mood, energy, stress (1–10). Tap to show or hide."
       />
     </div>
   );

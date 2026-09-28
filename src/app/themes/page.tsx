@@ -1,11 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  featuredThemes,
-  THEMES,
-  type ThemeId,
-} from "@/lib/themes";
+import { earthThemes, THEMES, type ThemeId } from "@/lib/themes";
 import { useTheme } from "@/components/ThemeProvider";
 
 type RoleKey = "bg" | "accent" | "accent2" | "good" | "text";
@@ -19,75 +15,75 @@ const PALETTE_ROLES: { key: RoleKey; label: string }[] = [
 ];
 
 const ROLE_COLORS: Partial<Record<ThemeId, Record<RoleKey, string>>> = {
-  "signal-ink": {
-    bg: "#f4f6f8",
-    accent: "#00b3c7",
-    accent2: "#1ac4d6",
-    good: "#12a37a",
-    text: "#0b1220",
+  "bone-graphite": {
+    bg: "#f3f0ea",
+    accent: "#3a3a38",
+    accent2: "#5c5a56",
+    good: "#6a7d68",
+    text: "#3a3a38",
   },
-  "chartreuse-cut": {
-    bg: "#f7f5ef",
-    accent: "#c6e000",
-    accent2: "#d4ee3a",
-    good: "#3d9a5c",
-    text: "#141414",
+  "river-stone": {
+    bg: "#eceee9",
+    accent: "#5c6560",
+    accent2: "#7a8480",
+    good: "#5f7d6a",
+    text: "#3d4540",
   },
-  "nordic-cobalt": {
-    bg: "#eef1f4",
-    accent: "#1e3a8a",
-    accent2: "#2563eb",
-    good: "#0d9488",
-    text: "#1e293b",
+  "wheat-umber": {
+    bg: "#f2eadc",
+    accent: "#6b4f3a",
+    accent2: "#8a6a4e",
+    good: "#6a7d58",
+    text: "#3a2e24",
   },
-  "olive-archive": {
-    bg: "#f3f0e7",
-    accent: "#4a5240",
-    accent2: "#6b7460",
-    good: "#5a8a62",
-    text: "#1f1f1c",
+  "moss-linen": {
+    bg: "#f1eee6",
+    accent: "#5e6b55",
+    accent2: "#7a8770",
+    good: "#5a7a5e",
+    text: "#2e322c",
   },
-  "slate-coral": {
-    bg: "#e9eef2",
-    accent: "#ff6b5a",
-    accent2: "#ff8576",
-    good: "#2f9e7a",
-    text: "#1e293b",
+  "taupe-ink": {
+    bg: "#ebe6df",
+    accent: "#2c2926",
+    accent2: "#5a524c",
+    good: "#6a7a62",
+    text: "#2c2926",
   },
-  "mint-ledger": {
-    bg: "#111418",
-    accent: "#3dd6c6",
-    accent2: "#5ee0d2",
-    good: "#4ade80",
-    text: "#e8eef4",
+  "charcoal-oak": {
+    bg: "#1a1c1b",
+    accent: "#c4a574",
+    accent2: "#d4b888",
+    good: "#7a9a78",
+    text: "#e8e4dc",
   },
-  "sandstone-studio": {
-    bg: "#ebe4d8",
-    accent: "#0f766e",
-    accent2: "#14b8a6",
-    good: "#2f8f6a",
-    text: "#1c1c1c",
+  "espresso-night": {
+    bg: "#14110f",
+    accent: "#d8cfc3",
+    accent2: "#e4dcd2",
+    good: "#8a9e7a",
+    text: "#e8e0d6",
   },
-  "midnight-signal": {
-    bg: "#070b14",
-    accent: "#b8f000",
-    accent2: "#c8f83a",
-    good: "#5ee0a0",
-    text: "#e8eef8",
+  "slate-umber": {
+    bg: "#171a1c",
+    accent: "#a67c52",
+    accent2: "#b89068",
+    good: "#6a9a80",
+    text: "#e4e8ec",
   },
-  "porcelain-pine": {
-    bg: "#fafafa",
-    accent: "#1b4332",
-    accent2: "#2d6a4f",
-    good: "#40916c",
-    text: "#1b4332",
+  "forest-dusk": {
+    bg: "#121614",
+    accent: "#c5b896",
+    accent2: "#d4c8a8",
+    good: "#7a9e7a",
+    text: "#e4e0d4",
   },
-  "copper-fog": {
-    bg: "#e8eaed",
-    accent: "#b87333",
-    accent2: "#c98a4a",
-    good: "#4a9a78",
-    text: "#2a2e35",
+  "ink-sienna": {
+    bg: "#101010",
+    accent: "#b07a55",
+    accent2: "#c4906a",
+    good: "#7a9a78",
+    text: "#e8e4e0",
   },
 };
 
@@ -156,7 +152,9 @@ function PaletteCard({
       <div className="palette-card-head">
         <div>
           {typeof index === "number" ? (
-            <span className="palette-index">{String(index + 1).padStart(2, "0")}</span>
+            <span className="palette-index">
+              {String(index + 1).padStart(2, "0")}
+            </span>
           ) : null}
           <strong>{label}</strong>
           <p>{description}</p>
@@ -186,9 +184,49 @@ function PaletteCard({
   );
 }
 
+function PaletteSection({
+  title,
+  blurb,
+  options,
+  theme,
+  setTheme,
+  startIndex = 0,
+}: {
+  title: string;
+  blurb: string;
+  options: ReturnType<typeof earthThemes>;
+  theme: ThemeId;
+  setTheme: (id: ThemeId) => void;
+  startIndex?: number;
+}) {
+  return (
+    <section className="themes-board-section">
+      <h2>{title}</h2>
+      <p className="muted themes-board-core">{blurb}</p>
+      <div className="palette-grid">
+        {options.map((option, index) => (
+          <PaletteCard
+            key={option.id}
+            id={option.id}
+            label={option.label}
+            description={option.description}
+            layoutHint={option.layoutHint}
+            layout={option.layout}
+            selected={theme === option.id}
+            onSelect={() => setTheme(option.id)}
+            index={startIndex + index}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function ThemesPage() {
   const { theme, setTheme } = useTheme();
-  const options = featuredThemes();
+  const earth = earthThemes();
+  const earthLight = earth.slice(0, 5);
+  const earthDark = earth.slice(5);
 
   return (
     <main className="page themes-board">
@@ -196,8 +234,8 @@ export default function ThemesPage() {
         <p className="eyebrow">Appearance</p>
         <h1>Color palettes</h1>
         <p className="muted">
-          Ten modern directions — tap any card to restyle the whole OS live.
-          Same set as Settings → Appearance.
+          Ten earth &amp; neutral directions — five light, five dark. Tap to
+          restyle live. Same set as Settings → Appearance.
         </p>
         <div className="themes-board-links">
           <Link href="/" className="themes-board-link">
@@ -211,23 +249,22 @@ export default function ThemesPage() {
 
       <LivePreview />
 
-      <section className="themes-board-section">
-        <div className="palette-grid">
-          {options.map((option, index) => (
-            <PaletteCard
-              key={option.id}
-              id={option.id}
-              label={option.label}
-              description={option.description}
-              layoutHint={option.layoutHint}
-              layout={option.layout}
-              selected={theme === option.id}
-              onSelect={() => setTheme(option.id)}
-              index={index}
-            />
-          ))}
-        </div>
-      </section>
+      <PaletteSection
+        title="Light"
+        blurb="Bone, stone, wheat, moss, taupe — soft day grounds."
+        options={earthLight}
+        theme={theme}
+        setTheme={setTheme}
+      />
+
+      <PaletteSection
+        title="Dark"
+        blurb="Charcoal, espresso, slate, forest, ink — dark grounds, quiet heat."
+        options={earthDark}
+        theme={theme}
+        setTheme={setTheme}
+        startIndex={5}
+      />
     </main>
   );
 }

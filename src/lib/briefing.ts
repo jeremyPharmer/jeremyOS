@@ -161,11 +161,6 @@ function avg(nums: number[]): number | null {
   return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
 
-function hoursLabel(n: number): string {
-  const rounded = Math.round(n * 2) / 2;
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-}
-
 function collectMetric(
   points: TrendPoint[],
   key: keyof Omit<TrendPoint, "date">,
@@ -277,36 +272,17 @@ export function sevenDayTrendInsight(
 
   const lines: string[] = [];
 
-  if (todaySleepHours != null || todaySleepQuality != null) {
-    const bits: string[] = [];
-    if (todaySleepHours != null) {
-      const cmp = comparePhrase(sleepHoursVsLastWeek, sleepHoursAvg, {
-        formatWeek: (n) => `${hoursLabel(n)}h`,
-      });
-      bits.push(
-        cmp
-          ? `${hoursLabel(todaySleepHours)}h sleep — ${cmp}`
-          : `${hoursLabel(todaySleepHours)}h sleep today`,
-      );
-    }
-    if (todaySleepQuality != null) {
-      const cmp = comparePhrase(sleepQualityVsLastWeek, sleepQualityAvg);
-      bits.push(
-        cmp
-          ? `quality ${todaySleepQuality} — ${cmp}`
-          : `quality ${todaySleepQuality} today`,
-      );
-    }
-    lines.push(`Sleep today: ${bits.join("; ")}.`);
-  } else if (sleepHoursAvg != null || sleepQualityAvg != null) {
-    const bits: string[] = [];
-    if (sleepHoursAvg != null) {
-      bits.push(`${hoursLabel(sleepHoursAvg)}h sleep avg`);
-    }
-    if (sleepQualityAvg != null) {
-      bits.push(`quality ${sleepQualityAvg.toFixed(1)}`);
-    }
-    lines.push(`Sleep last week: ${bits.join("; ")}.`);
+  if (todaySleepQuality != null) {
+    const cmp = comparePhrase(sleepQualityVsLastWeek, sleepQualityAvg);
+    lines.push(
+      cmp
+        ? `Sleep quality today ${todaySleepQuality} — ${cmp}.`
+        : `Sleep quality today ${todaySleepQuality}.`,
+    );
+  } else if (sleepQualityAvg != null) {
+    lines.push(
+      `Sleep quality averaging ${sleepQualityAvg.toFixed(1)} over the last week.`,
+    );
   }
 
   if (todayMood != null) {
