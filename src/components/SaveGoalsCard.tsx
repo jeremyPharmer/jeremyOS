@@ -225,11 +225,13 @@ function DailyLedger({
   goals,
   busy,
   onApply,
+  onUndoApply,
 }: {
   today: string;
   goals: SaveGoal[];
   busy?: boolean;
   onApply?: (opts?: { drawFromGoalId?: string }) => void;
+  onUndoApply?: () => void;
 }) {
   const { state } = useApp();
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -288,28 +290,35 @@ function DailyLedger({
           </div>
         </div>
       ) : null}
-      {onApply ? (
+      {onApply || (applied && onUndoApply) ? (
         <div className="save-goal-ledger-apply">
-          <PrimaryButton
-            onClick={() =>
-              onApply(
-                leftShown < 0
-                  ? {
-                      drawFromGoalId:
-                        drawFromGoalId ||
-                        (goals.length === 1 ? goals[0].id : undefined),
-                    }
-                  : undefined,
-              )
-            }
-            disabled={busy || !canApply}
-          >
-            {busy
-              ? "Saving…"
-              : applied
-                ? "Re-apply totals"
-                : "Apply totals"}
-          </PrimaryButton>
+          {onApply ? (
+            <PrimaryButton
+              onClick={() =>
+                onApply(
+                  leftShown < 0
+                    ? {
+                        drawFromGoalId:
+                          drawFromGoalId ||
+                          (goals.length === 1 ? goals[0].id : undefined),
+                      }
+                    : undefined,
+                )
+              }
+              disabled={busy || !canApply}
+            >
+              {busy
+                ? "Saving…"
+                : applied
+                  ? "Re-apply totals"
+                  : "Apply totals"}
+            </PrimaryButton>
+          ) : null}
+          {applied && onUndoApply ? (
+            <SecondaryButton onClick={onUndoApply} disabled={busy}>
+              Undo apply
+            </SecondaryButton>
+          ) : null}
         </div>
       ) : null}
       {history.length > 0 ? (
@@ -401,19 +410,14 @@ function GoalProgressRow({
   goal,
   today,
   onEdit,
-  onDelete,
   onRemoveAdjust,
   busy,
-  hideDelete,
 }: {
   goal: SaveGoal;
   today: string;
   onEdit: (goal: SaveGoal) => void;
-  onDelete: (goal: SaveGoal) => void;
   onRemoveAdjust: (id: string) => void;
   busy: boolean;
-  /** Hide Delete while an edit form is open */
-  hideDelete?: boolean;
 }) {
   const { state } = useApp();
   const toGo = amountToGo(goal);
@@ -476,16 +480,6 @@ function GoalProgressRow({
         >
           Edit
         </button>
-        {!hideDelete ? (
-          <button
-            type="button"
-            className="save-goal-add-link"
-            disabled={busy}
-            onClick={() => onDelete(goal)}
-          >
-            Delete
-          </button>
-        ) : null}
       </div>
       <GoalAdjustmentLog
         goalId={goal.id}
@@ -1092,6 +1086,7 @@ function SaveGoalsDetail() {
         reallocateToGoalId: reallocateTo || null,
       });
       setDeleting(null);
+      setEditing(null);
       setReallocateTo("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not delete");
@@ -1123,6 +1118,21 @@ function SaveGoalsDetail() {
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not apply");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function undoApply() {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "undoApply",
+        date: today,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not undo apply");
     } finally {
       setBusy(false);
     }
@@ -1183,6 +1193,7 @@ function SaveGoalsDetail() {
           goals={goals}
           busy={busy}
           onApply={(opts) => void applyTotals(opts)}
+          onUndoApply={() => void undoApply()}
         />
       ) : null}
 
@@ -1192,7 +1203,6 @@ function SaveGoalsDetail() {
             goal={g}
             today={today}
             busy={busy}
-            hideDelete={Boolean(editing)}
             onRemoveAdjust={(id) => void removeAdjust(id)}
             onEdit={(goal) => {
               setEditing(goal);
@@ -1200,16 +1210,11 @@ function SaveGoalsDetail() {
               setEditTarget(String(goal.targetAmount));
               setEditSaved(String(floorDollar(goal.savedAmount)));
               setDeleting(null);
-              setError("");
-            }}
-            onDelete={(goal) => {
-              setDeleting(goal);
               setReallocateTo("");
-              setEditing(null);
               setError("");
             }}
           />
-          {editing?.id === g.id ? (
+          {editing?.id === g.id && !deleting ? (
             <div className="save-goal-create" style={{ marginTop: 8 }}>
               <p className="eyebrow">Edit</p>
               <label className="field">
@@ -1257,6 +1262,73 @@ function SaveGoalsDetail() {
                   Cancel
                 </SecondaryButton>
               </div>
+              <button
+                type="button"
+                className="save-goal-add-link"
+                style={{ marginTop: 10 }}
+                disabled={busy}
+                onClick={() => {
+                  setDeleting(g);
+                  setReallocateTo("");
+                  setError("");
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          ) : null}
+          {deleting?.id === g.id ? (
+            <div className="save-goal-create" style={{ marginTop: 8 }}>
+              <p className="eyebrow">Delete {deleting.name}?</p>
+              {deleting.savedAmount !== 0 && othersForDelete.length > 0 ? (
+                <>
+                  <p className="tiny" style={{ margin: 0 }}>
+                    {formatMoney(deleting.savedAmount)} saved — move it?
+                  </p>
+                  <div className="chip-row">
+                    <button
+                      type="button"
+                      className={`chip${reallocateTo === "" ? " selected" : ""}`}
+                      onClick={() => setReallocateTo("")}
+                    >
+                      Don’t move
+                    </button>
+                    {othersForDelete.map((other) => (
+                      <button
+                        key={other.id}
+                        type="button"
+                        className={`chip${reallocateTo === other.id ? " selected" : ""}`}
+                        onClick={() => setReallocateTo(other.id)}
+                      >
+                        → {other.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : deleting.savedAmount !== 0 ? (
+                <p className="tiny" style={{ margin: 0 }}>
+                  {formatMoney(deleting.savedAmount)} stays archived with this
+                  goal.
+                </p>
+              ) : null}
+              <div className="save-goal-create-actions">
+                <PrimaryButton
+                  onClick={() => void confirmDelete()}
+                  disabled={busy}
+                >
+                  {busy ? "Deleting…" : "Delete"}
+                </PrimaryButton>
+                <SecondaryButton
+                  onClick={() => {
+                    setDeleting(null);
+                    setReallocateTo("");
+                    setError("");
+                  }}
+                  disabled={busy}
+                >
+                  Cancel
+                </SecondaryButton>
+              </div>
             </div>
           ) : null}
         </div>
@@ -1266,57 +1338,6 @@ function SaveGoalsDetail() {
         <p className="tiny" style={{ color: "var(--danger)" }}>
           {error}
         </p>
-      ) : null}
-
-      {deleting ? (
-        <div className="save-goal-create">
-          <p className="eyebrow">Delete {deleting.name}?</p>
-          {deleting.savedAmount !== 0 && othersForDelete.length > 0 ? (
-            <>
-              <p className="tiny" style={{ margin: 0 }}>
-                {formatMoney(deleting.savedAmount)} saved — move it?
-              </p>
-              <div className="chip-row">
-                <button
-                  type="button"
-                  className={`chip${reallocateTo === "" ? " selected" : ""}`}
-                  onClick={() => setReallocateTo("")}
-                >
-                  Don’t move
-                </button>
-                {othersForDelete.map((g) => (
-                  <button
-                    key={g.id}
-                    type="button"
-                    className={`chip${reallocateTo === g.id ? " selected" : ""}`}
-                    onClick={() => setReallocateTo(g.id)}
-                  >
-                    → {g.name}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : deleting.savedAmount !== 0 ? (
-            <p className="tiny" style={{ margin: 0 }}>
-              {formatMoney(deleting.savedAmount)} stays archived with this goal.
-            </p>
-          ) : null}
-          <div className="save-goal-create-actions">
-            <PrimaryButton onClick={() => void confirmDelete()} disabled={busy}>
-              {busy ? "Deleting…" : "Delete"}
-            </PrimaryButton>
-            <SecondaryButton
-              onClick={() => {
-                setDeleting(null);
-                setReallocateTo("");
-                setError("");
-              }}
-              disabled={busy}
-            >
-              Cancel
-            </SecondaryButton>
-          </div>
-        </div>
       ) : null}
 
       {adjustOpen ? (

@@ -630,6 +630,32 @@ export function applySaveGoalDayTotals(
   });
 }
 
+/** Remove today’s close so leftover rolls again and goal saves reverse. */
+export function undoApplySaveGoalDayTotals(
+  state: RebuildState,
+  date: string,
+): RebuildState {
+  const d = String(date ?? "").trim();
+  if (!DATE_RE.test(d)) {
+    throw Object.assign(new Error("date required"), { status: 400 });
+  }
+  const days = state.saveGoalDays ?? [];
+  const close = days.find(
+    (row) => row.date === d && (row.kind ?? "close") === "close",
+  );
+  if (!close) {
+    throw Object.assign(new Error("Nothing to undo for this day"), {
+      status: 404,
+    });
+  }
+  return normalizeSaveGoals({
+    ...state,
+    saveGoalDays: days.filter(
+      (row) => !(row.date === d && (row.kind ?? "close") === "close"),
+    ),
+  });
+}
+
 export function createSaveGoal(
   state: RebuildState,
   input: {

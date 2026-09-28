@@ -13,6 +13,7 @@ import {
   setInboundPercents,
   setSaveGoalSavedAmount,
   setSoleDailyTarget,
+  undoApplySaveGoalDayTotals,
   updateSaveGoal,
   updateSaveGoalSettings,
 } from "@/lib/save-goals";
@@ -190,6 +191,10 @@ export async function POST(req: Request) {
               ? String(body.drawFromGoalId)
               : undefined,
         });
+      }
+
+      if (action === "undoApply") {
+        return undoApplySaveGoalDayTotals(prev, String(body.date ?? today));
       }
 
       const err = new Error(`Unknown action: ${action}`);

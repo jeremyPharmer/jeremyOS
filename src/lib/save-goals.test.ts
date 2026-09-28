@@ -11,6 +11,7 @@ import {
   applySaveGoalDayTotals,
   setSaveGoalSavedAmount,
   deleteSaveGoal,
+  undoApplySaveGoalDayTotals,
   ensureElapsedSaveGoalDays,
   ensureSaveGoalDay,
   inboundPercent,
@@ -695,6 +696,32 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     expect(close.spendTotal).toBe(5);
     expect(close.leftover).toBe(31);
     expect(state.saveGoals![0].savedAmount).toBe(31);
+  });
+
+  it("undoes apply so leftover rolls and saved amounts reverse", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = applySaveGoalDayTotals(state, { date: "2026-04-01" });
+    expect(state.saveGoals![0].savedAmount).toBe(16);
+    expect(
+      state.saveGoalDays!.some(
+        (d) => d.date === "2026-04-01" && (d.kind ?? "close") === "close",
+      ),
+    ).toBe(true);
+
+    state = undoApplySaveGoalDayTotals(state, "2026-04-01");
+    expect(state.saveGoals![0].savedAmount).toBe(0);
+    expect(
+      state.saveGoalDays!.some(
+        (d) => d.date === "2026-04-01" && (d.kind ?? "close") === "close",
+      ),
+    ).toBe(false);
+    expect(leftoverBeforeApply(state, "2026-04-01").left).toBe(16);
   });
 });
 
