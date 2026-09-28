@@ -172,6 +172,8 @@ export async function POST(req: Request) {
           amount: Number(body.amount),
           note: body.note !== undefined ? String(body.note) : undefined,
           kind: body.kind === "add" ? "add" : "spend",
+          category:
+            body.category !== undefined ? String(body.category) : undefined,
         });
       }
 

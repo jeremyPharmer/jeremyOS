@@ -20,9 +20,15 @@ import {
   normalizeSaveGoalSettings,
   progressRatio,
   projectSaveGoalTargetDate,
+  SAVE_GOAL_SPEND_CATEGORIES,
   saveGoalCloseForDate,
+  saveGoalSpendCategoryLabel,
 } from "@/lib/save-goals";
-import type { SaveGoal, SaveGoalDay } from "@/lib/types";
+import type {
+  SaveGoal,
+  SaveGoalDay,
+  SaveGoalSpendCategory,
+} from "@/lib/types";
 
 const NAME_PRESETS = ["Trip", "Gift", "General saving"] as const;
 const PCT_STEP = 1;
@@ -659,6 +665,8 @@ function HomeSaveGoalsGlance() {
   const { state, today, post } = useApp();
   const [entryKind, setEntryKind] = useState<"add" | "spend" | null>(null);
   const [entryAmount, setEntryAmount] = useState("");
+  const [spendCategory, setSpendCategory] =
+    useState<SaveGoalSpendCategory | "">("");
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -693,6 +701,10 @@ function HomeSaveGoalsGlance() {
       setError("Enter an amount greater than 0.");
       return;
     }
+    if (entryKind === "spend" && !spendCategory) {
+      setError("Pick a category.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -701,8 +713,10 @@ function HomeSaveGoalsGlance() {
         date: today,
         amount,
         kind: entryKind,
+        category: entryKind === "spend" ? spendCategory : undefined,
       });
       setEntryAmount("");
+      setSpendCategory("");
       setEntryKind(null);
     } catch (e) {
       setError(
@@ -779,6 +793,26 @@ function HomeSaveGoalsGlance() {
                   autoFocus
                 />
               </label>
+              {entryKind === "spend" ? (
+                <div className="save-goal-spend-category">
+                  <p className="field-label" style={{ marginBottom: 6 }}>
+                    Category
+                  </p>
+                  <div className="chip-row">
+                    {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className={`chip${spendCategory === c.id ? " selected" : ""}`}
+                        onClick={() => setSpendCategory(c.id)}
+                        disabled={busy}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {error ? (
                 <p className="tiny" style={{ color: "var(--danger)" }}>
                   {error}
@@ -787,7 +821,9 @@ function HomeSaveGoalsGlance() {
               <div className="save-goal-create-actions">
                 <PrimaryButton
                   onClick={() => void submitEntry()}
-                  disabled={busy}
+                  disabled={
+                    busy || (entryKind === "spend" && !spendCategory)
+                  }
                 >
                   {busy
                     ? "Saving…"
@@ -798,6 +834,7 @@ function HomeSaveGoalsGlance() {
                 <SecondaryButton
                   onClick={() => {
                     setEntryKind(null);
+                    setSpendCategory("");
                     setError("");
                   }}
                   disabled={busy}
@@ -812,6 +849,7 @@ function HomeSaveGoalsGlance() {
                 onClick={() => {
                   setError("");
                   setEntryAmount("");
+                  setSpendCategory("");
                   setEntryKind("add");
                 }}
                 disabled={busy}
@@ -822,6 +860,7 @@ function HomeSaveGoalsGlance() {
                 onClick={() => {
                   setError("");
                   setEntryAmount("");
+                  setSpendCategory("");
                   setEntryKind("spend");
                 }}
                 disabled={busy}
@@ -871,7 +910,11 @@ function HomeSaveGoalsGlance() {
                     const isAdd = e.kind === "add";
                     return (
                       <div key={e.id} className="save-goal-ledger-row spend">
-                        <span>{isAdd ? "Add" : "Spend"}</span>
+                        <span>
+                          {isAdd
+                            ? "Add"
+                            : saveGoalSpendCategoryLabel(e.category)}
+                        </span>
                         <span className="save-goal-ledger-spend-val">
                           {isAdd ? "+" : "−"}
                           {formatMoney(e.amount)}

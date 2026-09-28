@@ -508,6 +508,13 @@ export type SaveGoalDay = {
   source?: "manual" | "auto";
 };
 
+/** Required category when subtracting from the day total. */
+export type SaveGoalSpendCategory =
+  | "food"
+  | "books_movies"
+  | "clothes"
+  | "maintenance";
+
 /** Mid-day ledger line on the Home saver tile (before Apply totals). */
 export type SaveGoalSpendEntry = {
   id: string;
@@ -516,6 +523,8 @@ export type SaveGoalSpendEntry = {
   amount: number;
   /** spend = subtract from day total; add = manual top-up */
   kind?: "spend" | "add";
+  /** Required for spend lines */
+  category?: SaveGoalSpendCategory;
   note?: string;
   at?: string;
 };

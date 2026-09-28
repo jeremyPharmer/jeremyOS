@@ -5,12 +5,42 @@ import type {
   SaveGoalAllocation,
   SaveGoalDay,
   SaveGoalSettings,
+  SaveGoalSpendCategory,
   SaveGoalSpendEntry,
 } from "./types";
 
 export const DEFAULT_MONTHLY_INCOME = 500;
 export const DEFAULT_INCOME_DAY = 1;
 export const HOME_SAVE_GOAL_CARD_LIMIT = 3;
+
+export const SAVE_GOAL_SPEND_CATEGORIES: {
+  id: SaveGoalSpendCategory;
+  label: string;
+}[] = [
+  { id: "food", label: "Food" },
+  { id: "books_movies", label: "Books/movies" },
+  { id: "clothes", label: "Clothes" },
+  { id: "maintenance", label: "Maintenance" },
+];
+
+const SPEND_CATEGORY_IDS = new Set(
+  SAVE_GOAL_SPEND_CATEGORIES.map((c) => c.id),
+);
+
+export function isSaveGoalSpendCategory(
+  value: unknown,
+): value is SaveGoalSpendCategory {
+  return typeof value === "string" && SPEND_CATEGORY_IDS.has(value as SaveGoalSpendCategory);
+}
+
+export function saveGoalSpendCategoryLabel(
+  category: SaveGoalSpendCategory | undefined,
+): string {
+  if (!category) return "Spend";
+  return (
+    SAVE_GOAL_SPEND_CATEGORIES.find((c) => c.id === category)?.label ?? "Spend"
+  );
+}
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -380,14 +410,21 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
 
   const spendEntries = (state.saveGoalSpendEntries ?? [])
     .filter((e) => e && DATE_RE.test(e.date) && e.id)
-    .map((e) => ({
-      id: String(e.id),
-      date: e.date,
-      amount: floorDollar(Math.max(0, Number(e.amount) || 0)),
-      kind: e.kind === "add" ? ("add" as const) : ("spend" as const),
-      note: e.note ? String(e.note).trim().slice(0, 80) : undefined,
-      at: e.at ? String(e.at) : undefined,
-    }))
+    .map((e) => {
+      const kind = e.kind === "add" ? ("add" as const) : ("spend" as const);
+      return {
+        id: String(e.id),
+        date: e.date,
+        amount: floorDollar(Math.max(0, Number(e.amount) || 0)),
+        kind,
+        category:
+          kind === "spend" && isSaveGoalSpendCategory(e.category)
+            ? e.category
+            : undefined,
+        note: e.note ? String(e.note).trim().slice(0, 80) : undefined,
+        at: e.at ? String(e.at) : undefined,
+      };
+    })
     .filter((e) => e.amount > 0)
     .sort((a, b) => {
       const byDate = a.date.localeCompare(b.date);
@@ -508,6 +545,7 @@ export function addSaveGoalSpend(
     amount: number;
     note?: string;
     kind?: "spend" | "add";
+    category?: SaveGoalSpendCategory | string;
   },
 ): RebuildState {
   if (!DATE_RE.test(input.date)) {
@@ -520,11 +558,22 @@ export function addSaveGoalSpend(
     });
   }
   const kind = input.kind === "add" ? "add" : "spend";
+  let category: SaveGoalSpendCategory | undefined;
+  if (kind === "spend") {
+    if (!isSaveGoalSpendCategory(input.category)) {
+      throw Object.assign(
+        new Error("Pick a category: food, books/movies, clothes, or maintenance"),
+        { status: 400 },
+      );
+    }
+    category = input.category;
+  }
   const entry: SaveGoalSpendEntry = {
     id: newId("sgs"),
     date: input.date,
     amount,
     kind,
+    category,
     note: input.note?.trim().slice(0, 80) || undefined,
     at: new Date().toISOString(),
   };

@@ -241,6 +241,7 @@ describe("recordSaveGoalDay", () => {
       date: "2026-04-01",
       amount: 40,
       kind: "spend",
+      category: "food",
     });
     // inbound 16 − 40 = −24; must pick
     expect(() =>
@@ -455,7 +456,7 @@ describe("leftoverBeforeApply roll-forward", () => {
       targetAmount: 500,
       createdOn: "2026-04-01",
     });
-    state = addSaveGoalSpend(state, { date: "2026-04-01", amount: 5 });
+    state = addSaveGoalSpend(state, { date: "2026-04-01", amount: 5, category: "food" });
     const d1 = leftoverBeforeApply(state, "2026-04-01");
     expect(d1.left).toBe(11);
     const d2 = leftoverBeforeApply(state, "2026-04-02");
@@ -584,8 +585,16 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       [gift().id]: 50,
     });
 
-    state = addSaveGoalSpend(state, { date: "2026-04-01", amount: 5 });
-    state = addSaveGoalSpend(state, { date: "2026-04-01", amount: 3 });
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 5,
+      category: "food",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 3,
+      category: "clothes",
+    });
     const before = leftoverBeforeApply(state, "2026-04-01");
     expect(before.inbound).toBe(16);
     expect(before.spend).toBe(8);
@@ -606,6 +615,29 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     expect(close.leftover).toBe(13);
   });
 
+  it("requires a category on subtract", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    expect(() =>
+      addSaveGoalSpend(state, {
+        date: "2026-04-01",
+        amount: 5,
+        kind: "spend",
+      }),
+    ).toThrow(/Pick a category/);
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 5,
+      kind: "spend",
+      category: "books_movies",
+    });
+    expect(state.saveGoalSpendEntries![0].category).toBe("books_movies");
+  });
+
   it("manual adds increase day total and leftover", () => {
     let state = emptyState();
     state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
@@ -624,6 +656,7 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       date: "2026-04-01",
       amount: 5,
       kind: "spend",
+      category: "maintenance",
     });
     const before = leftoverBeforeApply(state, "2026-04-01");
     expect(before.inbound).toBe(16);
