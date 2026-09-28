@@ -17,7 +17,7 @@ Last updated: 2026-09-28
 | 5 | RB-033 | Track over time (task adherence on Journey) | P0 | In Progress | S | TBD | v1 | [items/task-track-over-time-adherence.md](./items/task-track-over-time-adherence.md) |
 | 6 | RB-036 | Task analytics on Tasks page + motion polish | P0 | In Progress | S | TBD | v1 | [items/task-analytics-tasks-page-motion.md](./items/task-analytics-tasks-page-motion.md) |
 | 7 | RB-002 | Gmail inbox centralization | P0 | Ready | L | TBD | v1 | [items/email-integration.md](./items/email-integration.md) |
-| 8 | RB-038 | Close edition: match Open’s Daily Open format | P0 | In Progress | M | TBD | v1.x | [items/close-edition-open-parity.md](./items/close-edition-open-parity.md) |
+| 8 | RB-038 | Close edition: match Open’s Daily Open format | P0 | Done | M | TBD | v1.x | [items/close-edition-open-parity.md](./items/close-edition-open-parity.md) |
 | 9 | RB-032 | Daily briefing: Open / Close redesign | P0 | Done | L | TBD | v1.x | [items/daily-briefing-open-close-redesign.md](./items/daily-briefing-open-close-redesign.md) |
 | 10 | RB-027 | Redesigned morning day-start (check-in + briefing) | P0 | Done | M | TBD | v1 | [items/morning-day-start-briefing.md](./items/morning-day-start-briefing.md) |
 | 11 | RB-029 | Evening close success: day recap + world news | P0 | Done | M | TBD | v1 | [items/evening-close-recap-news.md](./items/evening-close-recap-news.md) |

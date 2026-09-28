@@ -5,7 +5,7 @@
 | ID | RB-038 |
 | Rank | 8 |
 | Priority | P0 |
-| Status | In Progress |
+| Status | Done |
 | Effort | M |
 | Target due | TBD |
 | Milestone | v1.x |
@@ -96,6 +96,7 @@ Morning **Open** shipped a clearer **“The Daily Open” / edition-box** newspa
 ## Notes
 
 - Intake **2026-09-28** founder ask: evening “close for the day” should match Open’s **Daily Open / edition box** newspaper style that shipped recently.
+- **Shipped 2026-09-28:** `/evening` remounted onto `open-edition` (mast, box, collapsed, wait/live paper); CTA **Close the paper**; evening content unchanged. Live on prod.
 - Why rank **8 / P0:** elevated morning/evening EA ritual; Close is visibly behind Open after edition-box ship. Sits after framing / todos / mid-flight task IP / Gmail Ready; ahead of Done ritual parents and journal polish so twin parity can ship without reopening RB-027/029/030/032 as active Now slots.
 - Effort **M:** shared shell remount + Close content remapped into edition stories — not a CSS-only restyle, not a new ritual.
 - Related: [RB-029](./evening-close-recap-news.md) (recap + news parent), [RB-032](./daily-briefing-open-close-redesign.md) (twin redesign Done).
