@@ -48,7 +48,7 @@ export function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-/** Whole dollars only — always round down (drop cents). */
+/** Floor to whole dollars — UI glance totals only; ledger keeps cents. */
 export function floorDollar(n: number): number {
   if (!Number.isFinite(n)) return 0;
   return Math.floor(n);
@@ -71,7 +71,7 @@ export function normalizeSaveGoalSettings(
   return {
     monthlyIncome:
       Number.isFinite(monthly) && monthly >= 0
-        ? floorDollar(monthly)
+        ? round2(monthly)
         : base.monthlyIncome,
     incomeDayOfMonth:
       Number.isFinite(day) && day >= 1 && day <= 28
@@ -88,7 +88,8 @@ export function daysInMonthForDate(date: string): number {
 
 /**
  * Equal share of monthly income for each calendar day in that month.
- * Floored to whole dollars — $500 / 31 → $16; $500 / 30 → $16.
+ * Backend keeps cents; UI may floor for display.
+ * $500 / 31 → $16.13; $500 / 30 → $16.67.
  */
 export function dailyIncomeRate(
   date: string,
@@ -96,7 +97,7 @@ export function dailyIncomeRate(
 ): number {
   const days = daysInMonthForDate(date);
   if (days <= 0) return 0;
-  return floorDollar(monthlyIncome / days);
+  return round2(monthlyIncome / days);
 }
 
 export function leftoverPool(
@@ -104,8 +105,8 @@ export function leftoverPool(
   spendTotal: number,
   lumpSum = 0,
 ): { leftover: number; pool: number } {
-  const leftover = floorDollar(dailyIncome - spendTotal);
-  const pool = floorDollar(leftover + lumpSum);
+  const leftover = round2(dailyIncome - spendTotal);
+  const pool = round2(leftover + lumpSum);
   return { leftover, pool };
 }
 
@@ -123,7 +124,7 @@ export function inboundPercent(
 }
 
 export function amountToGo(goal: Pick<SaveGoal, "targetAmount" | "savedAmount">): number {
-  return floorDollar(Math.max(0, goal.targetAmount - goal.savedAmount));
+  return round2(Math.max(0, goal.targetAmount - goal.savedAmount));
 }
 
 export function progressRatio(goal: Pick<SaveGoal, "targetAmount" | "savedAmount">): number {
@@ -276,7 +277,7 @@ export function mergeAllocations(
 ): SaveGoalAllocation[] {
   const map = new Map<string, number>();
   for (const a of rows) {
-    map.set(a.goalId, floorDollar((map.get(a.goalId) ?? 0) + a.amount));
+    map.set(a.goalId, round2((map.get(a.goalId) ?? 0) + a.amount));
   }
   return [...map.entries()]
     .filter(([, amount]) => amount !== 0)
@@ -301,15 +302,15 @@ export function splitPoolByWeight(
   const totalW = weights.reduce((a, b) => a + b, 0);
   if (totalW <= 0) return [];
 
-  const wholePool = floorDollar(pool);
+  const wholePool = round2(pool);
   const allocations: SaveGoalAllocation[] = [];
   let assigned = 0;
   for (let i = 0; i < recipients.length; i++) {
     const isLast = i === recipients.length - 1;
     const amount = isLast
-      ? floorDollar(wholePool - assigned)
-      : floorDollar((wholePool * weights[i]) / totalW);
-    assigned = floorDollar(assigned + amount);
+      ? round2(wholePool - assigned)
+      : round2((wholePool * weights[i]) / totalW);
+    assigned = round2(assigned + amount);
     allocations.push({ goalId: recipients[i].id, amount });
   }
   return allocations;
@@ -321,7 +322,7 @@ export function splitPoolToOne(
   goalId: string,
 ): SaveGoalAllocation[] {
   if (pool === 0) return [];
-  return [{ goalId, amount: floorDollar(pool) }];
+  return [{ goalId, amount: round2(pool) }];
 }
 
 /** Equal split across selected goal ids (custom one-time). */
@@ -347,7 +348,7 @@ export function savedAmountFromDays(
       if (a.goalId === goalId) sum += a.amount;
     }
   }
-  return floorDollar(sum);
+  return round2(sum);
 }
 
 export function recomputeSavedAmounts(
@@ -374,13 +375,13 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
     .filter((d) => d && DATE_RE.test(d.date))
     .map((d) => ({
       date: d.date,
-      dailyIncome: floorDollar(Number(d.dailyIncome) || 0),
-      spendTotal: floorDollar(Math.max(0, Number(d.spendTotal) || 0)),
-      leftover: floorDollar(Number(d.leftover) || 0),
-      lumpSum: floorDollar(Math.max(0, Number(d.lumpSum) || 0)),
+      dailyIncome: round2(Number(d.dailyIncome) || 0),
+      spendTotal: round2(Math.max(0, Number(d.spendTotal) || 0)),
+      leftover: round2(Number(d.leftover) || 0),
+      lumpSum: round2(Math.max(0, Number(d.lumpSum) || 0)),
       allocations: (d.allocations ?? []).map((a) => ({
         goalId: String(a.goalId),
-        amount: floorDollar(Number(a.amount) || 0),
+        amount: round2(Number(a.amount) || 0),
       })),
       kind: d.kind === "adjust" ? ("adjust" as const) : ("close" as const),
       id: d.id ? String(d.id) : d.kind === "adjust" ? newId("sga") : undefined,
@@ -393,8 +394,8 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
     (state.saveGoals ?? []).map((g) => ({
       id: String(g.id),
       name: String(g.name ?? "").trim() || "Save goal",
-      targetAmount: Math.max(1, floorDollar(Number(g.targetAmount) || 1)),
-      savedAmount: floorDollar(Number(g.savedAmount) || 0),
+      targetAmount: Math.max(0.01, round2(Number(g.targetAmount) || 0.01)),
+      savedAmount: round2(Number(g.savedAmount) || 0),
       createdOn: DATE_RE.test(g.createdOn) ? g.createdOn : days[0]?.date ?? "1970-01-01",
       status:
         g.status === "archived" || g.status === "reached" || g.status === "active"
@@ -415,7 +416,7 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
       return {
         id: String(e.id),
         date: e.date,
-        amount: floorDollar(Math.max(0, Number(e.amount) || 0)),
+        amount: round2(Math.max(0, Number(e.amount) || 0)),
         kind,
         category:
           kind === "spend" && isSaveGoalSpendCategory(e.category)
@@ -456,7 +457,7 @@ function entryKind(e: Pick<SaveGoalSpendEntry, "kind">): "spend" | "add" {
 
 /** Sum of subtract lines for a date. */
 export function spendTotalForDate(state: RebuildState, date: string): number {
-  return floorDollar(
+  return round2(
     listSaveGoalSpendEntries(state, date)
       .filter((e) => entryKind(e) === "spend")
       .reduce((s, e) => s + e.amount, 0),
@@ -465,7 +466,7 @@ export function spendTotalForDate(state: RebuildState, date: string): number {
 
 /** Sum of manual add lines for a date. */
 export function addTotalForDate(state: RebuildState, date: string): number {
-  return floorDollar(
+  return round2(
     listSaveGoalSpendEntries(state, date)
       .filter((e) => entryKind(e) === "add")
       .reduce((s, e) => s + e.amount, 0),
@@ -509,7 +510,7 @@ export function leftoverBeforeApply(
       inbound: base,
       adds,
       spend,
-      left: floorDollar(base + adds - spend),
+      left: round2(base + adds - spend),
     };
   }
 
@@ -524,10 +525,10 @@ export function leftoverBeforeApply(
   };
   for (const d of datesInRange(start, date)) {
     const base = dailyIncomeRate(d, settings.monthlyIncome);
-    const inbound = floorDollar(base + carry);
+    const inbound = round2(base + carry);
     const adds = addTotalForDate(state, d);
     const spend = spendTotalForDate(state, d);
-    const left = floorDollar(inbound + adds - spend);
+    const left = round2(inbound + adds - spend);
     if (d === date) {
       result = { base, carryIn: carry, inbound, adds, spend, left };
       break;
@@ -551,7 +552,7 @@ export function addSaveGoalSpend(
   if (!DATE_RE.test(input.date)) {
     throw Object.assign(new Error("date required"), { status: 400 });
   }
-  const amount = floorDollar(Number(input.amount));
+  const amount = round2(Number(input.amount));
   if (!Number.isFinite(amount) || amount <= 0) {
     throw Object.assign(new Error("amount must be greater than 0"), {
       status: 400,
@@ -641,7 +642,7 @@ export function createSaveGoal(
   },
 ): RebuildState {
   const name = input.name.trim().slice(0, 80);
-  const targetAmount = floorDollar(Number(input.targetAmount));
+  const targetAmount = round2(Number(input.targetAmount));
   if (!name) throw Object.assign(new Error("Name required"), { status: 400 });
   if (!Number.isFinite(targetAmount) || targetAmount <= 0) {
     throw Object.assign(new Error("Target must be greater than 0"), {
@@ -762,7 +763,7 @@ export function updateSaveGoal(
     }
     let targetAmount = g.targetAmount;
     if (input.targetAmount !== undefined) {
-      targetAmount = floorDollar(Number(input.targetAmount));
+      targetAmount = round2(Number(input.targetAmount));
       if (!Number.isFinite(targetAmount) || targetAmount <= 0) {
         throw Object.assign(new Error("Target must be greater than 0"), {
           status: 400,
@@ -793,12 +794,12 @@ export function setSaveGoalSavedAmount(
   if (!goal || goal.status === "archived") {
     throw Object.assign(new Error("Save goal not found"), { status: 404 });
   }
-  const desired = floorDollar(Number(input.savedAmount));
+  const desired = round2(Number(input.savedAmount));
   if (!Number.isFinite(desired)) {
     throw Object.assign(new Error("Saved amount invalid"), { status: 400 });
   }
   const current = savedAmountFromDays(id, state.saveGoalDays ?? []);
-  const delta = floorDollar(desired - current);
+  const delta = round2(desired - current);
   if (delta === 0) return state;
   return applySaveGoalAdjustment(state, {
     date: input.date,
@@ -815,7 +816,7 @@ export function updateSaveGoalSettings(
   const prev = normalizeSaveGoalSettings(state.saveGoalSettings);
   const monthlyIncome =
     input.monthlyIncome !== undefined
-      ? floorDollar(Number(input.monthlyIncome))
+      ? round2(Number(input.monthlyIncome))
       : prev.monthlyIncome;
   if (!Number.isFinite(monthlyIncome) || monthlyIncome < 0) {
     throw Object.assign(new Error("monthlyIncome must be ≥ 0"), { status: 400 });
@@ -912,7 +913,7 @@ function resolveCustomPoolSplit(
   if (input.allocations && input.allocations.length > 0) {
     const allocations = input.allocations.map((a) => ({
       goalId: String(a.goalId),
-      amount: floorDollar(Number(a.amount) || 0),
+      amount: round2(Number(a.amount) || 0),
     }));
     for (const a of allocations) {
       if (!activeIds.has(a.goalId)) {
@@ -921,8 +922,8 @@ function resolveCustomPoolSplit(
         });
       }
     }
-    const wholePool = floorDollar(pool);
-    const sum = floorDollar(allocations.reduce((s, a) => s + a.amount, 0));
+    const wholePool = round2(pool);
+    const sum = round2(allocations.reduce((s, a) => s + a.amount, 0));
     if (sum !== wholePool) {
       throw Object.assign(
         new Error(`Allocations must sum to $${wholePool}`),
@@ -963,26 +964,26 @@ export function recordSaveGoalDay(
   if (!DATE_RE.test(input.date)) {
     throw Object.assign(new Error("date required"), { status: 400 });
   }
-  const spendTotal = floorDollar(Number(input.spendTotal));
+  const spendTotal = round2(Number(input.spendTotal));
   if (!Number.isFinite(spendTotal) || spendTotal < 0) {
     throw Object.assign(new Error("spendTotal must be ≥ 0"), { status: 400 });
   }
-  const lumpSum = floorDollar(Math.max(0, Number(input.lumpSum) || 0));
+  const lumpSum = round2(Math.max(0, Number(input.lumpSum) || 0));
   if (!Number.isFinite(lumpSum)) {
     throw Object.assign(new Error("lumpSum invalid"), { status: 400 });
   }
 
   // Day total includes rolled leftover + manual adds
   const pool = leftoverBeforeApply(state, input.date);
-  const dailyIncome = floorDollar(pool.inbound + pool.adds);
-  const leftover = floorDollar(dailyIncome - spendTotal);
+  const dailyIncome = round2(pool.inbound + pool.adds);
+  const leftover = round2(dailyIncome - spendTotal);
   const goals = activeSaveGoals(state);
 
   let allocations: SaveGoalAllocation[] = [];
 
   // Legacy full-pool override
   if (input.allocations && input.allocations.length > 0) {
-    const pool = floorDollar(leftover + lumpSum);
+    const pool = round2(leftover + lumpSum);
     allocations = resolveCustomPoolSplit(pool, goals, {
       allocations: input.allocations,
     });
@@ -1080,7 +1081,7 @@ export function applySaveGoalAdjustment(
   if (!DATE_RE.test(input.date)) {
     throw Object.assign(new Error("date required"), { status: 400 });
   }
-  const amount = floorDollar(Number(input.amount));
+  const amount = round2(Number(input.amount));
   if (!Number.isFinite(amount) || amount === 0) {
     throw Object.assign(new Error("amount must be a non-zero number"), {
       status: 400,
@@ -1184,7 +1185,7 @@ export function listSaveGoalAdjustmentsForGoal(
   if (!id) return [];
   return listSaveGoalAdjustments(state)
     .map((d) => {
-      const goalAmount = floorDollar(
+      const goalAmount = round2(
         (d.allocations ?? [])
           .filter((a) => a.goalId === id)
           .reduce((s, a) => s + a.amount, 0),
@@ -1250,8 +1251,8 @@ export function deleteSaveGoal(
         leftover: 0,
         lumpSum: Math.max(0, amount),
         allocations: [
-          { goalId: id, amount: floorDollar(-amount) },
-          { goalId: reallocateTo, amount: floorDollar(amount) },
+          { goalId: id, amount: round2(-amount) },
+          { goalId: reallocateTo, amount: round2(amount) },
         ],
       };
       next = normalizeSaveGoals({
@@ -1276,7 +1277,7 @@ export function averageSpendLastDays(
     .slice(0, n);
   if (!prior.length) return null;
   const sum = prior.reduce((s, d) => s + d.spendTotal, 0);
-  return floorDollar(sum / prior.length);
+  return round2(sum / prior.length);
 }
 
 export type SaveGoalProjection = {
@@ -1294,7 +1295,7 @@ export function projectSaveGoalTargetDate(
   goal: SaveGoal,
   today: string,
 ): SaveGoalProjection {
-  const remaining = floorDollar(goal.targetAmount - goal.savedAmount);
+  const remaining = round2(goal.targetAmount - goal.savedAmount);
   if (remaining <= 0 || goal.status === "reached") {
     return {
       goalId: goal.id,
@@ -1311,7 +1312,7 @@ export function projectSaveGoalTargetDate(
   const dailyIncome = dailyIncomeRate(today, settings.monthlyIncome);
   const avgSpend = averageSpendLastDays(state.saveGoalDays ?? [], today, 7);
   const spendAssumption = avgSpend ?? 0;
-  const projectedPoolPerDay = floorDollar(dailyIncome - spendAssumption);
+  const projectedPoolPerDay = round2(dailyIncome - spendAssumption);
 
   if (projectedPoolPerDay <= 0) {
     return {
@@ -1326,7 +1327,7 @@ export function projectSaveGoalTargetDate(
   }
 
   const share = inboundPercent(goal) / 100;
-  const goalDaily = floorDollar(projectedPoolPerDay * share);
+  const goalDaily = round2(projectedPoolPerDay * share);
   if (goalDaily <= 0) {
     return {
       goalId: goal.id,
@@ -1359,11 +1360,17 @@ export function formatTargetDateLabel(date: string): string {
   });
 }
 
+/** Display helper — floors to whole dollars for glance totals. */
+export function formatMoneyDown(n: number): string {
+  return formatMoney(floorDollar(n));
+}
+
 export function formatMoney(n: number): string {
-  const whole = floorDollar(n);
-  const abs = Math.abs(whole);
+  const v = round2(n);
+  const abs = Math.abs(v);
   const formatted = abs.toLocaleString("en-US", {
-    maximumFractionDigits: 0,
+    minimumFractionDigits: abs % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
   });
-  return whole < 0 ? `-$${formatted}` : `$${formatted}`;
+  return v < 0 ? `-$${formatted}` : `$${formatted}`;
 }

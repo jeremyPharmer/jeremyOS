@@ -37,6 +37,7 @@ import type { OnThisDayEvent } from "@/lib/on-this-day";
 import {
   activeSaveGoals,
   formatMoney,
+  formatMoneyDown,
   leftoverBeforeApply,
   listSaveGoalSpendEntries,
   SAVE_GOAL_SPEND_CATEGORIES,
@@ -777,18 +778,18 @@ function EveningPageInner() {
           <div className="save-goal-glance-head" style={{ marginTop: 4 }}>
             <div>
               <p className="tiny muted" style={{ margin: 0 }}>
-                Day total {formatMoney(dayTotalShown)}
+                Day total {formatMoneyDown(dayTotalShown)}
                 {dayLedger.carryIn !== 0 ? (
                   <>
                     {" "}
                     · {dayLedger.carryIn > 0 ? "+" : ""}
-                    {formatMoney(dayLedger.carryIn)} rolled
+                    {formatMoneyDown(dayLedger.carryIn)} rolled
                   </>
                 ) : null}
               </p>
             </div>
             <p className="save-goal-inbound-figure" aria-label="Left today">
-              {formatMoney(dayLedger.left)}
+              {formatMoneyDown(dayLedger.left)}
             </p>
           </div>
 
@@ -800,12 +801,12 @@ function EveningPageInner() {
                 </span>
                 <input
                   type="number"
-                  inputMode="numeric"
-                  min={1}
-                  step="1"
+                  inputMode="decimal"
+                  min={0.01}
+                  step="0.01"
                   value={entryAmount}
                   onChange={(e) => setEntryAmount(e.target.value)}
-                  placeholder="5"
+                  placeholder="8.18"
                   autoFocus
                 />
               </label>

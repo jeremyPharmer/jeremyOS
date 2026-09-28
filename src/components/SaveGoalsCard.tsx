@@ -10,6 +10,7 @@ import {
   dailyIncomeRate,
   floorDollar,
   formatMoney,
+  formatMoneyDown,
   formatTargetDateLabel,
   inboundPercent,
   leftoverBeforeApply,
@@ -755,18 +756,18 @@ function HomeSaveGoalsGlance() {
         <div>
           <p className="home-card-kicker save-goal-glance-kicker">Save goals</p>
           <p className="tiny muted save-goal-day-total-label">
-            Day total {formatMoney(dayTotalShown)}
+            Day total {formatMoneyDown(dayTotalShown)}
             {day.carryIn !== 0 ? (
               <>
                 {" "}
                 · {day.carryIn > 0 ? "+" : ""}
-                {formatMoney(day.carryIn)} rolled
+                {formatMoneyDown(day.carryIn)} rolled
               </>
             ) : null}
           </p>
         </div>
         <p className="save-goal-inbound-figure" aria-label="Left today">
-          {formatMoney(day.left)}
+          {formatMoneyDown(day.left)}
         </p>
       </div>
 
@@ -784,12 +785,12 @@ function HomeSaveGoalsGlance() {
                 </span>
                 <input
                   type="number"
-                  inputMode="numeric"
-                  min={1}
-                  step="1"
+                  inputMode="decimal"
+                  min={0.01}
+                  step="0.01"
                   value={entryAmount}
                   onChange={(e) => setEntryAmount(e.target.value)}
-                  placeholder="5"
+                  placeholder="8.18"
                   autoFocus
                 />
               </label>
@@ -1137,7 +1138,7 @@ function SaveGoalsDetail() {
           <p className="home-card-kicker">Save goals</p>
           <h2>Save towards something</h2>
         </div>
-        <p className="tiny save-goal-rate">{formatMoney(rate)} / day</p>
+        <p className="tiny save-goal-rate">{formatMoneyDown(rate)} / day</p>
         <PrimaryButton onClick={() => setOpen(true)}>
           Add a save goal
         </PrimaryButton>
@@ -1163,7 +1164,7 @@ function SaveGoalsDetail() {
             </h2>
           </div>
           <p className="save-goal-inbound-figure" aria-label="Daily inbound">
-            {formatMoney(rate)}
+            {formatMoneyDown(rate)}
           </p>
         </div>
       </div>
