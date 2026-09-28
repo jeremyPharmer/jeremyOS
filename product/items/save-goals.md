@@ -101,13 +101,13 @@ daysInMonth(y, m) = calendar days in that month
 dailyIncomeRate(date) = monthlyIncome / daysInMonth(year(date), month(date))
 ```
 
-Examples at `$500`:
+Examples at `$500` (**daily rate** floors to whole dollars; Subtract/Add lines keep cents):
 
 | Month | Days | Per day |
 | --- | --- | --- |
-| January | 31 | `$16.13` (round half-up to 2 decimals at credit time) |
-| February (non-leap) | 28 | `$17.86` |
-| April | 30 | `$16.67` |
+| January | 31 | `$16` |
+| February (non-leap) | 28 | `$17` |
+| April | 30 | `$16` |
 
 - Use the **same local-date convention** as evening / journey (no UTC drift).
 - Snapshot `dailyIncome` onto `SaveGoalDay` when the day is closed so later settings edits do not rewrite history.
@@ -127,8 +127,8 @@ Insert a thin **Money today** step in evening close (after mood/journal is fine;
    pool = leftover + lumpSum
    ```
 4. **Allocation UI**
-   - **Daily leftover** always uses preset **inbound chips** (`allocationWeight` as 0–100%, sum 100% across actives). Default: 100% to one target area (trip / gift / general saving).
-   - If leftover `< 0` (overspend): draw down by the same preset chips; balances may go **negative**.
+   - **Positive leftover** uses preset **inbound chips** (`allocationWeight` as 0–100%, sum 100% across actives). Default: 100% to one target area (trip / gift / general saving).
+   - If leftover `< 0` (overspend): **choose which goal to take from** (required when more than one active); balances may go **negative**.
    - **Lump / one-time**: chips — **Daily chips** (same preset) or **Custom (one area)** to send all to a chosen goal.
    - If `pool === 0`: no allocations; still store the day row.
    - If **no active goals**: skip allocation UI; still store spend/income/lump for history.

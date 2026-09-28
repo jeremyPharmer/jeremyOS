@@ -7,6 +7,7 @@ import {
   ensureElapsedReclaimDays,
   ensureMilestonesReached,
 } from "@/lib/mutations";
+import { ensureElapsedSaveGoalDays } from "@/lib/save-goals";
 import { updateState } from "@/lib/store";
 import { ensureTodosRolled } from "@/lib/todos";
 
@@ -31,6 +32,8 @@ export async function GET() {
     const today = todayInTz(prev.profile.timezone);
     // RB-011: catch up daily savings for ended days even without evening close.
     let next = ensureElapsedReclaimDays(prev, today);
+    // RB-037: missed Save Goal approves → auto-credit full daily inbound.
+    next = ensureElapsedSaveGoalDays(next, today);
     next = ensureMilestonesReached(next, today);
     next = ensureTodosRolled(next, today);
     return next;

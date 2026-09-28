@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { todayInTz } from "@/lib/journey";
 import {
+  addSaveGoalSpend,
   applySaveGoalAdjustment,
+  applySaveGoalDayTotals,
   createSaveGoal,
+  deleteSaveGoal,
   recordSaveGoalDay,
+  removeSaveGoalAdjustment,
+  removeSaveGoalSpend,
+  setGoalInboundPercent,
   setInboundPercents,
+  setSaveGoalSavedAmount,
   setSoleDailyTarget,
+  undoApplySaveGoalDayTotals,
   updateSaveGoal,
   updateSaveGoalSettings,
 } from "@/lib/save-goals";
@@ -43,8 +51,9 @@ export async function POST(req: Request) {
       }
 
       if (action === "update") {
-        return updateSaveGoal(prev, {
-          id: String(body.id ?? ""),
+        const id = String(body.id ?? "");
+        let next = updateSaveGoal(prev, {
+          id,
           name: body.name !== undefined ? String(body.name) : undefined,
           targetAmount:
             body.targetAmount !== undefined
@@ -52,6 +61,14 @@ export async function POST(req: Request) {
               : undefined,
           status: body.status,
         });
+        if (body.savedAmount !== undefined && body.savedAmount !== null) {
+          next = setSaveGoalSavedAmount(next, {
+            id,
+            savedAmount: Number(body.savedAmount),
+            date: String(body.date ?? today),
+          });
+        }
+        return next;
       }
 
       if (action === "archive") {
@@ -59,6 +76,22 @@ export async function POST(req: Request) {
           id: String(body.id ?? ""),
           status: "archived",
         });
+      }
+
+      if (action === "delete") {
+        return deleteSaveGoal(prev, {
+          id: String(body.id ?? ""),
+          date: String(body.date ?? today),
+          reallocateToGoalId:
+            body.reallocateToGoalId === undefined ||
+            body.reallocateToGoalId === null
+              ? null
+              : String(body.reallocateToGoalId),
+        });
+      }
+
+      if (action === "removeAdjust") {
+        return removeSaveGoalAdjustment(prev, String(body.id ?? ""));
       }
 
       if (action === "settings") {
@@ -77,6 +110,13 @@ export async function POST(req: Request) {
       if (action === "setInbound") {
         if (body.soleGoalId) {
           return setSoleDailyTarget(prev, String(body.soleGoalId));
+        }
+        if (body.goalId !== undefined && body.percent !== undefined) {
+          return setGoalInboundPercent(
+            prev,
+            String(body.goalId),
+            Number(body.percent),
+          );
         }
         const percents =
           body.percents && typeof body.percents === "object"
@@ -119,7 +159,42 @@ export async function POST(req: Request) {
           allocations: Array.isArray(body.allocations)
             ? body.allocations
             : undefined,
+          drawFromGoalId:
+            body.drawFromGoalId !== undefined && body.drawFromGoalId !== null
+              ? String(body.drawFromGoalId)
+              : undefined,
+          source: body.source === "auto" ? "auto" : "manual",
         });
+      }
+
+      if (action === "addSpend") {
+        return addSaveGoalSpend(prev, {
+          date: String(body.date ?? today),
+          amount: Number(body.amount),
+          note: body.note !== undefined ? String(body.note) : undefined,
+          kind: body.kind === "add" ? "add" : "spend",
+          category:
+            body.category !== undefined ? String(body.category) : undefined,
+        });
+      }
+
+      if (action === "removeSpend") {
+        return removeSaveGoalSpend(prev, String(body.id ?? ""));
+      }
+
+      if (action === "applyTotals") {
+        return applySaveGoalDayTotals(prev, {
+          date: String(body.date ?? today),
+          lumpSum: body.lumpSum !== undefined ? Number(body.lumpSum) : 0,
+          drawFromGoalId:
+            body.drawFromGoalId !== undefined && body.drawFromGoalId !== null
+              ? String(body.drawFromGoalId)
+              : undefined,
+        });
+      }
+
+      if (action === "undoApply") {
+        return undoApplySaveGoalDayTotals(prev, String(body.date ?? today));
       }
 
       const err = new Error(`Unknown action: ${action}`);

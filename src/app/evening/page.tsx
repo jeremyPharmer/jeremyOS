@@ -36,15 +36,15 @@ import type { NewsHeadline } from "@/lib/news";
 import type { OnThisDayEvent } from "@/lib/on-this-day";
 import {
   activeSaveGoals,
-  dailyIncomeRate,
   formatMoney,
-  inboundPercent,
-  leftoverPool,
-  mergeAllocations,
-  normalizeSaveGoalSettings,
-  splitPoolByWeight,
-  splitPoolToOne,
+  formatMoneyDown,
+  leftoverBeforeApply,
+  listSaveGoalSpendEntries,
+  SAVE_GOAL_SPEND_CATEGORIES,
+  saveGoalCloseForDate,
+  saveGoalSpendCategoryLabel,
 } from "@/lib/save-goals";
+import type { SaveGoalSpendCategory } from "@/lib/types";
 import { completedTodosForUndo, openTodosOn } from "@/lib/todos";
 import type { DailyForecast } from "@/lib/weather";
 
@@ -120,10 +120,14 @@ function EveningPageInner() {
   const [oneLine, setOneLine] = useState("");
   const [standOut, setStandOut] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
-  const [spendTotal, setSpendTotal] = useState("");
-  const [lumpSum, setLumpSum] = useState("");
-  const [lumpMode, setLumpMode] = useState<"preset" | "custom">("preset");
-  const [lumpGoalId, setLumpGoalId] = useState("");
+  const [applySaveGoals, setApplySaveGoals] = useState(true);
+  const [drawFromGoalId, setDrawFromGoalId] = useState("");
+  const [entryKind, setEntryKind] = useState<"add" | "spend" | null>(null);
+  const [entryAmount, setEntryAmount] = useState("");
+  const [spendCategory, setSpendCategory] =
+    useState<SaveGoalSpendCategory | "">("");
+  const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [starBusy, setStarBusy] = useState(false);
   const [starPending, setStarPending] = useState(false);
@@ -342,37 +346,29 @@ function EveningPageInner() {
     return sevenDayTrendInsight(state, briefingDate);
   }, [briefingDate, state, today]);
 
-  const saveSettings = normalizeSaveGoalSettings(state.saveGoalSettings);
   const moneyDate = effectiveDate || today || "";
-  const dayRate = moneyDate
-    ? dailyIncomeRate(moneyDate, saveSettings.monthlyIncome)
-    : 0;
-  const spendNum = spendTotal.trim() === "" ? null : Number(spendTotal);
-  const lumpNum = lumpSum.trim() === "" ? 0 : Number(lumpSum);
-  const moneyPreview = useMemo(() => {
-    if (spendNum == null || !Number.isFinite(spendNum) || spendNum < 0) {
-      return null;
-    }
-    const lump = Number.isFinite(lumpNum) && lumpNum >= 0 ? lumpNum : 0;
-    const { leftover } = leftoverPool(dayRate, spendNum, 0);
-    const goals = activeSaveGoals(state);
-    const leftoverAlloc =
-      goals.length && leftover !== 0 ? splitPoolByWeight(leftover, goals) : [];
-    const lumpAlloc =
-      goals.length && lump !== 0
-        ? lumpMode === "custom" && lumpGoalId
-          ? splitPoolToOne(lump, lumpGoalId)
-          : splitPoolByWeight(lump, goals)
-        : [];
-    const allocations = mergeAllocations([...leftoverAlloc, ...lumpAlloc]);
-    const pool = leftoverPool(dayRate, spendNum, lump).pool;
-    return { leftover, lump, pool, leftoverAlloc, lumpAlloc, allocations, goals };
-  }, [spendNum, lumpNum, dayRate, state, lumpMode, lumpGoalId]);
-  const spendReady =
-    spendTotal.trim() !== "" &&
-    spendNum != null &&
-    Number.isFinite(spendNum) &&
-    spendNum >= 0;
+  const saveGoals = useMemo(() => activeSaveGoals(state), [state]);
+  const dayLedger = useMemo(
+    () =>
+      moneyDate
+        ? leftoverBeforeApply(state, moneyDate)
+        : { base: 0, carryIn: 0, inbound: 0, adds: 0, spend: 0, left: 0 },
+    [state, moneyDate],
+  );
+  const dayTotalShown = dayLedger.inbound + dayLedger.adds;
+  const daySpends = useMemo(
+    () => (moneyDate ? listSaveGoalSpendEntries(state, moneyDate) : []),
+    [state, moneyDate],
+  );
+  const dayApplied = useMemo(
+    () => (moneyDate ? Boolean(saveGoalCloseForDate(state, moneyDate)) : false),
+    [state, moneyDate],
+  );
+  const needsDrawPick = dayLedger.left < 0 && saveGoals.length > 1;
+  const resolvedDrawFrom =
+    drawFromGoalId ||
+    (saveGoals.length === 1 ? saveGoals[0].id : undefined);
+  const canApplyNegative = !needsDrawPick || Boolean(drawFromGoalId);
 
   const tomorrowDate = today ? addDays(today, 1) : "";
 
@@ -405,20 +401,85 @@ function EveningPageInner() {
     setStarPending((prev) => !prev);
   }
 
+  async function submitEveningEntry() {
+    const amount = Number(entryAmount);
+    if (!entryKind || !Number.isFinite(amount) || amount <= 0) {
+      setError("Enter an amount greater than 0.");
+      return;
+    }
+    if (entryKind === "spend" && !spendCategory) {
+      setError("Pick a category.");
+      return;
+    }
+    setSaveBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "addSpend",
+        date: moneyDate,
+        amount,
+        kind: entryKind,
+        category: entryKind === "spend" ? spendCategory : undefined,
+      });
+      setEntryAmount("");
+      setSpendCategory("");
+      setEntryKind(null);
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : entryKind === "add"
+            ? "Could not add"
+            : "Could not subtract",
+      );
+    } finally {
+      setSaveBusy(false);
+    }
+  }
+
+  async function removeEveningSpend(id: string) {
+    setSaveBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", { action: "removeSpend", id });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not remove");
+    } finally {
+      setSaveBusy(false);
+    }
+  }
+
+  async function applyEveningTotals() {
+    if (dayLedger.left < 0 && !resolvedDrawFrom) {
+      setError("Pick a goal to take from.");
+      return;
+    }
+    setSaveBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "applyTotals",
+        date: moneyDate,
+        drawFromGoalId: dayLedger.left < 0 ? resolvedDrawFrom : undefined,
+      });
+      setApplySaveGoals(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not apply");
+    } finally {
+      setSaveBusy(false);
+    }
+  }
+
   async function submit() {
     if (!oneLine.trim() || !effectiveDate) return;
     if (mood == null || stress == null) {
       setError("Tap a number for mood and stress.");
       return;
     }
-    const spend = Number(spendTotal);
-    if (spendTotal.trim() === "" || !Number.isFinite(spend) || spend < 0) {
-      setError("Enter today’s total spend (0 or more).");
-      return;
-    }
-    const lump = lumpSum.trim() === "" ? 0 : Number(lumpSum);
-    if (!Number.isFinite(lump) || lump < 0) {
-      setError("Lump sum must be 0 or more.");
+    const shouldApply =
+      saveGoals.length > 0 && applySaveGoals && !dayApplied;
+    if (shouldApply && dayLedger.left < 0 && !resolvedDrawFrom) {
+      setError("Pick a goal to take from.");
       return;
     }
     setBusy(true);
@@ -440,13 +501,9 @@ function EveningPageInner() {
         oneLine: snapshot.headline,
         expandedJournal: snapshot.summary || undefined,
         photoDataUrl: photoDataUrl || undefined,
-        spendTotal: spend,
-        lumpSum: lump,
-        lumpMode: lump > 0 ? lumpMode : "preset",
-        lumpGoalId:
-          lump > 0 && lumpMode === "custom" && lumpGoalId
-            ? lumpGoalId
-            : undefined,
+        applySaveGoals: shouldApply,
+        drawFromGoalId:
+          shouldApply && dayLedger.left < 0 ? resolvedDrawFrom : undefined,
       });
       setStarPending(false);
       setClosed(snapshot);
@@ -697,143 +754,216 @@ function EveningPageInner() {
             ) : null}
           </div>
 
-          {!closeDone ? (
-            <div className="open-edition-money" aria-label="Money today">
-              <p className="open-edition-kicker">Money today</p>
-              <p className="open-edition-money-note">
-                {formatMoney(saveSettings.monthlyIncome)} on the 1st ·{" "}
-                {formatMoney(dayRate)} credited for this day
-              </p>
-              {activeSaveGoals(state).length > 0 ? (
-                <div className="chip-row" style={{ marginTop: 8 }}>
-                  {activeSaveGoals(state).map((g) => {
-                    const pct = inboundPercent(g);
-                    return (
-                      <span
-                        key={g.id}
-                        className={`chip${pct >= 100 ? " selected" : ""}`}
-                        title="Daily inbound preset"
-                      >
-                        {g.name}
-                        {pct > 0 ? ` · ${pct}%` : ""}
-                      </span>
-                    );
-                  })}
-                </div>
-              ) : null}
-              <label className="open-edition-lead-field">
-                <span className="open-edition-kicker">Total spend</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={spendTotal}
-                  onChange={(e) => setSpendTotal(e.target.value)}
-                  placeholder="0"
-                />
-              </label>
-              <label className="open-edition-lead-field">
-                <span className="open-edition-kicker">
-                  Lump sum
-                  <span className="open-edition-note" style={{ marginLeft: 8 }}>
-                    optional
-                  </span>
-                </span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={lumpSum}
-                  onChange={(e) => setLumpSum(e.target.value)}
-                  placeholder="Extra toward goals"
-                />
-              </label>
-              {lumpNum > 0 && activeSaveGoals(state).length > 0 ? (
-                <>
-                  <p className="open-edition-kicker" style={{ marginTop: 4 }}>
-                    One-time goes to
+          {!closeDone && saveGoals.length > 0 ? (
+            <div className="open-edition-money" aria-label="Save ledger">
+              <p className="open-edition-kicker">Save ledger</p>
+              <div className="save-goal-glance-head" style={{ marginTop: 4 }}>
+                <div>
+                  <p className="open-edition-money-note" style={{ margin: 0 }}>
+                    Day total {formatMoneyDown(dayTotalShown)}
+                    {dayLedger.carryIn !== 0 ? (
+                      <>
+                        {" "}
+                        · {dayLedger.carryIn > 0 ? "+" : ""}
+                        {formatMoneyDown(dayLedger.carryIn)} rolled
+                      </>
+                    ) : null}
                   </p>
-                  <div className="chip-row">
-                    <button
-                      type="button"
-                      className={`chip${lumpMode === "preset" ? " selected" : ""}`}
-                      onClick={() => setLumpMode("preset")}
-                    >
-                      Daily chips
-                    </button>
-                    <button
-                      type="button"
-                      className={`chip${lumpMode === "custom" ? " selected" : ""}`}
-                      onClick={() => {
-                        setLumpMode("custom");
-                        const first = activeSaveGoals(state)[0];
-                        if (!lumpGoalId && first) setLumpGoalId(first.id);
-                      }}
-                    >
-                      Custom (one area)
-                    </button>
-                  </div>
-                  {lumpMode === "custom" ? (
-                    <div className="chip-row" style={{ marginTop: 8 }}>
-                      {activeSaveGoals(state).map((g) => (
-                        <button
-                          key={g.id}
-                          type="button"
-                          className={`chip${lumpGoalId === g.id ? " selected" : ""}`}
-                          onClick={() => setLumpGoalId(g.id)}
-                        >
-                          {g.name}
-                        </button>
-                      ))}
+                </div>
+                <p className="save-goal-inbound-figure" aria-label="Left today">
+                  {formatMoneyDown(dayLedger.left)}
+                </p>
+              </div>
+
+              {entryKind ? (
+                <div className="save-goal-create" style={{ marginTop: 10 }}>
+                  <label className="open-edition-lead-field">
+                    <span className="open-edition-kicker">
+                      {entryKind === "add" ? "Add" : "Subtract"}
+                    </span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0.01}
+                      step="0.01"
+                      value={entryAmount}
+                      onChange={(e) => setEntryAmount(e.target.value)}
+                      placeholder="8.18"
+                      autoFocus
+                    />
+                  </label>
+                  {entryKind === "spend" ? (
+                    <div className="save-goal-spend-category">
+                      <p className="open-edition-kicker" style={{ marginBottom: 6 }}>
+                        Category
+                      </p>
+                      <div className="chip-row">
+                        {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className={`chip${spendCategory === c.id ? " selected" : ""}`}
+                            onClick={() => setSpendCategory(c.id)}
+                            disabled={saveBusy}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   ) : null}
-                </>
-              ) : null}
-              {moneyPreview ? (
+                  <div className="save-goal-create-actions">
+                    <PrimaryButton
+                      onClick={() => void submitEveningEntry()}
+                      disabled={
+                        saveBusy || (entryKind === "spend" && !spendCategory)
+                      }
+                    >
+                      {saveBusy
+                        ? "Saving…"
+                        : entryKind === "add"
+                          ? "Add"
+                          : "Subtract"}
+                    </PrimaryButton>
+                    <SecondaryButton
+                      onClick={() => {
+                        setEntryKind(null);
+                        setSpendCategory("");
+                        setError("");
+                      }}
+                      disabled={saveBusy}
+                    >
+                      Cancel
+                    </SecondaryButton>
+                  </div>
+                </div>
+              ) : (
                 <div
-                  className={`evening-money-preview${
-                    moneyPreview.pool < 0 ? " negative" : ""
-                  }`}
+                  className="save-goal-glance-actions"
+                  style={{ marginTop: 10 }}
                 >
-                  {moneyPreview.leftover !== 0 ? (
-                    <p className="tiny">
-                      Daily {moneyPreview.leftover >= 0 ? "leftover" : "over"}{" "}
-                      {formatMoney(Math.abs(moneyPreview.leftover))}
-                      {moneyPreview.goals.length
-                        ? " → daily inbound chips"
-                        : ""}
-                    </p>
-                  ) : (
-                    <p className="tiny">Daily even — nothing from inbound</p>
-                  )}
-                  {moneyPreview.lump > 0 ? (
-                    <p className="tiny">
-                      One-time {formatMoney(moneyPreview.lump)}
-                      {lumpMode === "custom" && lumpGoalId
-                        ? ` → ${
-                            moneyPreview.goals.find((g) => g.id === lumpGoalId)
-                              ?.name ?? "goal"
-                          }`
-                        : " → daily chips"}
-                    </p>
-                  ) : null}
-                  {moneyPreview.allocations.length > 0 ? (
-                    <ul className="tiny">
-                      {moneyPreview.allocations.map((a) => {
-                        const g = moneyPreview.goals.find(
-                          (x) => x.id === a.goalId,
-                        );
-                        if (!g) return null;
+                  <SecondaryButton
+                    onClick={() => {
+                      setError("");
+                      setEntryAmount("");
+                      setSpendCategory("");
+                      setEntryKind("add");
+                    }}
+                    disabled={saveBusy}
+                  >
+                    Add
+                  </SecondaryButton>
+                  <SecondaryButton
+                    onClick={() => {
+                      setError("");
+                      setEntryAmount("");
+                      setSpendCategory("");
+                      setEntryKind("spend");
+                    }}
+                    disabled={saveBusy}
+                  >
+                    Subtract
+                  </SecondaryButton>
+                  <PrimaryButton
+                    onClick={() => void applyEveningTotals()}
+                    disabled={saveBusy || dayApplied || !canApplyNegative}
+                  >
+                    {saveBusy
+                      ? "Saving…"
+                      : dayApplied
+                        ? "Applied"
+                        : "Apply totals"}
+                  </PrimaryButton>
+                </div>
+              )}
+
+              {needsDrawPick && !dayApplied ? (
+                <div className="save-goal-draw-from" style={{ marginTop: 12 }}>
+                  <p className="open-edition-kicker" style={{ marginBottom: 6 }}>
+                    Take from
+                  </p>
+                  <div className="chip-row">
+                    {saveGoals.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        className={`chip${drawFromGoalId === g.id ? " selected" : ""}`}
+                        onClick={() => setDrawFromGoalId(g.id)}
+                        disabled={saveBusy || busy}
+                      >
+                        {g.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <label className="check-row" style={{ marginTop: 12 }}>
+                <input
+                  type="checkbox"
+                  checked={dayApplied || applySaveGoals}
+                  disabled={dayApplied}
+                  onChange={(e) => setApplySaveGoals(e.target.checked)}
+                />
+                <span>
+                  {dayApplied
+                    ? "Leftover already applied to goals"
+                    : "Apply leftover when I close the day"}
+                </span>
+              </label>
+              <p className="open-edition-money-note" style={{ marginTop: 6 }}>
+                Skip apply and leftover rolls into tomorrow.
+              </p>
+
+              {daySpends.length > 0 || dayApplied ? (
+                <div className="save-goal-home-ledger" style={{ marginTop: 10 }}>
+                  <button
+                    type="button"
+                    className="save-goal-log-toggle"
+                    aria-expanded={ledgerOpen}
+                    onClick={() => setLedgerOpen((v) => !v)}
+                  >
+                    <span aria-hidden="true">{ledgerOpen ? "▾" : "▸"}</span>
+                    Ledger ({daySpends.length + (dayApplied ? 1 : 0)})
+                  </button>
+                  {ledgerOpen ? (
+                    <div className="save-goal-ledger-rows home-ledger-body">
+                      <div className="save-goal-ledger-row">
+                        <span>Inbound</span>
+                        <span>{formatMoney(dayLedger.inbound)}</span>
+                      </div>
+                      {daySpends.map((e) => {
+                        const isAdd = e.kind === "add";
                         return (
-                          <li key={a.goalId}>
-                            {g.name}: {a.amount >= 0 ? "+" : ""}
-                            {formatMoney(a.amount)}
-                          </li>
+                          <div
+                            key={e.id}
+                            className="save-goal-ledger-row spend"
+                          >
+                            <span>
+                              {isAdd
+                                ? "Add"
+                                : saveGoalSpendCategoryLabel(e.category)}
+                            </span>
+                            <span className="save-goal-ledger-spend-val">
+                              {isAdd ? "+" : "−"}
+                              {formatMoney(e.amount)}
+                              <button
+                                type="button"
+                                className="save-goal-add-link"
+                                disabled={saveBusy}
+                                onClick={() => void removeEveningSpend(e.id)}
+                              >
+                                Undo
+                              </button>
+                            </span>
+                          </div>
                         );
                       })}
-                    </ul>
+                      <div className="save-goal-ledger-row leftover">
+                        <span>Left</span>
+                        <span>{formatMoney(dayLedger.left)}</span>
+                      </div>
+                    </div>
                   ) : null}
                 </div>
               ) : null}
@@ -850,7 +980,13 @@ function EveningPageInner() {
             <PrimaryButton
               onClick={submit}
               disabled={
-                busy || !oneLine.trim() || !scalesReady || !spendReady
+                busy ||
+                !oneLine.trim() ||
+                !scalesReady ||
+                (applySaveGoals &&
+                  !dayApplied &&
+                  needsDrawPick &&
+                  !drawFromGoalId)
               }
             >
               {busy ? "Saving…" : "Close the paper"}

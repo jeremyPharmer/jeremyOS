@@ -500,6 +500,33 @@ export type SaveGoalDay = {
   kind?: "close" | "adjust";
   /** Present on adjust rows (multiple adjusts per date OK) */
   id?: string;
+  /**
+   * How the close row was written:
+   * - manual = Approve day / evening Money today / Apply totals
+   * - auto = catch-up when a day ended without approve (full daily inbound)
+   */
+  source?: "manual" | "auto";
+};
+
+/** Required category when subtracting from the day total. */
+export type SaveGoalSpendCategory =
+  | "food"
+  | "books_movies"
+  | "clothes"
+  | "maintenance";
+
+/** Mid-day ledger line on the Home saver tile (before Apply totals). */
+export type SaveGoalSpendEntry = {
+  id: string;
+  date: string;
+  /** Positive amount — meaning depends on `kind` */
+  amount: number;
+  /** spend = subtract from day total; add = manual top-up */
+  kind?: "spend" | "add";
+  /** Required for spend lines */
+  category?: SaveGoalSpendCategory;
+  note?: string;
+  at?: string;
 };
 
 export type RebuildState = {
@@ -569,6 +596,8 @@ export type RebuildState = {
   saveGoals?: SaveGoal[];
   /** Evening spend / leftover rows keyed by date */
   saveGoalDays?: SaveGoalDay[];
+  /** Running spend subtractions before Apply totals (Home saver ledger) */
+  saveGoalSpendEntries?: SaveGoalSpendEntry[];
 };
 
 export type CustomAgendaEvent = {
