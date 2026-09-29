@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  filterAgendaActiveEvents,
   isAgendaEventPast,
   orderAgendaUpcomingThenPast,
   parseAgendaDisplayTimeToMinutes,
@@ -260,5 +261,30 @@ describe("agenda past helpers", () => {
       TZ,
     );
     expect(ordered.map((e) => e.id)).toEqual(["soon", "past", "mid"]);
+  });
+
+  it("keeps in-progress events and drops finished ones on today", () => {
+    // 18:30 UTC = 11:30 AM America/Los_Angeles on 2026-09-07
+    const now = new Date("2026-09-07T18:30:00Z");
+    const list = [
+      timed({ id: "done", startTime: "9:00 AM", endTime: "10:00 AM" }),
+      timed({ id: "now", startTime: "11:00 AM", endTime: "12:00 PM" }),
+      timed({ id: "later", startTime: "2:00 PM", endTime: "3:00 PM" }),
+      timed({ id: "all", startTime: "All day", allDay: true }),
+    ];
+    expect(
+      isAgendaEventPast(list[1]!, "2026-09-07", "2026-09-07", now, TZ),
+    ).toBe(false);
+    expect(
+      filterAgendaActiveEvents(list, "2026-09-07", "2026-09-07", now, TZ).map(
+        (e) => e.id,
+      ),
+    ).toEqual(["now", "later", "all"]);
+    // Other days keep everything (including "finished" relative to clock).
+    expect(
+      filterAgendaActiveEvents(list, "2026-09-06", "2026-09-07", now, TZ).map(
+        (e) => e.id,
+      ),
+    ).toEqual(["done", "now", "later", "all"]);
   });
 });

@@ -29,6 +29,7 @@ import {
   parseMonthKey,
 } from "@/lib/workouts";
 import {
+  filterAgendaActiveEvents,
   isAgendaEventPast,
   localMinutesInTz,
   parseAgendaDisplayTimeToMinutes,
@@ -607,8 +608,18 @@ export function TodayAgendaCard() {
     applyCalendarTitleOverrides(rawEvents, overrides),
     hidden,
   );
-  // Chronological day spine (8am–9pm, later when events run past); keep order.
-  const events = visibleEvents;
+  // Today: hide finished timed events; keep in-progress / all-day. Other days unchanged.
+  const events = useMemo(
+    () =>
+      filterAgendaActiveEvents(
+        visibleEvents,
+        viewDate,
+        today,
+        now,
+        timezone,
+      ),
+    [visibleEvents, viewDate, today, now, timezone],
+  );
   const timeline = useMemo(() => buildDayTimeline(events), [events]);
   const dayEndLabel = formatTimelineHour(timeline.dayEnd);
   const nowMinutes =

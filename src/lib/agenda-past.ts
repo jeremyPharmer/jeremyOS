@@ -1,6 +1,6 @@
 /**
  * Client-safe agenda past helpers (no node:fs / node-ical).
- * Used by Home Calendar to strike and sink finished events.
+ * Used by Home Calendar to hide finished events on today (in-progress stays).
  */
 
 export type AgendaPastable = {
@@ -86,4 +86,21 @@ export function orderAgendaUpcomingThenPast<T extends AgendaPastable>(
     }
   }
   return [...upcoming, ...past];
+}
+
+/**
+ * Drop finished timed events when viewing today.
+ * In-progress (started, not yet ended) and all-day stay. Other days unchanged.
+ */
+export function filterAgendaActiveEvents<T extends AgendaPastable>(
+  events: T[],
+  viewDate: string,
+  today: string,
+  now: Date,
+  timezone: string,
+): T[] {
+  if (viewDate !== today) return events;
+  return events.filter(
+    (event) => !isAgendaEventPast(event, viewDate, today, now, timezone),
+  );
 }

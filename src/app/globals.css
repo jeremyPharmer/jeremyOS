@@ -2342,6 +2342,40 @@ h2 {
 }
 
 .save-goal-roll-options {
+<<<<<<< HEAD
+=======
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.save-goal-roll-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.save-goal-roll-option.selected {
+  border-color: var(--accent, var(--line));
+  background: color-mix(in srgb, var(--accent, var(--line)) 12%, var(--surface));
+}
+
+.save-goal-roll-option-label {
+  font-weight: 650;
+  font-size: 0.95rem;
+}
+
+.save-goal-ledger-apply {
+>>>>>>> origin/main
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -11459,11 +11493,12 @@ button.layout-pick-card {
   gap: 12px;
 }
 
-/* Fresher pill scales inside the edition box */
+/* Fresher pill scales inside the edition box — always one row of 1–10 */
 .open-edition .tap-scale-line {
-  gap: 6px;
-  justify-content: flex-start;
-  flex-wrap: wrap;
+  gap: 3px;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  width: 100%;
 }
 
 .open-edition .tap-scale-line::before {
@@ -11471,15 +11506,16 @@ button.layout-pick-card {
 }
 
 .open-edition .tap-scale-tick {
-  flex: 0 0 auto;
-  min-width: 2.15rem;
-  height: 34px;
-  padding: 0 8px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 2.4rem;
+  height: 32px;
+  padding: 0;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
   background: color-mix(in srgb, var(--surface-strong) 70%, transparent);
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 650;
 }
 
