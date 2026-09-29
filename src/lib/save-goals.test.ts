@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emptyState } from "./journey";
+import { addDays, emptyState } from "./journey";
 import {
   amountToGo,
   applySaveGoalAdjustment,
@@ -9,8 +9,12 @@ import {
   daysInMonthForDate,
   addSaveGoalSpend,
   applySaveGoalDayTotals,
+  applySaveGoalRolledOnly,
+  formatTargetDateLabel,
   setSaveGoalSavedAmount,
   deleteSaveGoal,
+  listRolledOpenDatesBefore,
+  saveGoalCloseForDate,
   undoApplySaveGoalDayTotals,
   ensureElapsedSaveGoalDays,
   ensureSaveGoalDay,
@@ -313,7 +317,7 @@ describe("recordSaveGoalDay", () => {
 });
 
 describe("projectSaveGoalTargetDate", () => {
-  it("projects a target date from daily leftover assumption", () => {
+  it("projects a target date from daily rate × inbound %", () => {
     let state = emptyState();
     state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
     state = createSaveGoal(state, {
@@ -321,32 +325,117 @@ describe("projectSaveGoalTargetDate", () => {
       targetAmount: 100,
       createdOn: "2026-04-01",
     });
-    // No spend history → avgSpend 0 → pool = dailyIncome
     const proj = projectSaveGoalTargetDate(state, state.saveGoals![0], "2026-04-01");
     expect(proj.status).toBe("on_track");
     expect(proj.targetDate).toBeTruthy();
-    expect(proj.etaDays).toBeGreaterThan(0);
+    expect(proj.goalDaily).toBe(16); // $16 × 100%
+    // Today not applied → remaining after today’s $16 credit = 84 → 84/16 = 5.25 → 6 days
+    expect(proj.etaDays).toBe(6);
   });
 
-  it("returns needs_leftover when projected pool ≤ 0", () => {
+  it("uses $16 × 20% = $3.20/day for Reserve (not Left, not net of spend)", () => {
     let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
     state = createSaveGoal(state, {
-      name: "Trip",
-      targetAmount: 100,
+      name: "General",
+      targetAmount: 3000,
+      createdOn: "2026-09-01",
+    });
+    state = createSaveGoal(state, {
+      name: "Reserve",
+      targetAmount: 1000,
+      createdOn: "2026-09-01",
+    });
+    const general = () => state.saveGoals!.find((g) => g.name === "General")!;
+    const reserve = () => state.saveGoals!.find((g) => g.name === "Reserve")!;
+    state = setInboundPercents(state, {
+      [general().id]: 80,
+      [reserve().id]: 20,
+    });
+    state = setSaveGoalSavedAmount(state, {
+      id: reserve().id,
+      savedAmount: 14.94,
+      date: "2026-09-28",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-09-28",
+      amount: 34,
+      kind: "add",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-09-28",
+      amount: 9.72,
+      kind: "spend",
+      category: "food",
+    });
+    state = applySaveGoalDayTotals(state, { date: "2026-09-28" });
+
+    const proj = projectSaveGoalTargetDate(state, reserve(), "2026-09-28");
+    expect(proj.projectedPoolPerDay).toBe(16);
+    expect(proj.goalDaily).toBe(3.2);
+    // ~$985 left / $3.20 ≈ 308 days → 2027-08-02 (not “Nov 18” without a year)
+    expect(proj.etaDays).toBe(Math.ceil(proj.remaining / 3.2));
+    expect(proj.targetDate).toBe(
+      addDays("2026-09-28", proj.etaDays!),
+    );
+    expect(formatTargetDateLabel(proj.targetDate!)).toMatch(/2027/);
+  });
+
+  it("updates pace when inbound % changes", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "General",
+      targetAmount: 3000,
       createdOn: "2026-04-01",
     });
-    const spendDays: SaveGoalDay[] = Array.from({ length: 7 }, (_, i) => ({
-      date: `2026-03-${String(25 + i).padStart(2, "0")}`,
-      dailyIncome: 16,
-      spendTotal: 40,
-      leftover: -24,
-      lumpSum: 0,
-      allocations: [],
-    }));
-    state = { ...state, saveGoalDays: spendDays };
-    const proj = projectSaveGoalTargetDate(state, state.saveGoals![0], "2026-04-01");
-    expect(proj.status).toBe("needs_leftover");
-    expect(proj.targetDate).toBeNull();
+    state = createSaveGoal(state, {
+      name: "Reserve",
+      targetAmount: 1000,
+      createdOn: "2026-04-01",
+    });
+    const general = () => state.saveGoals!.find((g) => g.name === "General")!;
+    const reserve = () => state.saveGoals!.find((g) => g.name === "Reserve")!;
+    state = setInboundPercents(state, {
+      [general().id]: 80,
+      [reserve().id]: 20,
+    });
+    const at80 = projectSaveGoalTargetDate(state, general(), "2026-04-01");
+    expect(at80.goalDaily).toBe(12.8); // 16 × 80%
+    expect(at80.targetDate).toBeTruthy();
+
+    state = setInboundPercents(state, {
+      [general().id]: 50,
+      [reserve().id]: 50,
+    });
+    const at50 = projectSaveGoalTargetDate(state, general(), "2026-04-01");
+    expect(at50.goalDaily).toBe(8);
+    expect(at50.etaDays!).toBeGreaterThan(at80.etaDays!);
+  });
+
+  it("ignores one-time adds and spend when computing daily pace", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-02",
+      amount: 34,
+      kind: "add",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-02",
+      amount: 9.72,
+      kind: "spend",
+      category: "food",
+    });
+    const proj = projectSaveGoalTargetDate(state, state.saveGoals![0], "2026-04-02");
+    expect(proj.projectedPoolPerDay).toBe(16);
+    expect(proj.goalDaily).toBe(16);
+    expect(proj.targetDate).toBeTruthy();
   });
 });
 
@@ -722,6 +811,30 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       ),
     ).toBe(false);
     expect(leftoverBeforeApply(state, "2026-04-01").left).toBe(16);
+  });
+
+  it("applies only rolled history and leaves today open", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    // Apr 1 + Apr 2 unapplied → Apr 3 carryIn 32
+    expect(leftoverBeforeApply(state, "2026-04-03").carryIn).toBe(32);
+    expect(leftoverBeforeApply(state, "2026-04-03").left).toBe(48);
+    expect(listRolledOpenDatesBefore(state, "2026-04-03")).toEqual([
+      "2026-04-01",
+      "2026-04-02",
+    ]);
+
+    state = applySaveGoalRolledOnly(state, { date: "2026-04-03" });
+    expect(state.saveGoals![0].savedAmount).toBe(32);
+    expect(saveGoalCloseForDate(state, "2026-04-03")).toBeNull();
+    const today = leftoverBeforeApply(state, "2026-04-03");
+    expect(today.carryIn).toBe(0);
+    expect(today.left).toBe(16);
   });
 });
 

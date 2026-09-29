@@ -230,12 +230,18 @@ function DailyLedger({
   today: string;
   goals: SaveGoal[];
   busy?: boolean;
-  onApply?: (opts?: { drawFromGoalId?: string }) => void;
+  onApply?: (opts?: {
+    drawFromGoalId?: string;
+    scope?: "all" | "rolled";
+  }) => void;
   onUndoApply?: () => void;
 }) {
   const { state } = useApp();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [drawFromGoalId, setDrawFromGoalId] = useState("");
+  const [rollPrompt, setRollPrompt] = useState(false);
+  const [rollScope, setRollScope] = useState<"all" | "rolled">("all");
+  const [rollAutoShown, setRollAutoShown] = useState(false);
   const todayClose = useMemo(
     () => (today ? saveGoalCloseForDate(state, today) : null),
     [state, today],
@@ -252,9 +258,52 @@ function DailyLedger({
   const spendShown = todayClose ? todayClose.spendTotal : running.spend;
   const leftShown = todayClose ? todayClose.leftover : running.left;
   const applied = Boolean(todayClose);
-  const needsDrawPick = leftShown < 0 && goals.length > 1;
+  const hasRolled = running.carryIn !== 0 && !applied;
+  const needsDrawPick =
+    goals.length > 1 &&
+    (leftShown < 0 ||
+      (hasRolled && running.carryIn < 0) ||
+      (rollPrompt && rollScope === "rolled" && running.carryIn < 0));
   const canApply =
     !needsDrawPick || Boolean(drawFromGoalId) || goals.length === 1;
+
+  // Opening /save-goals with rolled leftover: ask apply-all vs rolled-only.
+  useEffect(() => {
+    if (!onApply || rollAutoShown || !hasRolled) return;
+    setRollScope("all");
+    setRollPrompt(true);
+    setRollAutoShown(true);
+  }, [onApply, hasRolled, rollAutoShown]);
+
+  function applyOpts(scope: "all" | "rolled" = "all") {
+    const needsDraw =
+      (scope === "all" && leftShown < 0) ||
+      (scope === "rolled" && running.carryIn < 0);
+    return needsDraw
+      ? {
+          scope,
+          drawFromGoalId:
+            drawFromGoalId ||
+            (goals.length === 1 ? goals[0].id : undefined),
+        }
+      : { scope };
+  }
+
+  function requestApply() {
+    if (!onApply) return;
+    if (hasRolled) {
+      setRollScope("all");
+      setRollPrompt(true);
+      return;
+    }
+    onApply(applyOpts("all"));
+  }
+
+  function confirmRollApply() {
+    if (!onApply) return;
+    onApply(applyOpts(rollScope));
+    setRollPrompt(false);
+  }
 
   return (
     <div className="save-goal-ledger" aria-label="Daily ledger">
@@ -290,21 +339,66 @@ function DailyLedger({
           </div>
         </div>
       ) : null}
-      {onApply || (applied && onUndoApply) ? (
+      {rollPrompt && onApply ? (
+        <div className="save-goal-roll-prompt" role="group" aria-label="Apply rolled amount">
+          <p className="tiny" style={{ margin: "0 0 10px" }}>
+            <strong>{formatMoney(leftShown)} left</strong> includes{" "}
+            <strong>{formatMoney(Math.abs(running.carryIn))}</strong> that
+            rolled in.
+          </p>
+          <div className="save-goal-roll-options">
+            <button
+              type="button"
+              className={`save-goal-roll-option${rollScope === "all" ? " selected" : ""}`}
+              onClick={() => setRollScope("all")}
+              disabled={busy}
+            >
+              <span className="save-goal-roll-option-label">
+                Apply all {formatMoney(Math.abs(leftShown))}
+              </span>
+              <span className="tiny muted">
+                {leftShown < 0
+                  ? "Takes the full left from your goals — rolled + today."
+                  : "Puts the full left into your goals — rolled + today."}
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`save-goal-roll-option${rollScope === "rolled" ? " selected" : ""}`}
+              onClick={() => setRollScope("rolled")}
+              disabled={busy}
+            >
+              <span className="save-goal-roll-option-label">
+                Apply only the {formatMoney(Math.abs(running.carryIn))} rolled
+              </span>
+              <span className="tiny muted">
+                {running.carryIn < 0
+                  ? "Goals take the rolled amount; today’s leftover keeps rolling."
+                  : "Goals get the rolled amount; today’s leftover keeps rolling."}
+              </span>
+            </button>
+          </div>
+          <div className="save-goal-create-actions" style={{ marginTop: 12 }}>
+            <PrimaryButton
+              onClick={confirmRollApply}
+              disabled={busy || !canApply}
+            >
+              {busy ? "Saving…" : "Confirm"}
+            </PrimaryButton>
+            <SecondaryButton
+              onClick={() => setRollPrompt(false)}
+              disabled={busy}
+            >
+              Cancel
+            </SecondaryButton>
+          </div>
+        </div>
+      ) : null}
+      {!rollPrompt && (onApply || (applied && onUndoApply)) ? (
         <div className="save-goal-ledger-apply">
           {onApply ? (
             <PrimaryButton
-              onClick={() =>
-                onApply(
-                  leftShown < 0
-                    ? {
-                        drawFromGoalId:
-                          drawFromGoalId ||
-                          (goals.length === 1 ? goals[0].id : undefined),
-                      }
-                    : undefined,
-                )
-              }
+              onClick={requestApply}
               disabled={busy || !canApply}
             >
               {busy
@@ -434,7 +528,7 @@ function GoalProgressRow({
   } else if (projection.targetDate) {
     dateLine = formatTargetDateLabel(projection.targetDate);
   } else {
-    dateLine = "—";
+    dateLine = "Needs leftover";
   }
 
   return (
@@ -1107,13 +1201,17 @@ function SaveGoalsDetail() {
     }
   }
 
-  async function applyTotals(opts?: { drawFromGoalId?: string }) {
+  async function applyTotals(opts?: {
+    drawFromGoalId?: string;
+    scope?: "all" | "rolled";
+  }) {
     setBusy(true);
     setError("");
     try {
       await post("/api/save-goals", {
         action: "applyTotals",
         date: today,
+        scope: opts?.scope === "rolled" ? "rolled" : "all",
         drawFromGoalId: opts?.drawFromGoalId,
       });
     } catch (e) {

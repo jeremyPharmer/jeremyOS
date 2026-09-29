@@ -154,30 +154,71 @@ Insert a thin **Money today** step in evening close (after mood/journal is fine;
 For each **active** goal with `savedAmount < targetAmount`:
 
 ```text
-remaining = targetAmount − savedAmount          // > 0
-weights = allocationWeight of each active goal
-w = weight(goal) / sum(weights)
+remaining = targetAmount − savedAmount          // cents OK
+share = inboundPercent(goal) / 100              // live chip %
 
-// Projection uses current month’s rate and a simple spend assumption:
-dailyIncome = dailyIncomeRate(today)
-avgSpend = mean(spendTotal over last 7 SaveGoalDays with data), else 0 if none
-projectedPoolPerDay = dailyIncome − avgSpend    // lump sums ignored in projection
-if projectedPoolPerDay ≤ 0 → targetDate = null  // UI: "Add leftover to project a date"
+// Steady pace = regular daily inbound × %  (e.g. $16 × 20% = $3.20/day)
+// Ignore Left, rolled carry, one-time adds/lumps, and today’s spend.
+base = dailyIncomeRate(today)                   // floored whole dollars
+goalDaily = base × share
+if goalDaily ≤ 0 or share ≤ 0 → targetDate = null  // UI: "Needs leftover" / "0% daily"
 
-goalDaily = projectedPoolPerDay * w
+// If today not yet applied, count today’s regular credit once
+if today open: remaining -= goalDaily
 etaDays = ceil(remaining / goalDaily)
 targetDate = today + etaDays calendar days
 ```
 
+Example: Reserve $985 to go at 20% of $16/day → $3.20/day → ~308 days (show **year** in the label).
+
 - If `savedAmount >= targetAmount` → show **Reached** (no date needed).
 - Do not use Future/Treat or `historicalDailySpend` in this math.
-- Recalculate on read (no need to store `targetDate` unless caching for display).
+- Recalculate on read so inbound % steppers update the date immediately.
+- Date labels always include the year (goals often land next calendar year).
 
 ### 6. Create / settings (thin)
 
 - Create goal: name + target amount; `allocationWeight = 1` (equal among actives).
 - Settings (or inline on card): edit `monthlyIncome` (default 500); archive goal; edit target/name.
 - v1 may use equal weights only (no UI for custom weights) — still store `allocationWeight` for lump/manual overrides later.
+
+### 7. Apply totals when leftover has rolled (polish — locked 2026-09-28)
+
+Unapplied days do **not** credit goals; their left **rolls** into today’s Day total / Left (`carryIn`). One tap of **Apply totals** today already locks the **full stack** (rolled + today) into goals in a single close — history is baked into carry. Founder ask: when there is rolled history, confirm what they mean to lock.
+
+**When the prompt appears**
+
+- Only when tapping **Apply totals** (or Re-apply) and `carryIn !== 0` on the apply date.
+- If `carryIn === 0`: no sheet — apply today as today (unchanged).
+- Same trigger on Home saver + evening Money today / `/save-goals`.
+
+**UX (2 choices max — plain money, no calendar jargon)**
+
+Lead (one line, dollars first):
+
+> **$48 left** includes **$32** that rolled in.
+
+Option labels + one-line helpers (use live `left` / `carryIn` amounts):
+
+| # | Label | Helper |
+| --- | --- | --- |
+| 1 (default) | **Apply all $48** | Puts the full left into your goals — rolled + today. |
+| 2 | **Apply only the $32 rolled** | Goals get the rolled amount; today’s leftover keeps rolling. |
+
+Deficit tone when `left < 0` / `carryIn < 0`: same structure with “takes from your goals” instead of “puts … into”.
+
+Primary CTA confirms the selected option; Cancel dismisses with no write.
+
+**Backend semantics**
+
+| Option | Behavior vs today’s single apply |
+| --- | --- |
+| **Apply all** | **Same as current** `applyTotals` / `applySaveGoalDayTotals(today)`: one close for today; `leftover = inbound(base+carry) + adds − spend`; allocations use that leftover; roll stops. |
+| **Apply only rolled** | **Differs:** close each prior open day in the roll chain (`d < today`, no close yet) in date order via existing `recordSaveGoalDay` / apply path so each day’s own left credits goals; **do not** close today. Afterward `carryIn(today) === 0` and today’s Left is only today (`base + adds − spend`), still unapplied. No new ledger kinds required. |
+
+Do **not** invent a third “apply through yesterday but rewrite today’s close” path. Do **not** require picking individual calendar days in the sheet.
+
+**Not a new backlog item** — polish inside **RB-037**; effort stays **M** (thin sheet + prior-day catch-up apply loop).
 
 ## Out of scope / later
 
@@ -189,15 +230,18 @@ targetDate = today + etaDays calendar days
 - Notifications / payday reminders
 - Multi-currency
 - Changing historical daily rates when `monthlyIncome` edits (history stays snapshotted)
+- Per-day picker / “apply this date only” calendar UI for rolled history (catch-up sheet above is enough)
 
 ## Dependencies & risks
 
-- Evening close is already dense (RB-032 Daily briefing Close) — keep Save Goals step **one screen**, numbers-first, no essay copy.
+- Evening close is already dense (RB-032 Daily briefing Close) — keep Save Goals step **one screen**, numbers-first, no essay copy; roll prompt is a **short confirm sheet**, not a second Money step.
 - Do not disturb RB-011 reclaim ensure or Venmo Total honesty.
 - Timezone: reuse evening local date helper.
 - RB-013 filter: founder-requested personal tool — ship thin; do not expand into generic finance OS.
+- Apply-only-rolled must walk prior days with the **same** spend/add entries + inbound % / draw-from rules as a normal apply (deficit days still need a draw goal when >1 actives).
 
 ## Notes
 
 - **Intake 2026-09-27:** Founder asked for Home “Save towards something”, to-go paydown, $500/mo → per day, lump sums, evening spend/leftover (incl. negative), target date; tracking only; “let’s go.” Elevated to **Ready / rank 13 / P0** — not parked with demoted fund rails (RB-001/RB-006).
 - Distinct from reward-moment **Save for the Future** (skip Treat) — different words, different ledger.
+- **2026-09-28 Apply-with-roll:** Founder unsure how to prompt elegantly when unapplied leftover rolls across days. Locked §7: two money-first choices (apply all vs apply only rolled); appear iff `carryIn !== 0`; default = apply all (= current single apply). Ship as RB-037 polish — no new ID.

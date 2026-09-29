@@ -4,6 +4,7 @@ import {
   addSaveGoalSpend,
   applySaveGoalAdjustment,
   applySaveGoalDayTotals,
+  applySaveGoalRolledOnly,
   createSaveGoal,
   deleteSaveGoal,
   recordSaveGoalDay,
@@ -183,13 +184,18 @@ export async function POST(req: Request) {
       }
 
       if (action === "applyTotals") {
+        const date = String(body.date ?? today);
+        const drawFromGoalId =
+          body.drawFromGoalId !== undefined && body.drawFromGoalId !== null
+            ? String(body.drawFromGoalId)
+            : undefined;
+        if (body.scope === "rolled") {
+          return applySaveGoalRolledOnly(prev, { date, drawFromGoalId });
+        }
         return applySaveGoalDayTotals(prev, {
-          date: String(body.date ?? today),
+          date,
           lumpSum: body.lumpSum !== undefined ? Number(body.lumpSum) : 0,
-          drawFromGoalId:
-            body.drawFromGoalId !== undefined && body.drawFromGoalId !== null
-              ? String(body.drawFromGoalId)
-              : undefined,
+          drawFromGoalId,
         });
       }
 

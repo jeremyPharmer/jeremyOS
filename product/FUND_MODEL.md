@@ -90,7 +90,7 @@ Canonical backlog: **RB-037**. Product name: **Save Goal**. Home empty CTA: **�
 | Venmo Total | **Excluded** — Save Goal balances do not affect Total |
 | Money movement | **None** — UI + backend tracking only |
 | Income | Default **$500** credited conceptually on the **1st**; daily rate = `monthlyIncome / daysInMonth` |
-| Evening | Enter **total spend**; `leftover = dailyRate − spend` (+ optional lump sum); allocate to active goals; overspend may pull goals **negative** |
+| Evening | Enter **total spend**; `leftover = dailyRate − spend` (+ optional lump sum); allocate to active goals; overspend may pull goals **negative**. Unapplied left **rolls**; Apply with roll-in prompts **all** vs **only rolled** (RB-037 §7) |
 | Home | Card shows **to go**, paydown, projected **target date** |
 
 Do **not** debit Future or Treat when allocating to a Save Goal. Do **not** confuse with reward-moment **Save for the Future** (skip Treat) — different words, different ledger.

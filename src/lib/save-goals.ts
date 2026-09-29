@@ -602,6 +602,29 @@ export function removeSaveGoalSpend(
 }
 
 /**
+ * Prior open days that still roll into `asOfDate` (contiguous unapplied
+ * chain after the last close). Does not include `asOfDate` itself.
+ */
+export function listRolledOpenDatesBefore(
+  state: RebuildState,
+  asOfDate: string,
+): string[] {
+  if (!DATE_RE.test(asOfDate)) return [];
+  const start = saveGoalAccrualStart(state, asOfDate);
+  if (asOfDate <= start) return [];
+  const opens: string[] = [];
+  for (const d of datesInRange(start, asOfDate)) {
+    if (d === asOfDate) break;
+    if (hasSaveGoalClose(state, d)) {
+      opens.length = 0;
+    } else {
+      opens.push(d);
+    }
+  }
+  return opens;
+}
+
+/**
  * Apply today’s running ledger: positive leftover uses inbound %;
  * negative leftover draws from `drawFromGoalId` (required when >1 goals).
  * Stops roll-forward for this date. Idempotent replace of that date’s close.
@@ -628,6 +651,39 @@ export function applySaveGoalDayTotals(
     drawFromGoalId: input.drawFromGoalId,
     source: "manual",
   });
+}
+
+/**
+ * Apply only rolled history before `date` (close each prior open day in
+ * the roll chain). Does **not** close `date` — today’s leftover keeps rolling.
+ */
+export function applySaveGoalRolledOnly(
+  state: RebuildState,
+  input: {
+    date: string;
+    /** When a prior day leftover is negative: goal to draw from */
+    drawFromGoalId?: string;
+  },
+): RebuildState {
+  const date = String(input.date ?? "").trim();
+  if (!DATE_RE.test(date)) {
+    throw Object.assign(new Error("date required"), { status: 400 });
+  }
+  const prior = listRolledOpenDatesBefore(state, date);
+  if (!prior.length) {
+    throw Object.assign(new Error("Nothing rolled in to apply"), {
+      status: 400,
+    });
+  }
+  let next = state;
+  for (const d of prior) {
+    const { left } = leftoverBeforeApply(next, d);
+    next = applySaveGoalDayTotals(next, {
+      date: d,
+      drawFromGoalId: left < 0 ? input.drawFromGoalId : undefined,
+    });
+  }
+  return next;
 }
 
 /** Remove today’s close so leftover rolls again and goal saves reverse. */
@@ -1315,16 +1371,24 @@ export type SaveGoalProjection = {
   status: "reached" | "on_track" | "needs_leftover";
 };
 
+/**
+ * Project a target date from what’s already saved + a steady daily pace.
+ *
+ * Pace = daily inbound rate × this goal’s % (e.g. $16 × 20% = $3.20/day).
+ * Ignores rolled carry, one-time adds/lumps, and today’s spend — those are
+ * one-offs; the date assumes the regular daily split keeps going.
+ * Recalculates on read so % chip changes update the date immediately.
+ */
 export function projectSaveGoalTargetDate(
   state: RebuildState,
   goal: SaveGoal,
   today: string,
 ): SaveGoalProjection {
-  const remaining = floorDollar(goal.targetAmount - goal.savedAmount);
-  if (remaining <= 0 || goal.status === "reached") {
+  const remaining0 = round2(goal.targetAmount - goal.savedAmount);
+  if (remaining0 <= 0 || goal.status === "reached") {
     return {
       goalId: goal.id,
-      remaining: Math.max(0, remaining),
+      remaining: Math.max(0, remaining0),
       projectedPoolPerDay: 0,
       goalDaily: 0,
       etaDays: null,
@@ -1333,16 +1397,27 @@ export function projectSaveGoalTargetDate(
     };
   }
 
-  const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
-  const dailyIncome = dailyIncomeRate(today, settings.monthlyIncome);
-  const avgSpend = averageSpendLastDays(state.saveGoalDays ?? [], today, 7);
-  const spendAssumption = avgSpend ?? 0;
-  const projectedPoolPerDay = floorDollar(dailyIncome - spendAssumption);
-
-  if (projectedPoolPerDay <= 0) {
+  const share = inboundPercent(goal) / 100;
+  if (share <= 0) {
     return {
       goalId: goal.id,
-      remaining,
+      remaining: remaining0,
+      projectedPoolPerDay: 0,
+      goalDaily: 0,
+      etaDays: null,
+      targetDate: null,
+      status: "needs_leftover",
+    };
+  }
+
+  const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
+  // Steady inbound only — not Left (which can include adds / roll).
+  const projectedPoolPerDay = dailyIncomeRate(today, settings.monthlyIncome);
+  const goalDaily = round2(projectedPoolPerDay * share);
+  if (goalDaily <= 0) {
+    return {
+      goalId: goal.id,
+      remaining: remaining0,
       projectedPoolPerDay,
       goalDaily: 0,
       etaDays: null,
@@ -1351,17 +1426,21 @@ export function projectSaveGoalTargetDate(
     };
   }
 
-  const share = inboundPercent(goal) / 100;
-  const goalDaily = floorDollar(projectedPoolPerDay * share);
-  if (goalDaily <= 0) {
+  let remaining = remaining0;
+  // If today isn’t applied yet, count today’s expected regular credit once.
+  if (!hasSaveGoalClose(state, today)) {
+    remaining = round2(remaining - goalDaily);
+  }
+
+  if (remaining <= 0) {
     return {
       goalId: goal.id,
-      remaining,
+      remaining: 0,
       projectedPoolPerDay,
-      goalDaily: 0,
-      etaDays: null,
-      targetDate: null,
-      status: "needs_leftover",
+      goalDaily,
+      etaDays: 0,
+      targetDate: today,
+      status: "on_track",
     };
   }
 
@@ -1377,11 +1456,13 @@ export function projectSaveGoalTargetDate(
   };
 }
 
+/** Always include year — goals often land next calendar year. */
 export function formatTargetDateLabel(date: string): string {
   return parseDate(date).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
+    year: "numeric",
   });
 }
 
