@@ -9,35 +9,89 @@ export type AgendaPastable = {
   endTime?: string;
 };
 
+/** Calendar date YYYY-MM-DD in a timezone (client-safe). */
+export function calendarDateInTz(now: Date, timezone: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
 function formatLocalTime(date: Date, timezone: string): string {
   return new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     hour: "numeric",
     minute: "2-digit",
+    hour12: true,
   }).format(date);
 }
 
-/** Parse agenda display times like "9:05 AM" / "12:00 PM" → minutes since midnight. */
+/** Parse agenda display times like "9:05 AM" / "12:00 PM" / "21:05" → minutes. */
 export function parseAgendaDisplayTimeToMinutes(label: string): number | null {
-  const t = label.trim();
+  const t = label.trim().replace(/[\u202f\u00a0]/g, " ");
   if (!t) return null;
-  const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!m) return null;
-  let hour = Number(m[1]);
-  const minute = Number(m[2]);
-  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
-  if (minute < 0 || minute > 59 || hour < 1 || hour > 12) return null;
-  const ap = m[3]!.toUpperCase();
-  if (ap === "AM") {
-    if (hour === 12) hour = 0;
-  } else if (hour !== 12) {
-    hour += 12;
+
+  const m12 = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (m12) {
+    let hour = Number(m12[1]);
+    const minute = Number(m12[2]);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+    if (minute < 0 || minute > 59 || hour < 1 || hour > 12) return null;
+    const ap = m12[3]!.toUpperCase();
+    if (ap === "AM") {
+      if (hour === 12) hour = 0;
+    } else if (hour !== 12) {
+      hour += 12;
+    }
+    return hour * 60 + minute;
   }
-  return hour * 60 + minute;
+
+  // 24h (device hourCycle can make Intl omit AM/PM even for en-US)
+  const m24 = t.match(/^(\d{1,2}):(\d{2})$/);
+  if (m24) {
+    const hour = Number(m24[1]);
+    const minute = Number(m24[2]);
+    if (
+      Number.isFinite(hour) &&
+      Number.isFinite(minute) &&
+      hour >= 0 &&
+      hour <= 23 &&
+      minute >= 0 &&
+      minute <= 59
+    ) {
+      return hour * 60 + minute;
+    }
+  }
+
+  return null;
 }
 
 /** Current clock minutes in a timezone (from a Date). */
 export function localMinutesInTz(now: Date, timezone: string): number {
+  // Prefer parts API so 24h device settings cannot zero-out "past" checks.
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: false,
+      hourCycle: "h23",
+    }).formatToParts(now);
+    const hour = Number(parts.find((p) => p.type === "hour")?.value);
+    const minute = Number(parts.find((p) => p.type === "minute")?.value);
+    if (
+      Number.isFinite(hour) &&
+      Number.isFinite(minute) &&
+      hour >= 0 &&
+      hour <= 23
+    ) {
+      return hour * 60 + minute;
+    }
+  } catch {
+    /* fall through */
+  }
   return parseAgendaDisplayTimeToMinutes(formatLocalTime(now, timezone)) ?? 0;
 }
 
@@ -53,8 +107,9 @@ export function isAgendaEventPast(
   now: Date,
   timezone: string,
 ): boolean {
-  if (viewDate < today) return true;
-  if (viewDate > today) return false;
+  const effectiveToday = today || calendarDateInTz(now, timezone);
+  if (viewDate < effectiveToday) return true;
+  if (viewDate > effectiveToday) return false;
   if (
     event.allDay ||
     event.startTime === "All day" ||
@@ -99,8 +154,9 @@ export function filterAgendaActiveEvents<T extends AgendaPastable>(
   now: Date,
   timezone: string,
 ): T[] {
-  if (viewDate !== today) return events;
+  const effectiveToday = today || calendarDateInTz(now, timezone);
+  if (viewDate !== effectiveToday) return events;
   return events.filter(
-    (event) => !isAgendaEventPast(event, viewDate, today, now, timezone),
+    (event) => !isAgendaEventPast(event, viewDate, effectiveToday, now, timezone),
   );
 }

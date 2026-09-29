@@ -129,6 +129,7 @@ function AgendaEventRow({
   event,
   displayTitle,
   past = false,
+  hideWhenPast = false,
   group,
   timeline = false,
   timeLabel,
@@ -138,6 +139,8 @@ function AgendaEventRow({
   event: WorkCalendarEvent;
   displayTitle: string;
   past?: boolean;
+  /** When true, finished events are not rendered (today’s Home list). */
+  hideWhenPast?: boolean;
   group?: TaskGroup;
   timeline?: boolean;
   timeLabel?: string;
@@ -161,6 +164,8 @@ function AgendaEventRow({
   useEffect(() => {
     if (editing) inputRef.current?.focus();
   }, [editing]);
+
+  if (hideWhenPast && past) return null;
 
   async function commit() {
     const nextTitle = draft.trim();
@@ -372,7 +377,8 @@ export function TodayAgendaCard() {
   }, [monthKey]);
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 60_000);
+    // Tick often enough that finished meetings drop off without a refresh.
+    const id = window.setInterval(() => setNow(new Date()), 15_000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -777,6 +783,7 @@ export function TodayAgendaCard() {
                   now,
                   timezone,
                 )}
+                hideWhenPast={viewDate === today}
                 displayTitle={title}
                 group={group}
                 onSave={async (next) => {
@@ -844,6 +851,7 @@ export function TodayAgendaCard() {
                         now,
                         timezone,
                       )}
+                      hideWhenPast={viewDate === today}
                       displayTitle={displayCalendarTitle(full, overrides)}
                       group={group}
                       onSave={(next) => saveEvent(full.id, next)}
@@ -879,6 +887,7 @@ export function TodayAgendaCard() {
                           now,
                           timezone,
                         )}
+                        hideWhenPast={viewDate === today}
                         displayTitle={displayCalendarTitle(full, overrides)}
                         group={group}
                         onSave={(next) => saveEvent(full.id, next)}
@@ -1032,6 +1041,7 @@ export function TodayAgendaCard() {
                             now,
                             timezone,
                           );
+                          if (viewDate === today && past) return null;
                           return (
                             <div
                               key={full.id}
@@ -1047,7 +1057,7 @@ export function TodayAgendaCard() {
                                 type="button"
                                 className={`agenda-day-lane-chip${
                                   group ? " has-group-bar" : ""
-                                }${past ? " agenda-item-past" : ""}`}
+                                }`}
                                 style={
                                   group
                                     ? {
@@ -1112,6 +1122,7 @@ export function TodayAgendaCard() {
                           now,
                           timezone,
                         )}
+                        hideWhenPast={viewDate === today}
                         displayTitle={displayCalendarTitle(full, overrides)}
                         group={group}
                         onSave={(next) => saveEvent(full.id, next)}

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   filterAgendaActiveEvents,
   isAgendaEventPast,
+  localMinutesInTz,
   orderAgendaUpcomingThenPast,
   parseAgendaDisplayTimeToMinutes,
 } from "./agenda-past";
@@ -212,10 +213,12 @@ describe("agenda past helpers", () => {
     url: partial.url,
   });
 
-  it("parses AM/PM display times", () => {
+  it("parses AM/PM and 24h display times", () => {
     expect(parseAgendaDisplayTimeToMinutes("12:00 AM")).toBe(0);
     expect(parseAgendaDisplayTimeToMinutes("12:00 PM")).toBe(12 * 60);
     expect(parseAgendaDisplayTimeToMinutes("1:15 PM")).toBe(13 * 60 + 15);
+    expect(parseAgendaDisplayTimeToMinutes("12:00\u202fPM")).toBe(12 * 60);
+    expect(parseAgendaDisplayTimeToMinutes("21:05")).toBe(21 * 60 + 5);
     expect(parseAgendaDisplayTimeToMinutes("All day")).toBeNull();
   });
 
@@ -266,6 +269,7 @@ describe("agenda past helpers", () => {
   it("keeps in-progress events and drops finished ones on today", () => {
     // 18:30 UTC = 11:30 AM America/Los_Angeles on 2026-09-07
     const now = new Date("2026-09-07T18:30:00Z");
+    expect(localMinutesInTz(now, TZ)).toBe(11 * 60 + 30);
     const list = [
       timed({ id: "done", startTime: "9:00 AM", endTime: "10:00 AM" }),
       timed({ id: "now", startTime: "11:00 AM", endTime: "12:00 PM" }),
@@ -279,6 +283,10 @@ describe("agenda past helpers", () => {
       filterAgendaActiveEvents(list, "2026-09-07", "2026-09-07", now, TZ).map(
         (e) => e.id,
       ),
+    ).toEqual(["now", "later", "all"]);
+    // Empty today string still filters using the clock timezone date.
+    expect(
+      filterAgendaActiveEvents(list, "2026-09-07", "", now, TZ).map((e) => e.id),
     ).toEqual(["now", "later", "all"]);
     // Other days keep everything (including "finished" relative to clock).
     expect(
