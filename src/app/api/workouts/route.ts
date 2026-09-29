@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { todayInTz, newId } from "@/lib/journey";
 import {
+  elapsedDurationMin,
   isWorkoutType,
+  normalizeActiveWorkout,
   normalizeExerciseActuals,
   normalizeQuality,
   normalizeRoutine,
@@ -10,6 +12,7 @@ import {
 } from "@/lib/workouts";
 import { updateState } from "@/lib/store";
 import type {
+  ActiveWorkoutSession,
   WorkoutLog,
   WorkoutPr,
   WorkoutRoutine,
@@ -53,6 +56,13 @@ function parseRoutineExercises(
   return out;
 }
 
+function parseOptionalDistance(raw: unknown): number | undefined {
+  if (raw === undefined || raw === null || raw === "") return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return undefined;
+  return n;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -70,6 +80,7 @@ export async function POST(req: Request) {
       const workoutRoutines = [...(prev.workoutRoutines ?? [])].map(
         normalizeRoutine,
       );
+      const activeWorkout = normalizeActiveWorkout(prev.activeWorkout);
 
       if (action === "delete") {
         const id = String(body.id ?? "");
@@ -162,6 +173,122 @@ export async function POST(req: Request) {
           createdAt: now,
         };
         return { ...prev, workoutRoutines: [row, ...workoutRoutines] };
+      }
+
+      if (action === "start_session") {
+        if (activeWorkout) {
+          const err = new Error("A workout is already in progress");
+          (err as Error & { status: number }).status = 409;
+          throw err;
+        }
+        const date = String(body.date ?? todayInTz(prev.profile.timezone));
+        const type = parseWorkoutType(body);
+        const label = String(body.label ?? "").trim();
+        if (!label) {
+          const err = new Error("Workout label required");
+          (err as Error & { status: number }).status = 400;
+          throw err;
+        }
+        const now = new Date().toISOString();
+        const session: ActiveWorkoutSession = {
+          id: newId("active_workout"),
+          startedAt: now,
+          date,
+          type,
+          label,
+          routineId: body.routineId ? String(body.routineId).trim() : undefined,
+          exerciseActuals: normalizeExerciseActuals(body.exerciseActuals),
+          distanceMiles: parseOptionalDistance(body.distanceMiles),
+          notes: body.notes ? String(body.notes) : undefined,
+          updatedAt: now,
+        };
+        return { ...prev, activeWorkout: session };
+      }
+
+      if (action === "update_session") {
+        if (!activeWorkout) {
+          const err = new Error("No workout in progress");
+          (err as Error & { status: number }).status = 404;
+          throw err;
+        }
+        const now = new Date().toISOString();
+        const next: ActiveWorkoutSession = {
+          ...activeWorkout,
+          exerciseActuals:
+            body.exerciseActuals !== undefined
+              ? normalizeExerciseActuals(body.exerciseActuals)
+              : activeWorkout.exerciseActuals,
+          distanceMiles:
+            body.distanceMiles !== undefined
+              ? parseOptionalDistance(body.distanceMiles)
+              : activeWorkout.distanceMiles,
+          notes:
+            body.notes !== undefined
+              ? body.notes
+                ? String(body.notes)
+                : undefined
+              : activeWorkout.notes,
+          updatedAt: now,
+        };
+        return { ...prev, activeWorkout: next };
+      }
+
+      if (action === "discard_session") {
+        return { ...prev, activeWorkout: null };
+      }
+
+      if (action === "end_session") {
+        if (!activeWorkout) {
+          const err = new Error("No workout in progress");
+          (err as Error & { status: number }).status = 404;
+          throw err;
+        }
+        const quality = normalizeQuality(body.quality);
+        if (quality == null) {
+          const err = new Error("Quality rating 1–5 required");
+          (err as Error & { status: number }).status = 400;
+          throw err;
+        }
+        const endedAt = Date.now();
+        const durationMin =
+          body.durationMin != null && Number.isFinite(Number(body.durationMin))
+            ? Math.max(0, Math.round(Number(body.durationMin)))
+            : elapsedDurationMin(
+                endedAt - Date.parse(activeWorkout.startedAt),
+              );
+        const exerciseActuals =
+          body.exerciseActuals !== undefined
+            ? normalizeExerciseActuals(body.exerciseActuals)
+            : activeWorkout.exerciseActuals;
+        const distanceMiles =
+          body.distanceMiles !== undefined
+            ? parseOptionalDistance(body.distanceMiles)
+            : activeWorkout.distanceMiles;
+        const notes =
+          body.notes !== undefined
+            ? body.notes
+              ? String(body.notes)
+              : undefined
+            : activeWorkout.notes;
+
+        const row: WorkoutLog = {
+          id: newId(),
+          date: activeWorkout.date,
+          type: activeWorkout.type,
+          label: activeWorkout.label,
+          quality,
+          durationMin: durationMin > 0 ? durationMin : undefined,
+          distanceMiles,
+          notes,
+          routineId: activeWorkout.routineId,
+          exerciseActuals,
+          createdAt: new Date(endedAt).toISOString(),
+        };
+        return {
+          ...prev,
+          workouts: [row, ...workouts],
+          activeWorkout: null,
+        };
       }
 
       const date = String(body.date ?? todayInTz(prev.profile.timezone));

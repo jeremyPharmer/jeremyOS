@@ -11,6 +11,7 @@ import type {
   Reward,
 } from "./types";
 import {
+  normalizeActiveWorkout,
   normalizeRoutines,
   normalizeWorkout,
   normalizeWorkoutPrs,
@@ -50,6 +51,7 @@ export function normalizeState(state: RebuildState): RebuildState {
     workouts: (state.workouts ?? []).map(normalizeWorkout),
     workoutPrs: normalizeWorkoutPrs(state.workoutPrs),
     workoutRoutines: normalizeRoutines(state.workoutRoutines),
+    activeWorkout: normalizeActiveWorkout(state.activeWorkout),
     calendarTitleOverrides: state.calendarTitleOverrides ?? {},
     calendarHiddenEventIds: state.calendarHiddenEventIds ?? [],
     customAgendaEvents: state.customAgendaEvents ?? [],
