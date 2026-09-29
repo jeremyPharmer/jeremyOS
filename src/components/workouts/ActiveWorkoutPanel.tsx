@@ -206,9 +206,6 @@ export function ActiveWorkoutPanel({
           </span>
           {session.label}
         </p>
-        <p className="tiny muted workout-active-hint">
-          Switch apps anytime — this session stays until you end it.
-        </p>
       </div>
 
       {actuals.length > 0 && (

@@ -790,10 +790,6 @@ h2 {
   font-weight: 650;
 }
 
-.workout-active-hint {
-  margin: 2px 0 0;
-}
-
 .workout-active-actions {
   display: grid;
   gap: 8px;
