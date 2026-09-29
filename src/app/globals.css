@@ -2342,40 +2342,6 @@ h2 {
 }
 
 .save-goal-roll-options {
-<<<<<<< HEAD
-=======
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.save-goal-roll-option {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-}
-
-.save-goal-roll-option.selected {
-  border-color: var(--accent, var(--line));
-  background: color-mix(in srgb, var(--accent, var(--line)) 12%, var(--surface));
-}
-
-.save-goal-roll-option-label {
-  font-weight: 650;
-  font-size: 0.95rem;
-}
-
-.save-goal-ledger-apply {
->>>>>>> origin/main
   display: flex;
   flex-direction: column;
   gap: 8px;
