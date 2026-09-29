@@ -157,22 +157,24 @@ For each **active** goal with `savedAmount < targetAmount`:
 remaining = targetAmount − savedAmount          // cents OK
 share = inboundPercent(goal) / 100              // live chip %
 
-// Steady pace — ignore rolled carry and one-time adds/lumps:
+// Steady pace = regular daily inbound × %  (e.g. $16 × 20% = $3.20/day)
+// Ignore Left, rolled carry, one-time adds/lumps, and today’s spend.
 base = dailyIncomeRate(today)                   // floored whole dollars
-spend = today’s subtract-entry total            // from the running ledger
-projectedPoolPerDay = base − spend
-if projectedPoolPerDay ≤ 0 or share ≤ 0 → targetDate = null  // UI: "Needs leftover"
+goalDaily = base × share
+if goalDaily ≤ 0 or share ≤ 0 → targetDate = null  // UI: "Needs leftover" / "0% daily"
 
-goalDaily = projectedPoolPerDay × share         // round cents; % changes update live
-// If today not yet applied, subtract today’s steady credit once from remaining
-if today open: remaining -= max(0, projectedPoolPerDay) × share
+// If today not yet applied, count today’s regular credit once
+if today open: remaining -= goalDaily
 etaDays = ceil(remaining / goalDaily)
 targetDate = today + etaDays calendar days
 ```
 
+Example: Reserve $985 to go at 20% of $16/day → $3.20/day → ~308 days (show **year** in the label).
+
 - If `savedAmount >= targetAmount` → show **Reached** (no date needed).
 - Do not use Future/Treat or `historicalDailySpend` in this math.
-- Recalculate on read (no need to store `targetDate` unless caching for display) so inbound % steppers update the date immediately.
+- Recalculate on read so inbound % steppers update the date immediately.
+- Date labels always include the year (goals often land next calendar year).
 
 ### 6. Create / settings (thin)
 

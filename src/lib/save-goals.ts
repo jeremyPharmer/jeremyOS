@@ -1374,8 +1374,9 @@ export type SaveGoalProjection = {
 /**
  * Project a target date from what’s already saved + a steady daily pace.
  *
- * Steady pace ignores rolled carry and one-time adds/lumps — only the
- * fixed daily rate minus today’s spend pattern, times this goal’s inbound %.
+ * Pace = daily inbound rate × this goal’s % (e.g. $16 × 20% = $3.20/day).
+ * Ignores rolled carry, one-time adds/lumps, and today’s spend — those are
+ * one-offs; the date assumes the regular daily split keeps going.
  * Recalculates on read so % chip changes update the date immediately.
  */
 export function projectSaveGoalTargetDate(
@@ -1410,23 +1411,8 @@ export function projectSaveGoalTargetDate(
   }
 
   const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
-  const base = dailyIncomeRate(today, settings.monthlyIncome);
-  const day = leftoverBeforeApply(state, today);
-  // Typical day: fixed rate − spend. No roll-in, no manual adds/lumps.
-  const projectedPoolPerDay = round2(base - day.spend);
-
-  if (projectedPoolPerDay <= 0) {
-    return {
-      goalId: goal.id,
-      remaining: remaining0,
-      projectedPoolPerDay,
-      goalDaily: 0,
-      etaDays: null,
-      targetDate: null,
-      status: "needs_leftover",
-    };
-  }
-
+  // Steady inbound only — not Left (which can include adds / roll).
+  const projectedPoolPerDay = dailyIncomeRate(today, settings.monthlyIncome);
   const goalDaily = round2(projectedPoolPerDay * share);
   if (goalDaily <= 0) {
     return {
@@ -1441,11 +1427,9 @@ export function projectSaveGoalTargetDate(
   }
 
   let remaining = remaining0;
-  // If today isn’t applied yet, count today’s expected credit once
-  // (steady share only — same no-bonus assumption).
+  // If today isn’t applied yet, count today’s expected regular credit once.
   if (!hasSaveGoalClose(state, today)) {
-    const todayCredit = round2(Math.max(0, projectedPoolPerDay) * share);
-    remaining = round2(remaining - todayCredit);
+    remaining = round2(remaining - goalDaily);
   }
 
   if (remaining <= 0) {
@@ -1472,11 +1456,13 @@ export function projectSaveGoalTargetDate(
   };
 }
 
+/** Always include year — goals often land next calendar year. */
 export function formatTargetDateLabel(date: string): string {
   return parseDate(date).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
+    year: "numeric",
   });
 }
 
