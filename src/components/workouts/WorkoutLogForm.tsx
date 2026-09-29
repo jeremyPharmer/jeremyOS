@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
+import { ActiveWorkoutPanel } from "@/components/workouts/ActiveWorkoutPanel";
 import type {
   WorkoutExerciseActual,
   WorkoutType,
@@ -9,7 +10,6 @@ import type {
 import {
   blankActualsFromRoutine,
   findRoutine,
-  gymSupportForType,
   lastExerciseActualsForRoutine,
   parseRoutineSelectValue,
   repModeLabel,
@@ -17,14 +17,8 @@ import {
   routinesForType,
   WORKOUT_CUSTOM,
   WORKOUT_PRESETS,
-  WORKOUT_QUALITY_MAX,
   WORKOUT_TYPES,
 } from "@/lib/workouts";
-
-const QUALITY_OPTIONS = Array.from(
-  { length: WORKOUT_QUALITY_MAX },
-  (_, i) => i + 1,
-);
 
 export function WorkoutLogForm({
   date,
@@ -33,18 +27,15 @@ export function WorkoutLogForm({
 }: {
   date: string;
   onLogged?: () => void;
-  /** Home quick log: type, workout, quality only */
+  /** Home quick log: type + workout only (starts session) */
   variant?: "quick" | "full";
 }) {
   const { state, post } = useApp();
+  const active = state.activeWorkout ?? null;
+
   const [type, setType] = useState<WorkoutType>("run");
   const [workout, setWorkout] = useState("");
   const [customLabel, setCustomLabel] = useState("");
-  const [quality, setQuality] = useState<number | null>(null);
-  const [distance, setDistance] = useState("");
-  const [duration, setDuration] = useState("");
-  const [notes, setNotes] = useState("");
-  const [showSessionDetails, setShowSessionDetails] = useState(false);
   const [actuals, setActuals] = useState<WorkoutExerciseActual[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -64,15 +55,14 @@ export function WorkoutLogForm({
     : isCustom
       ? customLabel.trim()
       : workout.trim();
-  const canSubmit = Boolean(label) && quality != null && !busy;
-  const showSessionFields =
-    variant === "full" && !selectedRoutine && Boolean(workout);
+  const canStart = Boolean(label) && !busy;
+  const showPlannedSets =
+    selectedRoutine && actuals.length > 0 && variant === "full";
 
   useEffect(() => {
     setWorkout("");
     setCustomLabel("");
     setActuals([]);
-    setShowSessionDetails(false);
   }, [type]);
 
   useEffect(() => {
@@ -84,7 +74,6 @@ export function WorkoutLogForm({
     const r = findRoutine(state.workoutRoutines, id);
     const previous = lastExerciseActualsForRoutine(state.workouts, id);
     setActuals(r ? blankActualsFromRoutine(r, previous) : []);
-    setShowSessionDetails(false);
   }, [workout, state.workoutRoutines, state.workouts]);
 
   function updateSet(
@@ -102,7 +91,8 @@ export function WorkoutLogForm({
             const next = { ...s };
             if (patch.reps != null) {
               const n = Number(patch.reps);
-              next.reps = Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+              next.reps =
+                Number.isFinite(n) && n >= 0 ? Math.min(99, Math.round(n)) : 0;
             }
             if (patch.weight != null && ex.tracksWeight) {
               const n = Number(patch.weight);
@@ -116,9 +106,9 @@ export function WorkoutLogForm({
     );
   }
 
-  async function submit(e: React.FormEvent) {
+  async function start(e: React.FormEvent) {
     e.preventDefault();
-    if (!label || quality == null) return;
+    if (!label) return;
     setBusy(true);
     setError("");
     try {
@@ -129,63 +119,48 @@ export function WorkoutLogForm({
               name: ex.name,
               tracksWeight: ex.tracksWeight,
               repMode: ex.repMode,
-              sets: ex.sets
-                .filter((s) => s.reps > 0)
-                .map((s) =>
-                  ex.tracksWeight
-                    ? { reps: s.reps, weight: s.weight }
-                    : { reps: s.reps },
-                ),
+              sets: ex.sets.map((s) =>
+                ex.tracksWeight
+                  ? { reps: Math.max(0, s.reps || 0), weight: s.weight }
+                  : { reps: Math.max(0, s.reps || 0) },
+              ),
             }))
           : undefined;
 
       await post("/api/workouts", {
-        action: "log",
+        action: "start_session",
         date,
         type,
         label,
-        quality,
-        distanceMiles:
-          showSessionFields && type === "run" && distance
-            ? Number(distance)
-            : undefined,
-        durationMin:
-          showSessionFields && duration ? Number(duration) : undefined,
-        notes:
-          showSessionFields && notes.trim() ? notes.trim() : undefined,
         routineId: selectedRoutine?.id,
         exerciseActuals,
       });
       setWorkout("");
       setCustomLabel("");
-      setQuality(null);
-      setDistance("");
-      setDuration("");
-      setNotes("");
       setActuals([]);
-      setShowSessionDetails(false);
-      onLogged?.();
-      if (gymSupportForType(type)) {
-        await post("/api/support", {
-          date,
-          supportType: "gym",
-          completed: true,
-        });
-      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not log workout");
+      setError(err instanceof Error ? err.message : "Could not start workout");
     } finally {
       setBusy(false);
     }
   }
 
+  if (active) {
+    return (
+      <ActiveWorkoutPanel
+        session={active}
+        onEnded={() => onLogged?.()}
+      />
+    );
+  }
+
   return (
     <form
       className={`workout-log-form${variant === "quick" ? " workout-log-form-quick" : " panel"}`}
-      onSubmit={submit}
+      onSubmit={start}
       autoComplete="off"
     >
-      <p className="eyebrow">Log workout</p>
+      <p className="eyebrow">Start workout</p>
 
       <fieldset className="workout-log-field">
         <legend className="workout-log-label">Type</legend>
@@ -225,7 +200,7 @@ export function WorkoutLogForm({
               ))}
             </optgroup>
           )}
-          <optgroup label="Quick log">
+          <optgroup label="Quick start">
             {WORKOUT_PRESETS[type].map((presetName) => (
               <option key={presetName} value={presetName}>
                 {presetName}
@@ -253,13 +228,21 @@ export function WorkoutLogForm({
         </label>
       )}
 
-      {selectedRoutine && actuals.length > 0 && (
+      <button
+        type="submit"
+        className="btn primary workout-log-submit"
+        disabled={!canStart}
+      >
+        {busy ? "Starting…" : "Start workout"}
+      </button>
+
+      {error && (
+        <p className="tiny workout-log-error">{error}</p>
+      )}
+
+      {showPlannedSets && (
         <div className="workout-actuals">
-          <p className="workout-log-label">Today&apos;s sets</p>
-          <p className="tiny muted">
-            Log what you did — weights default to last time you did this
-            workout (edit if you change them).
-          </p>
+          <p className="workout-log-label">Planned sets</p>
           {actuals.map((ex, ei) => (
             <div key={ex.exerciseId} className="workout-actual-ex">
               <p className="workout-actual-ex-name">{ex.name}</p>
@@ -281,9 +264,9 @@ export function WorkoutLogForm({
                       className="workout-actual-input"
                       type="number"
                       inputMode="numeric"
-                      min={1}
+                      min={0}
                       max={ex.repMode === "seconds" ? 999 : 99}
-                      value={s.reps || ""}
+                      value={s.reps}
                       onChange={(e) =>
                         updateSet(ei, si, { reps: e.target.value })
                       }
@@ -311,103 +294,6 @@ export function WorkoutLogForm({
             </div>
           ))}
         </div>
-      )}
-
-      <fieldset className="workout-log-field">
-        <legend className="workout-log-label">Quality</legend>
-        <div
-          className="workout-quality-scale"
-          role="group"
-          aria-label="Workout quality 1 to 5"
-        >
-          {QUALITY_OPTIONS.map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={`workout-quality-btn${quality === n ? " active" : ""}`}
-              onClick={() => setQuality(n)}
-              aria-pressed={quality === n}
-              aria-label={`Quality ${n}`}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
-      {showSessionFields && (
-        <div className="workout-session-details">
-          <button
-            type="button"
-            className="workout-session-details-toggle"
-            aria-expanded={showSessionDetails}
-            onClick={() => setShowSessionDetails((v) => !v)}
-          >
-            {showSessionDetails ? "Hide session details" : "Add session details (optional)"}
-          </button>
-          {showSessionDetails && (
-            <div className="workout-session-details-body">
-              {type === "run" && (
-                <label className="workout-log-field">
-                  <span className="workout-log-label">Miles</span>
-                  <input
-                    className="workout-log-input"
-                    type="number"
-                    inputMode="decimal"
-                    step="0.1"
-                    min={0}
-                    placeholder="0.0"
-                    value={distance}
-                    onChange={(e) => setDistance(e.target.value)}
-                    aria-label="Distance in miles"
-                    name="rebuild-workout-miles"
-                    autoComplete="off"
-                  />
-                </label>
-              )}
-              <label className="workout-log-field">
-                <span className="workout-log-label">Minutes</span>
-                <input
-                  className="workout-log-input"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={600}
-                  placeholder="Optional"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  aria-label="Duration in minutes"
-                  name="rebuild-workout-minutes"
-                  autoComplete="off"
-                />
-              </label>
-              <label className="workout-log-field">
-                <span className="workout-log-label">Notes</span>
-                <input
-                  className="workout-log-input"
-                  placeholder="Optional"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  aria-label="Notes"
-                  name="rebuild-workout-notes"
-                  autoComplete="off"
-                />
-              </label>
-            </div>
-          )}
-        </div>
-      )}
-
-      <button
-        type="submit"
-        className="btn primary workout-log-submit"
-        disabled={!canSubmit}
-      >
-        {busy ? "Logging…" : "Log workout"}
-      </button>
-
-      {error && (
-        <p className="tiny workout-log-error">{error}</p>
       )}
     </form>
   );

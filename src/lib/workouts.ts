@@ -1,5 +1,6 @@
 import { datesInRange, formatDate, weekBounds } from "./journey";
 import type {
+  ActiveWorkoutSession,
   LiftType,
   WorkoutCategory,
   WorkoutExerciseActual,
@@ -91,11 +92,16 @@ function normalizePositiveInt(raw: unknown, fallback: number): number {
   return Math.min(99, Math.round(n));
 }
 
+/** Set reps may be 0 (skipped set); invalid/missing → null */
 function normalizeSetActual(raw: unknown): WorkoutSetActual | null {
   if (!raw || typeof raw !== "object") return null;
   const row = raw as Record<string, unknown>;
-  const reps = normalizePositiveInt(row.reps, 0);
-  if (reps < 1) return null;
+  if (row.reps === undefined || row.reps === null || row.reps === "") {
+    return null;
+  }
+  const n = typeof row.reps === "number" ? row.reps : Number(row.reps);
+  if (!Number.isFinite(n) || n < 0) return null;
+  const reps = Math.min(99, Math.round(n));
   const weightRaw = row.weight;
   const weight =
     weightRaw === undefined || weightRaw === null || weightRaw === ""
@@ -538,4 +544,66 @@ export function formatMiles(n: number): string {
 
 export function gymSupportForType(type: WorkoutType): boolean {
   return type !== "run";
+}
+
+/** Elapsed ms since session started (clamped ≥ 0). */
+export function activeWorkoutElapsedMs(
+  startedAt: string,
+  nowMs: number = Date.now(),
+): number {
+  const start = Date.parse(startedAt);
+  if (!Number.isFinite(start)) return 0;
+  return Math.max(0, nowMs - start);
+}
+
+/** Display timer as H:MM:SS or M:SS. */
+export function formatElapsedClock(elapsedMs: number): string {
+  const totalSec = Math.floor(Math.max(0, elapsedMs) / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const mm = String(m).padStart(h > 0 ? 2 : 1, "0");
+  const ss = String(s).padStart(2, "0");
+  if (h > 0) return `${h}:${mm.padStart(2, "0")}:${ss}`;
+  return `${m}:${ss}`;
+}
+
+/** Whole minutes for the log (min 1 once past 30s, else 0). */
+export function elapsedDurationMin(elapsedMs: number): number {
+  if (elapsedMs < 30_000) return 0;
+  return Math.max(1, Math.round(elapsedMs / 60_000));
+}
+
+export function normalizeActiveWorkout(
+  raw: ActiveWorkoutSession | null | undefined,
+): ActiveWorkoutSession | null {
+  if (!raw || typeof raw !== "object") return null;
+  const id = String(raw.id ?? "").trim();
+  const startedAt = String(raw.startedAt ?? "").trim();
+  const date = String(raw.date ?? "").trim();
+  const label = String(raw.label ?? "").trim();
+  if (!id || !startedAt || !date || !label) return null;
+  if (!Number.isFinite(Date.parse(startedAt))) return null;
+  const type = resolveWorkoutType(raw);
+  const exerciseActuals = normalizeExerciseActuals(raw.exerciseActuals);
+  const distanceRaw = raw.distanceMiles;
+  const distance =
+    distanceRaw === undefined || distanceRaw === null
+      ? undefined
+      : Number(distanceRaw);
+  return {
+    id,
+    startedAt,
+    date,
+    type,
+    label,
+    routineId: raw.routineId ? String(raw.routineId) : undefined,
+    exerciseActuals,
+    distanceMiles:
+      distance != null && Number.isFinite(distance) && distance >= 0
+        ? distance
+        : undefined,
+    notes: raw.notes ? String(raw.notes) : undefined,
+    updatedAt: String(raw.updatedAt ?? startedAt),
+  };
 }

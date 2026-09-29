@@ -124,6 +124,24 @@ export type WorkoutLog = {
   createdAt: string;
 };
 
+/**
+ * In-progress workout — timer runs from startedAt until end_session.
+ * Persisted on the account so phone context switches can resume.
+ */
+export type ActiveWorkoutSession = {
+  id: string;
+  /** ISO timestamp when Start workout was pressed */
+  startedAt: string;
+  date: string;
+  type: WorkoutType;
+  label: string;
+  routineId?: string;
+  exerciseActuals?: WorkoutExerciseActual[];
+  distanceMiles?: number;
+  notes?: string;
+  updatedAt: string;
+};
+
 export type WorkoutPr = {
   id: string;
   type?: WorkoutType;
@@ -567,6 +585,8 @@ export type RebuildState = {
   workoutPrs?: WorkoutPr[];
   /** Saved named routines (templates) */
   workoutRoutines?: WorkoutRoutine[];
+  /** Live session in progress (null/undefined = none) */
+  activeWorkout?: ActiveWorkoutSession | null;
   /** Home agenda display titles keyed by calendar event id */
   calendarTitleOverrides?: Record<string, string>;
   /** Per-event life-area group overrides for imported calendar events (RB-026) */

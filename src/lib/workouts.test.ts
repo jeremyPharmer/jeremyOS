@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   blankActualsFromRoutine,
   buildMonthGrid,
+  elapsedDurationMin,
+  formatElapsedClock,
   formatExerciseActualSummary,
   formatWorkoutListDate,
   lastExerciseActualsForRoutine,
   monthWorkoutSummary,
+  normalizeActiveWorkout,
   normalizeExerciseActuals,
   normalizeQuality,
   normalizeRoutines,
@@ -402,9 +405,68 @@ describe("routines and actuals", () => {
     expect(formatExerciseActualSummary(actuals)).toContain("Push-ups 12");
   });
 
+  it("keeps zero-rep sets (skipped)", () => {
+    const actuals = normalizeExerciseActuals([
+      {
+        exerciseId: "ex_1",
+        name: "Bench",
+        tracksWeight: true,
+        sets: [
+          { reps: 0, weight: 135 },
+          { reps: 8, weight: 135 },
+        ],
+      },
+    ]);
+    expect(actuals?.[0].sets.map((s) => s.reps)).toEqual([0, 8]);
+    expect(formatExerciseActualSummary(actuals)).toContain("0×135");
+  });
+
   it("parses routine select values", () => {
     expect(parseRoutineSelectValue(routineSelectValue("abc"))).toBe("abc");
     expect(parseRoutineSelectValue("Upper body")).toBeNull();
+  });
+});
+
+describe("active workout session", () => {
+  it("formats elapsed clock and duration minutes", () => {
+    expect(formatElapsedClock(0)).toBe("0:00");
+    expect(formatElapsedClock(65_000)).toBe("1:05");
+    expect(formatElapsedClock(3_661_000)).toBe("1:01:01");
+    expect(elapsedDurationMin(20_000)).toBe(0);
+    expect(elapsedDurationMin(45_000)).toBe(1);
+    expect(elapsedDurationMin(90_000)).toBe(2);
+  });
+
+  it("normalizes active workout or drops invalid", () => {
+    expect(normalizeActiveWorkout(null)).toBeNull();
+    expect(
+      normalizeActiveWorkout({
+        id: "a1",
+        startedAt: "not-a-date",
+        date: "2026-09-26",
+        type: "run",
+        label: "Easy",
+        updatedAt: "2026-09-26T12:00:00Z",
+      }),
+    ).toBeNull();
+    const ok = normalizeActiveWorkout({
+      id: "a1",
+      startedAt: "2026-09-26T12:00:00Z",
+      date: "2026-09-26",
+      type: "lift",
+      label: "Upper body",
+      updatedAt: "2026-09-26T12:05:00Z",
+      exerciseActuals: [
+        {
+          exerciseId: "ex1",
+          name: "Bench",
+          tracksWeight: true,
+          sets: [{ reps: 8, weight: 135 }],
+        },
+      ],
+    });
+    expect(ok?.label).toBe("Upper body");
+    expect(ok?.exerciseActuals?.[0].sets[0].weight).toBe(135);
   });
 });
 
