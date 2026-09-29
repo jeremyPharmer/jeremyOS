@@ -506,6 +506,8 @@ export type SaveGoalDay = {
    * - auto = catch-up when a day ended without approve (full daily inbound)
    */
   source?: "manual" | "auto";
+  /** Optional reason on one-time adjust rows */
+  note?: string;
 };
 
 /** Required category when subtracting from the day total. */

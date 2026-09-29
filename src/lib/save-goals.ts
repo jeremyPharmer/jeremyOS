@@ -386,6 +386,10 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
       id: d.id ? String(d.id) : d.kind === "adjust" ? newId("sga") : undefined,
       source:
         d.source === "auto" || d.source === "manual" ? d.source : undefined,
+      note:
+        d.kind === "adjust" && d.note
+          ? String(d.note).trim().slice(0, 80)
+          : undefined,
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
@@ -1149,6 +1153,8 @@ export type ApplySaveGoalAdjustmentInput = {
   goalId?: string;
   goalIds?: string[];
   allocations?: SaveGoalAllocation[];
+  /** Optional short reason shown in the adjustment log */
+  note?: string;
 };
 
 /**
@@ -1186,6 +1192,7 @@ export function applySaveGoalAdjustment(
     allocations = splitPoolByWeight(amount, goals);
   }
 
+  const note = input.note?.trim().slice(0, 80) || undefined;
   const day: SaveGoalDay = {
     id: newId("sga"),
     date: input.date,
@@ -1195,6 +1202,7 @@ export function applySaveGoalAdjustment(
     leftover: 0,
     lumpSum: Math.max(0, amount),
     allocations,
+    note,
   };
 
   return normalizeSaveGoals({

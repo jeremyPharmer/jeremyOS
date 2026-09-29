@@ -138,6 +138,7 @@ export async function POST(req: Request) {
           allocations: Array.isArray(body.allocations)
             ? body.allocations
             : undefined,
+          note: body.note !== undefined ? String(body.note) : undefined,
         });
       }
 
