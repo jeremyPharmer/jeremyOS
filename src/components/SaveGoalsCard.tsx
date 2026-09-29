@@ -969,16 +969,9 @@ function HomeSaveGoalsGlance() {
             </p>
           ) : null}
 
-          {applied && todayClose ? (
+          {applied ? (
             <p className="tiny save-goal-applied-line">
-              <span className="save-goal-applied-badge">Applied</span>{" "}
-              {(todayClose.allocations ?? [])
-                .filter((a) => a.amount !== 0)
-                .map((a) => {
-                  const g = goals.find((x) => x.id === a.goalId);
-                  return `${g?.name ?? "Goal"} ${formatMoney(a.amount)}`;
-                })
-                .join(" · ") || formatMoney(todayClose.leftover)}
+              <span className="save-goal-applied-badge">Applied</span>
             </p>
           ) : null}
 
