@@ -180,7 +180,11 @@ function DailyLedgerDay({
     <div className={`save-goal-ledger-day${closed ? "" : " open"}`}>
       <div className="save-goal-ledger-day-head">
         <span className="save-goal-ledger-date">{label}</span>
-        {!closed ? <span className="tiny muted">open</span> : null}
+        {closed && label === "Today" ? (
+          <span className="tiny save-goal-applied-badge">Applied</span>
+        ) : !closed ? (
+          <span className="tiny muted">open</span>
+        ) : null}
       </div>
       <div className="save-goal-ledger-rows">
         <div className="save-goal-ledger-row">
@@ -967,7 +971,7 @@ function HomeSaveGoalsGlance() {
 
           {applied && todayClose ? (
             <p className="tiny save-goal-applied-line">
-              Applied{" "}
+              <span className="save-goal-applied-badge">Applied</span>{" "}
               {(todayClose.allocations ?? [])
                 .filter((a) => a.amount !== 0)
                 .map((a) => {
