@@ -641,10 +641,12 @@ export function applySaveGoalDayTotals(
     lumpSum?: number;
     /** When leftover is negative: goal to draw the overspend from */
     drawFromGoalId?: string;
-    /** preset = inbound % chips; custom = all left to leftoverGoalId */
+    /** preset = inbound % chips; custom = dollar split or one bucket */
     leftoverMode?: LumpAllocateMode;
     leftoverGoalId?: string;
     leftoverGoalIds?: string[];
+    /** Explicit dollar split for today (must sum to leftover + lump). */
+    leftoverAllocations?: SaveGoalAllocation[];
   } = { date: "" },
 ): RebuildState {
   const date = String(input.date ?? "").trim();
@@ -654,10 +656,33 @@ export function applySaveGoalDayTotals(
   const leftoverMode =
     input.leftoverMode === "custom" ? ("custom" as const) : ("preset" as const);
   const { spend } = leftoverBeforeApply(state, date);
+  const lumpSum = input.lumpSum !== undefined ? Number(input.lumpSum) : 0;
+  const dollarSplit =
+    leftoverMode === "custom" &&
+    Array.isArray(input.leftoverAllocations) &&
+    input.leftoverAllocations.length > 0
+      ? input.leftoverAllocations.map((a) => ({
+          goalId: String(a.goalId),
+          amount: round2(Number(a.amount) || 0),
+        }))
+      : undefined;
+
+  // Explicit dollars override leftover/lump modes for this close.
+  if (dollarSplit) {
+    return recordSaveGoalDay(state, {
+      date,
+      spendTotal: spend,
+      lumpSum,
+      allocations: dollarSplit,
+      drawFromGoalId: input.drawFromGoalId,
+      source: "manual",
+    });
+  }
+
   return recordSaveGoalDay(state, {
     date,
     spendTotal: spend,
-    lumpSum: input.lumpSum !== undefined ? Number(input.lumpSum) : 0,
+    lumpSum,
     lumpMode: "preset",
     leftoverMode,
     leftoverGoalId:

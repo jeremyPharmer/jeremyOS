@@ -207,6 +207,14 @@ export async function POST(req: Request) {
           leftoverGoalIds: Array.isArray(body.leftoverGoalIds)
             ? body.leftoverGoalIds.map((id: unknown) => String(id))
             : undefined,
+          leftoverAllocations: Array.isArray(body.leftoverAllocations)
+            ? body.leftoverAllocations.map(
+                (a: { goalId?: unknown; amount?: unknown }) => ({
+                  goalId: String(a?.goalId ?? ""),
+                  amount: Number(a?.amount),
+                }),
+              )
+            : undefined,
         });
       }
 

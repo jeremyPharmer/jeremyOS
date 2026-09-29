@@ -2440,6 +2440,20 @@ button.save-goal-rate.save-goal-inbound-edit {
   border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
 }
 
+.save-goal-custom-amounts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.save-goal-custom-amount-row {
+  margin: 0;
+}
+
+.save-goal-custom-amount-row .field-label {
+  margin-bottom: 4px;
+}
+
 .save-goal-draw-from {
   margin: 8px 0 4px;
 }

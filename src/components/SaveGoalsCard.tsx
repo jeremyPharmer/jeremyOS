@@ -21,9 +21,11 @@ import {
   normalizeSaveGoalSettings,
   progressRatio,
   projectSaveGoalTargetDate,
+  round2,
   SAVE_GOAL_SPEND_CATEGORIES,
   saveGoalCloseForDate,
   saveGoalSpendCategoryLabel,
+  splitPoolByWeight,
 } from "@/lib/save-goals";
 import type {
   SaveGoal,
@@ -239,6 +241,7 @@ function DailyLedger({
     scope?: "all" | "rolled";
     leftoverMode?: "preset" | "custom";
     leftoverGoalId?: string;
+    leftoverAllocations?: Array<{ goalId: string; amount: number }>;
   }) => void;
   onUndoApply?: () => void;
 }) {
@@ -249,7 +252,9 @@ function DailyLedger({
   const [rollScope, setRollScope] = useState<"all" | "rolled">("all");
   const [rollAutoShown, setRollAutoShown] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
-  const [customGoalId, setCustomGoalId] = useState("");
+  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>(
+    {},
+  );
   const todayClose = useMemo(
     () => (today ? saveGoalCloseForDate(state, today) : null),
     [state, today],
@@ -288,6 +293,7 @@ function DailyLedger({
     extra?: {
       leftoverMode?: "preset" | "custom";
       leftoverGoalId?: string;
+      leftoverAllocations?: Array<{ goalId: string; amount: number }>;
     },
   ) {
     const needsDraw =
@@ -304,6 +310,24 @@ function DailyLedger({
     return { ...base, ...extra };
   }
 
+  const customParsed = goals.map((g) => {
+    const raw = customAmounts[g.id] ?? "";
+    const n = Number(raw);
+    return {
+      goalId: g.id,
+      amount: Number.isFinite(n) && n >= 0 ? round2(n) : NaN,
+    };
+  });
+  const customSum = round2(
+    customParsed.reduce(
+      (s, a) => s + (Number.isFinite(a.amount) ? a.amount : 0),
+      0,
+    ),
+  );
+  const customValid =
+    customParsed.every((a) => Number.isFinite(a.amount)) &&
+    customSum === round2(leftShown);
+
   function requestApply() {
     if (!onApply) return;
     setCustomOpen(false);
@@ -318,25 +342,25 @@ function DailyLedger({
   function requestCustom() {
     if (!onApply) return;
     setRollPrompt(false);
-    if (goals.length === 1) {
-      onApply(
-        applyOpts("all", {
-          leftoverMode: "custom",
-          leftoverGoalId: goals[0].id,
-        }),
-      );
-      return;
+    const seeded = splitPoolByWeight(leftShown, goals);
+    const next: Record<string, string> = {};
+    for (const g of goals) {
+      const row = seeded.find((a) => a.goalId === g.id);
+      next[g.id] = String(row?.amount ?? 0);
     }
-    setCustomGoalId((id) => id || goals[0]?.id || "");
+    setCustomAmounts(next);
     setCustomOpen(true);
   }
 
   function confirmCustomApply() {
-    if (!onApply || !customGoalId) return;
+    if (!onApply || !customValid) return;
     onApply(
       applyOpts("all", {
         leftoverMode: "custom",
-        leftoverGoalId: customGoalId,
+        leftoverAllocations: customParsed.map((a) => ({
+          goalId: a.goalId,
+          amount: a.amount,
+        })),
       }),
     );
     setCustomOpen(false);
@@ -444,31 +468,50 @@ function DailyLedger({
           aria-label="Custom apply"
         >
           <p className="field-label" style={{ marginBottom: 6 }}>
-            Put {formatMoney(Math.abs(leftShown))} in
+            Apply {formatMoney(leftShown)} today
           </p>
-          <div className="chip-row">
+          <p className="tiny muted" style={{ margin: "0 0 10px" }}>
+            One-off dollars for today — does not change your{" "}
+            {goals.map((g) => `${inboundPercent(g)}%`).join(" / ")} daily
+            chips.
+          </p>
+          <div className="save-goal-custom-amounts">
             {goals.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                className={`chip${customGoalId === g.id ? " selected" : ""}`}
-                onClick={() => setCustomGoalId(g.id)}
-                disabled={busy}
-              >
-                {g.name}
-              </button>
+              <label key={g.id} className="field save-goal-custom-amount-row">
+                <span className="field-label">{g.name}</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={customAmounts[g.id] ?? ""}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setCustomAmounts((prev) => ({
+                      ...prev,
+                      [g.id]: e.target.value,
+                    }))
+                  }
+                  placeholder="0"
+                />
+              </label>
             ))}
           </div>
-          <p className="tiny muted" style={{ margin: "8px 0 0" }}>
-            One-time for today — does not change your {goals
-              .map((g) => `${inboundPercent(g)}%`)
-              .join(" / ")}{" "}
-            daily chips.
+          <p
+            className="tiny"
+            style={{
+              margin: "8px 0 0",
+              color: customValid ? "var(--muted)" : "var(--danger)",
+            }}
+          >
+            {customValid
+              ? `Adds up to ${formatMoney(leftShown)}`
+              : `Must add up to ${formatMoney(leftShown)} (now ${formatMoney(customSum)})`}
           </p>
           <div className="save-goal-create-actions" style={{ marginTop: 12 }}>
             <PrimaryButton
               onClick={confirmCustomApply}
-              disabled={busy || !customGoalId || !canApply}
+              disabled={busy || !customValid || !canApply}
             >
               {busy ? "Saving…" : "Apply"}
             </PrimaryButton>
@@ -1351,6 +1394,7 @@ function SaveGoalsDetail() {
     scope?: "all" | "rolled";
     leftoverMode?: "preset" | "custom";
     leftoverGoalId?: string;
+    leftoverAllocations?: Array<{ goalId: string; amount: number }>;
   }) {
     setBusy(true);
     setError("");
@@ -1362,6 +1406,7 @@ function SaveGoalsDetail() {
         drawFromGoalId: opts?.drawFromGoalId,
         leftoverMode: opts?.leftoverMode,
         leftoverGoalId: opts?.leftoverGoalId,
+        leftoverAllocations: opts?.leftoverAllocations,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not apply");
