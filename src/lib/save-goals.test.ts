@@ -676,6 +676,35 @@ describe("updateSaveGoal", () => {
 });
 
 describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
+  it("custom apply sends all leftover to one goal", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "General",
+      targetAmount: 2900,
+      createdOn: "2026-04-01",
+    });
+    state = createSaveGoal(state, {
+      name: "Reserve",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    const general = () => state.saveGoals!.find((g) => g.name === "General")!;
+    const reserve = () => state.saveGoals!.find((g) => g.name === "Reserve")!;
+    state = setInboundPercents(state, {
+      [general().id]: 80,
+      [reserve().id]: 20,
+    });
+
+    state = applySaveGoalDayTotals(state, {
+      date: "2026-04-01",
+      leftoverMode: "custom",
+      leftoverGoalId: reserve().id,
+    });
+    expect(reserve().savedAmount).toBe(16);
+    expect(general().savedAmount).toBe(0);
+  });
+
   it("subtracts through the day then applies leftover by inbound %", () => {
     let state = emptyState();
     state = updateSaveGoalSettings(state, { monthlyIncome: 500 });

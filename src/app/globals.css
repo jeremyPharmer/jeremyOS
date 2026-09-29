@@ -2432,6 +2432,14 @@ button.save-goal-rate.save-goal-inbound-edit {
   font-size: 0.9rem;
 }
 
+.save-goal-custom-apply {
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+}
+
 .save-goal-draw-from {
   margin: 8px 0 4px;
 }

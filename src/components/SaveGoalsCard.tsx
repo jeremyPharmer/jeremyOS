@@ -237,6 +237,8 @@ function DailyLedger({
   onApply?: (opts?: {
     drawFromGoalId?: string;
     scope?: "all" | "rolled";
+    leftoverMode?: "preset" | "custom";
+    leftoverGoalId?: string;
   }) => void;
   onUndoApply?: () => void;
 }) {
@@ -246,6 +248,8 @@ function DailyLedger({
   const [rollPrompt, setRollPrompt] = useState(false);
   const [rollScope, setRollScope] = useState<"all" | "rolled">("all");
   const [rollAutoShown, setRollAutoShown] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customGoalId, setCustomGoalId] = useState("");
   const todayClose = useMemo(
     () => (today ? saveGoalCloseForDate(state, today) : null),
     [state, today],
@@ -279,11 +283,17 @@ function DailyLedger({
     setRollAutoShown(true);
   }, [onApply, hasRolled, rollAutoShown]);
 
-  function applyOpts(scope: "all" | "rolled" = "all") {
+  function applyOpts(
+    scope: "all" | "rolled" = "all",
+    extra?: {
+      leftoverMode?: "preset" | "custom";
+      leftoverGoalId?: string;
+    },
+  ) {
     const needsDraw =
       (scope === "all" && leftShown < 0) ||
       (scope === "rolled" && running.carryIn < 0);
-    return needsDraw
+    const base = needsDraw
       ? {
           scope,
           drawFromGoalId:
@@ -291,16 +301,45 @@ function DailyLedger({
             (goals.length === 1 ? goals[0].id : undefined),
         }
       : { scope };
+    return { ...base, ...extra };
   }
 
   function requestApply() {
     if (!onApply) return;
+    setCustomOpen(false);
     if (hasRolled) {
       setRollScope("all");
       setRollPrompt(true);
       return;
     }
     onApply(applyOpts("all"));
+  }
+
+  function requestCustom() {
+    if (!onApply) return;
+    setRollPrompt(false);
+    if (goals.length === 1) {
+      onApply(
+        applyOpts("all", {
+          leftoverMode: "custom",
+          leftoverGoalId: goals[0].id,
+        }),
+      );
+      return;
+    }
+    setCustomGoalId((id) => id || goals[0]?.id || "");
+    setCustomOpen(true);
+  }
+
+  function confirmCustomApply() {
+    if (!onApply || !customGoalId) return;
+    onApply(
+      applyOpts("all", {
+        leftoverMode: "custom",
+        leftoverGoalId: customGoalId,
+      }),
+    );
+    setCustomOpen(false);
   }
 
   function confirmRollApply() {
@@ -398,19 +437,71 @@ function DailyLedger({
           </div>
         </div>
       ) : null}
-      {!rollPrompt && (onApply || (applied && onUndoApply)) ? (
+      {customOpen && onApply && !rollPrompt ? (
+        <div
+          className="save-goal-custom-apply"
+          role="group"
+          aria-label="Custom apply"
+        >
+          <p className="field-label" style={{ marginBottom: 6 }}>
+            Put {formatMoney(Math.abs(leftShown))} in
+          </p>
+          <div className="chip-row">
+            {goals.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                className={`chip${customGoalId === g.id ? " selected" : ""}`}
+                onClick={() => setCustomGoalId(g.id)}
+                disabled={busy}
+              >
+                {g.name}
+              </button>
+            ))}
+          </div>
+          <p className="tiny muted" style={{ margin: "8px 0 0" }}>
+            One-time for today — does not change your {goals
+              .map((g) => `${inboundPercent(g)}%`)
+              .join(" / ")}{" "}
+            daily chips.
+          </p>
+          <div className="save-goal-create-actions" style={{ marginTop: 12 }}>
+            <PrimaryButton
+              onClick={confirmCustomApply}
+              disabled={busy || !customGoalId || !canApply}
+            >
+              {busy ? "Saving…" : "Apply"}
+            </PrimaryButton>
+            <SecondaryButton
+              onClick={() => setCustomOpen(false)}
+              disabled={busy}
+            >
+              Cancel
+            </SecondaryButton>
+          </div>
+        </div>
+      ) : null}
+      {!rollPrompt && !customOpen && (onApply || (applied && onUndoApply)) ? (
         <div className="save-goal-ledger-apply">
           {onApply ? (
-            <PrimaryButton
-              onClick={requestApply}
-              disabled={busy || !canApply}
-            >
-              {busy
-                ? "Saving…"
-                : applied
-                  ? "Re-apply totals"
-                  : "Apply totals"}
-            </PrimaryButton>
+            <>
+              <PrimaryButton
+                onClick={requestApply}
+                disabled={busy || !canApply}
+              >
+                {busy
+                  ? "Saving…"
+                  : applied
+                    ? "Re-apply total"
+                    : "Apply total"}
+              </PrimaryButton>
+              <SecondaryButton
+                onClick={requestCustom}
+                disabled={busy || !canApply || leftShown <= 0}
+              >
+                Custom
+              </SecondaryButton>
+            </>
           ) : null}
           {applied && onUndoApply ? (
             <SecondaryButton onClick={onUndoApply} disabled={busy}>
@@ -1258,6 +1349,8 @@ function SaveGoalsDetail() {
   async function applyTotals(opts?: {
     drawFromGoalId?: string;
     scope?: "all" | "rolled";
+    leftoverMode?: "preset" | "custom";
+    leftoverGoalId?: string;
   }) {
     setBusy(true);
     setError("");
@@ -1267,6 +1360,8 @@ function SaveGoalsDetail() {
         date: today,
         scope: opts?.scope === "rolled" ? "rolled" : "all",
         drawFromGoalId: opts?.drawFromGoalId,
+        leftoverMode: opts?.leftoverMode,
+        leftoverGoalId: opts?.leftoverGoalId,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not apply");

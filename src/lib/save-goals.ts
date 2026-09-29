@@ -629,9 +629,10 @@ export function listRolledOpenDatesBefore(
 }
 
 /**
- * Apply today’s running ledger: positive leftover uses inbound %;
- * negative leftover draws from `drawFromGoalId` (required when >1 goals).
- * Stops roll-forward for this date. Idempotent replace of that date’s close.
+ * Apply today’s running ledger: positive leftover uses inbound % (or
+ * custom one-bucket); negative leftover draws from `drawFromGoalId`
+ * (required when >1 goals). Stops roll-forward for this date.
+ * Idempotent replace of that date’s close.
  */
 export function applySaveGoalDayTotals(
   state: RebuildState,
@@ -640,18 +641,33 @@ export function applySaveGoalDayTotals(
     lumpSum?: number;
     /** When leftover is negative: goal to draw the overspend from */
     drawFromGoalId?: string;
+    /** preset = inbound % chips; custom = all left to leftoverGoalId */
+    leftoverMode?: LumpAllocateMode;
+    leftoverGoalId?: string;
+    leftoverGoalIds?: string[];
   } = { date: "" },
 ): RebuildState {
   const date = String(input.date ?? "").trim();
   if (!DATE_RE.test(date)) {
     throw Object.assign(new Error("date required"), { status: 400 });
   }
+  const leftoverMode =
+    input.leftoverMode === "custom" ? ("custom" as const) : ("preset" as const);
   const { spend } = leftoverBeforeApply(state, date);
   return recordSaveGoalDay(state, {
     date,
     spendTotal: spend,
     lumpSum: input.lumpSum !== undefined ? Number(input.lumpSum) : 0,
     lumpMode: "preset",
+    leftoverMode,
+    leftoverGoalId:
+      leftoverMode === "custom" && input.leftoverGoalId !== undefined
+        ? String(input.leftoverGoalId)
+        : undefined,
+    leftoverGoalIds:
+      leftoverMode === "custom" && Array.isArray(input.leftoverGoalIds)
+        ? input.leftoverGoalIds.map((id) => String(id))
+        : undefined,
     drawFromGoalId: input.drawFromGoalId,
     source: "manual",
   });
@@ -932,7 +948,8 @@ export type RecordSaveGoalDayInput = {
   spendTotal: number;
   lumpSum?: number;
   /**
-   * How to place the lump (one-time). Positive leftover uses inbound %.
+   * How to place the lump (one-time). Positive leftover uses inbound %
+   * unless `leftoverMode: "custom"`.
    * - preset (default): same chips / inbound % as daily
    * - custom: `lumpGoalId` (all to one) or `lumpAllocations` / `lumpGoalIds`
    */
@@ -940,6 +957,14 @@ export type RecordSaveGoalDayInput = {
   lumpGoalId?: string;
   lumpGoalIds?: string[];
   lumpAllocations?: SaveGoalAllocation[];
+  /**
+   * How to place positive leftover when applying the day.
+   * - preset (default): inbound % chips
+   * - custom: all leftover to `leftoverGoalId` (or equal among `leftoverGoalIds`)
+   */
+  leftoverMode?: LumpAllocateMode;
+  leftoverGoalId?: string;
+  leftoverGoalIds?: string[];
   /**
    * When leftover is negative (overspend): which goal to draw from.
    * Required if more than one active goal. Single-goal days auto-pick.
@@ -952,16 +977,37 @@ export type RecordSaveGoalDayInput = {
 };
 
 /**
- * Positive leftover → inbound %. Negative → draw from one chosen goal
- * (`drawFromGoalId`). One active goal auto-picks; multiple require a pick.
+ * Positive leftover → inbound % (or custom one-bucket). Negative → draw
+ * from one chosen goal (`drawFromGoalId`). One active goal auto-picks.
  */
 function resolveLeftoverAlloc(
   leftover: number,
   goals: SaveGoal[],
-  input: Pick<RecordSaveGoalDayInput, "drawFromGoalId">,
+  input: Pick<
+    RecordSaveGoalDayInput,
+    | "drawFromGoalId"
+    | "leftoverMode"
+    | "leftoverGoalId"
+    | "leftoverGoalIds"
+  >,
 ): SaveGoalAllocation[] {
   if (leftover === 0 || !goals.length) return [];
   if (leftover > 0) {
+    if (input.leftoverMode === "custom") {
+      const one = String(input.leftoverGoalId ?? "").trim();
+      const many = (input.leftoverGoalIds ?? [])
+        .map((id) => String(id).trim())
+        .filter(Boolean);
+      if (!one && many.length === 0) {
+        throw Object.assign(new Error("Pick a goal for custom apply"), {
+          status: 400,
+        });
+      }
+      return resolveCustomPoolSplit(leftover, goals, {
+        goalId: one || undefined,
+        goalIds: many.length ? many : undefined,
+      });
+    }
     return splitPoolByWeight(leftover, goals);
   }
 
