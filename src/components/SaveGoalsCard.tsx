@@ -528,7 +528,7 @@ function GoalProgressRow({
   } else if (projection.targetDate) {
     dateLine = formatTargetDateLabel(projection.targetDate);
   } else {
-    dateLine = "—";
+    dateLine = "Needs leftover";
   }
 
   return (

@@ -154,24 +154,25 @@ Insert a thin **Money today** step in evening close (after mood/journal is fine;
 For each **active** goal with `savedAmount < targetAmount`:
 
 ```text
-remaining = targetAmount − savedAmount          // > 0
-weights = allocationWeight of each active goal
-w = weight(goal) / sum(weights)
+remaining = targetAmount − savedAmount          // cents OK
+share = inboundPercent(goal) / 100              // live chip %
 
-// Projection uses current month’s rate and a simple spend assumption:
-dailyIncome = dailyIncomeRate(today)
-avgSpend = mean(spendTotal over last 7 SaveGoalDays with data), else 0 if none
-projectedPoolPerDay = dailyIncome − avgSpend    // lump sums ignored in projection
-if projectedPoolPerDay ≤ 0 → targetDate = null  // UI: "Add leftover to project a date"
+// Steady pace — ignore rolled carry and one-time adds/lumps:
+base = dailyIncomeRate(today)                   // floored whole dollars
+spend = today’s subtract-entry total            // from the running ledger
+projectedPoolPerDay = base − spend
+if projectedPoolPerDay ≤ 0 or share ≤ 0 → targetDate = null  // UI: "Needs leftover"
 
-goalDaily = projectedPoolPerDay * w
+goalDaily = projectedPoolPerDay × share         // round cents; % changes update live
+// If today not yet applied, subtract today’s steady credit once from remaining
+if today open: remaining -= max(0, projectedPoolPerDay) × share
 etaDays = ceil(remaining / goalDaily)
 targetDate = today + etaDays calendar days
 ```
 
 - If `savedAmount >= targetAmount` → show **Reached** (no date needed).
 - Do not use Future/Treat or `historicalDailySpend` in this math.
-- Recalculate on read (no need to store `targetDate` unless caching for display).
+- Recalculate on read (no need to store `targetDate` unless caching for display) so inbound % steppers update the date immediately.
 
 ### 6. Create / settings (thin)
 

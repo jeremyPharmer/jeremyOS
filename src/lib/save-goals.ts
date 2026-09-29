@@ -1371,16 +1371,23 @@ export type SaveGoalProjection = {
   status: "reached" | "on_track" | "needs_leftover";
 };
 
+/**
+ * Project a target date from what’s already saved + a steady daily pace.
+ *
+ * Steady pace ignores rolled carry and one-time adds/lumps — only the
+ * fixed daily rate minus today’s spend pattern, times this goal’s inbound %.
+ * Recalculates on read so % chip changes update the date immediately.
+ */
 export function projectSaveGoalTargetDate(
   state: RebuildState,
   goal: SaveGoal,
   today: string,
 ): SaveGoalProjection {
-  const remaining = floorDollar(goal.targetAmount - goal.savedAmount);
-  if (remaining <= 0 || goal.status === "reached") {
+  const remaining0 = round2(goal.targetAmount - goal.savedAmount);
+  if (remaining0 <= 0 || goal.status === "reached") {
     return {
       goalId: goal.id,
-      remaining: Math.max(0, remaining),
+      remaining: Math.max(0, remaining0),
       projectedPoolPerDay: 0,
       goalDaily: 0,
       etaDays: null,
@@ -1389,16 +1396,29 @@ export function projectSaveGoalTargetDate(
     };
   }
 
+  const share = inboundPercent(goal) / 100;
+  if (share <= 0) {
+    return {
+      goalId: goal.id,
+      remaining: remaining0,
+      projectedPoolPerDay: 0,
+      goalDaily: 0,
+      etaDays: null,
+      targetDate: null,
+      status: "needs_leftover",
+    };
+  }
+
   const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
-  const dailyIncome = dailyIncomeRate(today, settings.monthlyIncome);
-  const avgSpend = averageSpendLastDays(state.saveGoalDays ?? [], today, 7);
-  const spendAssumption = avgSpend ?? 0;
-  const projectedPoolPerDay = floorDollar(dailyIncome - spendAssumption);
+  const base = dailyIncomeRate(today, settings.monthlyIncome);
+  const day = leftoverBeforeApply(state, today);
+  // Typical day: fixed rate − spend. No roll-in, no manual adds/lumps.
+  const projectedPoolPerDay = round2(base - day.spend);
 
   if (projectedPoolPerDay <= 0) {
     return {
       goalId: goal.id,
-      remaining,
+      remaining: remaining0,
       projectedPoolPerDay,
       goalDaily: 0,
       etaDays: null,
@@ -1407,17 +1427,36 @@ export function projectSaveGoalTargetDate(
     };
   }
 
-  const share = inboundPercent(goal) / 100;
-  const goalDaily = floorDollar(projectedPoolPerDay * share);
+  const goalDaily = round2(projectedPoolPerDay * share);
   if (goalDaily <= 0) {
     return {
       goalId: goal.id,
-      remaining,
+      remaining: remaining0,
       projectedPoolPerDay,
       goalDaily: 0,
       etaDays: null,
       targetDate: null,
       status: "needs_leftover",
+    };
+  }
+
+  let remaining = remaining0;
+  // If today isn’t applied yet, count today’s expected credit once
+  // (steady share only — same no-bonus assumption).
+  if (!hasSaveGoalClose(state, today)) {
+    const todayCredit = round2(Math.max(0, projectedPoolPerDay) * share);
+    remaining = round2(remaining - todayCredit);
+  }
+
+  if (remaining <= 0) {
+    return {
+      goalId: goal.id,
+      remaining: 0,
+      projectedPoolPerDay,
+      goalDaily,
+      etaDays: 0,
+      targetDate: today,
+      status: "on_track",
     };
   }
 
