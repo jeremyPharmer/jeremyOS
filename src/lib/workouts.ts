@@ -92,11 +92,16 @@ function normalizePositiveInt(raw: unknown, fallback: number): number {
   return Math.min(99, Math.round(n));
 }
 
+/** Set reps may be 0 (skipped set); invalid/missing → null */
 function normalizeSetActual(raw: unknown): WorkoutSetActual | null {
   if (!raw || typeof raw !== "object") return null;
   const row = raw as Record<string, unknown>;
-  const reps = normalizePositiveInt(row.reps, 0);
-  if (reps < 1) return null;
+  if (row.reps === undefined || row.reps === null || row.reps === "") {
+    return null;
+  }
+  const n = typeof row.reps === "number" ? row.reps : Number(row.reps);
+  if (!Number.isFinite(n) || n < 0) return null;
+  const reps = Math.min(99, Math.round(n));
   const weightRaw = row.weight;
   const weight =
     weightRaw === undefined || weightRaw === null || weightRaw === ""

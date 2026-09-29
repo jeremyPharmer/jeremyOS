@@ -405,6 +405,22 @@ describe("routines and actuals", () => {
     expect(formatExerciseActualSummary(actuals)).toContain("Push-ups 12");
   });
 
+  it("keeps zero-rep sets (skipped)", () => {
+    const actuals = normalizeExerciseActuals([
+      {
+        exerciseId: "ex_1",
+        name: "Bench",
+        tracksWeight: true,
+        sets: [
+          { reps: 0, weight: 135 },
+          { reps: 8, weight: 135 },
+        ],
+      },
+    ]);
+    expect(actuals?.[0].sets.map((s) => s.reps)).toEqual([0, 8]);
+    expect(formatExerciseActualSummary(actuals)).toContain("0×135");
+  });
+
   it("parses routine select values", () => {
     expect(parseRoutineSelectValue(routineSelectValue("abc"))).toBe("abc");
     expect(parseRoutineSelectValue("Upper body")).toBeNull();

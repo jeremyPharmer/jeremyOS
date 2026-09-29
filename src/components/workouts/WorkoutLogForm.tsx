@@ -56,6 +56,8 @@ export function WorkoutLogForm({
       ? customLabel.trim()
       : workout.trim();
   const canStart = Boolean(label) && !busy;
+  const showPlannedSets =
+    selectedRoutine && actuals.length > 0 && variant === "full";
 
   useEffect(() => {
     setWorkout("");
@@ -89,7 +91,8 @@ export function WorkoutLogForm({
             const next = { ...s };
             if (patch.reps != null) {
               const n = Number(patch.reps);
-              next.reps = Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+              next.reps =
+                Number.isFinite(n) && n >= 0 ? Math.min(99, Math.round(n)) : 0;
             }
             if (patch.weight != null && ex.tracksWeight) {
               const n = Number(patch.weight);
@@ -118,8 +121,8 @@ export function WorkoutLogForm({
               repMode: ex.repMode,
               sets: ex.sets.map((s) =>
                 ex.tracksWeight
-                  ? { reps: s.reps || 0, weight: s.weight }
-                  : { reps: s.reps || 0 },
+                  ? { reps: Math.max(0, s.reps || 0), weight: s.weight }
+                  : { reps: Math.max(0, s.reps || 0) },
               ),
             }))
           : undefined;
@@ -225,13 +228,21 @@ export function WorkoutLogForm({
         </label>
       )}
 
-      {selectedRoutine && actuals.length > 0 && variant === "full" && (
+      <button
+        type="submit"
+        className="btn primary workout-log-submit"
+        disabled={!canStart}
+      >
+        {busy ? "Starting…" : "Start workout"}
+      </button>
+
+      {error && (
+        <p className="tiny workout-log-error">{error}</p>
+      )}
+
+      {showPlannedSets && (
         <div className="workout-actuals">
           <p className="workout-log-label">Planned sets</p>
-          <p className="tiny muted">
-            Timer starts when you begin — log weights as you go, then rate
-            quality when you end.
-          </p>
           {actuals.map((ex, ei) => (
             <div key={ex.exerciseId} className="workout-actual-ex">
               <p className="workout-actual-ex-name">{ex.name}</p>
@@ -253,9 +264,9 @@ export function WorkoutLogForm({
                       className="workout-actual-input"
                       type="number"
                       inputMode="numeric"
-                      min={1}
+                      min={0}
                       max={ex.repMode === "seconds" ? 999 : 99}
-                      value={s.reps || ""}
+                      value={s.reps}
                       onChange={(e) =>
                         updateSet(ei, si, { reps: e.target.value })
                       }
@@ -283,18 +294,6 @@ export function WorkoutLogForm({
             </div>
           ))}
         </div>
-      )}
-
-      <button
-        type="submit"
-        className="btn primary workout-log-submit"
-        disabled={!canStart}
-      >
-        {busy ? "Starting…" : "Start workout"}
-      </button>
-
-      {error && (
-        <p className="tiny workout-log-error">{error}</p>
       )}
     </form>
   );

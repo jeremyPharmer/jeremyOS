@@ -22,21 +22,17 @@ function sanitizeActuals(
   actuals: WorkoutExerciseActual[],
 ): WorkoutExerciseActual[] | undefined {
   if (!actuals.length) return undefined;
-  const cleaned = actuals
-    .map((ex) => ({
-      exerciseId: ex.exerciseId,
-      name: ex.name,
-      tracksWeight: ex.tracksWeight,
-      repMode: ex.repMode,
-      sets: ex.sets
-        .filter((s) => s.reps > 0)
-        .map((s) =>
-          ex.tracksWeight
-            ? { reps: s.reps, weight: s.weight }
-            : { reps: s.reps },
-        ),
-    }))
-    .filter((ex) => ex.sets.length > 0);
+  const cleaned = actuals.map((ex) => ({
+    exerciseId: ex.exerciseId,
+    name: ex.name,
+    tracksWeight: ex.tracksWeight,
+    repMode: ex.repMode,
+    sets: ex.sets.map((s) =>
+      ex.tracksWeight
+        ? { reps: Math.max(0, s.reps || 0), weight: s.weight }
+        : { reps: Math.max(0, s.reps || 0) },
+    ),
+  }));
   return cleaned.length ? cleaned : undefined;
 }
 
@@ -130,7 +126,8 @@ export function ActiveWorkoutPanel({
             const row = { ...s };
             if (patch.reps != null) {
               const n = Number(patch.reps);
-              row.reps = Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+              row.reps =
+                Number.isFinite(n) && n >= 0 ? Math.min(99, Math.round(n)) : 0;
             }
             if (patch.weight != null && ex.tracksWeight) {
               const n = Number(patch.weight);
@@ -232,9 +229,9 @@ export function ActiveWorkoutPanel({
                       className="workout-actual-input"
                       type="number"
                       inputMode="numeric"
-                      min={1}
+                      min={0}
                       max={ex.repMode === "seconds" ? 999 : 99}
-                      value={s.reps || ""}
+                      value={s.reps}
                       onChange={(e) =>
                         updateSet(ei, si, { reps: e.target.value })
                       }
