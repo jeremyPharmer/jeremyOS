@@ -199,6 +199,75 @@ export function findRoutine(
   return normalizeRoutines(routines).find((r) => r.id === id);
 }
 
+/** Prior exercise for routine builder reuse — defaults from last logged sets. */
+export type KnownExercise = {
+  name: string;
+  sets: number;
+  reps: number;
+  repMode: WorkoutRepMode;
+  tracksWeight: boolean;
+};
+
+function workoutRecencyKey(w: WorkoutLog): string {
+  return `${w.date}\0${w.createdAt}`;
+}
+
+/**
+ * Unique exercises Jeremy has used (logs first, then routines).
+ * Defaults prefer the most recent logged sets for that name.
+ */
+export function knownExercises(
+  workouts: WorkoutLog[] | undefined,
+  routines: WorkoutRoutine[] | undefined,
+): KnownExercise[] {
+  const byKey = new Map<string, KnownExercise>();
+
+  const logs = normalizeWorkouts(workouts).sort((a, b) =>
+    workoutRecencyKey(b).localeCompare(workoutRecencyKey(a)),
+  );
+  for (const w of logs) {
+    for (const ex of w.exerciseActuals ?? []) {
+      const name = ex.name.trim();
+      const key = name.toLowerCase();
+      if (!key || byKey.has(key)) continue;
+      const sets = ex.sets ?? [];
+      const repsSample =
+        sets.find((s) => s.reps > 0)?.reps ?? sets[0]?.reps ?? 10;
+      byKey.set(key, {
+        name,
+        sets: Math.max(1, sets.length || 3),
+        reps: Math.max(1, Math.round(repsSample) || 10),
+        repMode: ex.repMode === "seconds" ? "seconds" : "reps",
+        tracksWeight: Boolean(ex.tracksWeight),
+      });
+    }
+  }
+
+  const routineRows = normalizeRoutines(routines).sort((a, b) => {
+    const aAt = a.updatedAt ?? a.createdAt;
+    const bAt = b.updatedAt ?? b.createdAt;
+    return bAt.localeCompare(aAt);
+  });
+  for (const r of routineRows) {
+    for (const ex of r.exercises) {
+      const name = ex.name.trim();
+      const key = name.toLowerCase();
+      if (!key || byKey.has(key)) continue;
+      byKey.set(key, {
+        name,
+        sets: ex.sets,
+        reps: ex.reps,
+        repMode: ex.repMode ?? "reps",
+        tracksWeight: ex.tracksWeight,
+      });
+    }
+  }
+
+  return [...byKey.values()].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+  );
+}
+
 /**
  * Most recent logged session for a routine that includes set actuals.
  * Newest by date, then createdAt.

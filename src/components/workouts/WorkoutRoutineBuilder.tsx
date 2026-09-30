@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import type { WorkoutRepMode, WorkoutRoutine, WorkoutType } from "@/lib/types";
-import { normalizeRoutines, repModeLabel, WORKOUT_TYPES } from "@/lib/workouts";
+import {
+  knownExercises,
+  normalizeRoutines,
+  repModeLabel,
+  WORKOUT_CUSTOM,
+  WORKOUT_TYPES,
+} from "@/lib/workouts";
 
 type DraftExercise = {
   key: string;
@@ -48,9 +54,31 @@ function draftFromRoutine(r: WorkoutRoutine): {
   };
 }
 
+function exerciseSelectValue(
+  name: string,
+  knownNames: Set<string>,
+): string {
+  const trimmed = name.trim();
+  if (!trimmed) return "";
+  if (knownNames.has(trimmed.toLowerCase())) return trimmed;
+  return WORKOUT_CUSTOM;
+}
+
 export function WorkoutRoutineBuilder() {
   const { state, post } = useApp();
   const routines = normalizeRoutines(state.workoutRoutines);
+  const known = useMemo(
+    () => knownExercises(state.workouts, state.workoutRoutines),
+    [state.workouts, state.workoutRoutines],
+  );
+  const knownByLower = useMemo(() => {
+    const map = new Map(known.map((k) => [k.name.toLowerCase(), k]));
+    return map;
+  }, [known]);
+  const knownNameKeys = useMemo(
+    () => new Set(known.map((k) => k.name.toLowerCase())),
+    [known],
+  );
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -92,6 +120,25 @@ export function WorkoutRoutineBuilder() {
     setExercises((prev) =>
       prev.map((ex) => (ex.key === key ? { ...ex, ...patch } : ex)),
     );
+  }
+
+  function pickExercise(key: string, value: string) {
+    if (value === "" || value === WORKOUT_CUSTOM) {
+      updateExercise(key, { name: "" });
+      return;
+    }
+    const match = knownByLower.get(value.toLowerCase());
+    if (!match) {
+      updateExercise(key, { name: value });
+      return;
+    }
+    updateExercise(key, {
+      name: match.name,
+      sets: String(match.sets),
+      reps: String(match.reps),
+      repMode: match.repMode,
+      tracksWeight: match.tracksWeight,
+    });
   }
 
   async function save(e: React.FormEvent) {
@@ -243,114 +290,149 @@ export function WorkoutRoutineBuilder() {
 
           <div className="workout-routine-exercises">
             <p className="workout-log-label">Exercises</p>
-            {exercises.map((ex, i) => (
-              <div key={ex.key} className="workout-routine-ex-card">
-                <div className="workout-routine-ex-head">
-                  <span className="workout-log-label">Exercise {i + 1}</span>
-                  {exercises.length > 1 && (
-                    <button
-                      type="button"
-                      className="workout-routine-inline-btn"
-                      onClick={() =>
-                        setExercises((prev) =>
-                          prev.filter((row) => row.key !== ex.key),
-                        )
-                      }
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-                <label className="workout-log-field">
-                  <span className="workout-log-label">Name</span>
-                  <input
-                    className="workout-log-input"
-                    value={ex.name}
-                    onChange={(e) =>
-                      updateExercise(ex.key, { name: e.target.value })
-                    }
-                    placeholder="Exercise name"
-                    aria-label={`Exercise ${i + 1} name`}
-                    autoComplete="off"
-                  />
-                </label>
-                <div className="workout-routine-ex-metrics">
-                  <label className="workout-routine-metric">
-                    <span className="workout-log-label">Sets</span>
-                    <input
-                      className="workout-actual-input"
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      max={99}
-                      value={ex.sets}
-                      onChange={(e) =>
-                        updateExercise(ex.key, { sets: e.target.value })
-                      }
-                      aria-label={`Exercise ${i + 1} sets`}
-                    />
-                  </label>
-                  <div className="workout-routine-metric workout-routine-metric-grow">
-                    <span className="workout-log-label">
-                      {repModeLabel(ex.repMode)} each
-                    </span>
-                    <div className="workout-rep-mode-row">
-                      <div
-                        className="workout-rep-mode-segment"
-                        role="group"
-                        aria-label={`Exercise ${i + 1} rep mode`}
+            {exercises.map((ex, i) => {
+              const selectValue = exerciseSelectValue(ex.name, knownNameKeys);
+              const showCustom =
+                known.length === 0 || selectValue === WORKOUT_CUSTOM;
+              return (
+                <div key={ex.key} className="workout-routine-ex-card">
+                  <div className="workout-routine-ex-head">
+                    <span className="workout-log-label">Exercise {i + 1}</span>
+                    {exercises.length > 1 && (
+                      <button
+                        type="button"
+                        className="workout-routine-inline-btn"
+                        onClick={() =>
+                          setExercises((prev) =>
+                            prev.filter((row) => row.key !== ex.key),
+                          )
+                        }
                       >
-                        <button
-                          type="button"
-                          className={`workout-rep-mode-btn${ex.repMode === "reps" ? " active" : ""}`}
-                          aria-pressed={ex.repMode === "reps"}
-                          onClick={() =>
-                            updateExercise(ex.key, { repMode: "reps" })
-                          }
-                        >
-                          Reps
-                        </button>
-                        <button
-                          type="button"
-                          className={`workout-rep-mode-btn${ex.repMode === "seconds" ? " active" : ""}`}
-                          aria-pressed={ex.repMode === "seconds"}
-                          onClick={() =>
-                            updateExercise(ex.key, { repMode: "seconds" })
-                          }
-                        >
-                          Sec
-                        </button>
-                      </div>
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  {known.length > 0 ? (
+                    <label className="workout-log-field">
+                      <span className="workout-log-label">Name</span>
+                      <select
+                        className="workout-log-select"
+                        value={
+                          selectValue === WORKOUT_CUSTOM
+                            ? WORKOUT_CUSTOM
+                            : selectValue
+                              ? knownByLower.get(selectValue.toLowerCase())
+                                  ?.name ?? selectValue
+                              : ""
+                        }
+                        onChange={(e) => pickExercise(ex.key, e.target.value)}
+                        aria-label={`Exercise ${i + 1} name`}
+                      >
+                        <option value="">Choose…</option>
+                        {known.map((k) => (
+                          <option key={k.name} value={k.name}>
+                            {k.name}
+                          </option>
+                        ))}
+                        <option value={WORKOUT_CUSTOM}>Other…</option>
+                      </select>
+                    </label>
+                  ) : null}
+                  {showCustom && (
+                    <label className="workout-log-field">
+                      <span className="workout-log-label">
+                        {known.length > 0 ? "Custom name" : "Name"}
+                      </span>
                       <input
-                        className="workout-actual-input workout-rep-mode-value"
+                        className="workout-log-input"
+                        value={ex.name}
+                        onChange={(e) =>
+                          updateExercise(ex.key, { name: e.target.value })
+                        }
+                        placeholder="Exercise name"
+                        aria-label={`Exercise ${i + 1} name`}
+                        autoComplete="off"
+                      />
+                    </label>
+                  )}
+                  <div className="workout-routine-ex-metrics">
+                    <label className="workout-routine-metric">
+                      <span className="workout-log-label">Sets</span>
+                      <input
+                        className="workout-actual-input"
                         type="number"
                         inputMode="numeric"
                         min={1}
-                        max={ex.repMode === "seconds" ? 999 : 99}
-                        value={ex.reps}
+                        max={99}
+                        value={ex.sets}
                         onChange={(e) =>
-                          updateExercise(ex.key, { reps: e.target.value })
+                          updateExercise(ex.key, { sets: e.target.value })
                         }
-                        aria-label={`Exercise ${i + 1} ${repModeLabel(ex.repMode).toLowerCase()}`}
-                        placeholder={ex.repMode === "seconds" ? "30" : "10"}
+                        aria-label={`Exercise ${i + 1} sets`}
                       />
+                    </label>
+                    <div className="workout-routine-metric workout-routine-metric-grow">
+                      <span className="workout-log-label">
+                        {repModeLabel(ex.repMode)} each
+                      </span>
+                      <div className="workout-rep-mode-row">
+                        <div
+                          className="workout-rep-mode-segment"
+                          role="group"
+                          aria-label={`Exercise ${i + 1} rep mode`}
+                        >
+                          <button
+                            type="button"
+                            className={`workout-rep-mode-btn${ex.repMode === "reps" ? " active" : ""}`}
+                            aria-pressed={ex.repMode === "reps"}
+                            onClick={() =>
+                              updateExercise(ex.key, { repMode: "reps" })
+                            }
+                          >
+                            Reps
+                          </button>
+                          <button
+                            type="button"
+                            className={`workout-rep-mode-btn${ex.repMode === "seconds" ? " active" : ""}`}
+                            aria-pressed={ex.repMode === "seconds"}
+                            onClick={() =>
+                              updateExercise(ex.key, { repMode: "seconds" })
+                            }
+                          >
+                            Sec
+                          </button>
+                        </div>
+                        <input
+                          className="workout-actual-input workout-rep-mode-value"
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={ex.repMode === "seconds" ? 999 : 99}
+                          value={ex.reps}
+                          onChange={(e) =>
+                            updateExercise(ex.key, { reps: e.target.value })
+                          }
+                          aria-label={`Exercise ${i + 1} ${repModeLabel(ex.repMode).toLowerCase()}`}
+                          placeholder={ex.repMode === "seconds" ? "30" : "10"}
+                        />
+                      </div>
                     </div>
                   </div>
+                  <label className="workout-routine-weight-toggle">
+                    <input
+                      type="checkbox"
+                      checked={ex.tracksWeight}
+                      onChange={(e) =>
+                        updateExercise(ex.key, {
+                          tracksWeight: e.target.checked,
+                        })
+                      }
+                    />
+                    <span>Track weight</span>
+                  </label>
                 </div>
-                <label className="workout-routine-weight-toggle">
-                  <input
-                    type="checkbox"
-                    checked={ex.tracksWeight}
-                    onChange={(e) =>
-                      updateExercise(ex.key, {
-                        tracksWeight: e.target.checked,
-                      })
-                    }
-                  />
-                  <span>Track weight when logging</span>
-                </label>
-              </div>
-            ))}
+              );
+            })}
             <button
               type="button"
               className="workout-routine-inline-btn"
