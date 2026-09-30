@@ -239,12 +239,6 @@ export function WorkoutRoutineBuilder() {
         </ul>
       )}
 
-      {routines.length === 0 && !open && (
-        <p className="muted tiny workout-routine-empty">
-          No saved routines yet. Tap + to create one.
-        </p>
-      )}
-
       {open && (
         <form
           className="workout-routine-form workout-log-form"

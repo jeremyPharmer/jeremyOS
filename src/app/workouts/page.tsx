@@ -53,7 +53,7 @@ export default function WorkoutsPage() {
           onSelectDate={setSelectedDate}
         />
 
-        {dayPanelOpen ? (
+        {dayPanelOpen && (
           <div className="workout-day-expand fade-in" aria-live="polite">
             <p className="workout-day-expand-label">
               {formatWorkoutListDate(selectedDate)}
@@ -73,10 +73,6 @@ export default function WorkoutsPage() {
               ))}
             </div>
           </div>
-        ) : (
-          <p className="muted tiny workout-day-expand-empty">
-            Tap a marked day to see that workout.
-          </p>
         )}
 
         {monthWorkouts.length === 0 ? (
