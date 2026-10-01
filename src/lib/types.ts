@@ -512,10 +512,11 @@ export type SaveGoalDay = {
 
 /** Required category when subtracting from the day total. */
 export type SaveGoalSpendCategory =
-  | "food"
-  | "books_movies"
+  | "meals"
+  | "snacks"
   | "clothes"
-  | "maintenance";
+  | "entertainment"
+  | "other";
 
 /** Mid-day ledger line on the Home saver tile (before Apply totals). */
 export type SaveGoalSpendEntry = {
