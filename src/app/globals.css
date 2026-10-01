@@ -2344,6 +2344,11 @@ h2 {
   font-weight: 600;
 }
 
+.save-goal-applied-badge {
+  color: var(--good);
+  font-weight: 700;
+}
+
 .save-goal-home-ledger {
   margin-top: 10px;
 }
@@ -2377,12 +2382,54 @@ h2 {
 
 .save-goal-inbound-figure {
   margin: 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
   font-size: 1.35rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   white-space: nowrap;
   color: var(--ink, inherit);
+}
+
+button.save-goal-inbound-figure {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: right;
+}
+
+button.save-goal-inbound-figure:hover,
+button.save-goal-inbound-edit:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.save-goal-inbound-edit-hint {
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+button.save-goal-rate.save-goal-inbound-edit {
+  display: inline-block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.save-goal-income-edit {
+  margin: 8px 0 4px;
 }
 
 .save-goal-row {
@@ -2475,7 +2522,9 @@ h2 {
 
 .save-goal-ledger-apply {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: 8px;
   margin: 4px 0 12px;
@@ -2485,10 +2534,33 @@ h2 {
 .save-goal-ledger-apply .btn.primary,
 .save-goal-ledger-apply .btn.secondary {
   width: auto;
-  min-width: 10rem;
-  max-width: 16rem;
-  padding: 8px 18px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 12rem;
+  padding: 8px 14px;
   font-size: 0.9rem;
+}
+
+.save-goal-custom-apply {
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+}
+
+.save-goal-custom-amounts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.save-goal-custom-amount-row {
+  margin: 0;
+}
+
+.save-goal-custom-amount-row .field-label {
+  margin-bottom: 4px;
 }
 
 .save-goal-draw-from {
@@ -2763,16 +2835,27 @@ h2 {
 
 .save-goal-adjust-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .save-goal-adjust-meta {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 0 1 auto;
   min-width: 0;
+}
+
+.save-goal-adjust-reason {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
 }
 
 .save-goal-add-link:hover {
