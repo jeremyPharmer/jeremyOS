@@ -6,6 +6,7 @@ import {
   formatElapsedClock,
   formatExerciseActualSummary,
   formatWorkoutListDate,
+  knownExercises,
   lastExerciseActualsForRoutine,
   monthWorkoutSummary,
   normalizeActiveWorkout,
@@ -21,7 +22,7 @@ import {
   weekWorkoutSummary,
   workoutsInMonth,
 } from "./workouts";
-import type { WorkoutLog } from "./types";
+import type { WorkoutLog, WorkoutRoutine } from "./types";
 
 describe("normalizeWorkout", () => {
   it("defaults legacy rows to lift", () => {
@@ -424,6 +425,79 @@ describe("routines and actuals", () => {
   it("parses routine select values", () => {
     expect(parseRoutineSelectValue(routineSelectValue("abc"))).toBe("abc");
     expect(parseRoutineSelectValue("Upper body")).toBeNull();
+  });
+
+  it("knownExercises prefers most recent logged sets over routine defaults", () => {
+    const routines: WorkoutRoutine[] = [
+      {
+        id: "r1",
+        name: "Pull",
+        type: "lift",
+        createdAt: "2026-09-01T12:00:00Z",
+        exercises: [
+          {
+            id: "ex_lat",
+            name: "Lat Pulldown",
+            sets: 3,
+            reps: 12,
+            tracksWeight: true,
+          },
+          {
+            id: "ex_only_routine",
+            name: "Face Pulls",
+            sets: 2,
+            reps: 15,
+            tracksWeight: false,
+          },
+        ],
+      },
+    ];
+    const logs: WorkoutLog[] = [
+      {
+        id: "old",
+        date: "2026-09-10",
+        type: "lift",
+        label: "Pull",
+        createdAt: "2026-09-10T12:00:00Z",
+        exerciseActuals: [
+          {
+            exerciseId: "ex_lat",
+            name: "Lat Pulldown",
+            tracksWeight: true,
+            sets: [
+              { reps: 10, weight: 100 },
+              { reps: 10, weight: 100 },
+            ],
+          },
+        ],
+      },
+      {
+        id: "new",
+        date: "2026-09-20",
+        type: "lift",
+        label: "Pull",
+        createdAt: "2026-09-20T12:00:00Z",
+        exerciseActuals: [
+          {
+            exerciseId: "ex_lat",
+            name: "Lat Pulldown",
+            tracksWeight: true,
+            repMode: "reps",
+            sets: [
+              { reps: 8, weight: 120 },
+              { reps: 8, weight: 120 },
+              { reps: 8, weight: 120 },
+              { reps: 8, weight: 120 },
+            ],
+          },
+        ],
+      },
+    ];
+    const known = knownExercises(logs, routines);
+    const lat = known.find((k) => k.name === "Lat Pulldown");
+    const face = known.find((k) => k.name === "Face Pulls");
+    expect(lat).toMatchObject({ sets: 4, reps: 8, tracksWeight: true });
+    expect(face).toMatchObject({ sets: 2, reps: 15, tracksWeight: false });
   });
 });
 
