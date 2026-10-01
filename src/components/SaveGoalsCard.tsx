@@ -21,9 +21,11 @@ import {
   normalizeSaveGoalSettings,
   progressRatio,
   projectSaveGoalTargetDate,
+  round2,
   SAVE_GOAL_SPEND_CATEGORIES,
   saveGoalCloseForDate,
   saveGoalSpendCategoryLabel,
+  splitPoolByWeight,
 } from "@/lib/save-goals";
 import type {
   SaveGoal,
@@ -237,6 +239,9 @@ function DailyLedger({
   onApply?: (opts?: {
     drawFromGoalId?: string;
     scope?: "all" | "rolled";
+    leftoverMode?: "preset" | "custom";
+    leftoverGoalId?: string;
+    leftoverAllocations?: Array<{ goalId: string; amount: number }>;
   }) => void;
   onUndoApply?: () => void;
 }) {
@@ -246,6 +251,10 @@ function DailyLedger({
   const [rollPrompt, setRollPrompt] = useState(false);
   const [rollScope, setRollScope] = useState<"all" | "rolled">("all");
   const [rollAutoShown, setRollAutoShown] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>(
+    {},
+  );
   const todayClose = useMemo(
     () => (today ? saveGoalCloseForDate(state, today) : null),
     [state, today],
@@ -279,11 +288,18 @@ function DailyLedger({
     setRollAutoShown(true);
   }, [onApply, hasRolled, rollAutoShown]);
 
-  function applyOpts(scope: "all" | "rolled" = "all") {
+  function applyOpts(
+    scope: "all" | "rolled" = "all",
+    extra?: {
+      leftoverMode?: "preset" | "custom";
+      leftoverGoalId?: string;
+      leftoverAllocations?: Array<{ goalId: string; amount: number }>;
+    },
+  ) {
     const needsDraw =
       (scope === "all" && leftShown < 0) ||
       (scope === "rolled" && running.carryIn < 0);
-    return needsDraw
+    const base = needsDraw
       ? {
           scope,
           drawFromGoalId:
@@ -291,16 +307,63 @@ function DailyLedger({
             (goals.length === 1 ? goals[0].id : undefined),
         }
       : { scope };
+    return { ...base, ...extra };
   }
+
+  const customParsed = goals.map((g) => {
+    const raw = customAmounts[g.id] ?? "";
+    const n = Number(raw);
+    return {
+      goalId: g.id,
+      amount: Number.isFinite(n) && n >= 0 ? round2(n) : NaN,
+    };
+  });
+  const customSum = round2(
+    customParsed.reduce(
+      (s, a) => s + (Number.isFinite(a.amount) ? a.amount : 0),
+      0,
+    ),
+  );
+  const customValid =
+    customParsed.every((a) => Number.isFinite(a.amount)) &&
+    customSum === round2(leftShown);
 
   function requestApply() {
     if (!onApply) return;
+    setCustomOpen(false);
     if (hasRolled) {
       setRollScope("all");
       setRollPrompt(true);
       return;
     }
     onApply(applyOpts("all"));
+  }
+
+  function requestCustom() {
+    if (!onApply) return;
+    setRollPrompt(false);
+    const seeded = splitPoolByWeight(leftShown, goals);
+    const next: Record<string, string> = {};
+    for (const g of goals) {
+      const row = seeded.find((a) => a.goalId === g.id);
+      next[g.id] = String(row?.amount ?? 0);
+    }
+    setCustomAmounts(next);
+    setCustomOpen(true);
+  }
+
+  function confirmCustomApply() {
+    if (!onApply || !customValid) return;
+    onApply(
+      applyOpts("all", {
+        leftoverMode: "custom",
+        leftoverAllocations: customParsed.map((a) => ({
+          goalId: a.goalId,
+          amount: a.amount,
+        })),
+      }),
+    );
+    setCustomOpen(false);
   }
 
   function confirmRollApply() {
@@ -398,19 +461,90 @@ function DailyLedger({
           </div>
         </div>
       ) : null}
-      {!rollPrompt && (onApply || (applied && onUndoApply)) ? (
+      {customOpen && onApply && !rollPrompt ? (
+        <div
+          className="save-goal-custom-apply"
+          role="group"
+          aria-label="Custom apply"
+        >
+          <p className="field-label" style={{ marginBottom: 6 }}>
+            Apply {formatMoney(leftShown)} today
+          </p>
+          <p className="tiny muted" style={{ margin: "0 0 10px" }}>
+            One-off dollars for today — does not change your{" "}
+            {goals.map((g) => `${inboundPercent(g)}%`).join(" / ")} daily
+            chips.
+          </p>
+          <div className="save-goal-custom-amounts">
+            {goals.map((g) => (
+              <label key={g.id} className="field save-goal-custom-amount-row">
+                <span className="field-label">{g.name}</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={customAmounts[g.id] ?? ""}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setCustomAmounts((prev) => ({
+                      ...prev,
+                      [g.id]: e.target.value,
+                    }))
+                  }
+                  placeholder="0"
+                />
+              </label>
+            ))}
+          </div>
+          <p
+            className="tiny"
+            style={{
+              margin: "8px 0 0",
+              color: customValid ? "var(--muted)" : "var(--danger)",
+            }}
+          >
+            {customValid
+              ? `Adds up to ${formatMoney(leftShown)}`
+              : `Must add up to ${formatMoney(leftShown)} (now ${formatMoney(customSum)})`}
+          </p>
+          <div className="save-goal-create-actions" style={{ marginTop: 12 }}>
+            <PrimaryButton
+              onClick={confirmCustomApply}
+              disabled={busy || !customValid || !canApply}
+            >
+              {busy ? "Saving…" : "Apply"}
+            </PrimaryButton>
+            <SecondaryButton
+              onClick={() => setCustomOpen(false)}
+              disabled={busy}
+            >
+              Cancel
+            </SecondaryButton>
+          </div>
+        </div>
+      ) : null}
+      {!rollPrompt && !customOpen && (onApply || (applied && onUndoApply)) ? (
         <div className="save-goal-ledger-apply">
           {onApply ? (
-            <PrimaryButton
-              onClick={requestApply}
-              disabled={busy || !canApply}
-            >
-              {busy
-                ? "Saving…"
-                : applied
-                  ? "Re-apply totals"
-                  : "Apply totals"}
-            </PrimaryButton>
+            <>
+              <PrimaryButton
+                onClick={requestApply}
+                disabled={busy || !canApply}
+              >
+                {busy
+                  ? "Saving…"
+                  : applied
+                    ? "Re-apply total"
+                    : "Apply total"}
+              </PrimaryButton>
+              <SecondaryButton
+                onClick={requestCustom}
+                disabled={busy || !canApply || leftShown <= 0}
+              >
+                Custom
+              </SecondaryButton>
+            </>
           ) : null}
           {applied && onUndoApply ? (
             <SecondaryButton onClick={onUndoApply} disabled={busy}>
@@ -1258,6 +1392,9 @@ function SaveGoalsDetail() {
   async function applyTotals(opts?: {
     drawFromGoalId?: string;
     scope?: "all" | "rolled";
+    leftoverMode?: "preset" | "custom";
+    leftoverGoalId?: string;
+    leftoverAllocations?: Array<{ goalId: string; amount: number }>;
   }) {
     setBusy(true);
     setError("");
@@ -1267,6 +1404,9 @@ function SaveGoalsDetail() {
         date: today,
         scope: opts?.scope === "rolled" ? "rolled" : "all",
         drawFromGoalId: opts?.drawFromGoalId,
+        leftoverMode: opts?.leftoverMode,
+        leftoverGoalId: opts?.leftoverGoalId,
+        leftoverAllocations: opts?.leftoverAllocations,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not apply");

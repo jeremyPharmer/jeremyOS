@@ -193,10 +193,28 @@ export async function POST(req: Request) {
         if (body.scope === "rolled") {
           return applySaveGoalRolledOnly(prev, { date, drawFromGoalId });
         }
+        const leftoverMode =
+          body.leftoverMode === "custom" ? ("custom" as const) : ("preset" as const);
         return applySaveGoalDayTotals(prev, {
           date,
           lumpSum: body.lumpSum !== undefined ? Number(body.lumpSum) : 0,
           drawFromGoalId,
+          leftoverMode,
+          leftoverGoalId:
+            body.leftoverGoalId !== undefined && body.leftoverGoalId !== null
+              ? String(body.leftoverGoalId)
+              : undefined,
+          leftoverGoalIds: Array.isArray(body.leftoverGoalIds)
+            ? body.leftoverGoalIds.map((id: unknown) => String(id))
+            : undefined,
+          leftoverAllocations: Array.isArray(body.leftoverAllocations)
+            ? body.leftoverAllocations.map(
+                (a: { goalId?: unknown; amount?: unknown }) => ({
+                  goalId: String(a?.goalId ?? ""),
+                  amount: Number(a?.amount),
+                }),
+              )
+            : undefined,
         });
       }
 
