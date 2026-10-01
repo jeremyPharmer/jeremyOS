@@ -1442,7 +1442,7 @@ function SaveGoalsDetail() {
         </div>
         <button
           type="button"
-          className="save-goal-monthly-link"
+          className="tiny save-goal-rate save-goal-inbound-edit"
           aria-label="Edit monthly allotment"
           onClick={() => {
             setIncomeOpen(true);
@@ -1450,8 +1450,7 @@ function SaveGoalsDetail() {
             setError("");
           }}
         >
-          Monthly {formatMoneyDown(settings.monthlyIncome)} ·{" "}
-          {formatMoneyDown(rate)}/day · Edit
+          {formatMoneyDown(rate)} / day
         </button>
         {incomeOpen ? (
           <div className="save-goal-create save-goal-income-edit">
@@ -1511,33 +1510,26 @@ function SaveGoalsDetail() {
               {goals.length === 0 ? "Save towards something" : "Saving toward"}
             </h2>
           </div>
-          <p className="save-goal-inbound-figure" aria-label="Daily inbound">
+          <button
+            type="button"
+            className="save-goal-inbound-figure save-goal-inbound-edit"
+            aria-label="Edit monthly allotment"
+            aria-expanded={incomeOpen}
+            onClick={() => {
+              setIncomeOpen((v) => !v);
+              setEditMonthly(String(settings.monthlyIncome));
+              setError("");
+            }}
+          >
             {formatMoneyDown(rate)}
             <span className="tiny muted save-goal-inbound-edit-hint">/ day</span>
-          </p>
+          </button>
         </div>
-        <button
-          type="button"
-          className="save-goal-monthly-link"
-          aria-label="Edit monthly allotment"
-          aria-expanded={incomeOpen}
-          onClick={() => {
-            setIncomeOpen((v) => !v);
-            setEditMonthly(String(settings.monthlyIncome));
-            setError("");
-          }}
-        >
-          Monthly {formatMoneyDown(settings.monthlyIncome)} · Edit
-        </button>
       </div>
 
       {incomeOpen ? (
         <div className="save-goal-create save-goal-income-edit">
           <p className="eyebrow">Monthly allotment</p>
-          <p className="tiny muted" style={{ marginTop: 0 }}>
-            Your monthly save budget — split evenly into today&apos;s daily
-            amount for the chips below.
-          </p>
           <label className="field">
             <span className="field-label">Monthly amount</span>
             <input

@@ -2322,25 +2322,6 @@ button.save-goal-rate.save-goal-inbound-edit {
   text-align: left;
 }
 
-.save-goal-monthly-link {
-  display: inline-block;
-  margin: 6px 0 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--ink, inherit);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.save-goal-monthly-link:hover {
-  opacity: 0.85;
-}
-
 .save-goal-income-edit {
   margin: 8px 0 4px;
 }
