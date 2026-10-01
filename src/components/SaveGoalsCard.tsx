@@ -1088,10 +1088,17 @@ function SaveGoalsDetail() {
   const [editSaved, setEditSaved] = useState("");
   const [deleting, setDeleting] = useState<SaveGoal | null>(null);
   const [reallocateTo, setReallocateTo] = useState<string>("");
+  const [incomeOpen, setIncomeOpen] = useState(false);
+  const [editMonthly, setEditMonthly] = useState("");
 
   const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
   const rate = today ? dailyIncomeRate(today, settings.monthlyIncome) : 0;
   const goals = useMemo(() => activeSaveGoals(state), [state]);
+  const draftMonthly = Number(editMonthly);
+  const draftRate =
+    today && Number.isFinite(draftMonthly) && draftMonthly >= 0
+      ? dailyIncomeRate(today, floorDollar(draftMonthly))
+      : rate;
 
   async function create() {
     const targetAmount = Number(target);
@@ -1130,6 +1137,27 @@ function SaveGoalsDetail() {
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not update percent");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveMonthlyIncome() {
+    const monthlyIncome = Number(editMonthly);
+    if (!Number.isFinite(monthlyIncome) || monthlyIncome < 0) {
+      setError("Enter a monthly amount of $0 or more.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "settings",
+        monthlyIncome,
+      });
+      setIncomeOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update daily amount");
     } finally {
       setBusy(false);
     }
@@ -1272,7 +1300,52 @@ function SaveGoalsDetail() {
           <p className="home-card-kicker">Save goals</p>
           <h2>Save towards something</h2>
         </div>
-        <p className="tiny save-goal-rate">{formatMoneyDown(rate)} / day</p>
+        <button
+          type="button"
+          className="tiny save-goal-rate save-goal-inbound-edit"
+          aria-label="Edit daily inbound"
+          onClick={() => {
+            setIncomeOpen(true);
+            setEditMonthly(String(settings.monthlyIncome));
+            setError("");
+          }}
+        >
+          {formatMoneyDown(rate)} / day · tap to edit
+        </button>
+        {incomeOpen ? (
+          <div className="save-goal-create save-goal-income-edit">
+            <p className="eyebrow">Daily inbound</p>
+            <label className="field">
+              <span className="field-label">Monthly amount</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step="1"
+                value={editMonthly}
+                onChange={(e) => setEditMonthly(e.target.value)}
+                autoFocus
+              />
+            </label>
+            <p className="tiny save-goal-rate">
+              → {formatMoneyDown(draftRate)} / day this month
+            </p>
+            <div className="save-goal-create-actions">
+              <PrimaryButton
+                disabled={busy}
+                onClick={() => void saveMonthlyIncome()}
+              >
+                {busy ? "Saving…" : "Save"}
+              </PrimaryButton>
+              <SecondaryButton
+                disabled={busy}
+                onClick={() => setIncomeOpen(false)}
+              >
+                Cancel
+              </SecondaryButton>
+            </div>
+          </div>
+        ) : null}
         <PrimaryButton onClick={() => setOpen(true)}>
           Add a save goal
         </PrimaryButton>
@@ -1297,11 +1370,69 @@ function SaveGoalsDetail() {
               {goals.length === 0 ? "Save towards something" : "Saving toward"}
             </h2>
           </div>
-          <p className="save-goal-inbound-figure" aria-label="Daily inbound">
+          <button
+            type="button"
+            className="save-goal-inbound-figure save-goal-inbound-edit"
+            aria-label="Edit daily inbound"
+            aria-expanded={incomeOpen}
+            onClick={() => {
+              setIncomeOpen((v) => !v);
+              setEditMonthly(String(settings.monthlyIncome));
+              setError("");
+            }}
+          >
             {formatMoneyDown(rate)}
-          </p>
+            <span className="tiny muted save-goal-inbound-edit-hint">/ day</span>
+          </button>
         </div>
       </div>
+
+      {incomeOpen ? (
+        <div className="save-goal-create save-goal-income-edit">
+          <p className="eyebrow">Daily inbound</p>
+          <p className="tiny muted" style={{ marginTop: 0 }}>
+            Set your monthly save budget — it becomes today&apos;s daily amount
+            for the chips below.
+          </p>
+          <label className="field">
+            <span className="field-label">Monthly amount</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step="1"
+              value={editMonthly}
+              onChange={(e) => setEditMonthly(e.target.value)}
+              autoFocus
+            />
+          </label>
+          <p className="tiny save-goal-rate">
+            → {formatMoneyDown(draftRate)} / day this month
+          </p>
+          {error ? (
+            <p className="tiny" style={{ color: "var(--danger)" }}>
+              {error}
+            </p>
+          ) : null}
+          <div className="save-goal-create-actions">
+            <PrimaryButton
+              disabled={busy}
+              onClick={() => void saveMonthlyIncome()}
+            >
+              {busy ? "Saving…" : "Save"}
+            </PrimaryButton>
+            <SecondaryButton
+              disabled={busy}
+              onClick={() => {
+                setIncomeOpen(false);
+                setError("");
+              }}
+            >
+              Cancel
+            </SecondaryButton>
+          </div>
+        </div>
+      ) : null}
 
       {goals.length > 0 ? (
         <InboundBreakdown
