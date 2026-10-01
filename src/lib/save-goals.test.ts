@@ -23,6 +23,7 @@ import {
   leftoverPool,
   listSaveGoalAdjustments,
   listSaveGoalAdjustmentsForGoal,
+  normalizeSaveGoals,
   projectSaveGoalTargetDate,
   recordSaveGoalDay,
   recomputeSavedAmounts,
@@ -632,6 +633,26 @@ describe("removeSaveGoalAdjustment", () => {
     state = removeSaveGoalAdjustment(state, adj.id!);
     expect(state.saveGoals![0].savedAmount).toBe(0);
     expect(listSaveGoalAdjustments(state)).toHaveLength(0);
+  });
+
+  it("stores an optional reason on adjust rows through normalize", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Reserve",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = applySaveGoalAdjustment(state, {
+      date: "2026-04-02",
+      amount: 60,
+      mode: "preset",
+      note: "  Birthday gift  ",
+    });
+    const adj = listSaveGoalAdjustments(state)[0];
+    expect(adj?.note).toBe("Birthday gift");
+
+    state = normalizeSaveGoals(state);
+    expect(listSaveGoalAdjustments(state)[0]?.note).toBe("Birthday gift");
   });
 });
 

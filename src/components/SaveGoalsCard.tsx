@@ -180,7 +180,11 @@ function DailyLedgerDay({
     <div className={`save-goal-ledger-day${closed ? "" : " open"}`}>
       <div className="save-goal-ledger-day-head">
         <span className="save-goal-ledger-date">{label}</span>
-        {!closed ? <span className="tiny muted">open</span> : null}
+        {closed && label === "Today" ? (
+          <span className="tiny save-goal-applied-badge">Applied</span>
+        ) : !closed ? (
+          <span className="tiny muted">open</span>
+        ) : null}
       </div>
       <div className="save-goal-ledger-rows">
         <div className="save-goal-ledger-row">
@@ -484,6 +488,13 @@ function GoalAdjustmentLog({
                   {d.date} · {formatMoney(d.goalAmount)}
                 </span>
               </div>
+              {d.note ? (
+                <span className="tiny save-goal-adjust-reason" title={d.note}>
+                  {d.note}
+                </span>
+              ) : (
+                <span className="save-goal-adjust-reason" aria-hidden="true" />
+              )}
               <button
                 type="button"
                 className="save-goal-add-link"
@@ -617,6 +628,13 @@ function AdjustmentsList({
                 <span className="tiny muted">{parts.join(" · ")}</span>
               ) : null}
             </div>
+            {d.note ? (
+              <span className="tiny save-goal-adjust-reason" title={d.note}>
+                {d.note}
+              </span>
+            ) : (
+              <span className="save-goal-adjust-reason" aria-hidden="true" />
+            )}
             <button
               type="button"
               className="save-goal-add-link"
@@ -647,9 +665,11 @@ function AdjustPanel({
     amount: number;
     mode: "preset" | "custom";
     goalId?: string;
+    note?: string;
   }) => void;
 }) {
   const [adjustAmount, setAdjustAmount] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
   const [adjustSign, setAdjustSign] = useState<"add" | "subtract">("add");
   const [adjustMode, setAdjustMode] = useState<"preset" | "custom">("preset");
   const [customGoalId, setCustomGoalId] = useState(goals[0]?.id ?? "");
@@ -683,6 +703,16 @@ function AdjustPanel({
           value={adjustAmount}
           onChange={(e) => setAdjustAmount(e.target.value)}
           placeholder="50"
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">Reason</span>
+        <input
+          type="text"
+          value={adjustReason}
+          onChange={(e) => setAdjustReason(e.target.value)}
+          placeholder="Bonus, gift, transfer…"
+          maxLength={80}
         />
       </label>
       <p className="field-label" style={{ marginBottom: 6 }}>
@@ -736,6 +766,7 @@ function AdjustPanel({
               amount: adjustSign === "add" ? raw : -raw,
               mode: adjustMode,
               goalId: adjustMode === "custom" ? customGoalId : undefined,
+              note: adjustReason.trim() || undefined,
             });
           }}
         >
@@ -965,16 +996,9 @@ function HomeSaveGoalsGlance() {
             </p>
           ) : null}
 
-          {applied && todayClose ? (
+          {applied ? (
             <p className="tiny save-goal-applied-line">
-              Applied{" "}
-              {(todayClose.allocations ?? [])
-                .filter((a) => a.amount !== 0)
-                .map((a) => {
-                  const g = goals.find((x) => x.id === a.goalId);
-                  return `${g?.name ?? "Goal"} ${formatMoney(a.amount)}`;
-                })
-                .join(" · ") || formatMoney(todayClose.leftover)}
+              <span className="save-goal-applied-badge">Applied</span>
             </p>
           ) : null}
 
@@ -1115,6 +1139,7 @@ function SaveGoalsDetail() {
     amount: number;
     mode: "preset" | "custom";
     goalId?: string;
+    note?: string;
   }) {
     if (!Number.isFinite(input.amount) || input.amount === 0) {
       setError("Enter an amount greater than 0.");
@@ -1128,6 +1153,7 @@ function SaveGoalsDetail() {
         amount: input.amount,
         mode: input.mode,
         goalId: input.goalId,
+        note: input.note,
       });
       setAdjustOpen(false);
     } catch (e) {
