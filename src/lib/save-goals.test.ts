@@ -247,7 +247,7 @@ describe("recordSaveGoalDay", () => {
       date: "2026-04-01",
       amount: 40,
       kind: "spend",
-      category: "food",
+      category: "meals",
     });
     // inbound 16 − 40 = −24; must pick
     expect(() =>
@@ -367,7 +367,7 @@ describe("projectSaveGoalTargetDate", () => {
       date: "2026-09-28",
       amount: 9.72,
       kind: "spend",
-      category: "food",
+      category: "meals",
     });
     state = applySaveGoalDayTotals(state, { date: "2026-09-28" });
 
@@ -431,7 +431,7 @@ describe("projectSaveGoalTargetDate", () => {
       date: "2026-04-02",
       amount: 9.72,
       kind: "spend",
-      category: "food",
+      category: "meals",
     });
     const proj = projectSaveGoalTargetDate(state, state.saveGoals![0], "2026-04-02");
     expect(proj.projectedPoolPerDay).toBe(16);
@@ -547,7 +547,7 @@ describe("leftoverBeforeApply roll-forward", () => {
       targetAmount: 500,
       createdOn: "2026-04-01",
     });
-    state = addSaveGoalSpend(state, { date: "2026-04-01", amount: 5, category: "food" });
+    state = addSaveGoalSpend(state, { date: "2026-04-01", amount: 5, category: "meals" });
     const d1 = leftoverBeforeApply(state, "2026-04-01");
     expect(d1.left).toBe(11);
     const d2 = leftoverBeforeApply(state, "2026-04-02");
@@ -760,7 +760,7 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     state = addSaveGoalSpend(state, {
       date: "2026-04-01",
       amount: 5,
-      category: "food",
+      category: "meals",
     });
     state = addSaveGoalSpend(state, {
       date: "2026-04-01",
@@ -802,7 +802,7 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       date: "2026-04-01",
       amount: 8.18,
       kind: "spend",
-      category: "food",
+      category: "meals",
     });
     const before = leftoverBeforeApply(state, "2026-04-01");
     expect(before.spend).toBe(8.18);
@@ -828,9 +828,18 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       date: "2026-04-01",
       amount: 5,
       kind: "spend",
-      category: "books_movies",
+      category: "entertainment",
     });
-    expect(state.saveGoalSpendEntries![0].category).toBe("books_movies");
+    expect(state.saveGoalSpendEntries![0].category).toBe("entertainment");
+
+    // Legacy ids still accepted and rewritten to the new set.
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 2,
+      kind: "spend",
+      category: "food",
+    });
+    expect(state.saveGoalSpendEntries![1].category).toBe("meals");
   });
 
   it("manual adds increase day total and leftover", () => {
@@ -851,7 +860,7 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       date: "2026-04-01",
       amount: 5,
       kind: "spend",
-      category: "maintenance",
+      category: "other",
     });
     const before = leftoverBeforeApply(state, "2026-04-01");
     expect(before.inbound).toBe(16);
