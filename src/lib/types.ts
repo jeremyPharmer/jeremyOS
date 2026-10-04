@@ -114,6 +114,8 @@ export type WorkoutLog = {
   /** Session quality 1–5; counts as weekly points */
   quality?: number;
   durationMin?: number;
+  /** Precise duration in seconds (runs); preferred over durationMin when set */
+  durationSec?: number;
   /** Run distance in miles — MapMyRun sync later */
   distanceMiles?: number;
   notes?: string;
@@ -138,6 +140,8 @@ export type ActiveWorkoutSession = {
   routineId?: string;
   exerciseActuals?: WorkoutExerciseActual[];
   distanceMiles?: number;
+  /** Manual/edited run duration in seconds (when set, overrides timer on save) */
+  durationSec?: number;
   notes?: string;
   updatedAt: string;
 };
