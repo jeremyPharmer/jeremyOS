@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import type { ActiveWorkoutSession, WorkoutExerciseActual } from "@/lib/types";
 import {
   activeWorkoutElapsedMs,
-  elapsedDurationMin,
+  durationSecFromParts,
   formatElapsedClock,
+  formatPacePerMile,
   gymSupportForType,
   repModeLabel,
+  splitDurationSec,
   workoutTypeLabel,
   WORKOUT_QUALITY_MAX,
 } from "@/lib/workouts";
@@ -36,6 +38,12 @@ function sanitizeActuals(
   return cleaned.length ? cleaned : undefined;
 }
 
+function parseNonNeg(raw: string): number {
+  if (raw === "") return 0;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
 export function ActiveWorkoutPanel({
   session,
   onEnded,
@@ -52,6 +60,11 @@ export function ActiveWorkoutPanel({
   );
   const [distance, setDistance] = useState(
     session.distanceMiles != null ? String(session.distanceMiles) : "",
+  );
+  const [runMin, setRunMin] = useState("");
+  const [runSec, setRunSec] = useState("");
+  const [timeDirty, setTimeDirty] = useState(
+    () => session.durationSec != null && session.durationSec > 0,
   );
   const [notes, setNotes] = useState(session.notes ?? "");
   const [ending, setEnding] = useState(false);
@@ -88,12 +101,48 @@ export function ActiveWorkoutPanel({
     setNotes(session.notes ?? "");
     setEnding(false);
     setQuality(null);
+    if (session.durationSec != null && session.durationSec > 0) {
+      const parts = splitDurationSec(session.durationSec);
+      setRunMin(String(parts.min));
+      setRunSec(String(parts.sec));
+      setTimeDirty(true);
+    } else {
+      setTimeDirty(false);
+      const parts = splitDurationSec(
+        Math.floor(activeWorkoutElapsedMs(session.startedAt) / 1000),
+      );
+      setRunMin(String(parts.min));
+      setRunSec(String(parts.sec));
+    }
   }, [session.id]);
+
+  // Keep min/sec in sync with timer until the user edits them
+  useEffect(() => {
+    if (session.type !== "run" || timeDirty) return;
+    const parts = splitDurationSec(Math.floor(elapsedMs / 1000));
+    setRunMin(String(parts.min));
+    setRunSec(String(parts.sec));
+  }, [elapsedMs, timeDirty, session.type]);
+
+  const runDurationSec = useMemo(() => {
+    if (session.type !== "run") {
+      return Math.floor(elapsedMs / 1000);
+    }
+    return durationSecFromParts(parseNonNeg(runMin), parseNonNeg(runSec));
+  }, [session.type, elapsedMs, runMin, runSec]);
+
+  const paceLabel = useMemo(() => {
+    if (session.type !== "run") return null;
+    const miles = Number(distance);
+    return formatPacePerMile(miles, runDurationSec);
+  }, [session.type, distance, runDurationSec]);
 
   function schedulePersist(next: {
     actuals: WorkoutExerciseActual[];
     distance: string;
     notes: string;
+    durationSec?: number;
+    persistDuration?: boolean;
   }) {
     if (persistTimer.current) clearTimeout(persistTimer.current);
     persistTimer.current = setTimeout(() => {
@@ -103,6 +152,10 @@ export function ActiveWorkoutPanel({
         distanceMiles:
           session.type === "run" && next.distance
             ? Number(next.distance)
+            : undefined,
+        durationSec:
+          next.persistDuration && next.durationSec != null && next.durationSec > 0
+            ? next.durationSec
             : undefined,
         notes: next.notes.trim() || undefined,
       }).catch(() => {
@@ -143,6 +196,25 @@ export function ActiveWorkoutPanel({
     });
   }
 
+  function onRunTimeChange(field: "min" | "sec", value: string) {
+    setTimeDirty(true);
+    const nextMin = field === "min" ? value : runMin;
+    const nextSec = field === "sec" ? value : runSec;
+    if (field === "min") setRunMin(value);
+    else setRunSec(value);
+    const sec = durationSecFromParts(
+      parseNonNeg(nextMin),
+      parseNonNeg(nextSec),
+    );
+    schedulePersist({
+      actuals,
+      distance,
+      notes,
+      durationSec: sec,
+      persistDuration: true,
+    });
+  }
+
   async function discard() {
     if (busy) return;
     if (!window.confirm("Discard this workout? The timer will be cleared.")) {
@@ -165,11 +237,14 @@ export function ActiveWorkoutPanel({
     setBusy(true);
     setError("");
     try {
-      const durationMin = elapsedDurationMin(elapsedMs);
+      const durationSec =
+        session.type === "run"
+          ? runDurationSec
+          : Math.floor(elapsedMs / 1000);
       await post("/api/workouts", {
         action: "end_session",
         quality,
-        durationMin: durationMin > 0 ? durationMin : undefined,
+        durationSec: durationSec > 0 ? durationSec : undefined,
         exerciseActuals: sanitizeActuals(actuals),
         distanceMiles:
           session.type === "run" && distance ? Number(distance) : undefined,
@@ -260,24 +335,65 @@ export function ActiveWorkoutPanel({
       )}
 
       {session.type === "run" && (
-        <label className="workout-log-field">
-          <span className="workout-log-label">Miles</span>
-          <input
-            className="workout-log-input"
-            type="number"
-            inputMode="decimal"
-            step="0.1"
-            min={0}
-            placeholder="0.0"
-            value={distance}
-            onChange={(e) => {
-              const v = e.target.value;
-              setDistance(v);
-              schedulePersist({ actuals, distance: v, notes });
-            }}
-            aria-label="Distance in miles"
-          />
-        </label>
+        <div className="workout-run-metrics">
+          <label className="workout-log-field">
+            <span className="workout-log-label">Miles</span>
+            <input
+              className="workout-log-input"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min={0}
+              placeholder="0.00"
+              value={distance}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDistance(v);
+                schedulePersist({
+                  actuals,
+                  distance: v,
+                  notes,
+                  durationSec: timeDirty ? runDurationSec : undefined,
+                  persistDuration: timeDirty,
+                });
+              }}
+              aria-label="Distance in miles"
+            />
+          </label>
+          <label className="workout-log-field">
+            <span className="workout-log-label">Min</span>
+            <input
+              className="workout-log-input"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={999}
+              placeholder="0"
+              value={runMin}
+              onChange={(e) => onRunTimeChange("min", e.target.value)}
+              aria-label="Minutes"
+            />
+          </label>
+          <label className="workout-log-field">
+            <span className="workout-log-label">Sec</span>
+            <input
+              className="workout-log-input"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={59}
+              placeholder="0"
+              value={runSec}
+              onChange={(e) => onRunTimeChange("sec", e.target.value)}
+              aria-label="Seconds"
+            />
+          </label>
+          {paceLabel && (
+            <p className="workout-run-pace" aria-live="polite">
+              {paceLabel}
+            </p>
+          )}
+        </div>
       )}
 
       <label className="workout-log-field">
@@ -289,7 +405,13 @@ export function ActiveWorkoutPanel({
           onChange={(e) => {
             const v = e.target.value;
             setNotes(v);
-            schedulePersist({ actuals, distance, notes: v });
+            schedulePersist({
+              actuals,
+              distance,
+              notes: v,
+              durationSec: timeDirty ? runDurationSec : undefined,
+              persistDuration: timeDirty,
+            });
           }}
           aria-label="Notes"
         />
@@ -337,12 +459,9 @@ export function ActiveWorkoutPanel({
               ))}
             </div>
           </fieldset>
-          <p className="tiny muted">
-            Time logged: {formatElapsedClock(elapsedMs)}
-            {elapsedDurationMin(elapsedMs) > 0
-              ? ` · ${elapsedDurationMin(elapsedMs)} min`
-              : ""}
-          </p>
+          {session.type === "run" && paceLabel && (
+            <p className="tiny muted">{paceLabel}</p>
+          )}
           <div className="workout-active-actions">
             <button
               type="button"

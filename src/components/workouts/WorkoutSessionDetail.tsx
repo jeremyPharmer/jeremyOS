@@ -1,6 +1,9 @@
 import {
+  formatDurationMinSec,
   formatMiles,
+  formatPacePerMile,
   repModeLabel,
+  workoutDurationSec,
   workoutTypeLabel,
 } from "@/lib/workouts";
 import type { WorkoutExerciseActual, WorkoutLog, WorkoutType } from "@/lib/types";
@@ -20,11 +23,20 @@ function formatSetLine(ex: WorkoutExerciseActual): string {
 function metaBits(workout: WorkoutLog): string[] {
   const bits: string[] = [];
   if (workout.quality != null) bits.push(`${workout.quality}/5`);
-  if (workout.durationMin != null && workout.durationMin > 0) {
-    bits.push(`${workout.durationMin} min`);
+  const durationSec = workoutDurationSec(workout);
+  if (durationSec != null && durationSec > 0) {
+    bits.push(formatDurationMinSec(durationSec));
   }
   if (workout.distanceMiles != null && workout.distanceMiles > 0) {
     bits.push(`${formatMiles(workout.distanceMiles)} mi`);
+  }
+  if (
+    workout.type === "run" &&
+    workout.distanceMiles != null &&
+    durationSec != null
+  ) {
+    const pace = formatPacePerMile(workout.distanceMiles, durationSec);
+    if (pace) bits.push(pace);
   }
   return bits;
 }

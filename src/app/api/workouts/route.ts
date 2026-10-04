@@ -4,6 +4,7 @@ import {
   elapsedDurationMin,
   isWorkoutType,
   normalizeActiveWorkout,
+  normalizeDurationSec,
   normalizeExerciseActuals,
   normalizeQuality,
   normalizeRoutine,
@@ -222,6 +223,10 @@ export async function POST(req: Request) {
             body.distanceMiles !== undefined
               ? parseOptionalDistance(body.distanceMiles)
               : activeWorkout.distanceMiles,
+          durationSec:
+            body.durationSec !== undefined
+              ? normalizeDurationSec(body.durationSec)
+              : activeWorkout.durationSec,
           notes:
             body.notes !== undefined
               ? body.notes
@@ -250,12 +255,24 @@ export async function POST(req: Request) {
           throw err;
         }
         const endedAt = Date.now();
+        const durationSec =
+          normalizeDurationSec(body.durationSec) ??
+          normalizeDurationSec(activeWorkout.durationSec) ??
+          (() => {
+            const fromTimer = Math.floor(
+              (endedAt - Date.parse(activeWorkout.startedAt)) / 1000,
+            );
+            return fromTimer > 0 ? fromTimer : undefined;
+          })();
         const durationMin =
-          body.durationMin != null && Number.isFinite(Number(body.durationMin))
-            ? Math.max(0, Math.round(Number(body.durationMin)))
-            : elapsedDurationMin(
-                endedAt - Date.parse(activeWorkout.startedAt),
-              );
+          durationSec != null
+            ? Math.max(1, Math.round(durationSec / 60))
+            : body.durationMin != null &&
+                Number.isFinite(Number(body.durationMin))
+              ? Math.max(0, Math.round(Number(body.durationMin)))
+              : elapsedDurationMin(
+                  endedAt - Date.parse(activeWorkout.startedAt),
+                );
         const exerciseActuals =
           body.exerciseActuals !== undefined
             ? normalizeExerciseActuals(body.exerciseActuals)
@@ -278,6 +295,7 @@ export async function POST(req: Request) {
           label: activeWorkout.label,
           quality,
           durationMin: durationMin > 0 ? durationMin : undefined,
+          durationSec: durationSec != null && durationSec > 0 ? durationSec : undefined,
           distanceMiles,
           notes,
           routineId: activeWorkout.routineId,

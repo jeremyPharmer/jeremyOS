@@ -369,10 +369,12 @@ export function normalizeWorkout(raw: WorkoutLog): WorkoutLog {
   const type = resolveWorkoutType(raw);
   const quality = normalizeQuality(raw.quality);
   const exerciseActuals = normalizeExerciseActuals(raw.exerciseActuals);
+  const durationSec = normalizeDurationSec(raw.durationSec);
   return {
     ...raw,
     type,
     quality,
+    durationSec,
     routineId: raw.routineId ? String(raw.routineId) : undefined,
     exerciseActuals,
   };
@@ -643,6 +645,61 @@ export function elapsedDurationMin(elapsedMs: number): number {
   return Math.max(1, Math.round(elapsedMs / 60_000));
 }
 
+/** Non-negative finite seconds, or undefined. */
+export function normalizeDurationSec(raw: unknown): number | undefined {
+  if (raw === undefined || raw === null || raw === "") return undefined;
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(n) || n < 0) return undefined;
+  return Math.min(86_400, Math.round(n));
+}
+
+export function durationSecFromParts(min: number, sec: number): number {
+  const m = Number.isFinite(min) && min > 0 ? Math.floor(min) : 0;
+  const s = Number.isFinite(sec) && sec > 0 ? Math.floor(sec) : 0;
+  const clampedSec = Math.min(59, Math.max(0, s));
+  return Math.max(0, m * 60 + clampedSec);
+}
+
+export function splitDurationSec(totalSec: number): { min: number; sec: number } {
+  const t = Math.max(0, Math.floor(totalSec));
+  return { min: Math.floor(t / 60), sec: t % 60 };
+}
+
+/** e.g. 38:25 */
+export function formatDurationMinSec(totalSec: number): string {
+  const { min, sec } = splitDurationSec(totalSec);
+  return `${min}:${String(sec).padStart(2, "0")}`;
+}
+
+/**
+ * Pace as min:sec per mile, e.g. "11:05 /mi".
+ * Null when miles or time missing/zero.
+ */
+export function formatPacePerMile(
+  miles: number,
+  totalSec: number,
+): string | null {
+  if (!Number.isFinite(miles) || miles <= 0) return null;
+  if (!Number.isFinite(totalSec) || totalSec <= 0) return null;
+  const secPerMile = totalSec / miles;
+  if (!Number.isFinite(secPerMile) || secPerMile <= 0) return null;
+  const rounded = Math.round(secPerMile);
+  return `${formatDurationMinSec(rounded)} /mi`;
+}
+
+/** Prefer durationSec; fall back to durationMin × 60. */
+export function workoutDurationSec(w: {
+  durationSec?: number;
+  durationMin?: number;
+}): number | undefined {
+  const sec = normalizeDurationSec(w.durationSec);
+  if (sec != null) return sec;
+  if (w.durationMin != null && Number.isFinite(w.durationMin) && w.durationMin > 0) {
+    return Math.round(w.durationMin * 60);
+  }
+  return undefined;
+}
+
 export function normalizeActiveWorkout(
   raw: ActiveWorkoutSession | null | undefined,
 ): ActiveWorkoutSession | null {
@@ -672,6 +729,7 @@ export function normalizeActiveWorkout(
       distance != null && Number.isFinite(distance) && distance >= 0
         ? distance
         : undefined,
+    durationSec: normalizeDurationSec(raw.durationSec),
     notes: raw.notes ? String(raw.notes) : undefined,
     updatedAt: String(raw.updatedAt ?? startedAt),
   };

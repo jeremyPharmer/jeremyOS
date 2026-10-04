@@ -6,8 +6,12 @@ import {
   formatElapsedClock,
   formatExerciseActualSummary,
   formatWorkoutListDate,
+  durationSecFromParts,
+  formatDurationMinSec,
+  formatPacePerMile,
   knownExercises,
   lastExerciseActualsForRoutine,
+  splitDurationSec,
   monthWorkoutSummary,
   normalizeActiveWorkout,
   normalizeExerciseActuals,
@@ -509,6 +513,16 @@ describe("active workout session", () => {
     expect(elapsedDurationMin(20_000)).toBe(0);
     expect(elapsedDurationMin(45_000)).toBe(1);
     expect(elapsedDurationMin(90_000)).toBe(2);
+  });
+
+  it("splits duration and formats run pace", () => {
+    expect(durationSecFromParts(38, 25)).toBe(2305);
+    expect(splitDurationSec(2305)).toEqual({ min: 38, sec: 25 });
+    expect(formatDurationMinSec(2305)).toBe("38:25");
+    // 3.43 mi in 38:25 → ~11:12 /mi
+    expect(formatPacePerMile(3.43, 2305)).toBe("11:12 /mi");
+    expect(formatPacePerMile(0, 2305)).toBeNull();
+    expect(formatPacePerMile(3.43, 0)).toBeNull();
   });
 
   it("normalizes active workout or drops invalid", () => {
