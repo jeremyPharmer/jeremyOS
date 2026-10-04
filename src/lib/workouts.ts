@@ -574,6 +574,61 @@ export function monthWorkoutSummary(
   };
 }
 
+export type MonthQualityPointsRow = {
+  monthKey: string;
+  year: number;
+  month: number;
+  pointsByType: Record<WorkoutType, number>;
+  totalPoints: number;
+};
+
+/** Short label for history rows, e.g. "Oct 2026". */
+export function monthHistoryLabel(year: number, month: number): string {
+  return new Date(year, month - 1, 1).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/**
+ * One row per calendar month that has at least one workout.
+ * Category cells and total are quality points (session quality 1–5 summed).
+ * Newest month first.
+ */
+export function monthlyQualityPointsHistory(
+  workouts: WorkoutLog[] | undefined,
+): MonthQualityPointsRow[] {
+  const byMonth = new Map<string, Record<WorkoutType, number>>();
+  for (const w of normalizeWorkouts(workouts)) {
+    const key = w.date.slice(0, 7);
+    if (key.length !== 7) continue;
+    let points = byMonth.get(key);
+    if (!points) {
+      points = { run: 0, hiit: 0, lift: 0, stretch: 0 };
+      byMonth.set(key, points);
+    }
+    const type = (w.type ?? "lift") as WorkoutType;
+    points[type] += w.quality ?? 0;
+  }
+  return [...byMonth.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([key, pointsByType]) => {
+      const { year, month } = parseMonthKey(key);
+      const totalPoints =
+        pointsByType.run +
+        pointsByType.hiit +
+        pointsByType.lift +
+        pointsByType.stretch;
+      return {
+        monthKey: key,
+        year,
+        month,
+        pointsByType,
+        totalPoints,
+      };
+    });
+}
+
 export function weekRunMiles(
   workouts: WorkoutLog[] | undefined,
   anchorDate: string,

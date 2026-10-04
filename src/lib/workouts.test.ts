@@ -12,6 +12,8 @@ import {
   knownExercises,
   lastExerciseActualsForRoutine,
   splitDurationSec,
+  monthHistoryLabel,
+  monthlyQualityPointsHistory,
   monthWorkoutSummary,
   normalizeActiveWorkout,
   normalizeExerciseActuals,
@@ -189,6 +191,63 @@ describe("monthWorkoutSummary", () => {
     );
     expect(summary.counts.stretch).toBe(1);
     expect(summary.qualityPoints).toBe(3);
+  });
+});
+
+describe("monthlyQualityPointsHistory", () => {
+  it("sums quality points by type per month with workouts", () => {
+    const rows = monthlyQualityPointsHistory([
+      {
+        id: "1",
+        date: "2026-10-04",
+        type: "run",
+        label: "Easy",
+        quality: 3,
+        createdAt: "a",
+      },
+      {
+        id: "2",
+        date: "2026-10-02",
+        type: "hiit",
+        label: "Circuit",
+        quality: 2,
+        createdAt: "b",
+      },
+      {
+        id: "3",
+        date: "2026-09-15",
+        type: "lift",
+        label: "Upper",
+        quality: 5,
+        createdAt: "c",
+      },
+      {
+        id: "4",
+        date: "2026-09-01",
+        type: "run",
+        label: "Easy",
+        quality: 1,
+        createdAt: "d",
+      },
+    ]);
+    expect(rows).toHaveLength(2);
+    expect(rows[0].monthKey).toBe("2026-10");
+    expect(rows[0].pointsByType).toEqual({
+      run: 3,
+      hiit: 2,
+      lift: 0,
+      stretch: 0,
+    });
+    expect(rows[0].totalPoints).toBe(5);
+    expect(rows[1].monthKey).toBe("2026-09");
+    expect(rows[1].pointsByType.lift).toBe(5);
+    expect(rows[1].pointsByType.run).toBe(1);
+    expect(rows[1].totalPoints).toBe(6);
+    expect(monthHistoryLabel(2026, 10)).toBe("Oct 2026");
+  });
+
+  it("omits months with no workouts", () => {
+    expect(monthlyQualityPointsHistory([])).toEqual([]);
   });
 });
 

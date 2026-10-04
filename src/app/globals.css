@@ -1383,6 +1383,116 @@ h2 {
   color: var(--muted);
 }
 
+.workout-month-history {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.workout-month-history-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-align: left;
+}
+
+.workout-month-history-toggle:hover {
+  color: var(--text);
+}
+
+.workout-month-history-table-wrap {
+  overflow-x: auto;
+  margin: 0 -2px;
+  padding: 0 2px;
+}
+
+.workout-month-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.workout-month-history-table th,
+.workout-month-history-table td {
+  padding: 7px 4px;
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+}
+
+.workout-month-history-table thead th {
+  font-size: 0.62rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.workout-month-history-table thead th.run {
+  color: var(--workout-run);
+}
+
+.workout-month-history-table thead th.hiit {
+  color: var(--workout-hiit);
+}
+
+.workout-month-history-table thead th.lift {
+  color: var(--workout-lift);
+}
+
+.workout-month-history-table thead th.stretch {
+  color: var(--workout-stretch);
+}
+
+.workout-month-history-table thead th.total {
+  color: var(--text);
+}
+
+.workout-month-history-table tbody th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  padding-left: 0;
+}
+
+.workout-month-history-table tbody td.run {
+  color: var(--workout-run);
+}
+
+.workout-month-history-table tbody td.hiit {
+  color: var(--workout-hiit);
+}
+
+.workout-month-history-table tbody td.lift {
+  color: var(--workout-lift);
+}
+
+.workout-month-history-table tbody td.stretch {
+  color: var(--workout-stretch);
+}
+
+.workout-month-history-table tbody td.total {
+  font-weight: 650;
+  color: var(--text);
+}
+
+.workout-month-history-table tbody tr:last-child th,
+.workout-month-history-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
 .workout-pr-stack {
   display: grid;
   gap: 14px;

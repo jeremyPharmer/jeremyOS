@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import {
   formatMiles,
+  monthHistoryLabel,
+  monthlyQualityPointsHistory,
   monthWorkoutSummary,
   parseMonthKey,
   weekWorkoutSummary,
@@ -67,6 +69,61 @@ function SummaryBlock({
   );
 }
 
+function MonthPointsHistory({
+  rows,
+}: {
+  rows: ReturnType<typeof monthlyQualityPointsHistory>;
+}) {
+  const [open, setOpen] = useState(false);
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="workout-month-history">
+      <button
+        type="button"
+        className="workout-month-history-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+        Month history
+      </button>
+      {open && (
+        <div className="workout-month-history-table-wrap fade-in">
+          <table className="workout-month-history-table">
+            <thead>
+              <tr>
+                <th scope="col">Month</th>
+                {WORKOUT_TYPES.map((t) => (
+                  <th key={t.id} scope="col" className={t.id}>
+                    {t.label}
+                  </th>
+                ))}
+                <th scope="col" className="total">
+                  Total
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.monthKey}>
+                  <th scope="row">{monthHistoryLabel(row.year, row.month)}</th>
+                  {WORKOUT_TYPES.map((t) => (
+                    <td key={t.id} className={t.id}>
+                      {row.pointsByType[t.id]}
+                    </td>
+                  ))}
+                  <td className="total">{row.totalPoints}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function WorkoutSummaryPanel({
   monthKey,
   today,
@@ -82,6 +139,10 @@ export function WorkoutSummaryPanel({
 
   const week = weekWorkoutSummary(state.workouts, today);
   const monthSummary = monthWorkoutSummary(state.workouts, year, month);
+  const historyRows = useMemo(
+    () => monthlyQualityPointsHistory(state.workouts),
+    [state.workouts],
+  );
 
   return (
     <section className="panel workout-summary-panel">
@@ -102,6 +163,7 @@ export function WorkoutSummaryPanel({
           totalMinutes={monthSummary.totalMinutes}
           qualityPoints={monthSummary.qualityPoints}
         />
+        <MonthPointsHistory rows={historyRows} />
       </div>
     </section>
   );
