@@ -317,7 +317,7 @@ export function ActiveWorkoutPanel({
       ) : (
         <div className="workout-active-end fade-in">
           <fieldset className="workout-log-field">
-            <legend className="workout-log-label">How was it? (required)</legend>
+            <legend className="workout-log-label">Quality</legend>
             <div
               className="workout-quality-scale"
               role="group"
