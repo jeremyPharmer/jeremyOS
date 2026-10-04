@@ -223,8 +223,8 @@ describe("enrichMissingScores", () => {
 });
 
 describe("applySoccerScoreOverrides", () => {
-  it("corrects Pittsford 9/19 to T 3–3", () => {
-    const wrong: SoccerGame = {
+  it("is a no-op when no founder overrides are configured", () => {
+    const game: SoccerGame = {
       id: "pit",
       date: "2026-09-19T21:00:00.000Z",
       opponentAbbr: "PIT",
@@ -235,8 +235,8 @@ describe("applySoccerScoreOverrides", () => {
       opponentScore: "0",
       weWon: null,
     };
-    const [fixed] = applySoccerScoreOverrides([wrong]);
-    expect(scheduleWhenLabel(fixed!)).toBe("T 3–3");
+    const [out] = applySoccerScoreOverrides([game]);
+    expect(scheduleWhenLabel(out!)).toBe("T 0–0");
   });
 });
 
@@ -250,7 +250,7 @@ describe("fetchSoccerPanel (live Hudl)", () => {
     expect(panel!.record).not.toBe("—");
   }, 20000);
 
-  it("shows Pittsford as T 3–3 (founder correction)", async () => {
+  it("shows Pittsford from MaxPreps when Hudl has no score (0–0)", async () => {
     const panel = await fetchSoccerPanel("2026-09-20");
     expect(panel).not.toBeNull();
     const pittsford = panel!.games.find(
@@ -260,8 +260,8 @@ describe("fetchSoccerPanel (live Hudl)", () => {
     );
     expect(pittsford).toBeTruthy();
     expect(pittsford!.status).toBe("post");
-    expect(pittsford!.usScore).toBe("3");
-    expect(pittsford!.opponentScore).toBe("3");
-    expect(scheduleWhenLabel(pittsford!)).toBe("T 3–3");
+    expect(pittsford!.usScore).toBe("0");
+    expect(pittsford!.opponentScore).toBe("0");
+    expect(scheduleWhenLabel(pittsford!)).toBe("T 0–0");
   }, 20000);
 });

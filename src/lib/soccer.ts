@@ -432,20 +432,14 @@ type SoccerScoreOverride = {
   weWon: boolean | null;
 };
 
-const SOCCER_SCORE_OVERRIDES: SoccerScoreOverride[] = [
-  {
-    day: "2026-09-19",
-    opponentMatch: /pittsford|mendon/i,
-    usScore: "3",
-    opponentScore: "3",
-    weWon: null,
-  },
-];
+/** Empty unless a founder correction is needed again. */
+const SOCCER_SCORE_OVERRIDES: SoccerScoreOverride[] = [];
 
 export function applySoccerScoreOverrides(
   games: SoccerGame[],
   timeZone = "America/New_York",
 ): SoccerGame[] {
+  if (SOCCER_SCORE_OVERRIDES.length === 0) return games;
   return games.map((g) => {
     const day = calendarDayInTz(g.date, timeZone);
     const hit = SOCCER_SCORE_OVERRIDES.find(
