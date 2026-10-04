@@ -182,11 +182,21 @@ export function WorkoutLogForm({
   }, [type, editingWorkout]);
 
   useEffect(() => {
+    // Avoid racing the edit seed (workout state hasn't flushed yet).
+    if (isSeedingEdit.current) return;
     // Keep logged sets while the edit seed selection is unchanged.
-    if (editingId && seededSelectRef.current != null && workout === seededSelectRef.current) {
+    if (
+      editingId &&
+      seededSelectRef.current != null &&
+      workout === seededSelectRef.current
+    ) {
       return;
     }
-    if (editingId && seededSelectRef.current != null && workout !== seededSelectRef.current) {
+    if (
+      editingId &&
+      seededSelectRef.current != null &&
+      workout !== seededSelectRef.current
+    ) {
       seededSelectRef.current = null;
     }
     const id = parseRoutineSelectValue(workout);
@@ -194,8 +204,8 @@ export function WorkoutLogForm({
       setActuals([]);
       return;
     }
-    const r = findRoutine(state.workoutRoutines, id);
-    const previous = lastExerciseActualsForRoutine(state.workouts, id);
+    const r = findRoutine(state.workoutRoutines ?? [], id);
+    const previous = lastExerciseActualsForRoutine(state.workouts ?? [], id);
     setActuals(r ? blankActualsFromRoutine(r, previous) : []);
   }, [workout, state.workoutRoutines, state.workouts, editingId]);
 
