@@ -70,7 +70,7 @@ export function WorkoutLogForm({
   const { state, post } = useApp();
   const active = state.activeWorkout ?? null;
   const formRef = useRef<HTMLFormElement>(null);
-  const skipTypeReset = useRef(false);
+  const isSeedingEdit = useRef(false);
   const seededSelectRef = useRef<string | null>(null);
 
   const [type, setType] = useState<WorkoutType>("run");
@@ -124,9 +124,12 @@ export function WorkoutLogForm({
       seededSelectRef.current = null;
       return;
     }
-    skipTypeReset.current = true;
+    isSeedingEdit.current = true;
     const t = (editingWorkout.type ?? "lift") as WorkoutType;
-    const select = selectValueForLog(editingWorkout, state.workoutRoutines);
+    const select = selectValueForLog(
+      editingWorkout,
+      state.workoutRoutines ?? [],
+    );
     seededSelectRef.current = select.workout;
     setType(t);
     setWorkout(select.workout);
@@ -152,16 +155,17 @@ export function WorkoutLogForm({
     setError("");
     requestAnimationFrame(() => {
       formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Clear after the type-reset effect has observed the seed (avoids wiping label).
+      requestAnimationFrame(() => {
+        isSeedingEdit.current = false;
+      });
     });
     // Seed once per workout id; routines snapshot is read at that moment.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional seed-on-id
   }, [editingId]);
 
   useEffect(() => {
-    if (skipTypeReset.current) {
-      skipTypeReset.current = false;
-      return;
-    }
+    if (isSeedingEdit.current) return;
     seededSelectRef.current = null;
     setWorkout("");
     setCustomLabel("");
