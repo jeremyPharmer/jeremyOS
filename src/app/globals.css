@@ -1099,7 +1099,7 @@ h2 {
   white-space: nowrap;
 }
 
-.workout-session-remove {
+.workout-session-menu {
   flex-shrink: 0;
   margin: -4px -4px -4px 0;
 }
@@ -1232,7 +1232,8 @@ h2 {
   background: var(--workout-stretch);
 }
 
-.workout-history-remove {
+.workout-history-remove,
+.workout-history-menu {
   margin: 0;
   padding: 4px 8px;
   border: none;
@@ -1244,9 +1245,36 @@ h2 {
   opacity: 0.55;
 }
 
-.workout-history-remove:hover {
+.workout-history-menu {
+  font-size: 1.25rem;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+
+.workout-history-remove:hover,
+.workout-history-menu:hover {
   opacity: 1;
   color: var(--accent);
+}
+
+.workout-actions-sheet {
+  display: grid;
+  gap: 10px;
+  padding: 4px 0 8px;
+}
+
+.workout-actions-sheet-label {
+  margin: -4px 0 4px;
+  color: var(--muted);
+}
+
+.workout-actions-delete .todo-snooze-option-title {
+  color: var(--danger, #b42318);
+}
+
+.workout-log-form-editing {
+  outline: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .workouts-header h1 {
