@@ -7,6 +7,7 @@ import {
   workoutTypeLabel,
 } from "@/lib/workouts";
 import type { WorkoutExerciseActual, WorkoutLog, WorkoutType } from "@/lib/types";
+import { WorkoutActionsMenu } from "@/components/workouts/WorkoutActionsMenu";
 
 function formatSetLine(ex: WorkoutExerciseActual): string {
   const unit = ex.repMode === "seconds" ? "s" : "";
@@ -43,10 +44,12 @@ function metaBits(workout: WorkoutLog): string[] {
 
 export function WorkoutSessionDetail({
   workout,
+  onEdit,
   onDelete,
 }: {
   workout: WorkoutLog;
-  onDelete?: (id: string) => void;
+  onEdit?: (workout: WorkoutLog) => void;
+  onDelete?: (id: string) => void | Promise<void>;
 }) {
   const type = (workout.type ?? "lift") as WorkoutType;
   const meta = metaBits(workout);
@@ -60,15 +63,13 @@ export function WorkoutSessionDetail({
             {workoutTypeLabel(type)}
           </span>
           <h3 className="workout-session-label">{workout.label}</h3>
-          {onDelete && (
-            <button
-              type="button"
-              className="workout-history-remove workout-session-remove"
-              aria-label={`Delete ${workout.label}`}
-              onClick={() => onDelete(workout.id)}
-            >
-              ×
-            </button>
+          {onEdit && onDelete && (
+            <WorkoutActionsMenu
+              label={workout.label}
+              className="workout-session-menu"
+              onEdit={() => onEdit(workout)}
+              onDelete={() => onDelete(workout.id)}
+            />
           )}
         </div>
         {meta.length > 0 && (

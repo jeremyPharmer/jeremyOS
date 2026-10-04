@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { ActiveWorkoutPanel } from "@/components/workouts/ActiveWorkoutPanel";
 import type {
   WorkoutExerciseActual,
+  WorkoutLog,
+  WorkoutRoutine,
   WorkoutType,
 } from "@/lib/types";
 import {
@@ -18,10 +20,12 @@ import {
   repModeLabel,
   routineSelectValue,
   routinesForType,
+  splitDurationSec,
   WORKOUT_CUSTOM,
   WORKOUT_PRESETS,
   WORKOUT_QUALITY_MAX,
   WORKOUT_TYPES,
+  workoutDurationSec,
 } from "@/lib/workouts";
 
 const QUALITY_OPTIONS = Array.from(
@@ -35,18 +39,39 @@ function parseNonNeg(raw: string): number {
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
+function selectValueForLog(
+  log: WorkoutLog,
+  routines: WorkoutRoutine[],
+): { workout: string; customLabel: string } {
+  const type = (log.type ?? "lift") as WorkoutType;
+  if (log.routineId && findRoutine(routines, log.routineId)) {
+    return { workout: routineSelectValue(log.routineId), customLabel: "" };
+  }
+  if (WORKOUT_PRESETS[type]?.includes(log.label)) {
+    return { workout: log.label, customLabel: "" };
+  }
+  return { workout: WORKOUT_CUSTOM, customLabel: log.label };
+}
+
 export function WorkoutLogForm({
   date,
   onLogged,
   variant = "full",
+  editingWorkout = null,
+  onCancelEdit,
 }: {
   date: string;
   onLogged?: () => void;
   /** Home quick log: type + workout only */
   variant?: "quick" | "full";
+  editingWorkout?: WorkoutLog | null;
+  onCancelEdit?: () => void;
 }) {
   const { state, post } = useApp();
   const active = state.activeWorkout ?? null;
+  const formRef = useRef<HTMLFormElement>(null);
+  const isSeedingEdit = useRef(false);
+  const seededSelectRef = useRef<string | null>(null);
 
   const [type, setType] = useState<WorkoutType>("run");
   const [workout, setWorkout] = useState("");
@@ -61,6 +86,7 @@ export function WorkoutLogForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const isEditing = Boolean(editingWorkout);
   const typeRoutines = useMemo(
     () => routinesForType(state.workoutRoutines, type),
     [state.workoutRoutines, type],
@@ -78,7 +104,9 @@ export function WorkoutLogForm({
       : workout.trim();
   const canAct = Boolean(label) && !busy;
   const showSets =
-    selectedRoutine && actuals.length > 0 && variant === "full";
+    actuals.length > 0 &&
+    variant === "full" &&
+    (Boolean(selectedRoutine) || isEditing);
 
   const runDurationSec = durationSecFromParts(
     parseNonNeg(runMin),
@@ -89,29 +117,97 @@ export function WorkoutLogForm({
       ? formatPacePerMile(Number(distance), runDurationSec)
       : null;
 
+  const editingId = editingWorkout?.id ?? null;
+
   useEffect(() => {
+    if (!editingWorkout) {
+      seededSelectRef.current = null;
+      return;
+    }
+    isSeedingEdit.current = true;
+    const t = (editingWorkout.type ?? "lift") as WorkoutType;
+    const select = selectValueForLog(
+      editingWorkout,
+      state.workoutRoutines ?? [],
+    );
+    seededSelectRef.current = select.workout;
+    setType(t);
+    setWorkout(select.workout);
+    setCustomLabel(select.customLabel);
+    setActuals(editingWorkout.exerciseActuals ?? []);
+    setMode("log");
+    setQuality(editingWorkout.quality ?? null);
+    setDistance(
+      editingWorkout.distanceMiles != null
+        ? String(editingWorkout.distanceMiles)
+        : "",
+    );
+    const dur = workoutDurationSec(editingWorkout);
+    if (dur != null && dur > 0) {
+      const parts = splitDurationSec(dur);
+      setRunMin(String(parts.min));
+      setRunSec(String(parts.sec));
+    } else {
+      setRunMin("");
+      setRunSec("");
+    }
+    setNotes(editingWorkout.notes ?? "");
+    setError("");
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Clear after the type-reset effect has observed the seed (avoids wiping label).
+      requestAnimationFrame(() => {
+        isSeedingEdit.current = false;
+      });
+    });
+    // Seed once per workout id; routines snapshot is read at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional seed-on-id
+  }, [editingId]);
+
+  useEffect(() => {
+    if (isSeedingEdit.current) return;
+    seededSelectRef.current = null;
     setWorkout("");
     setCustomLabel("");
     setActuals([]);
-    setMode("choose");
-    setQuality(null);
     setDistance("");
     setRunMin("");
     setRunSec("");
-    setNotes("");
     setError("");
-  }, [type]);
+    if (!editingWorkout) {
+      setMode("choose");
+      setQuality(null);
+      setNotes("");
+    }
+  }, [type, editingWorkout]);
 
   useEffect(() => {
+    // Avoid racing the edit seed (workout state hasn't flushed yet).
+    if (isSeedingEdit.current) return;
+    // Keep logged sets while the edit seed selection is unchanged.
+    if (
+      editingId &&
+      seededSelectRef.current != null &&
+      workout === seededSelectRef.current
+    ) {
+      return;
+    }
+    if (
+      editingId &&
+      seededSelectRef.current != null &&
+      workout !== seededSelectRef.current
+    ) {
+      seededSelectRef.current = null;
+    }
     const id = parseRoutineSelectValue(workout);
     if (!id) {
       setActuals([]);
       return;
     }
-    const r = findRoutine(state.workoutRoutines, id);
-    const previous = lastExerciseActualsForRoutine(state.workouts, id);
+    const r = findRoutine(state.workoutRoutines ?? [], id);
+    const previous = lastExerciseActualsForRoutine(state.workouts ?? [], id);
     setActuals(r ? blankActualsFromRoutine(r, previous) : []);
-  }, [workout, state.workoutRoutines, state.workouts]);
+  }, [workout, state.workoutRoutines, state.workouts, editingId]);
 
   function resetFields() {
     setWorkout("");
@@ -156,7 +252,8 @@ export function WorkoutLogForm({
   }
 
   function exercisePayload() {
-    if (!selectedRoutine || !actuals.length) return undefined;
+    if (!actuals.length) return undefined;
+    if (!selectedRoutine && !isEditing) return undefined;
     return actuals.map((ex) => ({
       exerciseId: ex.exerciseId,
       name: ex.name,
@@ -171,7 +268,7 @@ export function WorkoutLogForm({
   }
 
   async function startSession() {
-    if (!label || busy) return;
+    if (!label || busy || isEditing) return;
     setBusy(true);
     setError("");
     try {
@@ -197,37 +294,64 @@ export function WorkoutLogForm({
     setBusy(true);
     setError("");
     try {
-      await post("/api/workouts", {
-        action: "log",
-        date,
-        type,
-        label,
-        quality,
-        routineId: selectedRoutine?.id,
-        exerciseActuals: exercisePayload(),
-        distanceMiles:
-          type === "run" && distance ? Number(distance) : undefined,
-        durationSec:
-          type === "run" && runDurationSec > 0 ? runDurationSec : undefined,
-        notes: notes.trim() || undefined,
-      });
-      if (gymSupportForType(type)) {
-        await post("/api/support", {
-          date,
-          supportType: "gym",
-          completed: true,
+      if (editingWorkout) {
+        await post("/api/workouts", {
+          action: "update",
+          id: editingWorkout.id,
+          date: editingWorkout.date,
+          type,
+          label,
+          quality,
+          routineId: selectedRoutine?.id ?? null,
+          exerciseActuals: exercisePayload() ?? [],
+          distanceMiles:
+            type === "run" && distance ? Number(distance) : null,
+          durationSec:
+            type === "run" && runDurationSec > 0 ? runDurationSec : null,
+          notes: notes.trim() || null,
         });
+        resetFields();
+        onCancelEdit?.();
+        onLogged?.();
+      } else {
+        await post("/api/workouts", {
+          action: "log",
+          date,
+          type,
+          label,
+          quality,
+          routineId: selectedRoutine?.id,
+          exerciseActuals: exercisePayload(),
+          distanceMiles:
+            type === "run" && distance ? Number(distance) : undefined,
+          durationSec:
+            type === "run" && runDurationSec > 0 ? runDurationSec : undefined,
+          notes: notes.trim() || undefined,
+        });
+        if (gymSupportForType(type)) {
+          await post("/api/support", {
+            date,
+            supportType: "gym",
+            completed: true,
+          });
+        }
+        resetFields();
+        onLogged?.();
       }
-      resetFields();
-      onLogged?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not log workout");
+      setError(
+        err instanceof Error
+          ? err.message
+          : isEditing
+            ? "Could not update workout"
+            : "Could not log workout",
+      );
     } finally {
       setBusy(false);
     }
   }
 
-  if (active) {
+  if (active && !isEditing) {
     return (
       <ActiveWorkoutPanel
         session={active}
@@ -238,11 +362,14 @@ export function WorkoutLogForm({
 
   return (
     <form
-      className={`workout-log-form${variant === "quick" ? " workout-log-form-quick" : " panel"}`}
+      ref={formRef}
+      className={`workout-log-form${variant === "quick" ? " workout-log-form-quick" : " panel"}${isEditing ? " workout-log-form-editing" : ""}`}
       onSubmit={mode === "log" ? logWorkout : (e) => e.preventDefault()}
       autoComplete="off"
     >
-      <p className="eyebrow">{mode === "log" ? "Log workout" : "Workout"}</p>
+      <p className="eyebrow">
+        {isEditing ? "Edit workout" : mode === "log" ? "Log workout" : "Workout"}
+      </p>
 
       <fieldset className="workout-log-field">
         <legend className="workout-log-label">Type</legend>
@@ -269,7 +396,7 @@ export function WorkoutLogForm({
           value={workout}
           onChange={(e) => {
             setWorkout(e.target.value);
-            setMode("choose");
+            if (!isEditing) setMode("choose");
           }}
           aria-label="Choose workout"
           name="rebuild-workout-preset"
@@ -313,7 +440,7 @@ export function WorkoutLogForm({
         </label>
       )}
 
-      {mode === "choose" && (
+      {mode === "choose" && !isEditing && (
         <div className="workout-mode-actions">
           <button
             type="button"
@@ -337,7 +464,7 @@ export function WorkoutLogForm({
         </div>
       )}
 
-      {mode === "log" && (
+      {(mode === "log" || isEditing) && (
         <>
           <fieldset className="workout-log-field">
             <legend className="workout-log-label">Quality</legend>
@@ -417,7 +544,7 @@ export function WorkoutLogForm({
             <div className="workout-actuals">
               <p className="workout-log-label">Sets</p>
               {actuals.map((ex, ei) => (
-                <div key={ex.exerciseId} className="workout-actual-ex">
+                <div key={ex.exerciseId || `${ex.name}-${ei}`} className="workout-actual-ex">
                   <p className="workout-actual-ex-name">{ex.name}</p>
                   <div
                     className={`workout-actual-set-table${ex.tracksWeight ? " has-weight" : ""}`}
@@ -484,18 +611,24 @@ export function WorkoutLogForm({
               className="btn primary"
               disabled={!canAct || quality == null}
             >
-              {busy ? "Saving…" : "Save"}
+              {busy ? "Saving…" : isEditing ? "Save changes" : "Save"}
             </button>
             <button
               type="button"
               className="btn ghost"
               disabled={busy}
               onClick={() => {
+                if (isEditing) {
+                  resetFields();
+                  onCancelEdit?.();
+                  setError("");
+                  return;
+                }
                 setMode("choose");
                 setError("");
               }}
             >
-              Back
+              {isEditing ? "Cancel" : "Back"}
             </button>
           </div>
         </>

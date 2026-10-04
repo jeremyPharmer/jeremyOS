@@ -91,6 +91,82 @@ export async function POST(req: Request) {
         };
       }
 
+      if (action === "update") {
+        const id = String(body.id ?? "");
+        const idx = workouts.findIndex((w) => w.id === id);
+        if (idx === -1) {
+          const err = new Error("Workout not found");
+          (err as Error & { status: number }).status = 404;
+          throw err;
+        }
+        const existing = workouts[idx];
+        const type = parseWorkoutType(body);
+        const label = String(body.label ?? "").trim();
+        const quality = normalizeQuality(body.quality);
+        if (!label) {
+          const err = new Error("Workout label required");
+          (err as Error & { status: number }).status = 400;
+          throw err;
+        }
+        if (quality == null) {
+          const err = new Error("Quality rating 1–5 required");
+          (err as Error & { status: number }).status = 400;
+          throw err;
+        }
+        const exerciseActuals =
+          body.exerciseActuals !== undefined
+            ? normalizeExerciseActuals(body.exerciseActuals)
+            : existing.exerciseActuals;
+        const routineId =
+          body.routineId !== undefined
+            ? body.routineId
+              ? String(body.routineId).trim()
+              : undefined
+            : existing.routineId;
+        const durationSec =
+          body.durationSec !== undefined
+            ? normalizeDurationSec(body.durationSec)
+            : existing.durationSec;
+        const durationMin =
+          durationSec != null && durationSec > 0
+            ? Math.max(1, Math.round(durationSec / 60))
+            : body.durationMin != null
+              ? Number(body.durationMin)
+              : existing.durationMin;
+        const updated: WorkoutLog = {
+          ...existing,
+          date: body.date ? String(body.date) : existing.date,
+          type,
+          label,
+          quality,
+          durationMin:
+            durationMin != null &&
+            Number.isFinite(durationMin) &&
+            durationMin > 0
+              ? durationMin
+              : undefined,
+          durationSec:
+            durationSec != null && durationSec > 0 ? durationSec : undefined,
+          distanceMiles:
+            body.distanceMiles !== undefined
+              ? body.distanceMiles != null && body.distanceMiles !== ""
+                ? Number(body.distanceMiles)
+                : undefined
+              : existing.distanceMiles,
+          notes:
+            body.notes !== undefined
+              ? body.notes
+                ? String(body.notes)
+                : undefined
+              : existing.notes,
+          routineId,
+          exerciseActuals,
+        };
+        const next = [...workouts];
+        next[idx] = updated;
+        return { ...prev, workouts: next };
+      }
+
       if (action === "delete_pr") {
         const id = String(body.id ?? "");
         return {

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
+import { WorkoutActionsMenu } from "@/components/workouts/WorkoutActionsMenu";
 import { WorkoutCalendar } from "@/components/workouts/WorkoutCalendar";
 import { WorkoutLogForm } from "@/components/workouts/WorkoutLogForm";
 import { WorkoutRoutineBuilder } from "@/components/workouts/WorkoutRoutineBuilder";
@@ -14,7 +15,7 @@ import {
   workoutsInMonth,
 } from "@/lib/workouts";
 import { parseDate } from "@/lib/journey";
-import type { WorkoutType } from "@/lib/types";
+import type { WorkoutLog, WorkoutType } from "@/lib/types";
 
 export default function WorkoutsPage() {
   const { state, today, post } = useApp();
@@ -24,6 +25,7 @@ export default function WorkoutsPage() {
   }, [today]);
   const [month, setMonth] = useState(initialMonth);
   const [selectedDate, setSelectedDate] = useState(today);
+  const [editingWorkout, setEditingWorkout] = useState<WorkoutLog | null>(null);
 
   const monthWorkouts = workoutsInMonth(state.workouts, month);
   const selectedDayWorkouts = workoutsForDate(state.workouts, selectedDate);
@@ -31,6 +33,12 @@ export default function WorkoutsPage() {
 
   async function deleteWorkout(id: string) {
     await post("/api/workouts", { action: "delete", id });
+    if (editingWorkout?.id === id) setEditingWorkout(null);
+  }
+
+  function startEdit(workout: WorkoutLog) {
+    setSelectedDate(workout.date);
+    setEditingWorkout(workout);
   }
 
   return (
@@ -41,7 +49,12 @@ export default function WorkoutsPage() {
 
       <WorkoutSummaryPanel monthKey={month} today={today} />
 
-      <WorkoutLogForm date={selectedDate ?? today} />
+      <WorkoutLogForm
+        date={selectedDate ?? today}
+        editingWorkout={editingWorkout}
+        onCancelEdit={() => setEditingWorkout(null)}
+        onLogged={() => setEditingWorkout(null)}
+      />
 
       <section className="panel workout-calendar-panel">
         <WorkoutCalendar
@@ -68,7 +81,8 @@ export default function WorkoutsPage() {
                 <WorkoutSessionDetail
                   key={w.id}
                   workout={w}
-                  onDelete={(id) => void deleteWorkout(id)}
+                  onEdit={startEdit}
+                  onDelete={(id) => deleteWorkout(id)}
                 />
               ))}
             </div>
@@ -102,14 +116,11 @@ export default function WorkoutsPage() {
                     {w.label}
                   </span>
                 </button>
-                <button
-                  type="button"
-                  className="workout-history-remove"
-                  aria-label={`Delete ${w.label}`}
-                  onClick={() => void deleteWorkout(w.id)}
-                >
-                  ×
-                </button>
+                <WorkoutActionsMenu
+                  label={w.label}
+                  onEdit={() => startEdit(w)}
+                  onDelete={() => deleteWorkout(w.id)}
+                />
               </li>
             ))}
           </ul>
