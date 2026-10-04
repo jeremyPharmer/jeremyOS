@@ -13,7 +13,7 @@ import {
   lastExerciseActualsForRoutine,
   splitDurationSec,
   monthHistoryLabel,
-  monthlyQualityPointsHistory,
+  monthlyWorkoutHistory,
   monthWorkoutSummary,
   normalizeActiveWorkout,
   normalizeExerciseActuals,
@@ -194,9 +194,9 @@ describe("monthWorkoutSummary", () => {
   });
 });
 
-describe("monthlyQualityPointsHistory", () => {
-  it("sums quality points by type per month with workouts", () => {
-    const rows = monthlyQualityPointsHistory([
+describe("monthlyWorkoutHistory", () => {
+  it("counts sessions by type and totals quality points", () => {
+    const rows = monthlyWorkoutHistory([
       {
         id: "1",
         date: "2026-10-04",
@@ -215,6 +215,14 @@ describe("monthlyQualityPointsHistory", () => {
       },
       {
         id: "3",
+        date: "2026-10-01",
+        type: "run",
+        label: "Tempo",
+        quality: 4,
+        createdAt: "e",
+      },
+      {
+        id: "4",
         date: "2026-09-15",
         type: "lift",
         label: "Upper",
@@ -222,7 +230,7 @@ describe("monthlyQualityPointsHistory", () => {
         createdAt: "c",
       },
       {
-        id: "4",
+        id: "5",
         date: "2026-09-01",
         type: "run",
         label: "Easy",
@@ -232,22 +240,22 @@ describe("monthlyQualityPointsHistory", () => {
     ]);
     expect(rows).toHaveLength(2);
     expect(rows[0].monthKey).toBe("2026-10");
-    expect(rows[0].pointsByType).toEqual({
-      run: 3,
-      hiit: 2,
+    expect(rows[0].countsByType).toEqual({
+      run: 2,
+      hiit: 1,
       lift: 0,
       stretch: 0,
     });
-    expect(rows[0].totalPoints).toBe(5);
+    expect(rows[0].totalPoints).toBe(9);
     expect(rows[1].monthKey).toBe("2026-09");
-    expect(rows[1].pointsByType.lift).toBe(5);
-    expect(rows[1].pointsByType.run).toBe(1);
+    expect(rows[1].countsByType.lift).toBe(1);
+    expect(rows[1].countsByType.run).toBe(1);
     expect(rows[1].totalPoints).toBe(6);
     expect(monthHistoryLabel(2026, 10)).toBe("Oct 2026");
   });
 
   it("omits months with no workouts", () => {
-    expect(monthlyQualityPointsHistory([])).toEqual([]);
+    expect(monthlyWorkoutHistory([])).toEqual([]);
   });
 });
 

@@ -574,11 +574,13 @@ export function monthWorkoutSummary(
   };
 }
 
-export type MonthQualityPointsRow = {
+export type MonthHistoryRow = {
   monthKey: string;
   year: number;
   month: number;
-  pointsByType: Record<WorkoutType, number>;
+  /** Session counts by workout type */
+  countsByType: Record<WorkoutType, number>;
+  /** Sum of session quality scores (1–5) for the month */
   totalPoints: number;
 };
 
@@ -592,38 +594,40 @@ export function monthHistoryLabel(year: number, month: number): string {
 
 /**
  * One row per calendar month that has at least one workout.
- * Category cells and total are quality points (session quality 1–5 summed).
+ * Category cells = session counts by type; Total = quality points.
  * Newest month first.
  */
-export function monthlyQualityPointsHistory(
+export function monthlyWorkoutHistory(
   workouts: WorkoutLog[] | undefined,
-): MonthQualityPointsRow[] {
-  const byMonth = new Map<string, Record<WorkoutType, number>>();
+): MonthHistoryRow[] {
+  const byMonth = new Map<
+    string,
+    { counts: Record<WorkoutType, number>; totalPoints: number }
+  >();
   for (const w of normalizeWorkouts(workouts)) {
     const key = w.date.slice(0, 7);
     if (key.length !== 7) continue;
-    let points = byMonth.get(key);
-    if (!points) {
-      points = { run: 0, hiit: 0, lift: 0, stretch: 0 };
-      byMonth.set(key, points);
+    let row = byMonth.get(key);
+    if (!row) {
+      row = {
+        counts: { run: 0, hiit: 0, lift: 0, stretch: 0 },
+        totalPoints: 0,
+      };
+      byMonth.set(key, row);
     }
     const type = (w.type ?? "lift") as WorkoutType;
-    points[type] += w.quality ?? 0;
+    row.counts[type] += 1;
+    row.totalPoints += w.quality ?? 0;
   }
   return [...byMonth.entries()]
     .sort(([a], [b]) => b.localeCompare(a))
-    .map(([key, pointsByType]) => {
+    .map(([key, { counts, totalPoints }]) => {
       const { year, month } = parseMonthKey(key);
-      const totalPoints =
-        pointsByType.run +
-        pointsByType.hiit +
-        pointsByType.lift +
-        pointsByType.stretch;
       return {
         monthKey: key,
         year,
         month,
-        pointsByType,
+        countsByType: counts,
         totalPoints,
       };
     });

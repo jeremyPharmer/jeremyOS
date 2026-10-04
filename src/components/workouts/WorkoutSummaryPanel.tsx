@@ -5,7 +5,7 @@ import { useApp } from "@/components/AppProvider";
 import {
   formatMiles,
   monthHistoryLabel,
-  monthlyQualityPointsHistory,
+  monthlyWorkoutHistory,
   monthWorkoutSummary,
   parseMonthKey,
   weekWorkoutSummary,
@@ -72,7 +72,7 @@ function SummaryBlock({
 function MonthPointsHistory({
   rows,
 }: {
-  rows: ReturnType<typeof monthlyQualityPointsHistory>;
+  rows: ReturnType<typeof monthlyWorkoutHistory>;
 }) {
   const [open, setOpen] = useState(false);
   if (rows.length === 0) return null;
@@ -100,7 +100,7 @@ function MonthPointsHistory({
                   </th>
                 ))}
                 <th scope="col" className="total">
-                  Total
+                  Pts
                 </th>
               </tr>
             </thead>
@@ -110,7 +110,7 @@ function MonthPointsHistory({
                   <th scope="row">{monthHistoryLabel(row.year, row.month)}</th>
                   {WORKOUT_TYPES.map((t) => (
                     <td key={t.id} className={t.id}>
-                      {row.pointsByType[t.id]}
+                      {row.countsByType[t.id]}
                     </td>
                   ))}
                   <td className="total">{row.totalPoints}</td>
@@ -140,7 +140,7 @@ export function WorkoutSummaryPanel({
   const week = weekWorkoutSummary(state.workouts, today);
   const monthSummary = monthWorkoutSummary(state.workouts, year, month);
   const historyRows = useMemo(
-    () => monthlyQualityPointsHistory(state.workouts),
+    () => monthlyWorkoutHistory(state.workouts),
     [state.workouts],
   );
 
