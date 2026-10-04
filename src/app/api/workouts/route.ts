@@ -329,6 +329,14 @@ export async function POST(req: Request) {
         ? String(body.routineId).trim()
         : undefined;
 
+      const durationSec = normalizeDurationSec(body.durationSec);
+      const durationMin =
+        durationSec != null && durationSec > 0
+          ? Math.max(1, Math.round(durationSec / 60))
+          : body.durationMin != null
+            ? Number(body.durationMin)
+            : undefined;
+
       const row: WorkoutLog = {
         id: newId(),
         date,
@@ -336,7 +344,11 @@ export async function POST(req: Request) {
         label,
         quality,
         durationMin:
-          body.durationMin != null ? Number(body.durationMin) : undefined,
+          durationMin != null && Number.isFinite(durationMin) && durationMin > 0
+            ? durationMin
+            : undefined,
+        durationSec:
+          durationSec != null && durationSec > 0 ? durationSec : undefined,
         distanceMiles:
           body.distanceMiles != null ? Number(body.distanceMiles) : undefined,
         notes: body.notes ? String(body.notes) : undefined,

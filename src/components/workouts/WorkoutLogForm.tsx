@@ -9,7 +9,10 @@ import type {
 } from "@/lib/types";
 import {
   blankActualsFromRoutine,
+  durationSecFromParts,
   findRoutine,
+  formatPacePerMile,
+  gymSupportForType,
   lastExerciseActualsForRoutine,
   parseRoutineSelectValue,
   repModeLabel,
@@ -17,8 +20,20 @@ import {
   routinesForType,
   WORKOUT_CUSTOM,
   WORKOUT_PRESETS,
+  WORKOUT_QUALITY_MAX,
   WORKOUT_TYPES,
 } from "@/lib/workouts";
+
+const QUALITY_OPTIONS = Array.from(
+  { length: WORKOUT_QUALITY_MAX },
+  (_, i) => i + 1,
+);
+
+function parseNonNeg(raw: string): number {
+  if (raw === "") return 0;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
 
 export function WorkoutLogForm({
   date,
@@ -27,7 +42,7 @@ export function WorkoutLogForm({
 }: {
   date: string;
   onLogged?: () => void;
-  /** Home quick log: type + workout only (starts session) */
+  /** Home quick log: type + workout only */
   variant?: "quick" | "full";
 }) {
   const { state, post } = useApp();
@@ -37,6 +52,12 @@ export function WorkoutLogForm({
   const [workout, setWorkout] = useState("");
   const [customLabel, setCustomLabel] = useState("");
   const [actuals, setActuals] = useState<WorkoutExerciseActual[]>([]);
+  const [mode, setMode] = useState<"choose" | "log">("choose");
+  const [quality, setQuality] = useState<number | null>(null);
+  const [distance, setDistance] = useState("");
+  const [runMin, setRunMin] = useState("");
+  const [runSec, setRunSec] = useState("");
+  const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -55,14 +76,30 @@ export function WorkoutLogForm({
     : isCustom
       ? customLabel.trim()
       : workout.trim();
-  const canStart = Boolean(label) && !busy;
-  const showPlannedSets =
+  const canAct = Boolean(label) && !busy;
+  const showSets =
     selectedRoutine && actuals.length > 0 && variant === "full";
+
+  const runDurationSec = durationSecFromParts(
+    parseNonNeg(runMin),
+    parseNonNeg(runSec),
+  );
+  const paceLabel =
+    type === "run"
+      ? formatPacePerMile(Number(distance), runDurationSec)
+      : null;
 
   useEffect(() => {
     setWorkout("");
     setCustomLabel("");
     setActuals([]);
+    setMode("choose");
+    setQuality(null);
+    setDistance("");
+    setRunMin("");
+    setRunSec("");
+    setNotes("");
+    setError("");
   }, [type]);
 
   useEffect(() => {
@@ -75,6 +112,18 @@ export function WorkoutLogForm({
     const previous = lastExerciseActualsForRoutine(state.workouts, id);
     setActuals(r ? blankActualsFromRoutine(r, previous) : []);
   }, [workout, state.workoutRoutines, state.workouts]);
+
+  function resetFields() {
+    setWorkout("");
+    setCustomLabel("");
+    setActuals([]);
+    setMode("choose");
+    setQuality(null);
+    setDistance("");
+    setRunMin("");
+    setRunSec("");
+    setNotes("");
+  }
 
   function updateSet(
     exerciseIndex: number,
@@ -106,40 +155,73 @@ export function WorkoutLogForm({
     );
   }
 
-  async function start(e: React.FormEvent) {
-    e.preventDefault();
-    if (!label) return;
+  function exercisePayload() {
+    if (!selectedRoutine || !actuals.length) return undefined;
+    return actuals.map((ex) => ({
+      exerciseId: ex.exerciseId,
+      name: ex.name,
+      tracksWeight: ex.tracksWeight,
+      repMode: ex.repMode,
+      sets: ex.sets.map((s) =>
+        ex.tracksWeight
+          ? { reps: Math.max(0, s.reps || 0), weight: s.weight }
+          : { reps: Math.max(0, s.reps || 0) },
+      ),
+    }));
+  }
+
+  async function startSession() {
+    if (!label || busy) return;
     setBusy(true);
     setError("");
     try {
-      const exerciseActuals =
-        selectedRoutine && actuals.length
-          ? actuals.map((ex) => ({
-              exerciseId: ex.exerciseId,
-              name: ex.name,
-              tracksWeight: ex.tracksWeight,
-              repMode: ex.repMode,
-              sets: ex.sets.map((s) =>
-                ex.tracksWeight
-                  ? { reps: Math.max(0, s.reps || 0), weight: s.weight }
-                  : { reps: Math.max(0, s.reps || 0) },
-              ),
-            }))
-          : undefined;
-
       await post("/api/workouts", {
         action: "start_session",
         date,
         type,
         label,
         routineId: selectedRoutine?.id,
-        exerciseActuals,
+        exerciseActuals: exercisePayload(),
       });
-      setWorkout("");
-      setCustomLabel("");
-      setActuals([]);
+      resetFields();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start workout");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function logWorkout(e: React.FormEvent) {
+    e.preventDefault();
+    if (!label || quality == null || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/workouts", {
+        action: "log",
+        date,
+        type,
+        label,
+        quality,
+        routineId: selectedRoutine?.id,
+        exerciseActuals: exercisePayload(),
+        distanceMiles:
+          type === "run" && distance ? Number(distance) : undefined,
+        durationSec:
+          type === "run" && runDurationSec > 0 ? runDurationSec : undefined,
+        notes: notes.trim() || undefined,
+      });
+      if (gymSupportForType(type)) {
+        await post("/api/support", {
+          date,
+          supportType: "gym",
+          completed: true,
+        });
+      }
+      resetFields();
+      onLogged?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not log workout");
     } finally {
       setBusy(false);
     }
@@ -157,10 +239,10 @@ export function WorkoutLogForm({
   return (
     <form
       className={`workout-log-form${variant === "quick" ? " workout-log-form-quick" : " panel"}`}
-      onSubmit={start}
+      onSubmit={mode === "log" ? logWorkout : (e) => e.preventDefault()}
       autoComplete="off"
     >
-      <p className="eyebrow">Start workout</p>
+      <p className="eyebrow">{mode === "log" ? "Log workout" : "Workout"}</p>
 
       <fieldset className="workout-log-field">
         <legend className="workout-log-label">Type</legend>
@@ -185,7 +267,10 @@ export function WorkoutLogForm({
         <select
           className="workout-log-select"
           value={workout}
-          onChange={(e) => setWorkout(e.target.value)}
+          onChange={(e) => {
+            setWorkout(e.target.value);
+            setMode("choose");
+          }}
           aria-label="Choose workout"
           name="rebuild-workout-preset"
           autoComplete="off"
@@ -200,7 +285,7 @@ export function WorkoutLogForm({
               ))}
             </optgroup>
           )}
-          <optgroup label="Quick start">
+          <optgroup label="Quick pick">
             {WORKOUT_PRESETS[type].map((presetName) => (
               <option key={presetName} value={presetName}>
                 {presetName}
@@ -228,72 +313,196 @@ export function WorkoutLogForm({
         </label>
       )}
 
-      <button
-        type="submit"
-        className="btn primary workout-log-submit"
-        disabled={!canStart}
-      >
-        {busy ? "Starting…" : "Start workout"}
-      </button>
+      {mode === "choose" && (
+        <div className="workout-mode-actions">
+          <button
+            type="button"
+            className="btn primary"
+            disabled={!canAct}
+            onClick={() => void startSession()}
+          >
+            {busy ? "Starting…" : "Start"}
+          </button>
+          <button
+            type="button"
+            className="btn ghost"
+            disabled={!canAct}
+            onClick={() => {
+              setMode("log");
+              setError("");
+            }}
+          >
+            Log
+          </button>
+        </div>
+      )}
+
+      {mode === "log" && (
+        <>
+          <fieldset className="workout-log-field">
+            <legend className="workout-log-label">Quality</legend>
+            <div
+              className="workout-quality-scale"
+              role="group"
+              aria-label="Workout quality 1 to 5"
+            >
+              {QUALITY_OPTIONS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={`workout-quality-btn${quality === n ? " active" : ""}`}
+                  onClick={() => setQuality(n)}
+                  aria-pressed={quality === n}
+                  aria-label={`Quality ${n}`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          {type === "run" && (
+            <div className="workout-run-metrics">
+              <label className="workout-log-field">
+                <span className="workout-log-label">Miles</span>
+                <input
+                  className="workout-log-input"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min={0}
+                  placeholder="0.00"
+                  value={distance}
+                  onChange={(e) => setDistance(e.target.value)}
+                  aria-label="Distance in miles"
+                />
+              </label>
+              <label className="workout-log-field">
+                <span className="workout-log-label">Min</span>
+                <input
+                  className="workout-log-input"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={999}
+                  placeholder="0"
+                  value={runMin}
+                  onChange={(e) => setRunMin(e.target.value)}
+                  aria-label="Minutes"
+                />
+              </label>
+              <label className="workout-log-field">
+                <span className="workout-log-label">Sec</span>
+                <input
+                  className="workout-log-input"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={59}
+                  placeholder="0"
+                  value={runSec}
+                  onChange={(e) => setRunSec(e.target.value)}
+                  aria-label="Seconds"
+                />
+              </label>
+              {paceLabel && (
+                <p className="workout-run-pace" aria-live="polite">
+                  {paceLabel}
+                </p>
+              )}
+            </div>
+          )}
+
+          {showSets && (
+            <div className="workout-actuals">
+              <p className="workout-log-label">Sets</p>
+              {actuals.map((ex, ei) => (
+                <div key={ex.exerciseId} className="workout-actual-ex">
+                  <p className="workout-actual-ex-name">{ex.name}</p>
+                  <div
+                    className={`workout-actual-set-table${ex.tracksWeight ? " has-weight" : ""}`}
+                  >
+                    <div className="workout-actual-set-head" aria-hidden>
+                      <span>Set</span>
+                      <span>{repModeLabel(ex.repMode)}</span>
+                      {ex.tracksWeight ? <span>lb</span> : null}
+                    </div>
+                    {ex.sets.map((s, si) => (
+                      <div
+                        key={si}
+                        className={`workout-actual-set-row${ex.tracksWeight ? " has-weight" : ""}`}
+                      >
+                        <span className="workout-actual-set-num">{si + 1}</span>
+                        <input
+                          className="workout-actual-input"
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={ex.repMode === "seconds" ? 999 : 99}
+                          value={s.reps}
+                          onChange={(e) =>
+                            updateSet(ei, si, { reps: e.target.value })
+                          }
+                          aria-label={`${ex.name} set ${si + 1} ${repModeLabel(ex.repMode).toLowerCase()}`}
+                        />
+                        {ex.tracksWeight && (
+                          <input
+                            className="workout-actual-input"
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            step="0.5"
+                            value={s.weight ?? ""}
+                            onChange={(e) =>
+                              updateSet(ei, si, { weight: e.target.value })
+                            }
+                            aria-label={`${ex.name} set ${si + 1} weight`}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <label className="workout-log-field">
+            <span className="workout-log-label">Notes</span>
+            <input
+              className="workout-log-input"
+              placeholder="Optional"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              aria-label="Notes"
+            />
+          </label>
+
+          <div className="workout-mode-actions">
+            <button
+              type="submit"
+              className="btn primary"
+              disabled={!canAct || quality == null}
+            >
+              {busy ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              className="btn ghost"
+              disabled={busy}
+              onClick={() => {
+                setMode("choose");
+                setError("");
+              }}
+            >
+              Back
+            </button>
+          </div>
+        </>
+      )}
 
       {error && (
         <p className="tiny workout-log-error">{error}</p>
-      )}
-
-      {showPlannedSets && (
-        <div className="workout-actuals">
-          <p className="workout-log-label">Planned sets</p>
-          {actuals.map((ex, ei) => (
-            <div key={ex.exerciseId} className="workout-actual-ex">
-              <p className="workout-actual-ex-name">{ex.name}</p>
-              <div
-                className={`workout-actual-set-table${ex.tracksWeight ? " has-weight" : ""}`}
-              >
-                <div className="workout-actual-set-head" aria-hidden>
-                  <span>Set</span>
-                  <span>{repModeLabel(ex.repMode)}</span>
-                  {ex.tracksWeight ? <span>lb</span> : null}
-                </div>
-                {ex.sets.map((s, si) => (
-                  <div
-                    key={si}
-                    className={`workout-actual-set-row${ex.tracksWeight ? " has-weight" : ""}`}
-                  >
-                    <span className="workout-actual-set-num">{si + 1}</span>
-                    <input
-                      className="workout-actual-input"
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      max={ex.repMode === "seconds" ? 999 : 99}
-                      value={s.reps}
-                      onChange={(e) =>
-                        updateSet(ei, si, { reps: e.target.value })
-                      }
-                      aria-label={`${ex.name} set ${si + 1} ${repModeLabel(ex.repMode).toLowerCase()}`}
-                      placeholder={ex.repMode === "seconds" ? "sec" : "reps"}
-                    />
-                    {ex.tracksWeight && (
-                      <input
-                        className="workout-actual-input"
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        step="0.5"
-                        value={s.weight ?? ""}
-                        onChange={(e) =>
-                          updateSet(ei, si, { weight: e.target.value })
-                        }
-                        aria-label={`${ex.name} set ${si + 1} weight`}
-                        placeholder="lb"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
       )}
     </form>
   );
