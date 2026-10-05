@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-022 |
-| Rank | 16 |
+| Rank | 17 |
 | Priority | P0 |
 | Status | In Progress |
 | Effort | M |
@@ -25,7 +25,7 @@ Thin slice with **all three** capabilities (calendar + edit + star):
 
 1. **Month calendar** on `/journal` → tap a day to open that day’s five-year page (or equivalent day context)
 2. **Edit existing entries only** — fields: **headline**, **summary**, **add photos**; keyed to concrete `YYYY-MM-DD` (not whole MM-DD slot across years)
-3. **Missed / missing days:** do **not** create via the edit path; **notify / route to close** via **[RB-010](./backfill-missed-evening-journal-close.md)**
+3. **Missed / missing days:** do **not** create via the edit path; **notify / route to close** via **[RB-010](./backfill-missed-evening-journal-close.md)** (or **Ignore** via **[RB-039](./ignore-missed-journal-days.md)** — do not invent a third create path)
 4. **Star:** personal bookmark only; no cap; same `YYYY-MM-DD` keying
 5. **Star surfaces:** month calendar, five-year day page, **and** a starred list
 6. **Calendar markers:** only what’s needed — closed / missing / starred (no extra data piled on)
@@ -53,6 +53,7 @@ Thin slice with **all three** capabilities (calendar + edit + star):
 
 - Editing **mood / stress** (remains out)
 - Creating missed-day closes via edit UI — **RB-010** stays the missed-close path; do not widen RB-010 into edit-past
+- Ignoring missed days — **[RB-039](./ignore-missed-journal-days.md)** owns persisted dismiss; calendar markers should respect ignored (not “missing”) once RB-039 ships
 - Delete entry / hard wipe
 - Capture-time photo attach + paperclip-on-slot as a standalone slice — already **[RB-021](./journal-photos.md)**; this item **reuses** that model for **edit-path** add-photos (do not fork storage)
 - Widening RB-016 into calendar/star/edit — keep RB-016 as five-year presentation + capture model
@@ -72,4 +73,4 @@ Thin slice with **all three** capabilities (calendar + edit + star):
 - Intake **2026-08-31** founder (Jeremy) locked decisions: edit fields = headline + summary + add photos; existing-only edit; missed → notify/route to close (RB-010); prose-only side effects; no delete; month view → tap day; minimal markers; `/journal` only (then); star = personal bookmark, no cap; star on calendar + five-year day + starred list; thin slice with all three; star/edit keyed to `YYYY-MM-DD`.
 - **2026-09-15 product decision:** expand **star entry** to `/evening` Journal page card header (founder red-oval annotation) + post-close remember. **Ship with constraints** above. Edit/calendar stay `/journal`-only. Same API eligibility as `POST /api/journal` `toggleStar`.
 - Rank **12** / **P0** — founder-loved journal tooling; sits **Next after** RB-016 (In Progress) and RB-021 (photos), without stealing RB-016’s slot. Ahead of Gmail / podcast expansion in rank order.
-- Related: [RB-016](./five-year-journal-ux.md), [RB-021](./journal-photos.md), [RB-010](./backfill-missed-evening-journal-close.md), [RB-029](./evening-close-recap-news.md) / [RB-032](./daily-briefing-open-close-redesign.md) (evening shell). Journal **month browse** only — event calendar sync is **[RB-023](./calendar-ical-google.md)** (unrelated).
+- Related: [RB-016](./five-year-journal-ux.md), [RB-021](./journal-photos.md), [RB-010](./backfill-missed-evening-journal-close.md), [RB-039](./ignore-missed-journal-days.md) (Ignore past missed), [RB-029](./evening-close-recap-news.md) / [RB-032](./daily-briefing-open-close-redesign.md) (evening shell). Journal **month browse** only — event calendar sync is **[RB-023](./calendar-ical-google.md)** (unrelated).

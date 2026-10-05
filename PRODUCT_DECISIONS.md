@@ -1,7 +1,7 @@
 # JeremyOS — Product decisions (locked)
 
-Last updated: 2026-09-28  
-Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening mood ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). **2026-09-15:** Gmail **inbox** centralization elevated (**RB-002** Ready / rank 7) — connect + read inbox in JeremyOS; outbound send = phase 1b. **2026-09-27:** **Save Goals** (**RB-037**) — Home “Save towards something”; separate from Future/Treat; tracking only; In Progress / rank 14. **2026-09-28:** **Close edition = Open parity** (**RB-038**) — The Daily Close matches The Daily Open / edition-box look; evening content + fund locks unchanged. Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
+Last updated: 2026-10-05  
+Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening mood ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). **2026-09-15:** Gmail **inbox** centralization elevated (**RB-002** Ready / rank 7) — connect + read inbox in JeremyOS; outbound send = phase 1b. **2026-09-27:** **Save Goals** (**RB-037**) — Home “Save towards something”; separate from Future/Treat; tracking only; In Progress / rank 15. **2026-09-28:** **Close edition = Open parity** (**RB-038**) — The Daily Close matches The Daily Open / edition-box look; evening content + fund locks unchanged. **2026-10-05:** **Ignore missed journal days** (**RB-039**) — past missed/incomplete only; persisted dismiss; today never ignorable. Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
 
 ---
 
@@ -66,7 +66,7 @@ Interactive every day:
 **Day** — Log supports: recovery content (2/wk), meditation (5), medication (7), gym (4). **No** Home craving-timer CTA (RB-020).  
 **Evening** — Close the day: **Mood + Stress** (1–10), journal **headline** + optional **short summary** (~5 sentences soft limit; maps to stored `oneLine` / `expandedJournal`) → Move to Rebuild → Treat/Save if milestone. **Missed closes** can be backfilled from Journal (pick a day in the current run without an evening) via the same evening path (**RB-010** — journal only; funds for that day may already be in waiting reclaim via end-of-day accrual). Surface look: **The Daily Close** must match Open’s edition-box format (**[RB-038](./product/items/close-edition-open-parity.md)**) — chrome/structure only; evening content + fund rules below stay locked.
 
-**Journal UI (RB-016)** — Paper **five-year** layout: one calendar day (month-day) shows that day across up to five years (headline + summary). Not a stacked feed. Catch-up for missed evenings stays a thin link; integrity rules remain RB-010.
+**Journal UI (RB-016)** — Paper **five-year** layout: one calendar day (month-day) shows that day across up to five years (headline + summary). Not a stacked feed. Catch-up for missed evenings stays a thin link; integrity rules remain RB-010. **Ignore past missed/incomplete days** (not today) is **RB-039** — persisted dismiss from catch-up; does not create a close; does not change reclaim/milestones.
 
 Weekly supports are **targets** (not shame). Counts may go **above** the weekly goal (e.g. 5 of 2). Hitting all four unlocks **$20 treat gift** (out of pocket).  
 Content log asks: “What will you do differently because of this?”
@@ -158,8 +158,22 @@ projected = alreadyReclaimed + waitingReclaim + daysToGo × historicalDailySpend
 | **Money** | Does **not** move real cash; no Venmo; no debit from Future/Treat |
 | **Income math** | `dailyRate = monthlyIncome / daysInMonth` (default monthlyIncome = 500) |
 | **Evening** | Enter total spend; allocate leftover (+ optional lump) to active goals; overspend draws goals down (may go negative) |
-| **Rank / status** | **Rank 14 / P0 / In Progress / Effort M** — Now queue after five-year journal; founder-elevated personal tool |
+| **Rank / status** | **Rank 15 / P0 / In Progress / Effort M** — Now queue after five-year journal + Ignore-missed (RB-039); founder-elevated personal tool |
 | **≠** | Reward-moment “Save for the Future” (skip Treat) |
+
+## Ignore missed / incomplete journal days (locked 2026-10-05)
+
+| Decision | Detail |
+| --- | --- |
+| **Ask** | Founder: aside from today, Journal missed/incomplete days need an **Ignore** option so the day goes away |
+| **ID** | **RB-039** (new item — **not** an expansion of RB-010 / RB-016 / RB-022) |
+| **Ignore means** | **Persisted dismiss** from catch-up / missed UI (Journal + evening pick-a-missed-day). **Not** UI-only. **Not** a synthetic evening close |
+| **Eligibility** | Past days only (`date < today`) in the current run with no evening close — same set as `missingEveningDates` excluding today. “Missed” and “incomplete” share that set in v1 |
+| **Today** | **Never ignorable** |
+| **Integrity** | No reclaim, Move, milestone, or clean-day side effects; no fabricated journal prose |
+| **Restore** | Out of v1 UI; storage stays reversible for a later un-ignore |
+| **Rank / status** | **Rank 14 / P0 / Ready / Effort XS** — Now, immediately after RB-016; eng can ship thin slice now |
+| **≠** | RB-010 backfill (complete the close); RB-016 five-year presentation; RB-022 edit/star/calendar |
 
 ## Deferred
 

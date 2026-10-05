@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-010 |
-| Rank | 29 |
+| Rank | 30 |
 | Priority | P1 |
 | Status | In Progress |
 | Effort | S |
@@ -29,6 +29,7 @@ User can pick a missing calendar day in the current run (no evening close yet) a
 ## Out of scope / later
 
 - Editing past entries (prose/photo edit + star + month calendar is **[RB-022](./journal-edit-star-calendar.md)** — do **not** widen this item into edit-past)
+- **Ignoring / dismissing** missed days so they leave catch-up UI — that is **[RB-039](./ignore-missed-journal-days.md)** (do **not** expand this item into dismiss)
 - Morning backfill
 - Bulk multi-day close in one submit
 - Days outside the current run
@@ -46,5 +47,6 @@ User can pick a missing calendar day in the current run (no evening close yet) a
 - **Not the same as RB-011:** journal / evening backfill UX. Funds waiting-to-reclaim owned by [RB-011](./auto-credit-daily-savings-end-of-day.md).
 - **Not the same as RB-016:** this item is **missed-close integrity** (evening path + nav). Five-year / paper journal layout, headline + summary capture, and journal vibes UI are **[RB-016](./five-year-journal-ux.md)** — do not expand this item into that redesign.
 - **Not the same as RB-022:** edit existing / star / month calendar stay on **[RB-022](./journal-edit-star-calendar.md)**. RB-022 must **route missed days here** (notify → close), not create via edit.
+- **Not the same as RB-039:** **Ignore** (persisted dismiss from catch-up) is **[RB-039](./ignore-missed-journal-days.md)**. This item remains **complete the missed close**; ignore is the opt-out.
 - Shipping in the same PR as Journal bottom-nav scroll padding fix
-- Rank history: **7** (2026-08-21 RB-011) → **9** (JeremyOS) → **10** (RB-016) → **14** (RB-021) → **15** (2026-08-31 RB-022).
+- Rank history: **7** (2026-08-21 RB-011) → **9** (JeremyOS) → **10** (RB-016) → **14** (RB-021) → **15** (2026-08-31 RB-022) → **30** (2026-10-05 RB-039 insert bumped lower ranks).
