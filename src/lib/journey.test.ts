@@ -584,4 +584,22 @@ describe("missingEveningDates", () => {
     expect(isValidEveningDate(state, "2026-07-31", "2026-08-05")).toBe(false);
     expect(isValidEveningDate(state, "08-01", "2026-08-05")).toBe(false);
   });
+
+  it("excludes ignored evening dates from catch-up (RB-039)", () => {
+    const state = baseState();
+    state.evenings = [
+      {
+        date: "2026-08-01",
+        mood: 7,
+        alignment: "aligned",
+        oneLine: "day 1",
+        completedAt: "2026-08-01T04:00:00.000Z",
+      },
+    ];
+    state.ignoredEveningDates = ["2026-08-02"];
+    expect(missingEveningDates(state, "2026-08-04")).toEqual([
+      "2026-08-04",
+      "2026-08-03",
+    ]);
+  });
 });

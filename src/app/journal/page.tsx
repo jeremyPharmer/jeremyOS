@@ -333,6 +333,19 @@ export default function JournalPage() {
     }
   }
 
+  async function ignoreMissedDay(date: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/journal", { action: "ignoreMissed", date });
+      if (missedNotice === date) setMissedNotice(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not ignore day");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const viewSrc = viewPhotoId ? photoSrc(viewPhotoId) : undefined;
 
   const panelTitle =
@@ -439,6 +452,19 @@ export default function JournalPage() {
               <Link href={`/evening?date=${missedNotice}`}>
                 Close that day →
               </Link>
+              {today && missedNotice < today && (
+                <>
+                  {" · "}
+                  <button
+                    type="button"
+                    className="fy-ignore-btn"
+                    disabled={busy}
+                    onClick={() => void ignoreMissedDay(missedNotice)}
+                  >
+                    Ignore
+                  </button>
+                </>
+              )}
             </p>
           )}
 
@@ -575,6 +601,19 @@ export default function JournalPage() {
                             <Link href={`/evening?date=${slot.date}`}>
                               Close this day →
                             </Link>
+                            {today && slot.date < today && (
+                              <>
+                                {" · "}
+                                <button
+                                  type="button"
+                                  className="fy-ignore-btn"
+                                  disabled={busy}
+                                  onClick={() => void ignoreMissedDay(slot.date)}
+                                >
+                                  Ignore
+                                </button>
+                              </>
+                            )}
                           </p>
                         )}
                       </div>

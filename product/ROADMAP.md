@@ -40,7 +40,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 | 11 | RB-029 | Evening close success: day recap + world news | P0 | Done | M | TBD |
 | 12 | RB-030 | Conversational morning briefing (calendar-first) | P0 | Done | S | TBD |
 | 13 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD |
-| 14 | RB-039 | Ignore missed / incomplete journal days | P0 | Ready | XS | TBD |
+| 14 | RB-039 | Ignore missed / incomplete journal days | P0 | In Progress | XS | TBD |
 | 15 | RB-037 | Save Goals (“Save towards something”) | P0 | In Progress | M | TBD |
 
 ## Now / Next / Later
@@ -60,7 +60,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 11. **RB-029 — Evening close success: day recap + world news** — **Done.** Success screen day recap + world news. Active iterate: **RB-038**. Detail: [`items/evening-close-recap-news.md`](./items/evening-close-recap-news.md).
 12. **RB-030 — Conversational morning briefing (calendar-first)** — **Done.** Conversational rules-based surface. Parent twin: **RB-032** Done. Detail: [`items/morning-briefing-conversational.md`](./items/morning-briefing-conversational.md).
 13. **RB-016 — Five-year / paper journal UX** — same calendar day across years; headline + short summary; journal vibes (not stacked cards). Detail: [`items/five-year-journal-ux.md`](./items/five-year-journal-ux.md). Distinct from RB-010 backfill integrity; Ignore dismiss is **RB-039**.
-14. **RB-039 — Ignore missed / incomplete journal days** — **Ready / scope locked 2026-10-05.** Past missed/incomplete only (**today never**); **persisted** dismiss from Journal + evening catch-up; **no** synthetic close; **no** reclaim/milestone side effects. Effort **XS**. Detail: [`items/ignore-missed-journal-days.md`](./items/ignore-missed-journal-days.md).
+14. **RB-039 — Ignore missed / incomplete journal days** — **In Progress / scope locked 2026-10-05.** Past missed/incomplete only (**today never**); **persisted** dismiss from Journal + evening catch-up; **no** synthetic close; **no** reclaim/milestone side effects. Effort **XS**. Detail: [`items/ignore-missed-journal-days.md`](./items/ignore-missed-journal-days.md).
 15. **RB-037 — Save Goals (“Save towards something”)** — **In Progress / scope locked 2026-09-27** (+ **Apply-with-roll polish 2026-09-28**). Home card: to-go + paydown + target date; $500/mo → daily rate; evening spend + leftover (or deficit) → goals; optional lump sum; **tracking only** — separate from Future/Treat / Venmo Total. When Apply has `carryIn ≠ 0`, confirm **Apply all** vs **Apply only rolled** (no new item). Effort **M**. Detail: [`items/save-goals.md`](./items/save-goals.md).
 16. **RB-021 — Journal photos (attach + paperclip)** — optional pics on journal/evening entries; paperclip (or similar) on year slots when a photo is present; tap to view; **reuse** existing photo infra. Detail: [`items/journal-photos.md`](./items/journal-photos.md).
 

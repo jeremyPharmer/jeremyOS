@@ -282,6 +282,7 @@ export function getEvening(state: RebuildState, date: string) {
 /**
  * Calendar days in the current run (start → asOf) with no evening close yet.
  * Newest first. Used to backfill a missed Close the day / journal line.
+ * RB-039: dates in `ignoredEveningDates` are excluded (persisted dismiss, not a close).
  */
 export function missingEveningDates(
   state: RebuildState,
@@ -292,8 +293,13 @@ export function missingEveningDates(
   const asOf = asOfDate ?? todayInTz(state.profile.timezone);
   if (asOf < start) return [];
   const closed = new Set(state.evenings.map((e) => e.date));
+  const ignored = new Set(
+    (state.ignoredEveningDates ?? []).filter(
+      (d) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d),
+    ),
+  );
   return datesInRange(start, asOf)
-    .filter((d) => !closed.has(d))
+    .filter((d) => !closed.has(d) && !ignored.has(d))
     .reverse();
 }
 
@@ -357,6 +363,7 @@ export function emptyState(): RebuildState {
     weeklyBonuses: [],
     journals: [],
     starredDays: [],
+    ignoredEveningDates: [],
     skips: [],
     fund: { future: 0, treat: 0 },
     consecutiveSaves: 0,

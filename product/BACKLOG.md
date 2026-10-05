@@ -23,7 +23,7 @@ Last updated: 2026-10-05
 | 11 | RB-029 | Evening close success: day recap + world news | P0 | Done | M | TBD | v1 | [items/evening-close-recap-news.md](./items/evening-close-recap-news.md) |
 | 12 | RB-030 | Conversational morning briefing (calendar-first) | P0 | Done | S | TBD | v1.x | [items/morning-briefing-conversational.md](./items/morning-briefing-conversational.md) |
 | 13 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD | v1 | [items/five-year-journal-ux.md](./items/five-year-journal-ux.md) |
-| 14 | RB-039 | Ignore missed / incomplete journal days | P0 | Ready | XS | TBD | v1.x | [items/ignore-missed-journal-days.md](./items/ignore-missed-journal-days.md) |
+| 14 | RB-039 | Ignore missed / incomplete journal days | P0 | In Progress | XS | TBD | v1.x | [items/ignore-missed-journal-days.md](./items/ignore-missed-journal-days.md) |
 | 15 | RB-037 | Save Goals (“Save towards something”) | P0 | In Progress | M | TBD | v1 | [items/save-goals.md](./items/save-goals.md) |
 | 16 | RB-021 | Journal photos (attach + paperclip) | P1 | Backlog | S | TBD | v1.x | [items/journal-photos.md](./items/journal-photos.md) |
 | 17 | RB-022 | Journal edit, star & month calendar | P0 | In Progress | M | TBD | v1.x | [items/journal-edit-star-calendar.md](./items/journal-edit-star-calendar.md) |

@@ -5,7 +5,7 @@
 | ID | RB-039 |
 | Rank | 14 |
 | Priority | P0 |
-| Status | Ready |
+| Status | In Progress |
 | Effort | XS |
 | Target due | TBD |
 | Milestone | v1.x |
