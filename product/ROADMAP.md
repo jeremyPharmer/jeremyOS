@@ -41,7 +41,8 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 | 12 | RB-030 | Conversational morning briefing (calendar-first) | P0 | Done | S | TBD |
 | 13 | RB-016 | Five-year / paper journal UX | P0 | In Progress | M | TBD |
 | 14 | RB-039 | Ignore missed / incomplete journal days | P0 | In Progress | XS | TBD |
-| 15 | RB-037 | Save Goals (“Save towards something”) | P0 | In Progress | M | TBD |
+| 15 | RB-040 | Journal: Days before (year lead-up) | P1 | In Progress | S | TBD |
+| 16 | RB-037 | Save Goals (“Save towards something”) | P0 | In Progress | M | TBD |
 
 ## Now / Next / Later
 
