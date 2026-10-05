@@ -41,6 +41,7 @@ export function normalizeState(state: RebuildState): RebuildState {
     ...state,
     skips: state.skips ?? [],
     starredDays: normalizeStarredDays(state.starredDays),
+    ignoredEveningDates: normalizeStarredDays(state.ignoredEveningDates),
     fund: normalizeFund(state.fund),
     consecutiveSaves: state.consecutiveSaves ?? 0,
     milestoneDecisions: state.milestoneDecisions ?? [],

@@ -8581,6 +8581,32 @@ button.check-item-btn:disabled {
   font-weight: 550;
 }
 
+.fy-ignore-btn {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: inherit;
+  font-weight: 550;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.fy-ignore-btn:hover,
+.fy-ignore-btn:focus-visible {
+  color: var(--text);
+  outline: none;
+}
+
+.fy-ignore-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .fy-starred-list {
   padding: 4px 0 8px;
 }
