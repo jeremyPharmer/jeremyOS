@@ -24,7 +24,7 @@ On `/journal`, each year row offers a **Days before** control that **inline-expa
 1. **Remove** the subtitle copy under the Journal date banner (“Same day across four years — headline and a short note.”)
 2. **Label: Days before** — not “Today’s history” / “Lead-up”
 3. **Per-year control** on each year row on the five-year day page
-4. **Fixed window:** exactly **3 calendar days prior** to the focused month-day **for that year** (e.g. viewing Oct 9 → expand 2023 → show Oct 6, 7, 8 of 2023)
+4. **Fixed window:** exactly **3 calendar days prior** to the focused month-day **for that year** (e.g. viewing Oct 9 → expand 2023 → show Oct 8, 7, 6 of 2023 — **newest first**, closest day at the top)
 5. **Inline expand** under that year row (not a separate page / sheet)
 6. **Quiet empties:** empty or missed prior days show calmly — **no** Close / Ignore nag in the lead-up surface
 7. Extends the five-year day page ([RB-016](./five-year-journal-ux.md)); does not invent a new journal IA
@@ -45,7 +45,7 @@ On `/journal`, each year row offers a **Days before** control that **inline-expa
 | --- | --- |
 | **New item** | **RB-040** — related to RB-016; **do not** fold into RB-039 Ignore |
 | **Copy** | Drop date-banner subtitle; control label = **Days before** |
-| **Window** | Fixed **3** calendar days prior, year-scoped |
+| **Window** | Fixed **3** calendar days prior, year-scoped, **newest first** (closest prior day on top) |
 | **UI** | Per-year control; **inline** expand under the year row |
 | **Missed / empty** | Quiet — no Close/Ignore nag in lead-up |
 | **Purpose** | Year-based context when a single day lacks “what came before” |
