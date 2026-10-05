@@ -66,4 +66,4 @@ For any **past** missed/incomplete day (not today), Jeremy can **Ignore** it. Th
 - Intake **2026-10-05** founder (Jeremy): aside from today, missed/incomplete Journal days need an **Ignore** option so the day goes away.
 - **Why new ID:** RB-010 = complete a missed close; this item = deliberately stop treating a day as a catch-up target. Opposite jobs — keep separate.
 - Rank **14 / P0 / Ready / XS** — Now queue immediately after five-year journal (RB-016); small eng slice, founder friction on live Journal. Does not steal RB-016’s In Progress slot.
-- Related: [RB-010](./backfill-missed-evening-journal-close.md), [RB-016](./five-year-journal-ux.md), [RB-022](./journal-edit-star-calendar.md), [RB-011](./auto-credit-daily-savings-end-of-day.md).
+- Related: [RB-040](./journal-days-before.md) (Days before — context browse, not Ignore); [RB-010](./backfill-missed-evening-journal-close.md), [RB-016](./five-year-journal-ux.md), [RB-022](./journal-edit-star-calendar.md), [RB-011](./auto-credit-daily-savings-end-of-day.md).

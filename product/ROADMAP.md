@@ -66,7 +66,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 16. **RB-037 — Save Goals (“Save towards something”)** — **In Progress / scope locked 2026-09-27** (+ **Apply-with-roll polish 2026-09-28**). Home card: to-go + paydown + target date; $500/mo → daily rate; evening spend + leftover (or deficit) → goals; optional lump sum; **tracking only** — separate from Future/Treat / Venmo Total. When Apply has `carryIn ≠ 0`, confirm **Apply all** vs **Apply only rolled** (no new item). Effort **M**. Detail: [`items/save-goals.md`](./items/save-goals.md).
 17. **RB-021 — Journal photos (attach + paperclip)** — optional pics on journal/evening entries; paperclip (or similar) on year slots when a photo is present; tap to view; **reuse** existing photo infra. Detail: [`items/journal-photos.md`](./items/journal-photos.md).
 
-**Mid-flight (finish thin; do not expand):** RB-011 (fund auto-credit), RB-010 (journal backfill) — personal-tool integrity, ranks 29–30. Do **not** widen RB-010 into edit-past ([RB-022](./items/journal-edit-star-calendar.md)) or into Ignore dismiss ([RB-039](./items/ignore-missed-journal-days.md)). Save Goals (**RB-037**) is a **new parallel ledger** — do not fold into RB-011 / RB-006.
+**Mid-flight (finish thin; do not expand):** RB-011 (fund auto-credit), RB-010 (journal backfill) — personal-tool integrity, ranks 30–31. Do **not** widen RB-010 into edit-past ([RB-022](./items/journal-edit-star-calendar.md)) or into Ignore dismiss ([RB-039](./items/ignore-missed-journal-days.md)). Days before context is **[RB-040](./items/journal-days-before.md)** (separate). Save Goals (**RB-037**) is a **new parallel ledger** — do not fold into RB-011 / RB-006.
 
 ### Next
 

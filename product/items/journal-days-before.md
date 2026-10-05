@@ -5,7 +5,7 @@
 | ID | RB-040 |
 | Rank | 15 |
 | Priority | P1 |
-| Status | Ready |
+| Status | In Progress |
 | Effort | S |
 | Target due | TBD |
 | Milestone | v1.x |
@@ -31,7 +31,7 @@ On `/journal`, each year row offers a **Days before** control that **inline-expa
 
 ## Out of scope / later
 
-- Folding into Ignore missed journal days (catch-up dismiss) — different job (context browse vs catch-up dismiss); lead-up stays nag-free
+- Folding into [RB-039](./ignore-missed-journal-days.md) Ignore — different job (context browse vs catch-up dismiss); lead-up stays nag-free
 - Configurable day-count (v1 = fixed 3)
 - “Days after” / forward look
 - Global “Today’s history” across all years at once
@@ -43,7 +43,7 @@ On `/journal`, each year row offers a **Days before** control that **inline-expa
 
 | Decision | Detail |
 | --- | --- |
-| **New item** | **RB-040** — related to RB-016; **do not** fold into Ignore-missed catch-up dismiss |
+| **New item** | **RB-040** — related to RB-016; **do not** fold into RB-039 Ignore |
 | **Copy** | Drop date-banner subtitle; control label = **Days before** |
 | **Window** | Fixed **3** calendar days prior, year-scoped |
 | **UI** | Per-year control; **inline** expand under the year row |
@@ -53,12 +53,12 @@ On `/journal`, each year row offers a **Days before** control that **inline-expa
 ## Dependencies & risks
 
 - Builds on RB-016 five-year day page layout
-- Must not surface RB-010 catch-up or Ignore CTAs inside the lead-up expand
+- Must not surface RB-010 catch-up or RB-039 Ignore CTAs inside the lead-up expand
 - Data: need entries (or empty slots) for `focusedDate − 1/2/3` in the expanded year only
 
 ## Notes
 
 - Intake **2026-10-05** founder (Jeremy): locked journal UX slice above.
-- **Why not Ignore-missed:** Ignore = persisted dismiss of catch-up nags. Days before = optional context for filled (or quietly empty) prior days. Opposite UX pressure — keep separate.
-- Rank **15 / P1 / In Progress / S** — journal UX polish immediately after RB-016; ahead of photos (RB-021) and edit/star/calendar (RB-022). Does not steal RB-016’s In Progress slot.
-- Related: [RB-016](./five-year-journal-ux.md), [RB-022](./journal-edit-star-calendar.md), [RB-021](./journal-photos.md), [RB-010](./backfill-missed-evening-journal-close.md).
+- **Why not RB-039:** Ignore = persisted dismiss of catch-up nags. Days before = optional context for filled (or quietly empty) prior days. Opposite UX pressure — keep separate.
+- Rank **15 / P1 / In Progress / S** — journal UX polish immediately after RB-016 + RB-039; ahead of photos (RB-021) and edit/star/calendar (RB-022). Does not steal RB-016’s In Progress slot.
+- Related: [RB-016](./five-year-journal-ux.md), [RB-039](./ignore-missed-journal-days.md), [RB-022](./journal-edit-star-calendar.md), [RB-021](./journal-photos.md), [RB-010](./backfill-missed-evening-journal-close.md).
