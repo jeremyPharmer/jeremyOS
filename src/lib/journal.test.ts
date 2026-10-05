@@ -1,20 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
+  DAYS_BEFORE_COUNT,
   SUMMARY_SENTENCE_SOFT_LIMIT,
   applyJournalProseEdit,
   bundleJournalsByDate,
   countSentences,
+  daysBeforeEntries,
   fiveYearSlots,
   formatMonthDayLong,
   formatWeekdayAbbrev,
+  ignoreMissedEveningDate,
   isStarredDay,
   monthDayKey,
   shiftMonthDay,
   toggleStarredDay,
   type DayKey,
 } from "./journal";
-import { emptyState } from "./journey";
-import type { JournalEntry } from "./types";
+import { emptyState, missingEveningDates } from "./journey";
+import { DEFAULT_SUPPORTS, type JournalEntry } from "./types";
 
 function entry(
   partial: Pick<JournalEntry, "date" | "type" | "text"> & {
@@ -112,6 +115,24 @@ describe("journal five-year helpers", () => {
   it("shifts month-day across month boundaries", () => {
     expect(shiftMonthDay("08-29" as DayKey, 1, 2026)).toBe("08-30");
     expect(shiftMonthDay("08-01" as DayKey, -1, 2026)).toBe("07-31");
+  });
+
+  it("lists three days before an anchor, oldest first", () => {
+    expect(DAYS_BEFORE_COUNT).toBe(3);
+    const byDate = bundleJournalsByDate([
+      entry({ date: "2024-10-06", type: "one_line", text: "Saturday round" }),
+      entry({ date: "2024-10-08", type: "one_line", text: "Quiet Monday" }),
+      entry({ date: "2024-10-09", type: "one_line", text: "Focus day" }),
+    ]);
+    const prior = daysBeforeEntries("2024-10-09", byDate);
+    expect(prior.map((p) => p.date)).toEqual([
+      "2024-10-06",
+      "2024-10-07",
+      "2024-10-08",
+    ]);
+    expect(prior[0].headline).toBe("Saturday round");
+    expect(prior[1].headline).toBeUndefined();
+    expect(prior[2].headline).toBe("Quiet Monday");
   });
 });
 
@@ -250,5 +271,61 @@ describe("journal edit + star helpers", () => {
       headline: "Golf with the guys",
       summary: "Great day on the course. Kept the same story.",
     });
+  });
+});
+
+describe("ignoreMissedEveningDate (RB-039)", () => {
+  function onboarded() {
+    const state = emptyState();
+    state.profile = {
+      id: "user_1",
+      createdAt: "2026-08-01T00:00:00.000Z",
+      onboarded: true,
+      displayName: "Founder",
+      historicalDailySpend: 40,
+      startDate: "2026-08-01",
+      currentRunId: "run_1",
+      currentRunStartedOn: "2026-08-01",
+      supports: DEFAULT_SUPPORTS,
+      timezone: "America/Los_Angeles",
+    };
+    return state;
+  }
+
+  it("persists ignore without creating an evening or touching reclaim", () => {
+    const state = onboarded();
+    const next = ignoreMissedEveningDate(state, "2026-08-02", "2026-08-05");
+    expect(next.ignoredEveningDates).toEqual(["2026-08-02"]);
+    expect(next.evenings).toHaveLength(0);
+    expect(next.reclaimDays).toHaveLength(0);
+    expect(next.milestones).toHaveLength(0);
+    expect(missingEveningDates(next, "2026-08-05")).not.toContain("2026-08-02");
+  });
+
+  it("rejects today and is idempotent for already-ignored dates", () => {
+    const state = onboarded();
+    expect(() =>
+      ignoreMissedEveningDate(state, "2026-08-05", "2026-08-05"),
+    ).toThrow(/today/i);
+
+    const once = ignoreMissedEveningDate(state, "2026-08-03", "2026-08-05");
+    const twice = ignoreMissedEveningDate(once, "2026-08-03", "2026-08-05");
+    expect(twice.ignoredEveningDates).toEqual(["2026-08-03"]);
+  });
+
+  it("rejects closed days", () => {
+    const state = onboarded();
+    state.evenings = [
+      {
+        date: "2026-08-02",
+        mood: 7,
+        alignment: "aligned",
+        oneLine: "done",
+        completedAt: "2026-08-02T04:00:00.000Z",
+      },
+    ];
+    expect(() =>
+      ignoreMissedEveningDate(state, "2026-08-02", "2026-08-05"),
+    ).toThrow(/closed/i);
   });
 });

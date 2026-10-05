@@ -1,5 +1,5 @@
 import type { JournalEntry, RebuildState } from "./types";
-import { addDays, formatDate, getEvening, newId, parseDate } from "./journey";
+import { addDays, formatDate, getEvening, newId, parseDate, todayInTz } from "./journey";
 import { normalizeStarredDays } from "./fund";
 
 export type DayKey = `${string}-${string}`; // MM-DD
@@ -50,6 +50,40 @@ export function countSentences(text: string): number {
 }
 
 export const SUMMARY_SENTENCE_SOFT_LIMIT = 5;
+
+/** Fixed lead-up window for per-year “Days before” on the five-year page. */
+export const DAYS_BEFORE_COUNT = 3;
+
+export type DaysBeforeEntry = {
+  date: string;
+  headline?: string;
+  summary?: string;
+  photoId?: string;
+};
+
+/**
+ * Calendar days immediately before `anchorDate` (oldest first).
+ * Year-scoped context when reading one day on the five-year journal page.
+ */
+export function daysBeforeEntries(
+  anchorDate: string,
+  byDate: Map<string, DayBundle>,
+  count = DAYS_BEFORE_COUNT,
+): DaysBeforeEntry[] {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(anchorDate) || count < 1) return [];
+  const out: DaysBeforeEntry[] = [];
+  for (let i = count; i >= 1; i--) {
+    const date = addDays(anchorDate, -i);
+    const bundled = byDate.get(date);
+    out.push({
+      date,
+      headline: bundled?.headline,
+      summary: bundled?.summary,
+      photoId: bundled?.photoId,
+    });
+  }
+  return out;
+}
 
 /** Group journal rows by full date → headline (one_line) + summary (journal). */
 export function bundleJournalsByDate(
@@ -156,6 +190,45 @@ export function isStarredDay(
   date: string,
 ): boolean {
   return normalizeStarredDays(starredDays).includes(date);
+}
+
+/**
+ * Persist-dismiss a past missed evening day from catch-up (RB-039).
+ * Does not create an evening close or touch reclaim / milestones.
+ * Today and future dates are rejected.
+ */
+export function ignoreMissedEveningDate(
+  state: RebuildState,
+  date: string,
+  asOfDate?: string,
+): RebuildState {
+  if (!state.profile) {
+    throw Object.assign(new Error("Not onboarded"), { status: 400 });
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw Object.assign(new Error("Date must be YYYY-MM-DD"), { status: 400 });
+  }
+  const asOf = asOfDate ?? todayInTz(state.profile.timezone);
+  if (date >= asOf) {
+    throw Object.assign(new Error("Cannot ignore today or a future day"), {
+      status: 400,
+    });
+  }
+  const start = state.profile.currentRunStartedOn;
+  if (date < start) {
+    throw Object.assign(new Error("Date is outside the current run"), {
+      status: 400,
+    });
+  }
+  if (getEvening(state, date)) {
+    throw Object.assign(new Error("Day is already closed"), { status: 400 });
+  }
+  const ignored = normalizeStarredDays(state.ignoredEveningDates);
+  if (ignored.includes(date)) return state;
+  return {
+    ...state,
+    ignoredEveningDates: normalizeStarredDays([...ignored, date]),
+  };
 }
 
 /**

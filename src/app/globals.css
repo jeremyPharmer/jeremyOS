@@ -8151,6 +8151,129 @@ button.check-item-btn:disabled {
   padding-right: 4px;
 }
 
+.fy-days-before {
+  margin-top: 12px;
+}
+
+.fy-days-before-toggle {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  color: color-mix(in srgb, var(--muted) 92%, var(--text));
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.fy-days-before-toggle:hover,
+.fy-days-before-toggle:focus-visible {
+  color: var(--accent);
+  outline: none;
+}
+
+.fy-days-before-toggle.is-open {
+  color: var(--accent);
+}
+
+.fy-days-before-chevron {
+  font-size: 0.7rem;
+  line-height: 1;
+  opacity: 0.75;
+}
+
+.fy-days-before-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0 0 0 12px;
+  border-left: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fy-days-before-in 0.28s ease both;
+}
+
+.fy-days-before-item {
+  display: grid;
+  gap: 4px;
+  padding-left: 2px;
+}
+
+.fy-days-before-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.fy-days-before-date {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.fy-days-before-dow {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--muted) 88%, transparent);
+}
+
+.fy-days-before-headline {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 550;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--text) 92%, var(--muted));
+}
+
+.fy-days-before-summary {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+.fy-days-before-blank {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+  opacity: 0.45;
+  font-style: italic;
+}
+
+.fy-days-before-item.is-quiet .fy-days-before-date {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+@keyframes fy-days-before-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-days-before-list {
+    animation: none;
+  }
+}
+
 .fy-headline {
   margin: 0;
   font-family: var(--font-display);
@@ -8456,6 +8579,32 @@ button.check-item-btn:disabled {
 .fy-missed-inline a {
   color: var(--accent);
   font-weight: 550;
+}
+
+.fy-ignore-btn {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: inherit;
+  font-weight: 550;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.fy-ignore-btn:hover,
+.fy-ignore-btn:focus-visible {
+  color: var(--text);
+  outline: none;
+}
+
+.fy-ignore-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 .fy-starred-list {

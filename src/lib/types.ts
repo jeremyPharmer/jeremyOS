@@ -568,6 +568,11 @@ export type RebuildState = {
   journals: JournalEntry[];
   /** Personal “day to remember” bookmarks (YYYY-MM-DD), no cap */
   starredDays?: string[];
+  /**
+   * Past missed evening dates (YYYY-MM-DD) dismissed from catch-up (RB-039).
+   * Not a close — no reclaim/milestone side effects. Today is never stored here.
+   */
+  ignoredEveningDates?: string[];
   /** Today's Rebuild items dismissed for a given date */
   skips: DailySkip[];
   /** Segmented balances still set aside */

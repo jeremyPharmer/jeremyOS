@@ -10,9 +10,11 @@ import {
 import { SubtlePhotoPicker } from "@/components/SubtlePhotoPicker";
 import { PrimaryButton, SecondaryButton } from "@/components/ui";
 import {
+  DAYS_BEFORE_COUNT,
   SUMMARY_SENTENCE_SOFT_LIMIT,
   bundleJournalsByDate,
   countSentences,
+  daysBeforeEntries,
   fiveYearSlots,
   formatMonthDayLong,
   formatWeekdayAbbrev,
@@ -163,6 +165,8 @@ export default function JournalPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [missedNotice, setMissedNotice] = useState<string | null>(null);
+  /** Year whose “Days before” lead-up is expanded (one at a time). */
+  const [daysBeforeYear, setDaysBeforeYear] = useState<number | null>(null);
 
   const activeDay: DayKey =
     dayKey ?? (today ? monthDayKey(today) : "01-01");
@@ -267,12 +271,14 @@ export default function JournalPage() {
     setDayKey(shiftMonthDay(activeDay, delta, anchorYear));
     setMissedNotice(null);
     setEditingDate(null);
+    setDaysBeforeYear(null);
   }
 
   function openDayFromList(date: string) {
     setDayKey(monthDayKey(date));
     setPanel("day");
     setEditingDate(null);
+    setDaysBeforeYear(null);
     if (missedSet.has(date) && !closedSet.has(date)) {
       setMissedNotice(date);
     } else {
@@ -333,6 +339,19 @@ export default function JournalPage() {
     }
   }
 
+  async function ignoreMissedDay(date: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/journal", { action: "ignoreMissed", date });
+      if (missedNotice === date) setMissedNotice(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not ignore day");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const viewSrc = viewPhotoId ? photoSrc(viewPhotoId) : undefined;
 
   const panelTitle =
@@ -379,9 +398,6 @@ export default function JournalPage() {
                 ›
               </button>
             </div>
-            <p className="fy-journal-sub muted">
-              Same day across four years — headline and a short note.
-            </p>
           </>
         ) : (
           <>
@@ -439,6 +455,19 @@ export default function JournalPage() {
               <Link href={`/evening?date=${missedNotice}`}>
                 Close that day →
               </Link>
+              {today && missedNotice < today && (
+                <>
+                  {" · "}
+                  <button
+                    type="button"
+                    className="fy-ignore-btn"
+                    disabled={busy}
+                    onClick={() => void ignoreMissedDay(missedNotice)}
+                  >
+                    Ignore
+                  </button>
+                </>
+              )}
             </p>
           )}
 
@@ -455,11 +484,15 @@ export default function JournalPage() {
                 !hasEvening &&
                 missedSet.has(slot.date) &&
                 empty;
+              const leadOpen = daysBeforeYear === slot.year;
+              const priorDays = leadOpen
+                ? daysBeforeEntries(slot.date, byDate, DAYS_BEFORE_COUNT)
+                : [];
 
               return (
                 <section
                   key={slot.year}
-                  className={`fy-year${empty ? " is-empty" : ""}${isToday ? " is-today" : ""}${starred ? " is-starred" : ""}`}
+                  className={`fy-year${empty ? " is-empty" : ""}${isToday ? " is-today" : ""}${starred ? " is-starred" : ""}${leadOpen ? " is-lead-open" : ""}`}
                   style={{ animationDelay: `${i * 45}ms` }}
                 >
                   <div className="fy-year-gutter">
@@ -575,6 +608,19 @@ export default function JournalPage() {
                             <Link href={`/evening?date=${slot.date}`}>
                               Close this day →
                             </Link>
+                            {today && slot.date < today && (
+                              <>
+                                {" · "}
+                                <button
+                                  type="button"
+                                  className="fy-ignore-btn"
+                                  disabled={busy}
+                                  onClick={() => void ignoreMissedDay(slot.date)}
+                                >
+                                  Ignore
+                                </button>
+                              </>
+                            )}
                           </p>
                         )}
                       </div>
@@ -594,6 +640,64 @@ export default function JournalPage() {
                           Edit
                         </button>
                       </>
+                    )}
+
+                    {!isEditing && (
+                      <div className="fy-days-before">
+                        <button
+                          type="button"
+                          className={`fy-days-before-toggle${leadOpen ? " is-open" : ""}`}
+                          aria-expanded={leadOpen}
+                          onClick={() =>
+                            setDaysBeforeYear(leadOpen ? null : slot.year)
+                          }
+                        >
+                          Days before
+                          <span aria-hidden className="fy-days-before-chevron">
+                            {leadOpen ? "▴" : "▾"}
+                          </span>
+                        </button>
+                        {leadOpen && (
+                          <ol className="fy-days-before-list">
+                            {priorDays.map((prior) => {
+                              const priorEmpty =
+                                !prior.headline?.trim() &&
+                                !prior.summary?.trim();
+                              return (
+                                <li
+                                  key={prior.date}
+                                  className={`fy-days-before-item${priorEmpty ? " is-quiet" : ""}`}
+                                >
+                                  <div className="fy-days-before-meta">
+                                    <span className="fy-days-before-date">
+                                      {formatDisplayDate(prior.date)}
+                                    </span>
+                                    <span className="fy-days-before-dow">
+                                      {formatWeekdayAbbrev(prior.date)}
+                                    </span>
+                                  </div>
+                                  {priorEmpty ? (
+                                    <p className="fy-days-before-blank">—</p>
+                                  ) : (
+                                    <div className="fy-days-before-copy">
+                                      {prior.headline && (
+                                        <p className="fy-days-before-headline">
+                                          {prior.headline}
+                                        </p>
+                                      )}
+                                      {prior.summary && (
+                                        <p className="fy-days-before-summary">
+                                          {prior.summary}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ol>
+                        )}
+                      </div>
                     )}
                   </div>
                 </section>

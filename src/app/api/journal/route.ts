@@ -3,9 +3,10 @@ import {
   applyJournalProseEdit,
   bundleJournalsByDate,
   hasJournalContent,
+  ignoreMissedEveningDate,
   toggleStarredDay,
 } from "@/lib/journal";
-import { getEvening } from "@/lib/journey";
+import { getEvening, todayInTz } from "@/lib/journey";
 import { savePhotoDataUrl } from "@/lib/photos";
 import { updateState } from "@/lib/store";
 
@@ -13,6 +14,26 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const action = String(body.action ?? "");
+
+    if (action === "ignoreMissed") {
+      const date = String(body.date ?? "");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return NextResponse.json(
+          { error: "Date must be YYYY-MM-DD" },
+          { status: 400 },
+        );
+      }
+      const state = await updateState((prev) => {
+        if (!prev.profile) {
+          const err = new Error("Not onboarded");
+          (err as Error & { status: number }).status = 400;
+          throw err;
+        }
+        const asOf = todayInTz(prev.profile.timezone);
+        return ignoreMissedEveningDate(prev, date, asOf);
+      });
+      return NextResponse.json({ state });
+    }
 
     if (action === "toggleStar") {
       const date = String(body.date ?? "");
