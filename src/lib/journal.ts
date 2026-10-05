@@ -51,6 +51,40 @@ export function countSentences(text: string): number {
 
 export const SUMMARY_SENTENCE_SOFT_LIMIT = 5;
 
+/** Fixed lead-up window for per-year “Days before” on the five-year page. */
+export const DAYS_BEFORE_COUNT = 3;
+
+export type DaysBeforeEntry = {
+  date: string;
+  headline?: string;
+  summary?: string;
+  photoId?: string;
+};
+
+/**
+ * Calendar days immediately before `anchorDate` (oldest first).
+ * Year-scoped context when reading one day on the five-year journal page.
+ */
+export function daysBeforeEntries(
+  anchorDate: string,
+  byDate: Map<string, DayBundle>,
+  count = DAYS_BEFORE_COUNT,
+): DaysBeforeEntry[] {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(anchorDate) || count < 1) return [];
+  const out: DaysBeforeEntry[] = [];
+  for (let i = count; i >= 1; i--) {
+    const date = addDays(anchorDate, -i);
+    const bundled = byDate.get(date);
+    out.push({
+      date,
+      headline: bundled?.headline,
+      summary: bundled?.summary,
+      photoId: bundled?.photoId,
+    });
+  }
+  return out;
+}
+
 /** Group journal rows by full date → headline (one_line) + summary (journal). */
 export function bundleJournalsByDate(
   journals: JournalEntry[],

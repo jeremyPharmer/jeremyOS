@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  DAYS_BEFORE_COUNT,
   SUMMARY_SENTENCE_SOFT_LIMIT,
   applyJournalProseEdit,
   bundleJournalsByDate,
   countSentences,
+  daysBeforeEntries,
   fiveYearSlots,
   formatMonthDayLong,
   formatWeekdayAbbrev,
@@ -112,6 +114,24 @@ describe("journal five-year helpers", () => {
   it("shifts month-day across month boundaries", () => {
     expect(shiftMonthDay("08-29" as DayKey, 1, 2026)).toBe("08-30");
     expect(shiftMonthDay("08-01" as DayKey, -1, 2026)).toBe("07-31");
+  });
+
+  it("lists three days before an anchor, oldest first", () => {
+    expect(DAYS_BEFORE_COUNT).toBe(3);
+    const byDate = bundleJournalsByDate([
+      entry({ date: "2024-10-06", type: "one_line", text: "Saturday round" }),
+      entry({ date: "2024-10-08", type: "one_line", text: "Quiet Monday" }),
+      entry({ date: "2024-10-09", type: "one_line", text: "Focus day" }),
+    ]);
+    const prior = daysBeforeEntries("2024-10-09", byDate);
+    expect(prior.map((p) => p.date)).toEqual([
+      "2024-10-06",
+      "2024-10-07",
+      "2024-10-08",
+    ]);
+    expect(prior[0].headline).toBe("Saturday round");
+    expect(prior[1].headline).toBeUndefined();
+    expect(prior[2].headline).toBe("Quiet Monday");
   });
 });
 
