@@ -117,7 +117,7 @@ describe("journal five-year helpers", () => {
     expect(shiftMonthDay("08-01" as DayKey, -1, 2026)).toBe("07-31");
   });
 
-  it("lists three days before an anchor, oldest first", () => {
+  it("lists three days before an anchor, newest first", () => {
     expect(DAYS_BEFORE_COUNT).toBe(3);
     const byDate = bundleJournalsByDate([
       entry({ date: "2024-10-06", type: "one_line", text: "Saturday round" }),
@@ -126,13 +126,13 @@ describe("journal five-year helpers", () => {
     ]);
     const prior = daysBeforeEntries("2024-10-09", byDate);
     expect(prior.map((p) => p.date)).toEqual([
-      "2024-10-06",
-      "2024-10-07",
       "2024-10-08",
+      "2024-10-07",
+      "2024-10-06",
     ]);
-    expect(prior[0].headline).toBe("Saturday round");
+    expect(prior[0].headline).toBe("Quiet Monday");
     expect(prior[1].headline).toBeUndefined();
-    expect(prior[2].headline).toBe("Quiet Monday");
+    expect(prior[2].headline).toBe("Saturday round");
   });
 });
 

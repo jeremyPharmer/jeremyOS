@@ -62,8 +62,8 @@ export type DaysBeforeEntry = {
 };
 
 /**
- * Calendar days immediately before `anchorDate` (oldest first).
- * Year-scoped context when reading one day on the five-year journal page.
+ * Calendar days immediately before `anchorDate` (newest first).
+ * Closest prior day sits at the top so the list reads up toward the focused day.
  */
 export function daysBeforeEntries(
   anchorDate: string,
@@ -72,7 +72,7 @@ export function daysBeforeEntries(
 ): DaysBeforeEntry[] {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(anchorDate) || count < 1) return [];
   const out: DaysBeforeEntry[] = [];
-  for (let i = count; i >= 1; i--) {
+  for (let i = 1; i <= count; i++) {
     const date = addDays(anchorDate, -i);
     const bundled = byDate.get(date);
     out.push({
