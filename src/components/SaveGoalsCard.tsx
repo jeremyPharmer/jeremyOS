@@ -796,12 +796,14 @@ function AdjustPanel({
   error: string;
   onCancel: () => void;
   onSubmit: (input: {
+    date: string;
     amount: number;
     mode: "preset" | "custom";
     goalId?: string;
     note?: string;
   }) => void;
 }) {
+  const [adjustDate, setAdjustDate] = useState("");
   const [adjustAmount, setAdjustAmount] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustSign, setAdjustSign] = useState<"add" | "subtract">("add");
@@ -827,6 +829,15 @@ function AdjustPanel({
           Subtract
         </button>
       </div>
+      <label className="field">
+        <span className="field-label">Date</span>
+        <input
+          type="date"
+          value={adjustDate}
+          onChange={(e) => setAdjustDate(e.target.value)}
+          required
+        />
+      </label>
       <label className="field">
         <span className="field-label">Amount</span>
         <input
@@ -892,11 +903,13 @@ function AdjustPanel({
       ) : null}
       <div className="save-goal-create-actions">
         <PrimaryButton
-          disabled={busy}
+          disabled={busy || !adjustDate}
           onClick={() => {
+            if (!adjustDate) return;
             const raw = Number(adjustAmount);
             if (!Number.isFinite(raw) || raw <= 0) return;
             onSubmit({
+              date: adjustDate,
               amount: adjustSign === "add" ? raw : -raw,
               mode: adjustMode,
               goalId: adjustMode === "custom" ? customGoalId : undefined,
@@ -1298,11 +1311,16 @@ function SaveGoalsDetail() {
   }
 
   async function submitAdjust(input: {
+    date: string;
     amount: number;
     mode: "preset" | "custom";
     goalId?: string;
     note?: string;
   }) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+      setError("Pick a date for the adjustment.");
+      return;
+    }
     if (!Number.isFinite(input.amount) || input.amount === 0) {
       setError("Enter an amount greater than 0.");
       return;
@@ -1312,6 +1330,7 @@ function SaveGoalsDetail() {
     try {
       await post("/api/save-goals", {
         action: "adjust",
+        date: input.date,
         amount: input.amount,
         mode: input.mode,
         goalId: input.goalId,
