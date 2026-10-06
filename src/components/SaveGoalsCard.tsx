@@ -95,14 +95,12 @@ function GoalProgressRow({
   today,
   onEdit,
   onRemoveAdjust,
-  onTransfer,
   busy,
 }: {
   goal: SaveGoal;
   today: string;
   onEdit: (goal: SaveGoal) => void;
   onRemoveAdjust: (id: string) => void;
-  onTransfer?: () => void;
   busy: boolean;
 }) {
   const { state } = useApp();
@@ -126,80 +124,68 @@ function GoalProgressRow({
 
   return (
     <article className="save-goal-row" aria-label={goal.name}>
-      <div className="save-goal-row-head">
-        <h3 className="save-goal-name">{goal.name}</h3>
-        {reserve ? (
-          <p className="save-goal-togo">
-            {formatMoney(Math.max(0, goal.savedAmount))}{" "}
-            <span className="save-goal-togo-label">available</span>
-          </p>
-        ) : (
-          <p className="save-goal-togo">
-            {formatMoney(toGo)}{" "}
-            <span className="save-goal-togo-label">to go</span>
-          </p>
-        )}
-      </div>
-      {!reserve ? (
-        <div
-          className="save-goal-bar"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(ratio * 100)}
-          aria-label={`${Math.round(ratio * 100)}% saved`}
-        >
-          <span
-            className="save-goal-bar-fill"
-            style={{ width: `${Math.round(ratio * 100)}%` }}
-          />
+      <button
+        type="button"
+        className="save-goal-row-hit"
+        disabled={busy}
+        onClick={() => onEdit(goal)}
+        aria-label={`Edit ${goal.name}`}
+      >
+        <div className="save-goal-row-head">
+          <h3 className="save-goal-name">{goal.name}</h3>
+          {reserve ? (
+            <p className="save-goal-togo">
+              {formatMoney(Math.max(0, goal.savedAmount))}{" "}
+              <span className="save-goal-togo-label">available</span>
+            </p>
+          ) : (
+            <p className="save-goal-togo">
+              {formatMoney(toGo)}{" "}
+              <span className="save-goal-togo-label">to go</span>
+            </p>
+          )}
         </div>
-      ) : null}
-      {!reserve || dateLine ? (
-        <div className="save-goal-meta">
-          {!reserve ? (
-            <span className="tiny">
-              {formatMoney(Math.max(0, goal.savedAmount))} of{" "}
-              {formatMoney(goal.targetAmount)}
-              {daily > 0 ? (
-                <>
-                  {" "}
-                  · {formatMoneyDown(daily)}/day
-                </>
-              ) : null}
-              {under ? (
-                <span className="save-goal-under">
-                  {" "}
-                  · {formatMoney(Math.abs(goal.savedAmount))} under
-                </span>
-              ) : null}
-            </span>
-          ) : null}
-          {dateLine ? (
-            <span className="tiny save-goal-eta">{dateLine}</span>
-          ) : null}
-        </div>
-      ) : null}
-      <div className="save-goal-inbound-row">
-        <button
-          type="button"
-          className="save-goal-add-link"
-          disabled={busy}
-          onClick={() => onEdit(goal)}
-        >
-          Edit
-        </button>
-        {reserve && onTransfer ? (
-          <button
-            type="button"
-            className="save-goal-add-link"
-            disabled={busy || goal.savedAmount <= 0}
-            onClick={onTransfer}
+        {!reserve ? (
+          <div
+            className="save-goal-bar"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(ratio * 100)}
+            aria-label={`${Math.round(ratio * 100)}% saved`}
           >
-            Transfer
-          </button>
+            <span
+              className="save-goal-bar-fill"
+              style={{ width: `${Math.round(ratio * 100)}%` }}
+            />
+          </div>
         ) : null}
-      </div>
+        {!reserve || dateLine ? (
+          <div className="save-goal-meta">
+            {!reserve ? (
+              <span className="tiny">
+                {formatMoney(Math.max(0, goal.savedAmount))} of{" "}
+                {formatMoney(goal.targetAmount)}
+                {daily > 0 ? (
+                  <>
+                    {" "}
+                    · {formatMoneyDown(daily)}/day
+                  </>
+                ) : null}
+                {under ? (
+                  <span className="save-goal-under">
+                    {" "}
+                    · {formatMoney(Math.abs(goal.savedAmount))} under
+                  </span>
+                ) : null}
+              </span>
+            ) : null}
+            {dateLine ? (
+              <span className="tiny save-goal-eta">{dateLine}</span>
+            ) : null}
+          </div>
+        ) : null}
+      </button>
       <GoalAdjustmentLog
         goalId={goal.id}
         busy={busy}
@@ -1098,16 +1084,6 @@ function SaveGoalsDetail() {
             today={today}
             busy={busy}
             onRemoveAdjust={(id) => void removeAdjust(id)}
-            onTransfer={
-              isReserveGoal(g) && namedGoals.length > 0
-                ? () => {
-                    setTransferOpen(true);
-                    setAdjustOpen(false);
-                    setEditing(null);
-                    setError("");
-                  }
-                : undefined
-            }
             onEdit={(goal) => {
               setEditing(goal);
               setEditName(goal.name);
@@ -1117,6 +1093,8 @@ function SaveGoalsDetail() {
               setDeleting(null);
               setReallocateTo("");
               setTransferOpen(false);
+              setAdjustOpen(false);
+              setOpen(false);
               setError("");
             }}
           />
@@ -1361,45 +1339,40 @@ function SaveGoalsDetail() {
           </div>
         </div>
       ) : (
-        <div className="save-goal-actions-row">
-          <button
-            type="button"
-            className="save-goal-add-link"
+        <div className="save-goal-actions-row" role="group" aria-label="Ledger actions">
+          <PrimaryButton
             onClick={() => {
               setOpen(true);
               setTransferOpen(false);
               setAdjustOpen(false);
+              setEditing(null);
             }}
           >
-            + Add
-          </button>
-          {reserve && namedGoals.length > 0 ? (
-            <button
-              type="button"
-              className="save-goal-add-link"
-              onClick={() => {
-                setTransferOpen(true);
-                setAdjustOpen(false);
-                setOpen(false);
-                setError("");
-              }}
-            >
-              Transfer
-            </button>
-          ) : null}
-          {goals.length > 0 ? (
-            <button
-              type="button"
-              className="save-goal-add-link"
-              onClick={() => {
-                setAdjustOpen(true);
-                setTransferOpen(false);
-                setOpen(false);
-              }}
-            >
-              Adjust
-            </button>
-          ) : null}
+            Add
+          </PrimaryButton>
+          <SecondaryButton
+            disabled={!reserve || namedGoals.length === 0}
+            onClick={() => {
+              setTransferOpen(true);
+              setAdjustOpen(false);
+              setOpen(false);
+              setEditing(null);
+              setError("");
+            }}
+          >
+            Transfer
+          </SecondaryButton>
+          <SecondaryButton
+            disabled={goals.length === 0}
+            onClick={() => {
+              setAdjustOpen(true);
+              setTransferOpen(false);
+              setOpen(false);
+              setEditing(null);
+            }}
+          >
+            Adjust
+          </SecondaryButton>
         </div>
       )}
     </section>
