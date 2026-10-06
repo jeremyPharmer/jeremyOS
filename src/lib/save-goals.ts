@@ -401,20 +401,20 @@ export function recomputeSavedAmounts(
 }
 
 /**
- * Ledger restart: drop every close/spend/adjust before 2026-10-01 and bump
- * goal createdOn so accrual starts Oct 1. Idempotent on every normalize.
+ * Ledger restart: drop September 2026 closes/spends/adjusts and bump goals
+ * created that month to 2026-10-01. Idempotent on every normalize.
  */
 export const SAVE_GOAL_LEDGER_START = "2026-10-01";
 
-function beforeSaveGoalLedgerStart(date: string): boolean {
-  return DATE_RE.test(date) && date < SAVE_GOAL_LEDGER_START;
+function isSeptember2026(date: string): boolean {
+  return DATE_RE.test(date) && date.startsWith("2026-09-");
 }
 
 export function normalizeSaveGoals(state: RebuildState): RebuildState {
   const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
   const days = (state.saveGoalDays ?? [])
     .filter((d) => d && DATE_RE.test(d.date))
-    .filter((d) => !beforeSaveGoalLedgerStart(d.date))
+    .filter((d) => !isSeptember2026(d.date))
     .map((d) => ({
       date: d.date,
       dailyIncome: round2(Number(d.dailyIncome) || 0),
@@ -446,7 +446,7 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
         name: String(g.name ?? "").trim() || "Save goal",
         targetAmount: Math.max(1, floorDollar(Number(g.targetAmount) || 1)),
         savedAmount: round2(Number(g.savedAmount) || 0),
-        createdOn: beforeSaveGoalLedgerStart(rawCreated)
+        createdOn: isSeptember2026(rawCreated)
           ? SAVE_GOAL_LEDGER_START
           : rawCreated,
         status:
@@ -466,7 +466,7 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
 
   const spendEntries = (state.saveGoalSpendEntries ?? [])
     .filter((e) => e && DATE_RE.test(e.date) && e.id)
-    .filter((e) => !beforeSaveGoalLedgerStart(e.date))
+    .filter((e) => !isSeptember2026(e.date))
     .map((e) => {
       const kind = e.kind === "add" ? ("add" as const) : ("spend" as const);
       return {
