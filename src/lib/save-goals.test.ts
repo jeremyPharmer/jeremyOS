@@ -5,14 +5,17 @@ import {
   applySaveGoalAdjustment,
   averageSpendLastDays,
   createSaveGoal,
+  creditSaveGoalReserve,
   dailyIncomeRate,
   daysInMonthForDate,
   addSaveGoalSpend,
   applySaveGoalDayTotals,
   applySaveGoalRolledOnly,
+  findReserveGoal,
   formatTargetDateLabel,
   setSaveGoalSavedAmount,
   deleteSaveGoal,
+  isReserveGoal,
   listRolledOpenDatesBefore,
   saveGoalCloseForDate,
   undoApplySaveGoalDayTotals,
@@ -28,6 +31,8 @@ import {
   recordSaveGoalDay,
   recomputeSavedAmounts,
   removeSaveGoalAdjustment,
+  transferSaveGoalFromReserve,
+  updateSaveGoal,
   removeSaveGoalSpend,
   clearSaveGoalDaySpend,
   formatCalendarMonthLabel,
@@ -43,7 +48,6 @@ import {
   splitPoolByWeight,
   saveGoalSpendEntryLabel,
   summarizeSaveGoalMonth,
-  updateSaveGoal,
   updateSaveGoalSettings,
 } from "./save-goals";
 import type { SaveGoal, SaveGoalDay } from "./types";
@@ -130,24 +134,17 @@ describe("inbound percents", () => {
     );
   });
 
-  it("changing percent shortens or lengthens target date", () => {
+  it("changing fixed $/day shortens or lengthens target date", () => {
     let state = emptyState();
     state = createSaveGoal(state, {
       name: "A",
       targetAmount: 500,
       createdOn: "2026-04-01",
-    });
-    state = createSaveGoal(state, {
-      name: "B",
-      targetAmount: 500,
-      createdOn: "2026-04-01",
+      dollarsPerDay: 10,
     });
     const a = () => state.saveGoals!.find((g) => g.name === "A")!;
-    const b = () => state.saveGoals!.find((g) => g.name === "B")!;
-
-    state = setInboundPercents(state, { [a().id]: 100, [b().id]: 0 });
     const full = projectSaveGoalTargetDate(state, a(), "2026-04-01");
-    state = setInboundPercents(state, { [a().id]: 50, [b().id]: 50 });
+    state = updateSaveGoal(state, { id: a().id, dollarsPerDay: 5 });
     const half = projectSaveGoalTargetDate(state, a(), "2026-04-01");
     expect(full.etaDays).toBeTruthy();
     expect(half.etaDays).toBeTruthy();
@@ -328,125 +325,88 @@ describe("recordSaveGoalDay", () => {
 });
 
 describe("projectSaveGoalTargetDate", () => {
-  it("projects a target date from daily rate × inbound %", () => {
+  it("projects a target date from fixed $/day", () => {
     let state = emptyState();
-    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
     state = createSaveGoal(state, {
       name: "Trip",
       targetAmount: 100,
       createdOn: "2026-04-01",
+      dollarsPerDay: 10,
     });
-    const proj = projectSaveGoalTargetDate(state, state.saveGoals![0], "2026-04-01");
+    const trip = state.saveGoals!.find((g) => g.name === "Trip")!;
+    const proj = projectSaveGoalTargetDate(state, trip, "2026-04-01");
     expect(proj.status).toBe("on_track");
-    expect(proj.targetDate).toBeTruthy();
-    expect(proj.goalDaily).toBe(16); // $16 × 100%
-    // Today not applied → remaining after today’s $16 credit = 84 → 84/16 = 5.25 → 6 days
-    expect(proj.etaDays).toBe(6);
+    expect(proj.goalDaily).toBe(10);
+    expect(proj.etaDays).toBe(10); // 100 / 10
+    expect(proj.targetDate).toBe(addDays("2026-04-01", 10));
   });
 
-  it("uses $16 × 20% = $3.20/day for Reserve (not Left, not net of spend)", () => {
+  it("Reserve has no payoff ETA (holding tank)", () => {
     let state = emptyState();
-    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
     state = createSaveGoal(state, {
-      name: "General",
-      targetAmount: 3000,
-      createdOn: "2026-09-01",
+      name: "City",
+      targetAmount: 2900,
+      createdOn: "2026-10-01",
+      dollarsPerDay: 10,
     });
-    state = createSaveGoal(state, {
-      name: "Reserve",
-      targetAmount: 1000,
-      createdOn: "2026-09-01",
+    const reserve = findReserveGoal(state)!;
+    expect(isReserveGoal(reserve)).toBe(true);
+    state = creditSaveGoalReserve(state, {
+      date: "2026-10-01",
+      amount: 100,
     });
-    const general = () => state.saveGoals!.find((g) => g.name === "General")!;
-    const reserve = () => state.saveGoals!.find((g) => g.name === "Reserve")!;
-    state = setInboundPercents(state, {
-      [general().id]: 80,
-      [reserve().id]: 20,
-    });
-    state = setSaveGoalSavedAmount(state, {
-      id: reserve().id,
-      savedAmount: 14.94,
-      date: "2026-09-28",
-    });
-    state = addSaveGoalSpend(state, {
-      date: "2026-09-28",
-      amount: 34,
-      kind: "add",
-    });
-    state = addSaveGoalSpend(state, {
-      date: "2026-09-28",
-      amount: 9.72,
-      kind: "spend",
-      category: "meals",
-    });
-    state = applySaveGoalDayTotals(state, { date: "2026-09-28" });
-
-    const proj = projectSaveGoalTargetDate(state, reserve(), "2026-09-28");
-    expect(proj.projectedPoolPerDay).toBe(16);
-    expect(proj.goalDaily).toBe(3.2);
-    // ~$985 left / $3.20 ≈ 308 days → 2027-08-02 (not “Nov 18” without a year)
-    expect(proj.etaDays).toBe(Math.ceil(proj.remaining / 3.2));
-    expect(proj.targetDate).toBe(
-      addDays("2026-09-28", proj.etaDays!),
+    const proj = projectSaveGoalTargetDate(
+      state,
+      findReserveGoal(state)!,
+      "2026-10-01",
     );
-    expect(formatTargetDateLabel(proj.targetDate!)).toMatch(/2027/);
+    expect(proj.targetDate).toBeNull();
+    expect(proj.etaDays).toBeNull();
+    expect(proj.goalDaily).toBe(0);
   });
 
-  it("updates pace when inbound % changes", () => {
+  it("updates ETA when fixed $/day changes", () => {
     let state = emptyState();
-    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
     state = createSaveGoal(state, {
-      name: "General",
-      targetAmount: 3000,
+      name: "City",
+      targetAmount: 2900,
       createdOn: "2026-04-01",
+      dollarsPerDay: 10,
     });
-    state = createSaveGoal(state, {
-      name: "Reserve",
-      targetAmount: 1000,
-      createdOn: "2026-04-01",
-    });
-    const general = () => state.saveGoals!.find((g) => g.name === "General")!;
-    const reserve = () => state.saveGoals!.find((g) => g.name === "Reserve")!;
-    state = setInboundPercents(state, {
-      [general().id]: 80,
-      [reserve().id]: 20,
-    });
-    const at80 = projectSaveGoalTargetDate(state, general(), "2026-04-01");
-    expect(at80.goalDaily).toBe(12.8); // 16 × 80%
-    expect(at80.targetDate).toBeTruthy();
+    const city = () => state.saveGoals!.find((g) => g.name === "City")!;
+    const at10 = projectSaveGoalTargetDate(state, city(), "2026-04-01");
+    expect(at10.goalDaily).toBe(10);
+    expect(at10.targetDate).toBeTruthy();
 
-    state = setInboundPercents(state, {
-      [general().id]: 50,
-      [reserve().id]: 50,
-    });
-    const at50 = projectSaveGoalTargetDate(state, general(), "2026-04-01");
-    expect(at50.goalDaily).toBe(8);
-    expect(at50.etaDays!).toBeGreaterThan(at80.etaDays!);
+    state = updateSaveGoal(state, { id: city().id, dollarsPerDay: 5 });
+    const at5 = projectSaveGoalTargetDate(state, city(), "2026-04-01");
+    expect(at5.goalDaily).toBe(5);
+    expect(at5.etaDays!).toBeGreaterThan(at10.etaDays!);
   });
 
-  it("ignores one-time adds and spend when computing daily pace", () => {
+  it("transfer from Reserve moves ETA earlier", () => {
     let state = emptyState();
-    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
     state = createSaveGoal(state, {
-      name: "Trip",
-      targetAmount: 500,
+      name: "City",
+      targetAmount: 100,
       createdOn: "2026-04-01",
+      dollarsPerDay: 10,
     });
-    state = addSaveGoalSpend(state, {
-      date: "2026-04-02",
-      amount: 34,
-      kind: "add",
+    const city = () => state.saveGoals!.find((g) => g.name === "City")!;
+    state = creditSaveGoalReserve(state, { date: "2026-04-01", amount: 40 });
+    const before = projectSaveGoalTargetDate(state, city(), "2026-04-01");
+    expect(before.etaDays).toBe(10);
+
+    state = transferSaveGoalFromReserve(state, {
+      date: "2026-04-01",
+      amount: 40,
+      toGoalId: city().id,
     });
-    state = addSaveGoalSpend(state, {
-      date: "2026-04-02",
-      amount: 9.72,
-      kind: "spend",
-      category: "meals",
-    });
-    const proj = projectSaveGoalTargetDate(state, state.saveGoals![0], "2026-04-02");
-    expect(proj.projectedPoolPerDay).toBe(16);
-    expect(proj.goalDaily).toBe(16);
-    expect(proj.targetDate).toBeTruthy();
+    const after = projectSaveGoalTargetDate(state, city(), "2026-04-01");
+    expect(city().savedAmount).toBe(40);
+    expect(after.etaDays).toBe(6); // 60 left / 10
+    expect(after.etaDays!).toBeLessThan(before.etaDays!);
+    expect(findReserveGoal(state)!.savedAmount).toBe(0);
   });
 });
 
@@ -674,14 +634,14 @@ describe("updateSaveGoal", () => {
       targetAmount: 500,
       createdOn: "2026-04-01",
     });
-    const id = state.saveGoals![0].id;
+    const id = state.saveGoals!.find((g) => g.name === "Trip")!.id;
     state = updateSaveGoal(state, {
       id,
       name: "Hawaii",
       targetAmount: 800,
     });
-    expect(state.saveGoals![0].name).toBe("Hawaii");
-    expect(state.saveGoals![0].targetAmount).toBe(800);
+    const hawaii = state.saveGoals!.find((g) => g.name === "Hawaii")!;
+    expect(hawaii.targetAmount).toBe(800);
   });
 });
 
@@ -694,16 +654,10 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       targetAmount: 2900,
       createdOn: "2026-04-01",
     });
-    state = createSaveGoal(state, {
-      name: "Reserve",
-      targetAmount: 500,
-      createdOn: "2026-04-01",
-    });
     const general = () => state.saveGoals!.find((g) => g.name === "General")!;
-    const reserve = () => state.saveGoals!.find((g) => g.name === "Reserve")!;
+    const reserve = () => findReserveGoal(state)!;
     state = setInboundPercents(state, {
-      [general().id]: 80,
-      [reserve().id]: 20,
+      [general().id]: 100,
     });
 
     state = applySaveGoalDayTotals(state, {
@@ -723,16 +677,10 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       targetAmount: 2900,
       createdOn: "2026-04-01",
     });
-    state = createSaveGoal(state, {
-      name: "Reserve",
-      targetAmount: 500,
-      createdOn: "2026-04-01",
-    });
     const general = () => state.saveGoals!.find((g) => g.name === "General")!;
-    const reserve = () => state.saveGoals!.find((g) => g.name === "Reserve")!;
+    const reserve = () => findReserveGoal(state)!;
     state = setInboundPercents(state, {
-      [general().id]: 80,
-      [reserve().id]: 20,
+      [general().id]: 100,
     });
 
     state = applySaveGoalDayTotals(state, {
@@ -912,7 +860,9 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     expect(close.dailyIncome).toBe(36);
     expect(close.spendTotal).toBe(5);
     expect(close.leftover).toBe(31);
-    expect(state.saveGoals![0].savedAmount).toBe(31);
+    expect(
+      state.saveGoals!.find((g) => g.name === "Trip")!.savedAmount,
+    ).toBe(31);
   });
 
   it("undoes apply so leftover rolls and saved amounts reverse", () => {
@@ -924,7 +874,8 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       createdOn: "2026-04-01",
     });
     state = applySaveGoalDayTotals(state, { date: "2026-04-01" });
-    expect(state.saveGoals![0].savedAmount).toBe(16);
+    const trip = () => state.saveGoals!.find((g) => g.name === "Trip")!;
+    expect(trip().savedAmount).toBe(16);
     expect(
       state.saveGoalDays!.some(
         (d) => d.date === "2026-04-01" && (d.kind ?? "close") === "close",
@@ -932,7 +883,7 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     ).toBe(true);
 
     state = undoApplySaveGoalDayTotals(state, "2026-04-01");
-    expect(state.saveGoals![0].savedAmount).toBe(0);
+    expect(trip().savedAmount).toBe(0);
     expect(
       state.saveGoalDays!.some(
         (d) => d.date === "2026-04-01" && (d.kind ?? "close") === "close",
@@ -956,13 +907,14 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       category: "meals",
     });
     state = applySaveGoalDayTotals(state, { date: "2026-04-01" });
-    expect(state.saveGoals![0].savedAmount).toBe(-80);
+    const trip = () => state.saveGoals!.find((g) => g.name === "Trip")!;
+    expect(trip().savedAmount).toBe(-80);
     expect(spendTotalForDate(state, "2026-04-01")).toBe(96);
 
     state = clearSaveGoalDaySpend(state, "2026-04-01");
     expect(spendTotalForDate(state, "2026-04-01")).toBe(0);
     expect(saveGoalCloseForDate(state, "2026-04-01")).toBeNull();
-    expect(state.saveGoals![0].savedAmount).toBe(0);
+    expect(trip().savedAmount).toBe(0);
   });
 
   it("applies only rolled history and leaves today open", () => {
@@ -995,7 +947,9 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     ]);
 
     state = applySaveGoalRolledOnly(state, { date: "2026-04-03" });
-    expect(state.saveGoals![0].savedAmount).toBe(30);
+    expect(
+      state.saveGoals!.find((g) => g.name === "Trip")!.savedAmount,
+    ).toBe(30);
     expect(saveGoalCloseForDate(state, "2026-04-03")).toBeNull();
     const today = leftoverBeforeApply(state, "2026-04-03");
     expect(today.carryIn).toBe(0);
@@ -1192,7 +1146,9 @@ describe("ledger start Oct 1 2026 + month rollups", () => {
     state = applySaveGoalDayTotals(state, { date: "2026-10-01" });
     state = setSaveGoalDayInbound(state, { date: "2026-10-02", amount: 11 });
     expect(saveGoalCloseForDate(state, "2026-10-01")).not.toBeNull();
-    expect(state.saveGoals![0].savedAmount).toBeGreaterThan(0);
+    expect(
+      state.saveGoals!.find((g) => g.name === "General")!.savedAmount,
+    ).toBeGreaterThan(0);
 
     const stale = {
       ...state,
@@ -1310,10 +1266,13 @@ describe("ledger start Oct 1 2026 + month rollups", () => {
     expect(saveGoalCloseForDate(state, "2026-09-30")).toBeNull();
     expect(spendTotalForDate(state, "2026-09-30")).toBe(0);
     expect(saveGoalCloseForDate(state, "2026-10-01")).not.toBeNull();
-    expect(state.saveGoals![0].createdOn).toBe(SAVE_GOAL_LEDGER_START);
-    expect(state.saveGoals![0].savedAmount).toBe(
-      saveGoalCloseForDate(state, "2026-10-01")!.allocations[0].amount,
-    );
+    const general = state.saveGoals!.find((g) => g.name === "General")!;
+    expect(general.createdOn).toBe(SAVE_GOAL_LEDGER_START);
+    const close = saveGoalCloseForDate(state, "2026-10-01")!;
+    const generalApplied = close.allocations
+      .filter((a) => a.goalId === general.id)
+      .reduce((s, a) => s + a.amount, 0);
+    expect(general.savedAmount).toBe(generalApplied);
   });
 
   it("summarizes applied-by-goal and spend-by-category for a month", () => {
@@ -1324,17 +1283,12 @@ describe("ledger start Oct 1 2026 + month rollups", () => {
       targetAmount: 2900,
       createdOn: "2026-10-01",
     });
-    state = createSaveGoal(state, {
-      name: "Reserve",
-      targetAmount: 500,
-      createdOn: "2026-10-01",
-      claimDailyInbound: false,
-    });
+    // Auto-created Reserve (do not create a second Reserve)
     const general = () => state.saveGoals!.find((g) => g.name === "General")!;
-    const reserve = () => state.saveGoals!.find((g) => g.name === "Reserve")!;
+    const reserve = () => findReserveGoal(state)!;
+    expect(reserve()).toBeTruthy();
     state = setInboundPercents(state, {
-      [general().id]: 80,
-      [reserve().id]: 20,
+      [general().id]: 100,
     });
 
     state = addSaveGoalSpend(state, {
@@ -1356,7 +1310,8 @@ describe("ledger start Oct 1 2026 + month rollups", () => {
     expect(formatCalendarMonthLabel("2026-10")).toBe("October 2026");
     expect(summary.days).toHaveLength(2);
     expect(summary.appliedByGoalId[general().id]).toBeGreaterThan(0);
-    expect(summary.appliedByGoalId[reserve().id]).toBeGreaterThan(0);
+    // Reserve is the hub — no % share of daily apply
+    expect(summary.appliedByGoalId[reserve().id] ?? 0).toBe(0);
     expect(summary.spendByCategory.meals).toBe(5);
     expect(summary.spendByCategory.entertainment).toBe(2);
   });

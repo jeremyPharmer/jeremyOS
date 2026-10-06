@@ -7,6 +7,7 @@ import {
   applySaveGoalRolledOnly,
   clearSaveGoalDaySpend,
   createSaveGoal,
+  creditSaveGoalReserve,
   deleteSaveGoal,
   recordSaveGoalDay,
   removeSaveGoalAdjustment,
@@ -14,8 +15,8 @@ import {
   setGoalInboundPercent,
   setInboundPercents,
   setSaveGoalSavedAmount,
-  setSaveGoalDayInbound,
   setSoleDailyTarget,
+  transferSaveGoalFromReserve,
   undoApplySaveGoalDayTotals,
   updateSaveGoal,
   updateSaveGoalSettings,
@@ -50,6 +51,10 @@ export async function POST(req: Request) {
             body.claimDailyInbound !== undefined
               ? Boolean(body.claimDailyInbound)
               : undefined,
+          dollarsPerDay:
+            body.dollarsPerDay !== undefined
+              ? Number(body.dollarsPerDay)
+              : undefined,
         });
       }
 
@@ -63,6 +68,10 @@ export async function POST(req: Request) {
               ? Number(body.targetAmount)
               : undefined,
           status: body.status,
+          dollarsPerDay:
+            body.dollarsPerDay !== undefined
+              ? Number(body.dollarsPerDay)
+              : undefined,
         });
         if (body.savedAmount !== undefined && body.savedAmount !== null) {
           next = setSaveGoalSavedAmount(next, {
@@ -111,6 +120,21 @@ export async function POST(req: Request) {
       }
 
       if (action === "setInbound") {
+        // Day-level inbound override (legacy) OR credit Reserve when date+amount.
+        if (body.date !== undefined && body.amount !== undefined) {
+          const inboundDate = String(body.date ?? "").trim();
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(inboundDate)) {
+            const err = new Error("Pick a date for inbound");
+            (err as Error & { status: number }).status = 400;
+            throw err;
+          }
+          // RB-041: Adjust Inbound credits Reserve balance (not % chips).
+          return creditSaveGoalReserve(prev, {
+            date: inboundDate,
+            amount: Number(body.amount),
+            note: "Inbound",
+          });
+        }
         if (body.soleGoalId) {
           return setSoleDailyTarget(prev, String(body.soleGoalId));
         }
@@ -126,6 +150,35 @@ export async function POST(req: Request) {
             ? (body.percents as Record<string, number>)
             : {};
         return setInboundPercents(prev, percents);
+      }
+
+      if (action === "creditReserve") {
+        const creditDate = String(body.date ?? "").trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(creditDate)) {
+          const err = new Error("Pick a date");
+          (err as Error & { status: number }).status = 400;
+          throw err;
+        }
+        return creditSaveGoalReserve(prev, {
+          date: creditDate,
+          amount: Number(body.amount),
+          note: body.note !== undefined ? String(body.note) : undefined,
+        });
+      }
+
+      if (action === "transferFromReserve") {
+        const transferDate = String(body.date ?? "").trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(transferDate)) {
+          const err = new Error("Pick a date for the transfer");
+          (err as Error & { status: number }).status = 400;
+          throw err;
+        }
+        return transferSaveGoalFromReserve(prev, {
+          date: transferDate,
+          amount: Number(body.amount),
+          toGoalId: String(body.toGoalId ?? ""),
+          note: body.note !== undefined ? String(body.note) : undefined,
+        });
       }
 
       if (action === "adjust") {
@@ -147,19 +200,6 @@ export async function POST(req: Request) {
             ? body.allocations
             : undefined,
           note: body.note !== undefined ? String(body.note) : undefined,
-        });
-      }
-
-      if (action === "setInbound") {
-        const inboundDate = String(body.date ?? "").trim();
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(inboundDate)) {
-          const err = new Error("Pick a date for inbound");
-          (err as Error & { status: number }).status = 400;
-          throw err;
-        }
-        return setSaveGoalDayInbound(prev, {
-          date: inboundDate,
-          amount: Number(body.amount),
         });
       }
 
