@@ -5,7 +5,7 @@
 | ID | RB-041 |
 | Rank | 17 |
 | Priority | P0 |
-| Status | In Progress |
+| Status | Done |
 | Effort | S |
 | Target due | TBD |
 | Milestone | v1.x |
@@ -29,7 +29,7 @@ The original Save Goals model treated every named pocket (including **Reserve**)
 | **New item RB-041** (not a silent rewrite of RB-037) | Clear v1.x / v2 slice after ledger-only; keeps mid-flight RB-037 honest |
 | Ship **after** ledger-only (RB-037 mid-flight on `cursor/save-goals-ledger-only-8ada`) | Complementary: daily % mix / daily apply UI already paused; Adjust remains the digital ledger entry path |
 | **Existing balances stay put** (locked 2026-10-06) | Do **not** migrate named-goal balances into Reserve on ship; only **new** inbound / Adjust → Reserve |
-| Rank **17** (immediately after RB-037); status **In Progress** | Founder-directed next Save Goals intent; build started (ship to prod) |
+| Rank **17** (immediately after RB-037); status **Done** | Shipped: PR #266 / `cursor/save-goals-reserve-hub-impl-8ada` → jeremyos-prod |
 
 Parent: [RB-037 Save Goals](./save-goals.md). Still **not** Future/Treat / Venmo Total.
 
@@ -120,5 +120,6 @@ Ship soon after ledger-only lands. Thin and numbers-first.
 
 - **Intake 2026-10-06:** Founder paused daily % mix / daily apply (ledger-only in flight). Clarified Reserve = holding tank; named goals funded by moves from Reserve; fixed $/day drives dynamic payoff dates. Captured as **RB-041** rank **17** / P0 — next Save Goals intent after ledger-only, without bumping unrelated higher P0s.
 - **2026-10-06 ship start:** Status → **In Progress** (founder: ship to prod). **Migration locked:** existing named-goal balances **stay put**; only **new** inbound / Adjust credits default to Reserve going forward — no bulk move into Reserve on ship.
+- **2026-10-06 Done:** Implemented on `cursor/save-goals-reserve-hub-impl-8ada`, **PR #266**, deployed **jeremyos-prod**. No-migrate honored (existing named-goal balances left in place).
 - Supersedes RB-037 §5 target-date math **for named goals** (was inbound % × daily rate) and the example that projected Reserve ETA from %. RB-037 remains the parent item for ledger/Adjust history; **do not** delete RB-037.
 - Related branch context: `cursor/save-goals-ledger-only-8ada` (complementary UI pause).
