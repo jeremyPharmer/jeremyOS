@@ -2555,15 +2555,28 @@ h2 {
   display: flex;
   flex-wrap: nowrap;
   gap: 8px;
-  align-items: stretch;
+  align-items: center;
+  justify-content: flex-start;
   width: 100%;
 }
 
 .save-goal-actions-row .btn {
-  flex: 1 1 0;
+  flex: 0 0 auto;
+  width: auto;
   min-width: 0;
-  justify-content: center;
-  text-align: center;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.save-goal-actions-row .btn:hover:not(:disabled) {
+  background: var(--accent-soft, color-mix(in srgb, var(--accent) 12%, transparent));
+  border-color: var(--accent);
 }
 
 .save-goal-row-hit {

@@ -1340,7 +1340,7 @@ function SaveGoalsDetail() {
         </div>
       ) : (
         <div className="save-goal-actions-row" role="group" aria-label="Ledger actions">
-          <PrimaryButton
+          <SecondaryButton
             onClick={() => {
               setOpen(true);
               setTransferOpen(false);
@@ -1349,7 +1349,7 @@ function SaveGoalsDetail() {
             }}
           >
             Add
-          </PrimaryButton>
+          </SecondaryButton>
           <SecondaryButton
             disabled={!reserve || namedGoals.length === 0}
             onClick={() => {
