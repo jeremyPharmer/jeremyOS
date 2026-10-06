@@ -3205,6 +3205,12 @@ button.save-goal-rate.save-goal-inbound-edit {
   flex-direction: column;
   gap: 10px;
   padding-top: 4px;
+  min-width: 0;
+}
+
+.save-goal-create .field {
+  min-width: 0;
+  width: 100%;
 }
 
 .save-goal-create-actions {
@@ -5117,13 +5123,24 @@ button.save-goal-rate.save-goal-inbound-edit {
 .field input[type="time"],
 .field textarea,
 .field select {
+  box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   background: var(--surface-strong);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 12px 14px;
   outline: none;
   color: var(--text);
+}
+
+/* Native date/time controls have a large intrinsic min-width on WebKit */
+.field input[type="date"],
+.field input[type="time"] {
+  display: block;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .field input[type="range"] {
