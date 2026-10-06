@@ -29,10 +29,12 @@ import {
   recomputeSavedAmounts,
   removeSaveGoalAdjustment,
   removeSaveGoalSpend,
+  clearSaveGoalDaySpend,
   setGoalInboundPercent,
   setInboundPercents,
   setSoleDailyTarget,
   spendCategoryLabelsForDate,
+  spendTotalForDate,
   splitPoolByWeight,
   updateSaveGoal,
   updateSaveGoalSettings,
@@ -907,6 +909,30 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       ),
     ).toBe(false);
     expect(leftoverBeforeApply(state, "2026-04-01").left).toBe(16);
+  });
+
+  it("clearDaySpend removes spend and undoes apply for that date", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 96,
+      kind: "spend",
+      category: "meals",
+    });
+    state = applySaveGoalDayTotals(state, { date: "2026-04-01" });
+    expect(state.saveGoals![0].savedAmount).toBe(-80);
+    expect(spendTotalForDate(state, "2026-04-01")).toBe(96);
+
+    state = clearSaveGoalDaySpend(state, "2026-04-01");
+    expect(spendTotalForDate(state, "2026-04-01")).toBe(0);
+    expect(saveGoalCloseForDate(state, "2026-04-01")).toBeNull();
+    expect(state.saveGoals![0].savedAmount).toBe(0);
   });
 
   it("applies only rolled history and leaves today open", () => {

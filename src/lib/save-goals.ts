@@ -795,6 +795,39 @@ export function undoApplySaveGoalDayTotals(
   });
 }
 
+/**
+ * Clear subtract lines for a date and undo that day's apply (if any),
+ * so goal balances reverse and the ledger can be fixed via Adjust.
+ */
+export function clearSaveGoalDaySpend(
+  state: RebuildState,
+  date: string,
+): RebuildState {
+  const d = String(date ?? "").trim();
+  if (!DATE_RE.test(d)) {
+    throw Object.assign(new Error("date required"), { status: 400 });
+  }
+  const entries = state.saveGoalSpendEntries ?? [];
+  const nextEntries = entries.filter(
+    (e) => !(e.date === d && entryKind(e) === "spend"),
+  );
+  const hadSpend = nextEntries.length !== entries.length;
+  const hadClose = hasSaveGoalClose(state, d);
+  if (!hadSpend && !hadClose) {
+    throw Object.assign(new Error("Nothing to remove for this day"), {
+      status: 404,
+    });
+  }
+  let next: RebuildState = {
+    ...state,
+    saveGoalSpendEntries: nextEntries,
+  };
+  if (hadClose) {
+    next = undoApplySaveGoalDayTotals(next, d);
+  }
+  return normalizeSaveGoals(next);
+}
+
 export function createSaveGoal(
   state: RebuildState,
   input: {

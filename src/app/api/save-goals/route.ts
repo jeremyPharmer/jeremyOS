@@ -5,6 +5,7 @@ import {
   applySaveGoalAdjustment,
   applySaveGoalDayTotals,
   applySaveGoalRolledOnly,
+  clearSaveGoalDaySpend,
   createSaveGoal,
   deleteSaveGoal,
   recordSaveGoalDay,
@@ -226,6 +227,10 @@ export async function POST(req: Request) {
 
       if (action === "undoApply") {
         return undoApplySaveGoalDayTotals(prev, String(body.date ?? today));
+      }
+
+      if (action === "clearDaySpend") {
+        return clearSaveGoalDaySpend(prev, String(body.date ?? today));
       }
 
       const err = new Error(`Unknown action: ${action}`);

@@ -2852,12 +2852,46 @@ button.save-goal-rate.save-goal-inbound-edit {
 .save-goal-ledger-day {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin: 0;
+  padding: 12px 0;
+  border-top: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+}
+
+.save-goal-ledger-day:first-child {
+  border-top: none;
+  padding-top: 4px;
 }
 
 .save-goal-ledger-day:last-child {
-  margin-bottom: 0;
+  padding-bottom: 2px;
+}
+
+.save-goal-ledger-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 0;
+}
+
+.save-goal-ledger-history-list .save-goal-ledger-day {
+  margin: 0;
+  padding: 12px 12px 10px;
+  border: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+  border-radius: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+  background: color-mix(in srgb, var(--ink) 3.5%, var(--surface, #fff));
+}
+
+.save-goal-ledger-history-list .save-goal-ledger-day:first-child {
+  border-top: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+  padding-top: 12px;
+}
+
+.save-goal-ledger-history-list .save-goal-ledger-date {
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
 }
 
 .save-goal-ledger-day-head {
@@ -2902,6 +2936,35 @@ button.save-goal-rate.save-goal-inbound-edit {
   white-space: nowrap;
 }
 
+.save-goal-ledger-spend-val {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.save-goal-ledger-remove {
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.save-goal-ledger-remove:hover:not(:disabled) {
+  color: var(--ink, inherit);
+}
+
+.save-goal-ledger-remove:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .save-goal-ledger-row.leftover {
   font-weight: 700;
   padding-top: 2px;
@@ -2916,10 +2979,6 @@ button.save-goal-rate.save-goal-inbound-edit {
 
 .save-goal-ledger-history {
   margin-top: 4px;
-}
-
-.save-goal-ledger-history .save-goal-ledger-day {
-  margin-top: 10px;
 }
 
 .save-goal-name {

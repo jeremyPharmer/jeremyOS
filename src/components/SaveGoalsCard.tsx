@@ -168,6 +168,8 @@ function DailyLedgerDay({
   goals,
   day,
   spendCategories,
+  busy,
+  onRemoveSpend,
 }: {
   label: string;
   inbound: number;
@@ -180,12 +182,17 @@ function DailyLedgerDay({
   day?: SaveGoalDay | null;
   /** Soft category names shown next to Spend (e.g. Meals) */
   spendCategories?: string[];
+  busy?: boolean;
+  /** Remove this day's spend (and undo apply) so it can be re-entered */
+  onRemoveSpend?: () => void;
 }) {
   const addTotal = adds ?? 0;
   const categoryLine =
     spendCategories && spendCategories.length > 0
       ? spendCategories.join(" · ")
       : null;
+  const canRemoveSpend =
+    Boolean(onRemoveSpend) && spend !== null && spend > 0;
   return (
     <div className={`save-goal-ledger-day${closed ? "" : " open"}`}>
       <div className="save-goal-ledger-day-head">
@@ -214,12 +221,22 @@ function DailyLedgerDay({
               <span className="save-goal-ledger-spend-cat">{categoryLine}</span>
             ) : null}
           </span>
-          <span>
+          <span className="save-goal-ledger-spend-val">
             {spend === null
               ? "—"
               : spend > 0
                 ? `−${formatMoney(spend)}`
                 : formatMoney(0)}
+            {canRemoveSpend ? (
+              <button
+                type="button"
+                className="save-goal-ledger-remove"
+                disabled={busy}
+                onClick={onRemoveSpend}
+              >
+                Remove
+              </button>
+            ) : null}
           </span>
         </div>
         {lump && lump > 0 ? (
@@ -245,6 +262,7 @@ function DailyLedger({
   busy,
   onApply,
   onUndoApply,
+  onClearDaySpend,
 }: {
   today: string;
   goals: SaveGoal[];
@@ -257,6 +275,7 @@ function DailyLedger({
     leftoverAllocations?: Array<{ goalId: string; amount: number }>;
   }) => void;
   onUndoApply?: () => void;
+  onClearDaySpend?: (date: string) => void;
 }) {
   const { state } = useApp();
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -578,8 +597,9 @@ function DailyLedger({
             <span aria-hidden="true">{historyOpen ? "▾" : "▸"}</span>
             Prior days ({history.length})
           </button>
-          {historyOpen
-            ? history.map((d) => (
+          {historyOpen ? (
+            <div className="save-goal-ledger-history-list">
+              {history.map((d) => (
                 <DailyLedgerDay
                   key={d.date}
                   label={formatTargetDateLabel(d.date)}
@@ -591,9 +611,16 @@ function DailyLedger({
                   goals={[...(state.saveGoals ?? [])]}
                   day={d}
                   spendCategories={spendCategoryLabelsForDate(state, d.date)}
+                  busy={busy}
+                  onRemoveSpend={
+                    onClearDaySpend && d.spendTotal > 0
+                      ? () => onClearDaySpend(d.date)
+                      : undefined
+                  }
                 />
-              ))
-            : null}
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -1464,6 +1491,21 @@ function SaveGoalsDetail() {
     }
   }
 
+  async function clearDaySpend(date: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "clearDaySpend",
+        date,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not remove spend");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (goals.length === 0 && !open) {
     return (
       <section
@@ -1623,6 +1665,7 @@ function SaveGoalsDetail() {
           busy={busy}
           onApply={(opts) => void applyTotals(opts)}
           onUndoApply={() => void undoApply()}
+          onClearDaySpend={(date) => void clearDaySpend(date)}
         />
       ) : null}
 
