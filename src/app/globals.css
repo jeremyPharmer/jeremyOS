@@ -2591,8 +2591,8 @@ h2 {
 }
 
 .save-goal-glance-actions .btn {
-  flex: 1 1 0;
-  width: auto;
+  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
 }
 

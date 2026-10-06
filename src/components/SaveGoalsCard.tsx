@@ -972,7 +972,7 @@ function AdjustPanel({
 /** Home saver — day total + add/subtract + collapsed ledger. Apply on /save-goals + evening. */
 function HomeSaveGoalsGlance() {
   const { state, today, post } = useApp();
-  const [entryKind, setEntryKind] = useState<"add" | "spend" | null>(null);
+  const [subtractOpen, setSubtractOpen] = useState(false);
   const [entryAmount, setEntryAmount] = useState("");
   const [spendCategory, setSpendCategory] =
     useState<SaveGoalSpendCategory | "">("");
@@ -1004,13 +1004,13 @@ function HomeSaveGoalsGlance() {
   );
   const applied = Boolean(todayClose);
 
-  async function submitEntry() {
+  async function submitSubtract() {
     const amount = Number(entryAmount);
-    if (!entryKind || !Number.isFinite(amount) || amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       setError("Enter an amount greater than 0.");
       return;
     }
-    if (entryKind === "spend" && !spendCategory) {
+    if (!spendCategory) {
       setError("Pick a category.");
       return;
     }
@@ -1021,20 +1021,14 @@ function HomeSaveGoalsGlance() {
         action: "addSpend",
         date: today,
         amount,
-        kind: entryKind,
-        category: entryKind === "spend" ? spendCategory : undefined,
+        kind: "spend",
+        category: spendCategory,
       });
       setEntryAmount("");
       setSpendCategory("");
-      setEntryKind(null);
+      setSubtractOpen(false);
     } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : entryKind === "add"
-            ? "Could not add"
-            : "Could not subtract",
-      );
+      setError(e instanceof Error ? e.message : "Could not subtract");
     } finally {
       setBusy(false);
     }
@@ -1085,12 +1079,10 @@ function HomeSaveGoalsGlance() {
         </p>
       ) : (
         <>
-          {entryKind ? (
+          {subtractOpen ? (
             <div className="save-goal-create">
               <label className="field">
-                <span className="field-label">
-                  {entryKind === "add" ? "Add" : "Subtract"}
-                </span>
+                <span className="field-label">Subtract</span>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -1102,26 +1094,24 @@ function HomeSaveGoalsGlance() {
                   autoFocus
                 />
               </label>
-              {entryKind === "spend" ? (
-                <div className="save-goal-spend-category">
-                  <p className="field-label" style={{ marginBottom: 6 }}>
-                    Category
-                  </p>
-                  <div className="chip-row">
-                    {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className={`chip${spendCategory === c.id ? " selected" : ""}`}
-                        onClick={() => setSpendCategory(c.id)}
-                        disabled={busy}
-                      >
-                        {c.label}
-                      </button>
-                    ))}
-                  </div>
+              <div className="save-goal-spend-category">
+                <p className="field-label" style={{ marginBottom: 6 }}>
+                  Category
+                </p>
+                <div className="chip-row">
+                  {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={`chip${spendCategory === c.id ? " selected" : ""}`}
+                      onClick={() => setSpendCategory(c.id)}
+                      disabled={busy}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
                 </div>
-              ) : null}
+              </div>
               {error ? (
                 <p className="tiny" style={{ color: "var(--danger)" }}>
                   {error}
@@ -1129,20 +1119,14 @@ function HomeSaveGoalsGlance() {
               ) : null}
               <div className="save-goal-create-actions">
                 <PrimaryButton
-                  onClick={() => void submitEntry()}
-                  disabled={
-                    busy || (entryKind === "spend" && !spendCategory)
-                  }
+                  onClick={() => void submitSubtract()}
+                  disabled={busy || !spendCategory}
                 >
-                  {busy
-                    ? "Saving…"
-                    : entryKind === "add"
-                      ? "Add"
-                      : "Subtract"}
+                  {busy ? "Saving…" : "Subtract"}
                 </PrimaryButton>
                 <SecondaryButton
                   onClick={() => {
-                    setEntryKind(null);
+                    setSubtractOpen(false);
                     setSpendCategory("");
                     setError("");
                   }}
@@ -1154,23 +1138,12 @@ function HomeSaveGoalsGlance() {
             </div>
           ) : (
             <div className="save-goal-glance-actions">
-              <SecondaryButton
-                onClick={() => {
-                  setError("");
-                  setEntryAmount("");
-                  setSpendCategory("");
-                  setEntryKind("add");
-                }}
-                disabled={busy}
-              >
-                Add
-              </SecondaryButton>
               <PrimaryButton
                 onClick={() => {
                   setError("");
                   setEntryAmount("");
                   setSpendCategory("");
-                  setEntryKind("spend");
+                  setSubtractOpen(true);
                 }}
                 disabled={busy}
               >
@@ -1179,7 +1152,7 @@ function HomeSaveGoalsGlance() {
             </div>
           )}
 
-          {error && !entryKind ? (
+          {error && !subtractOpen ? (
             <p className="tiny" style={{ color: "var(--danger)" }}>
               {error}
             </p>
