@@ -37,6 +37,7 @@ import {
   clearSaveGoalDaySpend,
   formatCalendarMonthLabel,
   groupSaveGoalClosesByMonth,
+  groupSaveGoalExpensesByDay,
   SAVE_GOAL_HISTORY_EPOCH,
   SAVE_GOAL_LEDGER_START,
   setGoalInboundPercent,
@@ -250,11 +251,18 @@ describe("recordSaveGoalDay", () => {
       [gift().id]: 50,
     });
 
-    state = addSaveGoalSpend(state, {
-      date: "2026-04-01",
-      amount: 40,
-      kind: "spend",
-      category: "meals",
+    // Legacy pool spend (no reserveAdjustId) still hits leftover.
+    state = normalizeSaveGoals({
+      ...state,
+      saveGoalSpendEntries: [
+        {
+          id: "sgs_legacy",
+          date: "2026-04-01",
+          amount: 40,
+          kind: "spend",
+          category: "meals",
+        },
+      ],
     });
     // inbound 16 − 40 = −24; must pick
     expect(() =>
@@ -517,7 +525,8 @@ describe("leftoverBeforeApply roll-forward", () => {
       targetAmount: 500,
       createdOn: "2026-04-01",
     });
-    state = addSaveGoalSpend(state, { date: "2026-04-01", amount: 5, category: "meals" });
+    // Inbound override creates roll activity without a Reserve expense.
+    state = setSaveGoalDayInbound(state, { date: "2026-04-01", amount: 11 });
     const d1 = leftoverBeforeApply(state, "2026-04-01");
     expect(d1.left).toBe(11);
     const d2 = leftoverBeforeApply(state, "2026-04-02");
@@ -646,6 +655,65 @@ describe("updateSaveGoal", () => {
 });
 
 describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
+  it("debits Reserve on expense and restores on undo", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "City",
+      targetAmount: 2900,
+      createdOn: "2026-10-01",
+    });
+    state = creditSaveGoalReserve(state, { date: "2026-10-01", amount: 50 });
+    expect(findReserveGoal(state)!.savedAmount).toBe(50);
+
+    state = addSaveGoalSpend(state, {
+      date: "2026-10-01",
+      amount: 12,
+      kind: "spend",
+      category: "meals",
+    });
+    expect(findReserveGoal(state)!.savedAmount).toBe(38);
+    const entry = state.saveGoalSpendEntries!.find((e) => e.amount === 12)!;
+    expect(entry.reserveAdjustId).toBeTruthy();
+
+    state = removeSaveGoalSpend(state, entry.id);
+    expect(findReserveGoal(state)!.savedAmount).toBe(50);
+    expect(state.saveGoalSpendEntries ?? []).toHaveLength(0);
+  });
+
+  it("groups expenses by day newest-first", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "City",
+      targetAmount: 2900,
+      createdOn: "2026-10-01",
+    });
+    state = creditSaveGoalReserve(state, { date: "2026-10-01", amount: 40 });
+    state = addSaveGoalSpend(state, {
+      date: "2026-10-01",
+      amount: 5,
+      kind: "spend",
+      category: "meals",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-10-02",
+      amount: 3,
+      kind: "spend",
+      category: "clothes",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-10-02",
+      amount: 2,
+      kind: "spend",
+      category: "entertainment",
+    });
+    const days = groupSaveGoalExpensesByDay(state);
+    expect(days.map((d) => d.date)).toEqual(["2026-10-02", "2026-10-01"]);
+    expect(days[0].total).toBe(5);
+    expect(days[0].entries).toHaveLength(2);
+    expect(days[1].total).toBe(5);
+    expect(days[1].entries).toHaveLength(1);
+  });
+
   it("custom apply sends all leftover to one goal", () => {
     let state = emptyState();
     state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
@@ -695,7 +763,7 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     expect(reserve().savedAmount).toBe(6);
   });
 
-  it("subtracts through the day then applies leftover by inbound %", () => {
+  it("expenses debit Reserve and do not reduce day leftover", () => {
     let state = emptyState();
     state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
     state = createSaveGoal(state, {
@@ -710,6 +778,8 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     });
     const trip = () => state.saveGoals!.find((g) => g.name === "Trip")!;
     const gift = () => state.saveGoals!.find((g) => g.name === "Gift")!;
+    const reserve = () => findReserveGoal(state)!;
+    state = creditSaveGoalReserve(state, { date: "2026-04-01", amount: 20 });
     state = setInboundPercents(state, {
       [trip().id]: 50,
       [gift().id]: 50,
@@ -725,27 +795,30 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       amount: 3,
       category: "clothes",
     });
+    expect(reserve().savedAmount).toBe(12);
     const before = leftoverBeforeApply(state, "2026-04-01");
     expect(before.inbound).toBe(16);
-    expect(before.spend).toBe(8);
+    expect(before.spend).toBe(0);
     expect(before.adds).toBe(0);
-    expect(before.left).toBe(8);
+    expect(before.left).toBe(16);
+    expect(spendTotalForDate(state, "2026-04-01")).toBe(8);
 
     const entryId = state.saveGoalSpendEntries![0].id;
     state = removeSaveGoalSpend(state, entryId);
-    expect(leftoverBeforeApply(state, "2026-04-01").spend).toBe(3);
+    expect(spendTotalForDate(state, "2026-04-01")).toBe(3);
+    expect(reserve().savedAmount).toBe(17);
 
     state = applySaveGoalDayTotals(state, { date: "2026-04-01" });
-    expect(trip().savedAmount).toBe(6.5);
-    expect(gift().savedAmount).toBe(6.5);
+    expect(trip().savedAmount).toBe(8);
+    expect(gift().savedAmount).toBe(8);
     const close = state.saveGoalDays!.find(
       (d) => d.date === "2026-04-01" && (d.kind ?? "close") === "close",
     )!;
-    expect(close.spendTotal).toBe(3);
-    expect(close.leftover).toBe(13);
+    expect(close.spendTotal).toBe(0);
+    expect(close.leftover).toBe(16);
   });
 
-  it("keeps cents on subtract amounts and leftover math", () => {
+  it("keeps cents on expense amounts; leftover ignores Reserve spends", () => {
     let state = emptyState();
     state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
     state = createSaveGoal(state, {
@@ -763,9 +836,10 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       category: "meals",
     });
     const before = leftoverBeforeApply(state, "2026-04-01");
-    expect(before.spend).toBe(8.18);
-    expect(before.left).toBe(7.82);
+    expect(before.spend).toBe(0);
+    expect(before.left).toBe(16);
     expect(state.saveGoalSpendEntries![0].amount).toBe(8.18);
+    expect(findReserveGoal(state)!.savedAmount).toBe(-8.18);
   });
 
   it("requires a category on subtract", () => {
@@ -827,7 +901,7 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     ]);
   });
 
-  it("manual adds increase day total and leftover", () => {
+  it("manual adds increase day total; expenses still debit Reserve only", () => {
     let state = emptyState();
     state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
     state = createSaveGoal(state, {
@@ -850,19 +924,20 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     const before = leftoverBeforeApply(state, "2026-04-01");
     expect(before.inbound).toBe(16);
     expect(before.adds).toBe(20);
-    expect(before.spend).toBe(5);
-    expect(before.left).toBe(31);
+    expect(before.spend).toBe(0);
+    expect(before.left).toBe(36);
+    expect(findReserveGoal(state)!.savedAmount).toBe(-5);
 
     state = applySaveGoalDayTotals(state, { date: "2026-04-01" });
     const close = state.saveGoalDays!.find(
       (d) => d.date === "2026-04-01" && (d.kind ?? "close") === "close",
     )!;
     expect(close.dailyIncome).toBe(36);
-    expect(close.spendTotal).toBe(5);
-    expect(close.leftover).toBe(31);
+    expect(close.spendTotal).toBe(0);
+    expect(close.leftover).toBe(36);
     expect(
       state.saveGoals!.find((g) => g.name === "Trip")!.savedAmount,
-    ).toBe(31);
+    ).toBe(36);
   });
 
   it("undoes apply so leftover rolls and saved amounts reverse", () => {
@@ -892,7 +967,7 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     expect(leftoverBeforeApply(state, "2026-04-01").left).toBe(16);
   });
 
-  it("clearDaySpend removes spend and undoes apply for that date", () => {
+  it("clearDaySpend removes spend, restores Reserve, and undoes apply", () => {
     let state = emptyState();
     state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
     state = createSaveGoal(state, {
@@ -900,6 +975,7 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       targetAmount: 500,
       createdOn: "2026-04-01",
     });
+    state = creditSaveGoalReserve(state, { date: "2026-04-01", amount: 100 });
     state = addSaveGoalSpend(state, {
       date: "2026-04-01",
       amount: 96,
@@ -908,13 +984,17 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     });
     state = applySaveGoalDayTotals(state, { date: "2026-04-01" });
     const trip = () => state.saveGoals!.find((g) => g.name === "Trip")!;
-    expect(trip().savedAmount).toBe(-80);
+    const reserve = () => findReserveGoal(state)!;
+    // Expense hit Reserve; apply still credits full leftover
+    expect(reserve().savedAmount).toBe(4);
+    expect(trip().savedAmount).toBe(16);
     expect(spendTotalForDate(state, "2026-04-01")).toBe(96);
 
     state = clearSaveGoalDaySpend(state, "2026-04-01");
     expect(spendTotalForDate(state, "2026-04-01")).toBe(0);
     expect(saveGoalCloseForDate(state, "2026-04-01")).toBeNull();
     expect(trip().savedAmount).toBe(0);
+    expect(reserve().savedAmount).toBe(100);
   });
 
   it("applies only rolled history and leaves today open", () => {
@@ -925,31 +1005,29 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       targetAmount: 500,
       createdOn: "2026-04-01",
     });
-    // Activity on Apr 1–2 so they roll; empty days would not.
+    // Adds create roll activity (Reserve expenses do not).
     state = addSaveGoalSpend(state, {
       date: "2026-04-01",
       amount: 1,
-      kind: "spend",
-      category: "meals",
+      kind: "add",
     });
     state = addSaveGoalSpend(state, {
       date: "2026-04-02",
       amount: 1,
-      kind: "spend",
-      category: "meals",
+      kind: "add",
     });
-    // Apr 1 left 15 + Apr 2 left 15+15=30 → carry into Apr 3 = 30? 
-    // Apr1: base16-1=15 rolls; Apr2: inbound31-1=30 rolls; Apr3 carryIn 30
-    expect(leftoverBeforeApply(state, "2026-04-03").carryIn).toBe(30);
+    // Apr1: inbound16+1=17 rolls; Apr2: 16+17+1=34 rolls; Apr3 carryIn 34
+    expect(leftoverBeforeApply(state, "2026-04-03").carryIn).toBe(34);
     expect(listRolledOpenDatesBefore(state, "2026-04-03")).toEqual([
       "2026-04-01",
       "2026-04-02",
     ]);
 
     state = applySaveGoalRolledOnly(state, { date: "2026-04-03" });
+    // Each day closes in order; after Apr 1 closes, Apr 2 has no carry.
     expect(
       state.saveGoals!.find((g) => g.name === "Trip")!.savedAmount,
-    ).toBe(30);
+    ).toBe(17 + 17);
     expect(saveGoalCloseForDate(state, "2026-04-03")).toBeNull();
     const today = leftoverBeforeApply(state, "2026-04-03");
     expect(today.carryIn).toBe(0);

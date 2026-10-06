@@ -11,16 +11,16 @@ import {
   formatMoney,
   formatMoneyDown,
   formatTargetDateLabel,
+  formatCalendarMonthLabel,
   goalDollarsPerDay,
+  groupSaveGoalExpensesByDay,
   isReserveGoal,
-  leftoverBeforeApply,
   listSaveGoalAdjustmentsForGoal,
   listSaveGoalSpendEntries,
   progressRatio,
   projectSaveGoalTargetDate,
   SAVE_GOAL_LEDGER_START,
   SAVE_GOAL_SPEND_CATEGORIES,
-  saveGoalCloseForDate,
   saveGoalSpendEntryLabel,
 } from "@/lib/save-goals";
 import type {
@@ -520,7 +520,7 @@ function AdjustPanel({
   );
 }
 
-/** Home saver — day total + add/subtract + collapsed ledger. Apply on /save-goals + evening. */
+/** Home — log expenses from Reserve; day expense ledger only. */
 function HomeSaveGoalsGlance() {
   const { state, today, post } = useApp();
   const [subtractOpen, setSubtractOpen] = useState(false);
@@ -528,33 +528,25 @@ function HomeSaveGoalsGlance() {
   const [spendCategory, setSpendCategory] =
     useState<SaveGoalSpendCategory | "">("");
   const [otherNote, setOtherNote] = useState("");
-  const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [ledgerOpen, setLedgerOpen] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const goals = useMemo(() => activeSaveGoals(state), [state]);
-  const day = useMemo(() => {
-    if (!today) {
-      return {
-        base: 0,
-        carryIn: 0,
-        inbound: 0,
-        adds: 0,
-        spend: 0,
-        left: 0,
-      };
-    }
-    return leftoverBeforeApply(state, today);
-  }, [state, today]);
+  const reserve = useMemo(
+    () => goals.find((g) => isReserveGoal(g)) ?? null,
+    [goals],
+  );
+  const reserveAvailable = Math.max(0, reserve?.savedAmount ?? 0);
   const entries = useMemo(
-    () => (today ? listSaveGoalSpendEntries(state, today) : []),
+    () =>
+      today
+        ? listSaveGoalSpendEntries(state, today).filter(
+            (e) => (e.kind ?? "spend") !== "add",
+          )
+        : [],
     [state, today],
   );
-  const todayClose = useMemo(
-    () => (today ? saveGoalCloseForDate(state, today) : null),
-    [state, today],
-  );
-  const applied = Boolean(todayClose);
 
   async function submitSubtract() {
     const amount = Number(entryAmount);
@@ -564,6 +556,14 @@ function HomeSaveGoalsGlance() {
     }
     if (!spendCategory) {
       setError("Pick a category.");
+      return;
+    }
+    if (amount > reserveAvailable) {
+      setError(
+        reserveAvailable <= 0
+          ? "Reserve is empty — add to Reserve on Save goals first."
+          : `Only ${formatMoney(reserveAvailable)} available in Reserve.`,
+      );
       return;
     }
     const note =
@@ -583,8 +583,9 @@ function HomeSaveGoalsGlance() {
       setSpendCategory("");
       setOtherNote("");
       setSubtractOpen(false);
+      setLedgerOpen(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not subtract");
+      setError(e instanceof Error ? e.message : "Could not log expense");
     } finally {
       setBusy(false);
     }
@@ -602,7 +603,8 @@ function HomeSaveGoalsGlance() {
     }
   }
 
-  const ledgerCount = entries.length + (applied ? 1 : 0);
+  const ledgerCount = entries.length;
+  const daySpendTotal = entries.reduce((s, e) => s + e.amount, 0);
 
   return (
     <section
@@ -612,10 +614,9 @@ function HomeSaveGoalsGlance() {
       <div className="home-card-head save-goal-glance-head">
         <div>
           <p className="home-card-kicker save-goal-glance-kicker">Save goals</p>
-          {day.carryIn !== 0 ? (
+          {reserve ? (
             <p className="tiny muted save-goal-day-total-label">
-              {day.carryIn > 0 ? "+" : ""}
-              {formatMoneyDown(day.carryIn)} rolled
+              Reserve {formatMoneyDown(reserveAvailable)}
             </p>
           ) : null}
         </div>
@@ -642,6 +643,9 @@ function HomeSaveGoalsGlance() {
                   autoFocus
                 />
               </label>
+              <p className="tiny muted" style={{ margin: 0 }}>
+                From Reserve · {formatMoney(reserveAvailable)} available
+              </p>
               <div className="save-goal-spend-category">
                 <p className="field-label" style={{ marginBottom: 6 }}>
                   Category
@@ -725,12 +729,6 @@ function HomeSaveGoalsGlance() {
             </p>
           ) : null}
 
-          {applied ? (
-            <p className="tiny save-goal-applied-line">
-              <span className="save-goal-applied-badge">Applied</span>
-            </p>
-          ) : null}
-
           {ledgerCount > 0 ? (
             <div className="save-goal-home-ledger">
               <button
@@ -740,53 +738,26 @@ function HomeSaveGoalsGlance() {
                 onClick={() => setLedgerOpen((v) => !v)}
               >
                 <span aria-hidden="true">{ledgerOpen ? "▾" : "▸"}</span>
-                Ledger ({ledgerCount})
+                Today ({ledgerCount}) · {formatMoney(daySpendTotal)}
               </button>
               {ledgerOpen ? (
                 <div className="save-goal-ledger-rows home-ledger-body">
-                  <div className="save-goal-ledger-row">
-                    <span>Inbound</span>
-                    <span>{formatMoney(day.inbound)}</span>
-                  </div>
-                  {entries.map((e) => {
-                    const isAdd = e.kind === "add";
-                    return (
-                      <div key={e.id} className="save-goal-ledger-row spend">
-                        <span>
-                          {isAdd
-                            ? "Add"
-                            : saveGoalSpendEntryLabel(e)}
-                        </span>
-                        <span className="save-goal-ledger-spend-val">
-                          {isAdd ? "+" : "−"}
-                          {formatMoney(e.amount)}
-                          <button
-                            type="button"
-                            className="save-goal-add-link"
-                            disabled={busy}
-                            onClick={() => void removeEntry(e.id)}
-                          >
-                            Undo
-                          </button>
-                        </span>
-                      </div>
-                    );
-                  })}
-                  <div className="save-goal-ledger-row leftover">
-                    <span>Left</span>
-                    <span>{formatMoney(day.left)}</span>
-                  </div>
-                  {applied && todayClose ? (
-                    <p className="tiny muted save-goal-ledger-alloc">
-                      {(todayClose.allocations ?? [])
-                        .filter((a) => a.amount !== 0)
-                        .map((a) => {
-                          const g = goals.find((x) => x.id === a.goalId);
-                          return `${g?.name ?? "Goal"} ${formatMoney(a.amount)}`;
-                        })
-                        .join(" · ")}
-                    </p>
-                  ) : null}
+                  {entries.map((e) => (
+                    <div key={e.id} className="save-goal-ledger-row spend">
+                      <span>{saveGoalSpendEntryLabel(e)}</span>
+                      <span className="save-goal-ledger-spend-val">
+                        −{formatMoney(e.amount)}
+                        <button
+                          type="button"
+                          className="save-goal-add-link"
+                          disabled={busy}
+                          onClick={() => void removeEntry(e.id)}
+                        >
+                          Undo
+                        </button>
+                      </span>
+                    </div>
+                  ))}
                 </div>
               ) : null}
             </div>
@@ -801,7 +772,105 @@ function HomeSaveGoalsGlance() {
   );
 }
 
-/** Full save-goals surface — ledger-only (daily inbound / % mix paused). */
+/** Day-segmented expense history on the saver page (no inbound). */
+function ExpenseDayHistory({
+  busy,
+  onRemove,
+}: {
+  busy: boolean;
+  onRemove: (id: string) => void;
+}) {
+  const { state, today } = useApp();
+  const days = useMemo(() => groupSaveGoalExpensesByDay(state), [state]);
+  const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
+
+  if (!days.length) return null;
+
+  const byMonth = new Map<string, typeof days>();
+  for (const d of days) {
+    const mk = d.date.slice(0, 7);
+    const list = byMonth.get(mk) ?? [];
+    list.push(d);
+    byMonth.set(mk, list);
+  }
+  const months = [...byMonth.entries()];
+
+  return (
+    <div className="save-goal-expense-history" aria-label="Expense ledger by day">
+      <p className="eyebrow" style={{ marginBottom: 8 }}>
+        Expenses
+      </p>
+      {months.map(([monthKey, monthDays]) => {
+        const isCurrent = Boolean(today && today.startsWith(monthKey));
+        const open = openMonths[monthKey] ?? isCurrent;
+        const monthTotal = monthDays.reduce((s, d) => s + d.total, 0);
+        return (
+          <div key={monthKey} className="save-goal-ledger-month">
+            <button
+              type="button"
+              className="save-goal-month-toggle"
+              aria-expanded={open}
+              onClick={() =>
+                setOpenMonths((prev) => ({
+                  ...prev,
+                  [monthKey]: !open,
+                }))
+              }
+            >
+              <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+              <span className="save-goal-month-title">
+                {formatCalendarMonthLabel(monthKey)}
+              </span>
+              <span className="tiny muted">
+                {monthDays.length} day{monthDays.length === 1 ? "" : "s"} ·{" "}
+                {formatMoney(monthTotal)}
+              </span>
+            </button>
+            {open ? (
+              <div className="save-goal-ledger-history-list">
+                {monthDays.map((day) => (
+                  <div
+                    key={day.date}
+                    className="save-goal-ledger-day"
+                  >
+                    <div className="save-goal-ledger-day-head">
+                      <span className="save-goal-ledger-date">
+                        {formatTargetDateLabel(day.date)}
+                      </span>
+                      <span className="tiny muted">
+                        −{formatMoney(day.total)}
+                      </span>
+                    </div>
+                    <div className="save-goal-ledger-rows">
+                      {day.entries.map((e) => (
+                        <div key={e.id} className="save-goal-ledger-row spend">
+                          <span>{saveGoalSpendEntryLabel(e)}</span>
+                          <span className="save-goal-ledger-spend-val">
+                            −{formatMoney(e.amount)}
+                            <button
+                              type="button"
+                              className="save-goal-add-link"
+                              disabled={busy}
+                              onClick={() => onRemove(e.id)}
+                            >
+                              Undo
+                            </button>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Full save-goals surface — Reserve hub + goals + expense history. */
 function SaveGoalsDetail() {
   const { state, today, post } = useApp();
   const [open, setOpen] = useState(false);
@@ -1033,6 +1102,18 @@ function SaveGoalsDetail() {
     }
   }
 
+  async function removeSpend(id: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", { action: "removeSpend", id });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not undo expense");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (goals.length === 0 && !open) {
     return (
       <section
@@ -1234,6 +1315,11 @@ function SaveGoalsDetail() {
           ) : null}
         </div>
       ))}
+
+      <ExpenseDayHistory
+        busy={busy}
+        onRemove={(id) => void removeSpend(id)}
+      />
 
       {error ? (
         <p className="tiny" style={{ color: "var(--danger)" }}>

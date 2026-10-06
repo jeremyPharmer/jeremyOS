@@ -617,6 +617,9 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
                 : undefined,
             note: e.note ? String(e.note).trim().slice(0, 80) : undefined,
             at: e.at ? String(e.at) : undefined,
+            reserveAdjustId: e.reserveAdjustId
+              ? String(e.reserveAdjustId)
+              : undefined,
           };
         })
         .filter((e) => e.amount > 0)
@@ -649,6 +652,47 @@ export function listSaveGoalSpendEntries(
   return (state.saveGoalSpendEntries ?? []).filter((e) => e.date === date);
 }
 
+/** All spend (expense) lines, newest date first then newest within day. */
+export function listSaveGoalExpenseEntries(
+  state: RebuildState,
+): SaveGoalSpendEntry[] {
+  return (state.saveGoalSpendEntries ?? [])
+    .filter((e) => entryKind(e) === "spend")
+    .slice()
+    .sort((a, b) => {
+      const byDate = b.date.localeCompare(a.date);
+      if (byDate !== 0) return byDate;
+      return String(b.at ?? b.id).localeCompare(String(a.at ?? a.id));
+    });
+}
+
+export type SaveGoalExpenseDay = {
+  date: string;
+  entries: SaveGoalSpendEntry[];
+  total: number;
+};
+
+/** Expense lines grouped by day (newest day first). */
+export function groupSaveGoalExpensesByDay(
+  state: RebuildState,
+): SaveGoalExpenseDay[] {
+  const byDate = new Map<string, SaveGoalSpendEntry[]>();
+  for (const e of listSaveGoalExpenseEntries(state)) {
+    const list = byDate.get(e.date) ?? [];
+    list.push(e);
+    byDate.set(e.date, list);
+  }
+  return [...byDate.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([date, entries]) => ({
+      date,
+      entries: entries.slice().sort((a, b) =>
+        String(a.at ?? a.id).localeCompare(String(b.at ?? b.id)),
+      ),
+      total: round2(entries.reduce((s, e) => s + e.amount, 0)),
+    }));
+}
+
 function entryKind(e: Pick<SaveGoalSpendEntry, "kind">): "spend" | "add" {
   return e.kind === "add" ? "add" : "spend";
 }
@@ -658,6 +702,18 @@ export function spendTotalForDate(state: RebuildState, date: string): number {
   return round2(
     listSaveGoalSpendEntries(state, date)
       .filter((e) => entryKind(e) === "spend")
+      .reduce((s, e) => s + e.amount, 0),
+  );
+}
+
+/**
+ * Spend that still hits the day leftover pool. Expenses with
+ * `reserveAdjustId` already debited Reserve and must not double-count.
+ */
+function poolSpendTotalForDate(state: RebuildState, date: string): number {
+  return round2(
+    listSaveGoalSpendEntries(state, date)
+      .filter((e) => entryKind(e) === "spend" && !e.reserveAdjustId)
       .reduce((s, e) => s + e.amount, 0),
   );
 }
@@ -697,10 +753,10 @@ function hasSaveGoalClose(state: RebuildState, date: string): boolean {
   );
 }
 
-/** Spend, add, or inbound override — empty calendar days do not mint roll. */
+/** Add, legacy pool-spend, or inbound override — empty days do not mint roll. */
 function dayHasOpenRollActivity(state: RebuildState, date: string): boolean {
   if (addTotalForDate(state, date) !== 0) return true;
-  if (spendTotalForDate(state, date) !== 0) return true;
+  if (poolSpendTotalForDate(state, date) !== 0) return true;
   const override = state.saveGoalInboundByDate?.[date];
   return override !== undefined && Number.isFinite(override);
 }
@@ -729,7 +785,7 @@ export function leftoverBeforeApply(
   if (date < start) {
     const base = dayInboundBase(state, date);
     const adds = addTotalForDate(state, date);
-    const spend = spendTotalForDate(state, date);
+    const spend = poolSpendTotalForDate(state, date);
     return {
       base,
       carryIn: 0,
@@ -752,7 +808,7 @@ export function leftoverBeforeApply(
   for (const d of datesInRange(start, date)) {
     const base = dayInboundBase(state, d);
     const adds = addTotalForDate(state, d);
-    const spend = spendTotalForDate(state, d);
+    const spend = poolSpendTotalForDate(state, d);
     if (d === date) {
       const inbound = round2(base + carry);
       const left = round2(inbound + adds - spend);
@@ -804,6 +860,39 @@ export function addSaveGoalSpend(
       );
     }
   }
+
+  let next = normalizeSaveGoals(state);
+  let reserveAdjustId: string | undefined;
+
+  // Expenses always debit Reserve (holding tank). Adds stay entry-only.
+  if (kind === "spend") {
+    const reserve = findReserveGoal(next);
+    if (!reserve) {
+      throw Object.assign(new Error("Reserve not found"), { status: 404 });
+    }
+    reserveAdjustId = newId("sga");
+    const label = saveGoalSpendEntryLabel({
+      kind: "spend",
+      category,
+      note: input.note,
+    });
+    const adjustDay: SaveGoalDay = {
+      id: reserveAdjustId,
+      date: input.date,
+      kind: "adjust",
+      dailyIncome: 0,
+      spendTotal: 0,
+      leftover: 0,
+      lumpSum: 0,
+      allocations: [{ goalId: reserve.id, amount: round2(-amount) }],
+      note: `Expense: ${label}`.slice(0, 80),
+    };
+    next = {
+      ...next,
+      saveGoalDays: [...(next.saveGoalDays ?? []), adjustDay],
+    };
+  }
+
   const entry: SaveGoalSpendEntry = {
     id: newId("sgs"),
     date: input.date,
@@ -812,10 +901,11 @@ export function addSaveGoalSpend(
     category,
     note: input.note?.trim().slice(0, 80) || undefined,
     at: new Date().toISOString(),
+    reserveAdjustId,
   };
   return normalizeSaveGoals({
-    ...state,
-    saveGoalSpendEntries: [...(state.saveGoalSpendEntries ?? []), entry],
+    ...next,
+    saveGoalSpendEntries: [...(next.saveGoalSpendEntries ?? []), entry],
   });
 }
 
@@ -828,11 +918,17 @@ export function removeSaveGoalSpend(
     throw Object.assign(new Error("spend id required"), { status: 400 });
   }
   const entries = state.saveGoalSpendEntries ?? [];
-  if (!entries.some((e) => e.id === id)) {
+  const found = entries.find((e) => e.id === id);
+  if (!found) {
     throw Object.assign(new Error("Spend entry not found"), { status: 404 });
+  }
+  let days = state.saveGoalDays ?? [];
+  if (found.reserveAdjustId) {
+    days = days.filter((d) => d.id !== found.reserveAdjustId);
   }
   return normalizeSaveGoals({
     ...state,
+    saveGoalDays: days,
     saveGoalSpendEntries: entries.filter((e) => e.id !== id),
   });
 }
@@ -1003,6 +1099,9 @@ export function clearSaveGoalDaySpend(
     throw Object.assign(new Error("date required"), { status: 400 });
   }
   const entries = state.saveGoalSpendEntries ?? [];
+  const removing = entries.filter(
+    (e) => e.date === d && entryKind(e) === "spend",
+  );
   const nextEntries = entries.filter(
     (e) => !(e.date === d && entryKind(e) === "spend"),
   );
@@ -1013,8 +1112,15 @@ export function clearSaveGoalDaySpend(
       status: 404,
     });
   }
+  const reserveAdjustIds = new Set(
+    removing.map((e) => e.reserveAdjustId).filter(Boolean) as string[],
+  );
+  const days = (state.saveGoalDays ?? []).filter(
+    (day) => !reserveAdjustIds.has(day.id),
+  );
   let next: RebuildState = {
     ...state,
+    saveGoalDays: days,
     saveGoalSpendEntries: nextEntries,
   };
   if (hadClose) {

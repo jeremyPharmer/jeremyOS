@@ -1010,7 +1010,8 @@ function EveningPageInner() {
                 Skip apply and leftover rolls into tomorrow.
               </p>
 
-              {daySpends.length > 0 || dayApplied ? (
+              {daySpends.filter((e) => (e.kind ?? "spend") !== "add").length >
+                0 || dayApplied ? (
                 <div className="save-goal-home-ledger" style={{ marginTop: 10 }}>
                   <button
                     type="button"
@@ -1019,29 +1020,27 @@ function EveningPageInner() {
                     onClick={() => setLedgerOpen((v) => !v)}
                   >
                     <span aria-hidden="true">{ledgerOpen ? "▾" : "▸"}</span>
-                    Ledger ({daySpends.length + (dayApplied ? 1 : 0)})
+                    Expenses (
+                    {
+                      daySpends.filter((e) => (e.kind ?? "spend") !== "add")
+                        .length
+                    }
+                    )
                   </button>
                   {ledgerOpen ? (
                     <div className="save-goal-ledger-rows home-ledger-body">
-                      <div className="save-goal-ledger-row">
-                        <span>Inbound</span>
-                        <span>{formatMoney(dayLedger.inbound)}</span>
-                      </div>
-                      {daySpends.map((e) => {
-                        const isAdd = e.kind === "add";
-                        return (
+                      {daySpends
+                        .filter((e) => (e.kind ?? "spend") !== "add")
+                        .map((e) => (
                           <div
                             key={e.id}
                             className="save-goal-ledger-row spend"
                           >
                             <span>
-                              {isAdd
-                                ? "Add"
-                                : saveGoalSpendCategoryLabel(e.category)}
+                              {saveGoalSpendCategoryLabel(e.category)}
                             </span>
                             <span className="save-goal-ledger-spend-val">
-                              {isAdd ? "+" : "−"}
-                              {formatMoney(e.amount)}
+                              −{formatMoney(e.amount)}
                               <button
                                 type="button"
                                 className="save-goal-add-link"
@@ -1052,12 +1051,7 @@ function EveningPageInner() {
                               </button>
                             </span>
                           </div>
-                        );
-                      })}
-                      <div className="save-goal-ledger-row leftover">
-                        <span>Left</span>
-                        <span>{formatMoney(dayLedger.left)}</span>
-                      </div>
+                        ))}
                     </div>
                   ) : null}
                 </div>
