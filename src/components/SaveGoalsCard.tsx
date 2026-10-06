@@ -972,7 +972,7 @@ function AdjustPanel({
     () => today || SAVE_GOAL_LEDGER_START,
   );
   const [adjustAmount, setAdjustAmount] = useState("");
-  const [reasonPreset, setReasonPreset] = useState<string>("");
+  const [reasonPreset, setReasonPreset] = useState<string>("other");
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustSign, setAdjustSign] = useState<"add" | "subtract">("add");
   const [adjustMode, setAdjustMode] = useState<"preset" | "custom">("preset");
@@ -1046,7 +1046,7 @@ function AdjustPanel({
           placeholder={isInbound ? "16" : "50"}
         />
       </label>
-      <div className="save-goal-adjust-reason">
+      <div className="save-goal-adjust-reason-fields">
         <p className="field-label" style={{ marginBottom: 6 }}>
           Reason
         </p>
@@ -1070,16 +1070,19 @@ function AdjustPanel({
         {!isInbound ? (
           <label className="field" style={{ marginTop: 8 }}>
             <span className="field-label">
-              {reasonPreset === "other" || !reasonPreset
-                ? "Details"
-                : "Details (optional)"}
+              {reasonPreset === "other" ? "What for?" : "Details (optional)"}
             </span>
             <input
               type="text"
               value={adjustReason}
               onChange={(e) => setAdjustReason(e.target.value)}
-              placeholder="Bonus, gift, transfer…"
+              placeholder={
+                reasonPreset === "other"
+                  ? "Why this adjustment?"
+                  : "Optional note…"
+              }
               maxLength={80}
+              autoComplete="off"
             />
           </label>
         ) : (
