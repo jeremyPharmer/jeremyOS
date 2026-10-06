@@ -603,7 +603,6 @@ function HomeSaveGoalsGlance() {
   }
 
   const ledgerCount = entries.length + (applied ? 1 : 0);
-  const dayTotalShown = day.inbound + day.adds;
 
   return (
     <section
@@ -613,20 +612,13 @@ function HomeSaveGoalsGlance() {
       <div className="home-card-head save-goal-glance-head">
         <div>
           <p className="home-card-kicker save-goal-glance-kicker">Save goals</p>
-          <p className="tiny muted save-goal-day-total-label">
-            Day total {formatMoneyDown(dayTotalShown)}
-            {day.carryIn !== 0 ? (
-              <>
-                {" "}
-                · {day.carryIn > 0 ? "+" : ""}
-                {formatMoneyDown(day.carryIn)} rolled
-              </>
-            ) : null}
-          </p>
+          {day.carryIn !== 0 ? (
+            <p className="tiny muted save-goal-day-total-label">
+              {day.carryIn > 0 ? "+" : ""}
+              {formatMoneyDown(day.carryIn)} rolled
+            </p>
+          ) : null}
         </div>
-        <p className="save-goal-inbound-figure" aria-label="Left today">
-          {formatMoneyDown(day.left)}
-        </p>
       </div>
 
       {goals.length === 0 ? (
@@ -638,7 +630,7 @@ function HomeSaveGoalsGlance() {
           {subtractOpen ? (
             <div className="save-goal-create">
               <label className="field">
-                <span className="field-label">Subtract</span>
+                <span className="field-label">Amount</span>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -695,7 +687,7 @@ function HomeSaveGoalsGlance() {
                   onClick={() => void submitSubtract()}
                   disabled={busy || !spendCategory}
                 >
-                  {busy ? "Saving…" : "Subtract"}
+                  {busy ? "Saving…" : "Log expense"}
                 </PrimaryButton>
                 <SecondaryButton
                   onClick={() => {
@@ -722,7 +714,7 @@ function HomeSaveGoalsGlance() {
                 }}
                 disabled={busy}
               >
-                Subtract
+                Log expense
               </PrimaryButton>
             </div>
           )}
