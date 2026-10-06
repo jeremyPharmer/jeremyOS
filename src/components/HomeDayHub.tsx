@@ -18,6 +18,7 @@ import {
 import {
   formatWorkoutListDate,
   monthKey,
+  parseMonthKey,
   workoutsForDate,
 } from "@/lib/workouts";
 
@@ -33,6 +34,16 @@ const MODES: { id: HomeDayMode; label: string }[] = [
 
 function isHomeDayMode(value: string): value is HomeDayMode {
   return value === "tasks" || value === "workout" || value === "calendar";
+}
+
+function monthBounds(key: string): { from: string; to: string } {
+  const { year, month } = parseMonthKey(key);
+  const last = new Date(year, month, 0).getDate();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    from: `${year}-${pad(month)}-01`,
+    to: `${year}-${pad(month)}-${pad(last)}`,
+  };
 }
 
 export function HomeDayHub() {
@@ -90,7 +101,14 @@ export function HomeDayHub() {
   }
 
   const todos = state.dayProvisions ?? [];
-  const dayColors = useMemo(() => openTaskColorsByDate(todos), [todos]);
+  const monthRange = useMemo(
+    () => (month ? monthBounds(month) : null),
+    [month],
+  );
+  const dayColors = useMemo(
+    () => openTaskColorsByDate(todos, monthRange ?? undefined),
+    [todos, monthRange],
+  );
   const dayTodos = useMemo(
     () => (selectedDate ? openDatedTodosOn(todos, selectedDate) : []),
     [todos, selectedDate],
@@ -101,6 +119,56 @@ export function HomeDayHub() {
     () => (selectedDate ? workoutsForDate(state.workouts, selectedDate) : []),
     [state.workouts, selectedDate],
   );
+
+  function renderTodoRow(
+    item: (typeof todos)[number],
+    opts?: { undated?: boolean },
+  ) {
+    // Future calendar days past today are a preview of the recurrence —
+    // complete/snooze still run against real "today" on the server.
+    const previewOnly = Boolean(
+      selectedDate && today && selectedDate > today,
+    );
+    return (
+      <TodoTaskRow
+        key={item.id}
+        item={item}
+        today={today}
+        viewDate={selectedDate}
+        home
+        busy={busyId === item.id}
+        clearing={exitingTodos[item.id] === "complete"}
+        snoozingOut={exitingTodos[item.id] === "snooze"}
+        preview={previewOnly}
+        onComplete={() =>
+          previewOnly
+            ? undefined
+            : runTodo(item.id, { action: "complete", id: item.id })
+        }
+        onSnooze={(until) =>
+          previewOnly || opts?.undated
+            ? undefined
+            : runTodo(item.id, {
+                action: "snooze",
+                id: item.id,
+                until,
+              })
+        }
+        onEdit={(payload) =>
+          runTodo(item.id, {
+            action: "edit",
+            id: item.id,
+            ...payload,
+          })
+        }
+        onDelete={() =>
+          previewOnly
+            ? undefined
+            : runTodo(item.id, { action: "delete", id: item.id })
+        }
+      />
+    );
+  }
 
   async function runTodo(id: string | null, body: Record<string, unknown>) {
     if (id) setBusyId(id);
@@ -235,77 +303,11 @@ export function HomeDayHub() {
               </p>
             ) : (
               <div className="daily-actions home-day-hub-task-list">
-                {dayTodos.map((item) => (
-                  <TodoTaskRow
-                    key={item.id}
-                    item={item}
-                    today={today}
-                    viewDate={selectedDate}
-                    home
-                    busy={busyId === item.id}
-                    clearing={exitingTodos[item.id] === "complete"}
-                    snoozingOut={exitingTodos[item.id] === "snooze"}
-                    onComplete={() =>
-                      runTodo(item.id, { action: "complete", id: item.id })
-                    }
-                    onSnooze={(until) =>
-                      runTodo(item.id, {
-                        action: "snooze",
-                        id: item.id,
-                        until,
-                      })
-                    }
-                    onEdit={(payload) =>
-                      runTodo(item.id, {
-                        action: "edit",
-                        id: item.id,
-                        ...payload,
-                      })
-                    }
-                    onDelete={() =>
-                      runTodo(item.id, { action: "delete", id: item.id })
-                    }
-                  />
-                ))}
+                {dayTodos.map((item) => renderTodoRow(item))}
                 {showUndated
-                  ? undatedTodos.map((item) => (
-                      <TodoTaskRow
-                        key={item.id}
-                        item={item}
-                        today={today}
-                        viewDate={selectedDate}
-                        home
-                        busy={busyId === item.id}
-                        clearing={exitingTodos[item.id] === "complete"}
-                        snoozingOut={exitingTodos[item.id] === "snooze"}
-                        onComplete={() =>
-                          runTodo(item.id, {
-                            action: "complete",
-                            id: item.id,
-                          })
-                        }
-                        onSnooze={(until) =>
-                          runTodo(item.id, {
-                            action: "snooze",
-                            id: item.id,
-                            until,
-                          })
-                        }
-                        onEdit={(payload) =>
-                          runTodo(item.id, {
-                            action: "edit",
-                            id: item.id,
-                            ...payload,
-                          })
-                        }
-                        onDelete={() =>
-                          runTodo(item.id, {
-                            action: "delete",
-                            id: item.id,
-                          })
-                        }
-                      />
-                    ))
+                  ? undatedTodos.map((item) =>
+                      renderTodoRow(item, { undated: true }),
+                    )
                   : null}
               </div>
             )}
