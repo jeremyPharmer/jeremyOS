@@ -854,7 +854,7 @@ function ExpenseDayHistory({
   busy: boolean;
   onRemove: (id: string) => void;
 }) {
-  const { state, today } = useApp();
+  const { state } = useApp();
   const days = useMemo(() => groupSaveGoalExpensesByDay(state), [state]);
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
 
@@ -875,8 +875,7 @@ function ExpenseDayHistory({
         Expenses
       </p>
       {months.map(([monthKey, monthDays]) => {
-        const isCurrent = Boolean(today && today.startsWith(monthKey));
-        const open = openMonths[monthKey] ?? isCurrent;
+        const open = openMonths[monthKey] ?? false;
         const monthTotal = monthDays.reduce((s, d) => s + d.total, 0);
         return (
           <div key={monthKey} className="save-goal-ledger-month">
