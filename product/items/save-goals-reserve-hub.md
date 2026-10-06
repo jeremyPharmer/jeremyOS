@@ -28,7 +28,8 @@ The original Save Goals model treated every named pocket (including **Reserve**)
 | --- | --- |
 | **New item RB-041** (not a silent rewrite of RB-037) | Clear v1.x / v2 slice after ledger-only; keeps mid-flight RB-037 honest |
 | Ship **after** ledger-only (RB-037 mid-flight on `cursor/save-goals-ledger-only-8ada`) | Complementary: daily % mix / daily apply UI already paused; Adjust remains the digital ledger entry path |
-| Rank **17** (immediately after RB-037) | Founder-directed next Save Goals intent; does **not** displace mid-flight task/journal / EA P0s above |
+| **Existing balances stay put** (locked 2026-10-06) | Do **not** migrate named-goal balances into Reserve on ship; only **new** inbound / Adjust → Reserve |
+| Rank **17** (immediately after RB-037); status **In Progress** | Founder-directed next Save Goals intent; build started (ship to prod) |
 
 Parent: [RB-037 Save Goals](./save-goals.md). Still **not** Future/Treat / Venmo Total.
 
@@ -58,6 +59,7 @@ Ship soon after ledger-only lands. Thin and numbers-first.
 
 2. **Inbound → Reserve**
    - Adjust **Inbound** (and any remaining apply/leftover path while paused UI stays off) credits **Reserve**, not a % split across goals.
+   - **Ship migration:** leave existing named-goal `savedAmount`s unchanged — no bulk transfer into Reserve.
    - Daily % mix UI stays suppressed (ledger-only); do not revive % chips for this slice.
 
 3. **Transfer Reserve → named goal**
