@@ -1,5 +1,7 @@
 import type { DayProvision } from "./types";
 import { parseDate } from "./journey";
+import { scheduledOccurrenceDates } from "./task-adherence";
+import { recurrenceOf } from "./todos";
 
 /** Fixed life-area groups (RB-026). */
 export type TaskGroup = "real_estate" | "family" | "home" | "work";
@@ -234,32 +236,72 @@ function displayGroup(item: DayProvision): TaskGroup {
 }
 
 /**
+ * Open on this calendar day: exact due for one-offs, or any scheduled
+ * occurrence from the stored next-due forward for recurring tasks.
+ */
+export function isOpenOnCalendarDay(
+  item: DayProvision,
+  date: string,
+): boolean {
+  if (item.completed || item.undated || !item.date) return false;
+  // That day's occurrence already logged complete.
+  if (item.lastCompletedOn === date) return false;
+  if (!isRecurringTodo(item)) return item.date === date;
+  if (date < item.date) return false;
+  if (date === item.date) return true;
+  return scheduledOccurrenceDates(
+    item.date,
+    date,
+    recurrenceOf(item),
+  ).includes(date);
+}
+
+/**
  * Unique group colors for open dated tasks, keyed by due date.
- * Used by the Tasks month calendar (workout-cal style dots).
+ * Recurring tasks paint every scheduled day from next-due through `range.to`
+ * (Tasks month calendar). Without a range, only the stored due date is used.
  */
 export function openTaskColorsByDate(
   items: DayProvision[],
+  range?: { from: string; to: string },
 ): Record<string, string[]> {
   const map: Record<string, string[]> = {};
   for (const item of items) {
     if (item.completed || item.undated || !item.date) continue;
     const color = TASK_GROUP_COLORS[displayGroup(item)];
-    const list = map[item.date] ?? [];
-    if (!list.includes(color)) list.push(color);
-    map[item.date] = list.slice(0, 4);
+    let dates: string[];
+    if (!isRecurringTodo(item)) {
+      dates = [item.date];
+    } else if (range) {
+      if (item.date > range.to) continue;
+      dates = scheduledOccurrenceDates(
+        item.date,
+        range.to,
+        recurrenceOf(item),
+      ).filter(
+        (d) =>
+          d >= range.from && d <= range.to && d !== item.lastCompletedOn,
+      );
+    } else {
+      dates = item.lastCompletedOn === item.date ? [] : [item.date];
+    }
+    for (const d of dates) {
+      if (item.lastCompletedOn === d) continue;
+      const list = map[d] ?? [];
+      if (!list.includes(color)) list.push(color);
+      map[d] = list.slice(0, 4);
+    }
   }
   return map;
 }
 
-/** Open, dated tasks due exactly on `date` (excludes undated). */
+/** Open, dated tasks due on `date` (includes future recurring occurrences). */
 export function openDatedTodosOn(
   items: DayProvision[],
   date: string,
 ): DayProvision[] {
   return sortTodosByDueDate(
-    items.filter(
-      (item) => !item.completed && !item.undated && item.date === date,
-    ),
+    items.filter((item) => isOpenOnCalendarDay(item, date)),
   );
 }
 

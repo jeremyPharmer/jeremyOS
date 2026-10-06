@@ -15,8 +15,18 @@ import {
   openTaskColorsByDate,
   openUndatedTodos,
 } from "@/lib/task-groups";
-import { monthKey } from "@/lib/workouts";
+import { monthKey, parseMonthKey } from "@/lib/workouts";
 import type { DayProvision } from "@/lib/types";
+
+function monthBounds(key: string): { from: string; to: string } {
+  const { year, month } = parseMonthKey(key);
+  const last = new Date(year, month, 0).getDate();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    from: `${year}-${pad(month)}-01`,
+    to: `${year}-${pad(month)}-${pad(last)}`,
+  };
+}
 
 export default function ItemsPage() {
   const { state, today, post } = useApp();
@@ -52,7 +62,14 @@ export default function ItemsPage() {
   }, [today, month]);
 
   const todos = state.dayProvisions ?? [];
-  const dayColors = useMemo(() => openTaskColorsByDate(todos), [todos]);
+  const monthRange = useMemo(
+    () => (month ? monthBounds(month) : null),
+    [month],
+  );
+  const dayColors = useMemo(
+    () => openTaskColorsByDate(todos, monthRange ?? undefined),
+    [todos, monthRange],
+  );
   const dayTodos = useMemo(
     () => (selectedDate ? openDatedTodosOn(todos, selectedDate) : []),
     [todos, selectedDate],
@@ -120,6 +137,11 @@ export default function ItemsPage() {
     item: DayProvision,
     opts?: { done?: boolean; snooze?: boolean },
   ) {
+    // Future calendar days past today are a preview of the recurrence —
+    // complete/snooze still run against real "today" on the server.
+    const previewOnly = Boolean(
+      selectedDate && today && selectedDate > today && !opts?.done,
+    );
     return (
       <TodoTaskRow
         key={item.id}
@@ -129,14 +151,15 @@ export default function ItemsPage() {
         busy={busyId === item.id}
         clearing={exitingTodos[item.id] === "complete"}
         snoozingOut={exitingTodos[item.id] === "snooze"}
+        preview={previewOnly}
         doneMeta={opts?.done ? doneDateLabel(item) || null : null}
         onComplete={() =>
-          opts?.done
+          opts?.done || previewOnly
             ? undefined
             : run(item.id, { action: "complete", id: item.id })
         }
         onSnooze={(until) =>
-          opts?.snooze === false || opts?.done
+          opts?.snooze === false || opts?.done || previewOnly
             ? undefined
             : run(item.id, { action: "snooze", id: item.id, until })
         }
