@@ -32,6 +32,7 @@ import {
   setGoalInboundPercent,
   setInboundPercents,
   setSoleDailyTarget,
+  spendCategoryLabelsForDate,
   splitPoolByWeight,
   updateSaveGoal,
   updateSaveGoalSettings,
@@ -840,6 +841,10 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       category: "food",
     });
     expect(state.saveGoalSpendEntries![1].category).toBe("meals");
+    expect(spendCategoryLabelsForDate(state, "2026-04-01")).toEqual([
+      "Entertainment",
+      "Meals",
+    ]);
   });
 
   it("manual adds increase day total and leftover", () => {
