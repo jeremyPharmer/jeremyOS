@@ -32,8 +32,11 @@ import {
   clearSaveGoalDaySpend,
   formatCalendarMonthLabel,
   groupSaveGoalClosesByMonth,
+  SAVE_GOAL_HISTORY_EPOCH,
+  SAVE_GOAL_LEDGER_START,
   setGoalInboundPercent,
   setInboundPercents,
+  setSaveGoalDayInbound,
   setSoleDailyTarget,
   spendCategoryLabelsForDate,
   spendTotalForDate,
@@ -1165,6 +1168,51 @@ describe("deleteSaveGoal", () => {
 });
 
 describe("ledger start Oct 1 2026 + month rollups", () => {
+  it("history epoch wipe clears all ledger rows once for manual true-up", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "General",
+      targetAmount: 2900,
+      createdOn: "2026-10-01",
+    });
+    state = applySaveGoalDayTotals(state, { date: "2026-10-01" });
+    state = setSaveGoalDayInbound(state, { date: "2026-10-02", amount: 11 });
+    expect(saveGoalCloseForDate(state, "2026-10-01")).not.toBeNull();
+    expect(state.saveGoals![0].savedAmount).toBeGreaterThan(0);
+
+    const stale = {
+      ...state,
+      saveGoalSettings: {
+        ...state.saveGoalSettings!,
+        historyEpoch: 0,
+      },
+    };
+    state = normalizeSaveGoals(stale);
+    expect(state.saveGoalDays).toEqual([]);
+    expect(state.saveGoalSpendEntries).toEqual([]);
+    expect(state.saveGoalInboundByDate).toEqual({});
+    expect(state.saveGoals![0].savedAmount).toBe(0);
+    expect(state.saveGoalSettings!.historyEpoch).toBe(SAVE_GOAL_HISTORY_EPOCH);
+  });
+
+  it("setInbound overwrites the default daily rate for that date", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "General",
+      targetAmount: 2900,
+      createdOn: "2026-10-01",
+    });
+    expect(leftoverBeforeApply(state, "2026-10-01").base).toBe(
+      dailyIncomeRate("2026-10-01", 500),
+    );
+    state = setSaveGoalDayInbound(state, { date: "2026-10-01", amount: 12.5 });
+    expect(leftoverBeforeApply(state, "2026-10-01").base).toBe(12.5);
+    expect(leftoverBeforeApply(state, "2026-10-01").inbound).toBe(12.5);
+    expect(state.saveGoalInboundByDate?.["2026-10-01"]).toBe(12.5);
+  });
+
   it("normalize drops all September closes/spends and bumps createdOn to Oct 1", () => {
     let state = emptyState();
     state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
@@ -1173,7 +1221,7 @@ describe("ledger start Oct 1 2026 + month rollups", () => {
       targetAmount: 2900,
       createdOn: "2026-09-15",
     });
-    expect(state.saveGoals![0].createdOn).toBe("2026-10-01");
+    expect(state.saveGoals![0].createdOn).toBe(SAVE_GOAL_LEDGER_START);
 
     state = applySaveGoalDayTotals(state, { date: "2026-10-01" });
     const goalId = state.saveGoals![0].id;
@@ -1223,9 +1271,9 @@ describe("ledger start Oct 1 2026 + month rollups", () => {
         },
       ],
     };
-    expect(junked.saveGoalDays.filter((d) => d.date.startsWith("2026-09"))).toHaveLength(
-      3,
-    );
+    expect(
+      junked.saveGoalDays.filter((d) => d.date.startsWith("2026-09")),
+    ).toHaveLength(3);
 
     state = normalizeSaveGoals(junked);
     expect(saveGoalCloseForDate(state, "2026-09-15")).toBeNull();
@@ -1233,7 +1281,7 @@ describe("ledger start Oct 1 2026 + month rollups", () => {
     expect(saveGoalCloseForDate(state, "2026-09-30")).toBeNull();
     expect(spendTotalForDate(state, "2026-09-30")).toBe(0);
     expect(saveGoalCloseForDate(state, "2026-10-01")).not.toBeNull();
-    expect(state.saveGoals![0].createdOn).toBe("2026-10-01");
+    expect(state.saveGoals![0].createdOn).toBe(SAVE_GOAL_LEDGER_START);
     expect(state.saveGoals![0].savedAmount).toBe(
       saveGoalCloseForDate(state, "2026-10-01")!.allocations[0].amount,
     );

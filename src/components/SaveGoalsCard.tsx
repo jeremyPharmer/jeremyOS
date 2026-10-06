@@ -23,6 +23,7 @@ import {
   progressRatio,
   projectSaveGoalTargetDate,
   round2,
+  SAVE_GOAL_LEDGER_START,
   SAVE_GOAL_SPEND_CATEGORIES,
   saveGoalCloseForDate,
   saveGoalSpendEntryLabel,
@@ -935,14 +936,26 @@ function AdjustmentsList({
   );
 }
 
+const ADJUST_REASON_INBOUND = "inbound";
+const ADJUST_REASON_PRESETS = [
+  { id: ADJUST_REASON_INBOUND, label: "Inbound" },
+  { id: "bonus", label: "Bonus" },
+  { id: "gift", label: "Gift" },
+  { id: "transfer", label: "Transfer" },
+  { id: "other", label: "Other" },
+] as const;
+
 function AdjustPanel({
   goals,
+  today,
   busy,
   error,
   onCancel,
   onSubmit,
+  onSetInbound,
 }: {
   goals: SaveGoal[];
+  today: string;
   busy: boolean;
   error: string;
   onCancel: () => void;
@@ -953,99 +966,167 @@ function AdjustPanel({
     goalId?: string;
     note?: string;
   }) => void;
+  onSetInbound: (input: { date: string; amount: number }) => void;
 }) {
-  const [adjustDate, setAdjustDate] = useState("");
+  const [adjustDate, setAdjustDate] = useState(
+    () => today || SAVE_GOAL_LEDGER_START,
+  );
   const [adjustAmount, setAdjustAmount] = useState("");
+  const [reasonPreset, setReasonPreset] = useState<string>("");
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustSign, setAdjustSign] = useState<"add" | "subtract">("add");
   const [adjustMode, setAdjustMode] = useState<"preset" | "custom">("preset");
   const [customGoalId, setCustomGoalId] = useState(goals[0]?.id ?? "");
 
+  const isInbound = reasonPreset === ADJUST_REASON_INBOUND;
+  const minDate = SAVE_GOAL_LEDGER_START;
+  const maxDate = today || undefined;
+
+  useEffect(() => {
+    if (today && (!adjustDate || adjustDate > today)) {
+      setAdjustDate(today);
+    }
+  }, [today, adjustDate]);
+
+  function reasonNote(): string | undefined {
+    if (isInbound) return "Inbound";
+    if (reasonPreset === "other" || !reasonPreset) {
+      return adjustReason.trim() || undefined;
+    }
+    const label =
+      ADJUST_REASON_PRESETS.find((p) => p.id === reasonPreset)?.label ??
+      reasonPreset;
+    const extra = adjustReason.trim();
+    return extra ? `${label}: ${extra}` : label;
+  }
+
   return (
     <div className="save-goal-create">
       <p className="eyebrow">Adjust for the day</p>
-      <div className="chip-row">
-        <button
-          type="button"
-          className={`chip${adjustSign === "add" ? " selected" : ""}`}
-          onClick={() => setAdjustSign("add")}
-        >
-          Add
-        </button>
-        <button
-          type="button"
-          className={`chip${adjustSign === "subtract" ? " selected" : ""}`}
-          onClick={() => setAdjustSign("subtract")}
-        >
-          Subtract
-        </button>
-      </div>
+      {!isInbound ? (
+        <div className="chip-row">
+          <button
+            type="button"
+            className={`chip${adjustSign === "add" ? " selected" : ""}`}
+            onClick={() => setAdjustSign("add")}
+          >
+            Add
+          </button>
+          <button
+            type="button"
+            className={`chip${adjustSign === "subtract" ? " selected" : ""}`}
+            onClick={() => setAdjustSign("subtract")}
+          >
+            Subtract
+          </button>
+        </div>
+      ) : null}
       <label className="field">
         <span className="field-label">Date</span>
         <input
           type="date"
           value={adjustDate}
+          min={minDate}
+          max={maxDate}
           onChange={(e) => setAdjustDate(e.target.value)}
           required
         />
       </label>
       <label className="field">
-        <span className="field-label">Amount</span>
+        <span className="field-label">
+          {isInbound ? "Inbound for day" : "Amount"}
+        </span>
         <input
           type="number"
           inputMode="decimal"
           min={0}
-          step="1"
+          step={isInbound ? "0.01" : "1"}
           value={adjustAmount}
           onChange={(e) => setAdjustAmount(e.target.value)}
-          placeholder="50"
+          placeholder={isInbound ? "16" : "50"}
         />
       </label>
-      <label className="field">
-        <span className="field-label">Reason</span>
-        <input
-          type="text"
-          value={adjustReason}
-          onChange={(e) => setAdjustReason(e.target.value)}
-          placeholder="Bonus, gift, transfer…"
-          maxLength={80}
-        />
-      </label>
-      <p className="field-label" style={{ marginBottom: 6 }}>
-        Apply with
-      </p>
-      <div className="chip-row">
-        <button
-          type="button"
-          className={`chip${adjustMode === "preset" ? " selected" : ""}`}
-          onClick={() => setAdjustMode("preset")}
-        >
-          Daily chips
-        </button>
-        <button
-          type="button"
-          className={`chip${adjustMode === "custom" ? " selected" : ""}`}
-          onClick={() => {
-            setAdjustMode("custom");
-            if (!customGoalId && goals[0]) setCustomGoalId(goals[0].id);
-          }}
-        >
-          Custom (one area)
-        </button>
-      </div>
-      {adjustMode === "custom" ? (
-        <div className="chip-row" style={{ marginTop: 8 }}>
-          {goals.map((g) => (
+      <div className="save-goal-adjust-reason">
+        <p className="field-label" style={{ marginBottom: 6 }}>
+          Reason
+        </p>
+        <div className="chip-row">
+          {ADJUST_REASON_PRESETS.map((p) => (
             <button
-              key={g.id}
+              key={p.id}
               type="button"
-              className={`chip${customGoalId === g.id ? " selected" : ""}`}
-              onClick={() => setCustomGoalId(g.id)}
+              className={`chip${reasonPreset === p.id ? " selected" : ""}`}
+              onClick={() => {
+                setReasonPreset(p.id);
+                if (p.id === ADJUST_REASON_INBOUND) {
+                  setAdjustReason("");
+                }
+              }}
             >
-              {g.name}
+              {p.label}
             </button>
           ))}
         </div>
+        {!isInbound ? (
+          <label className="field" style={{ marginTop: 8 }}>
+            <span className="field-label">
+              {reasonPreset === "other" || !reasonPreset
+                ? "Details"
+                : "Details (optional)"}
+            </span>
+            <input
+              type="text"
+              value={adjustReason}
+              onChange={(e) => setAdjustReason(e.target.value)}
+              placeholder="Bonus, gift, transfer…"
+              maxLength={80}
+            />
+          </label>
+        ) : (
+          <p className="tiny muted" style={{ margin: "8px 0 0" }}>
+            Overwrites the default daily inbound for this date.
+          </p>
+        )}
+      </div>
+      {!isInbound ? (
+        <>
+          <p className="field-label" style={{ marginBottom: 6 }}>
+            Apply with
+          </p>
+          <div className="chip-row">
+            <button
+              type="button"
+              className={`chip${adjustMode === "preset" ? " selected" : ""}`}
+              onClick={() => setAdjustMode("preset")}
+            >
+              Daily chips
+            </button>
+            <button
+              type="button"
+              className={`chip${adjustMode === "custom" ? " selected" : ""}`}
+              onClick={() => {
+                setAdjustMode("custom");
+                if (!customGoalId && goals[0]) setCustomGoalId(goals[0].id);
+              }}
+            >
+              Custom (one area)
+            </button>
+          </div>
+          {adjustMode === "custom" ? (
+            <div className="chip-row" style={{ marginTop: 8 }}>
+              {goals.map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  className={`chip${customGoalId === g.id ? " selected" : ""}`}
+                  onClick={() => setCustomGoalId(g.id)}
+                >
+                  {g.name}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </>
       ) : null}
       {error ? (
         <p className="tiny" style={{ color: "var(--danger)" }}>
@@ -1054,21 +1135,32 @@ function AdjustPanel({
       ) : null}
       <div className="save-goal-create-actions">
         <PrimaryButton
-          disabled={busy || !adjustDate}
+          disabled={busy || !adjustDate || !reasonPreset}
           onClick={() => {
             if (!adjustDate) return;
             const raw = Number(adjustAmount);
-            if (!Number.isFinite(raw) || raw <= 0) return;
+            if (!Number.isFinite(raw) || raw < 0) return;
+            if (isInbound) {
+              onSetInbound({ date: adjustDate, amount: raw });
+              return;
+            }
+            if (raw <= 0) return;
             onSubmit({
               date: adjustDate,
               amount: adjustSign === "add" ? raw : -raw,
               mode: adjustMode,
               goalId: adjustMode === "custom" ? customGoalId : undefined,
-              note: adjustReason.trim() || undefined,
+              note: reasonNote(),
             });
           }}
         >
-          {busy ? "Saving…" : adjustSign === "add" ? "Add" : "Subtract"}
+          {busy
+            ? "Saving…"
+            : isInbound
+              ? "Set inbound"
+              : adjustSign === "add"
+                ? "Add"
+                : "Subtract"}
         </PrimaryButton>
         <SecondaryButton onClick={onCancel} disabled={busy}>
           Cancel
@@ -1487,6 +1579,31 @@ function SaveGoalsDetail() {
       setAdjustOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not apply adjustment");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitSetInbound(input: { date: string; amount: number }) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+      setError("Pick a date for inbound.");
+      return;
+    }
+    if (!Number.isFinite(input.amount) || input.amount < 0) {
+      setError("Enter an inbound of $0 or more.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "setInbound",
+        date: input.date,
+        amount: input.amount,
+      });
+      setAdjustOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not set inbound");
     } finally {
       setBusy(false);
     }
@@ -1921,10 +2038,12 @@ function SaveGoalsDetail() {
       {adjustOpen ? (
         <AdjustPanel
           goals={goals}
+          today={today ?? SAVE_GOAL_LEDGER_START}
           busy={busy}
           error={error}
           onCancel={() => setAdjustOpen(false)}
           onSubmit={(input) => void submitAdjust(input)}
+          onSetInbound={(input) => void submitSetInbound(input)}
         />
       ) : null}
 
