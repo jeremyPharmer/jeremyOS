@@ -2556,15 +2556,18 @@ h2 {
   flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   width: 100%;
 }
 
-.save-goal-actions-row .btn {
+.save-goal-actions-row .btn,
+.save-goal-actions-row .btn.secondary,
+.save-goal-actions-row .btn.primary {
   flex: 0 0 auto;
   width: auto;
+  max-width: none;
   min-width: 0;
-  padding: 6px 12px;
+  padding: 6px 14px;
   font-size: 0.8rem;
   font-weight: 600;
   line-height: 1.2;
@@ -2574,7 +2577,8 @@ h2 {
   box-shadow: none;
 }
 
-.save-goal-actions-row .btn:hover:not(:disabled) {
+.save-goal-actions-row .btn:hover:not(:disabled),
+.save-goal-actions-row .btn.secondary:hover:not(:disabled) {
   background: var(--accent-soft, color-mix(in srgb, var(--accent) 12%, transparent));
   border-color: var(--accent);
 }
