@@ -7,735 +7,25 @@ import { PrimaryButton, SecondaryButton } from "@/components/ui";
 import {
   activeSaveGoals,
   amountToGo,
-  dailyIncomeRate,
   floorDollar,
-  formatCalendarMonthLabel,
   formatMoney,
   formatMoneyDown,
-  formatTargetDateLabel,
-  groupSaveGoalClosesByMonth,
-  inboundPercent,
   leftoverBeforeApply,
-  listSaveGoalAdjustments,
   listSaveGoalAdjustmentsForGoal,
   listSaveGoalSpendEntries,
-  normalizeSaveGoalSettings,
   progressRatio,
   projectSaveGoalTargetDate,
-  round2,
   SAVE_GOAL_LEDGER_START,
   SAVE_GOAL_SPEND_CATEGORIES,
   saveGoalCloseForDate,
   saveGoalSpendEntryLabel,
-  spendCategoryLabelsForDate,
-  splitPoolByWeight,
-  type SaveGoalMonthSummary,
 } from "@/lib/save-goals";
 import type {
   SaveGoal,
-  SaveGoalDay,
   SaveGoalSpendCategory,
 } from "@/lib/types";
 
 const NAME_PRESETS = ["Trip", "Gift", "General saving"] as const;
-const PCT_STEP = 1;
-
-function GoalPercentControls({
-  percent,
-  busy,
-  label,
-  onChange,
-}: {
-  percent: number;
-  busy: boolean;
-  label: string;
-  onChange: (next: number) => void;
-}) {
-  const rounded = Math.round(percent);
-  const [draft, setDraft] = useState(String(rounded));
-  const [focused, setFocused] = useState(false);
-
-  useEffect(() => {
-    if (!focused) setDraft(String(rounded));
-  }, [rounded, focused]);
-
-  function commit(raw: string) {
-    const n = Number(raw);
-    if (!Number.isFinite(n)) {
-      setDraft(String(rounded));
-      return;
-    }
-    const clamped = Math.min(100, Math.max(0, Math.round(n)));
-    setDraft(String(clamped));
-    if (clamped !== rounded) onChange(clamped);
-  }
-
-  return (
-    <div className="save-goal-pct" aria-label={`${label} daily inbound`}>
-      <span className="save-goal-pct-name">{label}</span>
-      <button
-        type="button"
-        className="save-goal-pct-btn"
-        disabled={busy || rounded <= 0}
-        aria-label={`Decrease ${label} percent`}
-        onClick={() => onChange(Math.max(0, rounded - PCT_STEP))}
-      >
-        −
-      </button>
-      <input
-        className="save-goal-pct-input"
-        type="number"
-        inputMode="numeric"
-        min={0}
-        max={100}
-        step={1}
-        disabled={busy}
-        value={draft}
-        aria-label={`${label} inbound percent`}
-        onFocus={() => setFocused(true)}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          setFocused(false);
-          commit(draft);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-        }}
-      />
-      <span className="save-goal-pct-suffix">%</span>
-      <button
-        type="button"
-        className="save-goal-pct-btn"
-        disabled={busy || rounded >= 100}
-        aria-label={`Increase ${label} percent`}
-        onClick={() => onChange(Math.min(100, rounded + PCT_STEP))}
-      >
-        +
-      </button>
-    </div>
-  );
-}
-
-function InboundBreakdown({
-  goals,
-  busy,
-  onPercentChange,
-}: {
-  goals: SaveGoal[];
-  busy: boolean;
-  onPercentChange: (id: string, percent: number) => void;
-}) {
-  if (!goals.length) return null;
-  return (
-    <div
-      className="save-goal-inbound-breakdown"
-      role="group"
-      aria-label="Daily inbound split"
-    >
-      {goals.map((g) => (
-        <GoalPercentControls
-          key={g.id}
-          label={g.name}
-          percent={inboundPercent(g)}
-          busy={busy}
-          onChange={(next) => onPercentChange(g.id, next)}
-        />
-      ))}
-    </div>
-  );
-}
-
-function LedgerAllocationLine({
-  day,
-  goals,
-}: {
-  day: Pick<SaveGoalDay, "allocations" | "leftover" | "lumpSum">;
-  goals: SaveGoal[];
-}) {
-  const nameById = new Map(goals.map((g) => [g.id, g.name]));
-  const parts = (day.allocations ?? [])
-    .filter((a) => a.amount !== 0)
-    .map((a) => `${nameById.get(a.goalId) ?? "Goal"} ${formatMoney(a.amount)}`);
-  if (!parts.length) return null;
-  return <p className="tiny save-goal-ledger-alloc">{parts.join(" · ")}</p>;
-}
-
-function DailyLedgerDay({
-  label,
-  inbound,
-  adds,
-  spend,
-  leftover,
-  lump,
-  closed,
-  goals,
-  day,
-  spendCategories,
-  busy,
-  onRemoveSpend,
-}: {
-  label: string;
-  inbound: number;
-  adds?: number;
-  spend: number | null;
-  leftover: number | null;
-  lump?: number;
-  closed: boolean;
-  goals: SaveGoal[];
-  day?: SaveGoalDay | null;
-  /** Soft category names shown next to Spend (e.g. Meals) */
-  spendCategories?: string[];
-  busy?: boolean;
-  /** Remove this day's spend (and undo apply) so it can be re-entered */
-  onRemoveSpend?: () => void;
-}) {
-  const addTotal = adds ?? 0;
-  const categoryLine =
-    spendCategories && spendCategories.length > 0
-      ? spendCategories.join(" · ")
-      : null;
-  const canRemoveSpend =
-    Boolean(onRemoveSpend) && spend !== null && spend > 0;
-  return (
-    <div className={`save-goal-ledger-day${closed ? "" : " open"}`}>
-      <div className="save-goal-ledger-day-head">
-        <span className="save-goal-ledger-date">{label}</span>
-        {closed && label === "Today" ? (
-          <span className="tiny save-goal-applied-badge">Applied</span>
-        ) : !closed ? (
-          <span className="tiny muted">open</span>
-        ) : null}
-      </div>
-      <div className="save-goal-ledger-rows">
-        <div className="save-goal-ledger-row">
-          <span>Inbound</span>
-          <span>{formatMoney(inbound)}</span>
-        </div>
-        {addTotal > 0 ? (
-          <div className="save-goal-ledger-row">
-            <span>Adds</span>
-            <span>+{formatMoney(addTotal)}</span>
-          </div>
-        ) : null}
-        <div className="save-goal-ledger-row">
-          <span className="save-goal-ledger-spend-label">
-            Spend
-            {categoryLine && spend !== null && spend > 0 ? (
-              <span className="save-goal-ledger-spend-cat">{categoryLine}</span>
-            ) : null}
-          </span>
-          <span className="save-goal-ledger-spend-val">
-            {spend === null
-              ? "—"
-              : spend > 0
-                ? `−${formatMoney(spend)}`
-                : formatMoney(0)}
-            {canRemoveSpend ? (
-              <button
-                type="button"
-                className="save-goal-ledger-remove"
-                disabled={busy}
-                onClick={onRemoveSpend}
-              >
-                Remove
-              </button>
-            ) : null}
-          </span>
-        </div>
-        {lump && lump > 0 ? (
-          <div className="save-goal-ledger-row">
-            <span>Lump</span>
-            <span>+{formatMoney(lump)}</span>
-          </div>
-        ) : null}
-        <div className="save-goal-ledger-row leftover">
-          <span>Left</span>
-          <span>{leftover === null ? "—" : formatMoney(leftover)}</span>
-        </div>
-      </div>
-      {day ? <LedgerAllocationLine day={day} goals={goals} /> : null}
-    </div>
-  );
-}
-
-function MonthAppliedLine({
-  summary,
-  goals,
-}: {
-  summary: SaveGoalMonthSummary;
-  goals: SaveGoal[];
-}) {
-  const nameById = new Map(goals.map((g) => [g.id, g.name]));
-  const parts = Object.entries(summary.appliedByGoalId)
-    .filter(([, amount]) => amount !== 0)
-    .map(
-      ([goalId, amount]) =>
-        `${nameById.get(goalId) ?? "Goal"} ${formatMoney(amount)}`,
-    );
-  if (!parts.length) {
-    return <p className="tiny muted save-goal-month-line">Applied —</p>;
-  }
-  return (
-    <p className="tiny save-goal-month-line">
-      <span className="save-goal-month-kicker">Applied</span> {parts.join(" · ")}
-    </p>
-  );
-}
-
-function MonthSpendLine({ summary }: { summary: SaveGoalMonthSummary }) {
-  const parts = SAVE_GOAL_SPEND_CATEGORIES.map((c) => {
-    const amount = summary.spendByCategory[c.id] ?? 0;
-    if (amount <= 0) return null;
-    return `${c.label} ${formatMoney(amount)}`;
-  }).filter(Boolean) as string[];
-  if (!parts.length) {
-    return <p className="tiny muted save-goal-month-line">Spend $0</p>;
-  }
-  return (
-    <p className="tiny save-goal-month-line">
-      <span className="save-goal-month-kicker">Spend</span> {parts.join(" · ")}
-    </p>
-  );
-}
-
-function PriorMonthBlock({
-  monthKey,
-  isCurrentMonth,
-  summary,
-  goals,
-  busy,
-  onClearDaySpend,
-}: {
-  monthKey: string;
-  isCurrentMonth: boolean;
-  summary: SaveGoalMonthSummary;
-  goals: SaveGoal[];
-  busy?: boolean;
-  onClearDaySpend?: (date: string) => void;
-}) {
-  const { state } = useApp();
-  const [open, setOpen] = useState(isCurrentMonth);
-  const label = formatCalendarMonthLabel(monthKey);
-  const dayCount = summary.days.length;
-
-  function renderDays() {
-    return summary.days.map((d) => (
-      <DailyLedgerDay
-        key={d.date}
-        label={formatTargetDateLabel(d.date)}
-        inbound={d.dailyIncome}
-        spend={d.spendTotal}
-        leftover={d.leftover}
-        lump={d.lumpSum}
-        closed
-        goals={goals}
-        day={d}
-        spendCategories={spendCategoryLabelsForDate(state, d.date)}
-        busy={busy}
-        onRemoveSpend={
-          onClearDaySpend && d.spendTotal > 0
-            ? () => onClearDaySpend(d.date)
-            : undefined
-        }
-      />
-    ));
-  }
-
-  // In-progress month: daily cards only (always expanded).
-  if (isCurrentMonth) {
-    return <div className="save-goal-ledger-month current">{renderDays()}</div>;
-  }
-
-  return (
-    <div className="save-goal-ledger-month">
-      <button
-        type="button"
-        className="save-goal-month-toggle"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span aria-hidden="true">{open ? "▾" : "▸"}</span>
-        <span className="save-goal-month-title">{label}</span>
-        <span className="tiny muted">{dayCount} day{dayCount === 1 ? "" : "s"}</span>
-      </button>
-      {!open ? (
-        <div className="save-goal-month-summary">
-          <MonthAppliedLine summary={summary} goals={goals} />
-          <MonthSpendLine summary={summary} />
-        </div>
-      ) : (
-        <div className="save-goal-ledger-history-list">{renderDays()}</div>
-      )}
-    </div>
-  );
-}
-
-/** Daily inbound − spend = leftover ledger (today + recent closes). */
-function DailyLedger({
-  today,
-  goals,
-  busy,
-  onApply,
-  onUndoApply,
-  onClearDaySpend,
-}: {
-  today: string;
-  goals: SaveGoal[];
-  busy?: boolean;
-  onApply?: (opts?: {
-    drawFromGoalId?: string;
-    scope?: "all" | "rolled";
-    leftoverMode?: "preset" | "custom";
-    leftoverGoalId?: string;
-    leftoverAllocations?: Array<{ goalId: string; amount: number }>;
-  }) => void;
-  onUndoApply?: () => void;
-  onClearDaySpend?: (date: string) => void;
-}) {
-  const { state } = useApp();
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [drawFromGoalId, setDrawFromGoalId] = useState("");
-  const [rollPrompt, setRollPrompt] = useState(false);
-  const [rollScope, setRollScope] = useState<"all" | "rolled">("all");
-  const [rollAutoShown, setRollAutoShown] = useState(false);
-  const [customOpen, setCustomOpen] = useState(false);
-  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>(
-    {},
-  );
-  const todayClose = useMemo(
-    () => (today ? saveGoalCloseForDate(state, today) : null),
-    [state, today],
-  );
-  const running = useMemo(
-    () => leftoverBeforeApply(state, today),
-    [state, today],
-  );
-  const monthGroups = useMemo(
-    () => groupSaveGoalClosesByMonth(state, today),
-    [state, today],
-  );
-  const historyCount = monthGroups.reduce(
-    (n, g) => n + g.summary.days.length,
-    0,
-  );
-
-  const spendShown = todayClose ? todayClose.spendTotal : running.spend;
-  const leftShown = todayClose ? todayClose.leftover : running.left;
-  const applied = Boolean(todayClose);
-  const hasRolled = running.carryIn !== 0 && !applied;
-  const needsDrawPick =
-    goals.length > 1 &&
-    (leftShown < 0 ||
-      (hasRolled && running.carryIn < 0) ||
-      (rollPrompt && rollScope === "rolled" && running.carryIn < 0));
-  const canApply =
-    !needsDrawPick || Boolean(drawFromGoalId) || goals.length === 1;
-
-  // Opening /save-goals with rolled leftover: ask apply-all vs rolled-only.
-  useEffect(() => {
-    if (!onApply || rollAutoShown || !hasRolled) return;
-    setRollScope("all");
-    setRollPrompt(true);
-    setRollAutoShown(true);
-  }, [onApply, hasRolled, rollAutoShown]);
-
-  function applyOpts(
-    scope: "all" | "rolled" = "all",
-    extra?: {
-      leftoverMode?: "preset" | "custom";
-      leftoverGoalId?: string;
-      leftoverAllocations?: Array<{ goalId: string; amount: number }>;
-    },
-  ) {
-    const needsDraw =
-      (scope === "all" && leftShown < 0) ||
-      (scope === "rolled" && running.carryIn < 0);
-    const base = needsDraw
-      ? {
-          scope,
-          drawFromGoalId:
-            drawFromGoalId ||
-            (goals.length === 1 ? goals[0].id : undefined),
-        }
-      : { scope };
-    return { ...base, ...extra };
-  }
-
-  const customParsed = goals.map((g) => {
-    const raw = customAmounts[g.id] ?? "";
-    const n = Number(raw);
-    return {
-      goalId: g.id,
-      amount: Number.isFinite(n) && n >= 0 ? round2(n) : NaN,
-    };
-  });
-  const customSum = round2(
-    customParsed.reduce(
-      (s, a) => s + (Number.isFinite(a.amount) ? a.amount : 0),
-      0,
-    ),
-  );
-  const customValid =
-    customParsed.every((a) => Number.isFinite(a.amount)) &&
-    customSum === round2(leftShown);
-
-  function requestApply() {
-    if (!onApply) return;
-    setCustomOpen(false);
-    if (hasRolled) {
-      setRollScope("all");
-      setRollPrompt(true);
-      return;
-    }
-    onApply(applyOpts("all"));
-  }
-
-  function requestCustom() {
-    if (!onApply) return;
-    setRollPrompt(false);
-    const seeded = splitPoolByWeight(leftShown, goals);
-    const next: Record<string, string> = {};
-    for (const g of goals) {
-      const row = seeded.find((a) => a.goalId === g.id);
-      next[g.id] = String(row?.amount ?? 0);
-    }
-    setCustomAmounts(next);
-    setCustomOpen(true);
-  }
-
-  function confirmCustomApply() {
-    if (!onApply || !customValid) return;
-    onApply(
-      applyOpts("all", {
-        leftoverMode: "custom",
-        leftoverAllocations: customParsed.map((a) => ({
-          goalId: a.goalId,
-          amount: a.amount,
-        })),
-      }),
-    );
-    setCustomOpen(false);
-  }
-
-  function confirmRollApply() {
-    if (!onApply) return;
-    onApply(applyOpts(rollScope));
-    setRollPrompt(false);
-  }
-
-  return (
-    <div className="save-goal-ledger" aria-label="Daily ledger">
-      <p className="eyebrow save-goal-ledger-title">Daily</p>
-      <DailyLedgerDay
-        label="Today"
-        inbound={running.inbound}
-        adds={running.adds}
-        spend={spendShown}
-        leftover={leftShown}
-        lump={todayClose?.lumpSum}
-        closed={applied}
-        goals={goals}
-        day={todayClose}
-        spendCategories={spendCategoryLabelsForDate(state, today)}
-      />
-      {needsDrawPick ? (
-        <div className="save-goal-draw-from">
-          <p className="field-label" style={{ marginBottom: 6 }}>
-            Take from
-          </p>
-          <div className="chip-row">
-            {goals.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                className={`chip${drawFromGoalId === g.id ? " selected" : ""}`}
-                onClick={() => setDrawFromGoalId(g.id)}
-                disabled={busy}
-              >
-                {g.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      {rollPrompt && onApply ? (
-        <div className="save-goal-roll-prompt" role="group" aria-label="Apply rolled amount">
-          <p className="tiny" style={{ margin: "0 0 10px" }}>
-            <strong>{formatMoney(leftShown)} left</strong> includes{" "}
-            <strong>{formatMoney(Math.abs(running.carryIn))}</strong> that
-            rolled in.
-          </p>
-          <div className="save-goal-roll-options">
-            <button
-              type="button"
-              className={`save-goal-roll-option${rollScope === "all" ? " selected" : ""}`}
-              onClick={() => setRollScope("all")}
-              disabled={busy}
-            >
-              <span className="save-goal-roll-option-label">
-                Apply all {formatMoney(Math.abs(leftShown))}
-              </span>
-              <span className="tiny muted">
-                {leftShown < 0
-                  ? "Takes the full left from your goals — rolled + today."
-                  : "Puts the full left into your goals — rolled + today."}
-              </span>
-            </button>
-            <button
-              type="button"
-              className={`save-goal-roll-option${rollScope === "rolled" ? " selected" : ""}`}
-              onClick={() => setRollScope("rolled")}
-              disabled={busy}
-            >
-              <span className="save-goal-roll-option-label">
-                Apply only the {formatMoney(Math.abs(running.carryIn))} rolled
-              </span>
-              <span className="tiny muted">
-                {running.carryIn < 0
-                  ? "Goals take the rolled amount; today’s leftover keeps rolling."
-                  : "Goals get the rolled amount; today’s leftover keeps rolling."}
-              </span>
-            </button>
-          </div>
-          <div className="save-goal-create-actions" style={{ marginTop: 12 }}>
-            <PrimaryButton
-              onClick={confirmRollApply}
-              disabled={busy || !canApply}
-            >
-              {busy ? "Saving…" : "Confirm"}
-            </PrimaryButton>
-            <SecondaryButton
-              onClick={() => setRollPrompt(false)}
-              disabled={busy}
-            >
-              Cancel
-            </SecondaryButton>
-          </div>
-        </div>
-      ) : null}
-      {customOpen && onApply && !rollPrompt ? (
-        <div
-          className="save-goal-custom-apply"
-          role="group"
-          aria-label="Custom apply"
-        >
-          <p className="field-label" style={{ marginBottom: 6 }}>
-            Apply {formatMoney(leftShown)} today
-          </p>
-          <p className="tiny muted" style={{ margin: "0 0 10px" }}>
-            One-off dollars for today — does not change your{" "}
-            {goals.map((g) => `${inboundPercent(g)}%`).join(" / ")} daily
-            chips.
-          </p>
-          <div className="save-goal-custom-amounts">
-            {goals.map((g) => (
-              <label key={g.id} className="field save-goal-custom-amount-row">
-                <span className="field-label">{g.name}</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={customAmounts[g.id] ?? ""}
-                  disabled={busy}
-                  onChange={(e) =>
-                    setCustomAmounts((prev) => ({
-                      ...prev,
-                      [g.id]: e.target.value,
-                    }))
-                  }
-                  placeholder="0"
-                />
-              </label>
-            ))}
-          </div>
-          <p
-            className="tiny"
-            style={{
-              margin: "8px 0 0",
-              color: customValid ? "var(--muted)" : "var(--danger)",
-            }}
-          >
-            {customValid
-              ? `Adds up to ${formatMoney(leftShown)}`
-              : `Must add up to ${formatMoney(leftShown)} (now ${formatMoney(customSum)})`}
-          </p>
-          <div className="save-goal-create-actions" style={{ marginTop: 12 }}>
-            <PrimaryButton
-              onClick={confirmCustomApply}
-              disabled={busy || !customValid || !canApply}
-            >
-              {busy ? "Saving…" : "Apply"}
-            </PrimaryButton>
-            <SecondaryButton
-              onClick={() => setCustomOpen(false)}
-              disabled={busy}
-            >
-              Cancel
-            </SecondaryButton>
-          </div>
-        </div>
-      ) : null}
-      {!rollPrompt && !customOpen && (onApply || (applied && onUndoApply)) ? (
-        <div className="save-goal-ledger-apply">
-          {onApply ? (
-            <>
-              <PrimaryButton
-                onClick={requestApply}
-                disabled={busy || !canApply}
-              >
-                {busy
-                  ? "Saving…"
-                  : applied
-                    ? "Re-apply total"
-                    : "Apply total"}
-              </PrimaryButton>
-              <SecondaryButton
-                onClick={requestCustom}
-                disabled={busy || !canApply || leftShown <= 0}
-              >
-                Custom
-              </SecondaryButton>
-            </>
-          ) : null}
-          {applied && onUndoApply ? (
-            <SecondaryButton onClick={onUndoApply} disabled={busy}>
-              Undo apply
-            </SecondaryButton>
-          ) : null}
-        </div>
-      ) : null}
-      {historyCount > 0 ? (
-        <div className="save-goal-ledger-history">
-          <button
-            type="button"
-            className="save-goal-log-toggle"
-            aria-expanded={historyOpen}
-            onClick={() => setHistoryOpen((v) => !v)}
-          >
-            <span aria-hidden="true">{historyOpen ? "▾" : "▸"}</span>
-            Prior days ({historyCount})
-          </button>
-          {historyOpen ? (
-            <div className="save-goal-ledger-history-list">
-              {monthGroups.map((g) => (
-                <PriorMonthBlock
-                  key={g.monthKey}
-                  monthKey={g.monthKey}
-                  isCurrentMonth={g.isCurrentMonth}
-                  summary={g.summary}
-                  goals={goals}
-                  busy={busy}
-                  onClearDaySpend={onClearDaySpend}
-                />
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 function GoalAdjustmentLog({
   goalId,
@@ -813,20 +103,10 @@ function GoalProgressRow({
   const { state } = useApp();
   const toGo = amountToGo(goal);
   const ratio = progressRatio(goal);
-  const pct = inboundPercent(goal);
   const projection = projectSaveGoalTargetDate(state, goal, today);
   const under = goal.savedAmount < 0;
-
-  let dateLine: string;
-  if (projection.status === "reached") {
-    dateLine = "Reached";
-  } else if (pct <= 0) {
-    dateLine = "0% daily";
-  } else if (projection.targetDate) {
-    dateLine = formatTargetDateLabel(projection.targetDate);
-  } else {
-    dateLine = "Needs leftover";
-  }
+  // Daily-% ETA paused — ledger-only; show Reached when done.
+  const dateLine = projection.status === "reached" ? "Reached" : null;
 
   return (
     <article className="save-goal-row" aria-label={goal.name}>
@@ -860,7 +140,9 @@ function GoalProgressRow({
             </span>
           ) : null}
         </span>
-        <span className="tiny save-goal-eta">{dateLine}</span>
+        {dateLine ? (
+          <span className="tiny save-goal-eta">{dateLine}</span>
+        ) : null}
       </div>
       <div className="save-goal-inbound-row">
         <button
@@ -878,61 +160,6 @@ function GoalProgressRow({
         onRemove={onRemoveAdjust}
       />
     </article>
-  );
-}
-
-function AdjustmentsList({
-  adjustments,
-  goals,
-  busy,
-  onRemove,
-}: {
-  adjustments: SaveGoalDay[];
-  goals: SaveGoal[];
-  busy: boolean;
-  onRemove: (id: string) => void;
-}) {
-  if (!adjustments.length) return null;
-  const nameById = new Map(goals.map((g) => [g.id, g.name]));
-  return (
-    <div className="save-goal-adjust-list" aria-label="Recent adjustments">
-      {adjustments.slice(0, 8).map((d) => {
-        const total = (d.allocations ?? []).reduce((s, a) => s + a.amount, 0);
-        const parts = (d.allocations ?? [])
-          .filter((a) => a.amount !== 0)
-          .map((a) => {
-            const label = nameById.get(a.goalId) ?? "Goal";
-            return `${label} ${formatMoney(a.amount)}`;
-          });
-        return (
-          <div key={d.id} className="save-goal-adjust-row">
-            <div className="save-goal-adjust-meta">
-              <span className="tiny">
-                {d.date} · {formatMoney(total)}
-              </span>
-              {parts.length ? (
-                <span className="tiny muted">{parts.join(" · ")}</span>
-              ) : null}
-            </div>
-            {d.note ? (
-              <span className="tiny save-goal-adjust-reason" title={d.note}>
-                {d.note}
-              </span>
-            ) : (
-              <span className="save-goal-adjust-reason" aria-hidden="true" />
-            )}
-            <button
-              type="button"
-              className="save-goal-add-link"
-              disabled={busy || !d.id}
-              onClick={() => d.id && onRemove(d.id)}
-            >
-              Undo
-            </button>
-          </div>
-        );
-      })}
-    </div>
   );
 }
 
@@ -975,7 +202,6 @@ function AdjustPanel({
   const [reasonPreset, setReasonPreset] = useState<string>("other");
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustSign, setAdjustSign] = useState<"add" | "subtract">("add");
-  const [adjustMode, setAdjustMode] = useState<"preset" | "custom">("preset");
   const [customGoalId, setCustomGoalId] = useState(goals[0]?.id ?? "");
 
   const isInbound = reasonPreset === ADJUST_REASON_INBOUND;
@@ -1087,48 +313,27 @@ function AdjustPanel({
           </label>
         ) : (
           <p className="tiny muted" style={{ margin: "8px 0 0" }}>
-            Overwrites the default daily inbound for this date.
+            Sets the inbound amount recorded for this date.
           </p>
         )}
       </div>
       {!isInbound ? (
         <>
           <p className="field-label" style={{ marginBottom: 6 }}>
-            Apply with
+            Apply to
           </p>
           <div className="chip-row">
-            <button
-              type="button"
-              className={`chip${adjustMode === "preset" ? " selected" : ""}`}
-              onClick={() => setAdjustMode("preset")}
-            >
-              Daily chips
-            </button>
-            <button
-              type="button"
-              className={`chip${adjustMode === "custom" ? " selected" : ""}`}
-              onClick={() => {
-                setAdjustMode("custom");
-                if (!customGoalId && goals[0]) setCustomGoalId(goals[0].id);
-              }}
-            >
-              Custom (one area)
-            </button>
+            {goals.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                className={`chip${customGoalId === g.id ? " selected" : ""}`}
+                onClick={() => setCustomGoalId(g.id)}
+              >
+                {g.name}
+              </button>
+            ))}
           </div>
-          {adjustMode === "custom" ? (
-            <div className="chip-row" style={{ marginTop: 8 }}>
-              {goals.map((g) => (
-                <button
-                  key={g.id}
-                  type="button"
-                  className={`chip${customGoalId === g.id ? " selected" : ""}`}
-                  onClick={() => setCustomGoalId(g.id)}
-                >
-                  {g.name}
-                </button>
-              ))}
-            </div>
-          ) : null}
         </>
       ) : null}
       {error ? (
@@ -1138,7 +343,7 @@ function AdjustPanel({
       ) : null}
       <div className="save-goal-create-actions">
         <PrimaryButton
-          disabled={busy || !adjustDate || !reasonPreset}
+          disabled={busy || !adjustDate || !reasonPreset || (!isInbound && !customGoalId)}
           onClick={() => {
             if (!adjustDate) return;
             const raw = Number(adjustAmount);
@@ -1147,12 +352,12 @@ function AdjustPanel({
               onSetInbound({ date: adjustDate, amount: raw });
               return;
             }
-            if (raw <= 0) return;
+            if (raw <= 0 || !customGoalId) return;
             onSubmit({
               date: adjustDate,
               amount: adjustSign === "add" ? raw : -raw,
-              mode: adjustMode,
-              goalId: adjustMode === "custom" ? customGoalId : undefined,
+              mode: "custom",
+              goalId: customGoalId,
               note: reasonNote(),
             });
           }}
@@ -1462,13 +667,12 @@ function HomeSaveGoalsGlance() {
   );
 }
 
-/** Full save-goals surface (progress, chips, create) — not shown on Home. */
+/** Full save-goals surface — ledger-only (daily inbound / % mix paused). */
 function SaveGoalsDetail() {
   const { state, today, post } = useApp();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
-  const [claimDaily, setClaimDaily] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -1478,17 +682,8 @@ function SaveGoalsDetail() {
   const [editSaved, setEditSaved] = useState("");
   const [deleting, setDeleting] = useState<SaveGoal | null>(null);
   const [reallocateTo, setReallocateTo] = useState<string>("");
-  const [incomeOpen, setIncomeOpen] = useState(false);
-  const [editMonthly, setEditMonthly] = useState("");
 
-  const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
-  const rate = today ? dailyIncomeRate(today, settings.monthlyIncome) : 0;
   const goals = useMemo(() => activeSaveGoals(state), [state]);
-  const draftMonthly = Number(editMonthly);
-  const draftRate =
-    today && Number.isFinite(draftMonthly) && draftMonthly >= 0
-      ? dailyIncomeRate(today, floorDollar(draftMonthly))
-      : rate;
 
   async function create() {
     const targetAmount = Number(target);
@@ -1503,51 +698,14 @@ function SaveGoalsDetail() {
         action: "create",
         name: name.trim(),
         targetAmount,
-        claimDailyInbound: claimDaily || goals.length === 0,
+        // Daily inbound paused — goals are ledger buckets only.
+        claimDailyInbound: false,
       });
       setName("");
       setTarget("");
-      setClaimDaily(true);
       setOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create goal");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function setPercent(goalId: string, percent: number) {
-    setBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", {
-        action: "setInbound",
-        goalId,
-        percent,
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update percent");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveMonthlyIncome() {
-    const monthlyIncome = Number(editMonthly);
-    if (!Number.isFinite(monthlyIncome) || monthlyIncome < 0) {
-      setError("Enter a monthly amount of $0 or more.");
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", {
-        action: "settings",
-        monthlyIncome,
-      });
-      setIncomeOpen(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update daily amount");
     } finally {
       setBusy(false);
     }
@@ -1676,62 +834,6 @@ function SaveGoalsDetail() {
     }
   }
 
-  async function applyTotals(opts?: {
-    drawFromGoalId?: string;
-    scope?: "all" | "rolled";
-    leftoverMode?: "preset" | "custom";
-    leftoverGoalId?: string;
-    leftoverAllocations?: Array<{ goalId: string; amount: number }>;
-  }) {
-    setBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", {
-        action: "applyTotals",
-        date: today,
-        scope: opts?.scope === "rolled" ? "rolled" : "all",
-        drawFromGoalId: opts?.drawFromGoalId,
-        leftoverMode: opts?.leftoverMode,
-        leftoverGoalId: opts?.leftoverGoalId,
-        leftoverAllocations: opts?.leftoverAllocations,
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not apply");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function undoApply() {
-    setBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", {
-        action: "undoApply",
-        date: today,
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not undo apply");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function clearDaySpend(date: string) {
-    setBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", {
-        action: "clearDaySpend",
-        date,
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not remove spend");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (goals.length === 0 && !open) {
     return (
       <section
@@ -1741,53 +843,10 @@ function SaveGoalsDetail() {
         <div className="home-card-head">
           <p className="home-card-kicker">Save goals</p>
           <h2>Save towards something</h2>
+          <p className="tiny muted" style={{ margin: "4px 0 0" }}>
+            Manual adjustments only — daily inbound is paused.
+          </p>
         </div>
-        <button
-          type="button"
-          className="tiny save-goal-rate save-goal-inbound-edit"
-          aria-label="Edit daily inbound"
-          onClick={() => {
-            setIncomeOpen(true);
-            setEditMonthly(String(settings.monthlyIncome));
-            setError("");
-          }}
-        >
-          {formatMoneyDown(rate)} / day · tap to edit
-        </button>
-        {incomeOpen ? (
-          <div className="save-goal-create save-goal-income-edit">
-            <p className="eyebrow">Daily inbound</p>
-            <label className="field">
-              <span className="field-label">Monthly amount</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                step="1"
-                value={editMonthly}
-                onChange={(e) => setEditMonthly(e.target.value)}
-                autoFocus
-              />
-            </label>
-            <p className="tiny save-goal-rate">
-              → {formatMoneyDown(draftRate)} / day this month
-            </p>
-            <div className="save-goal-create-actions">
-              <PrimaryButton
-                disabled={busy}
-                onClick={() => void saveMonthlyIncome()}
-              >
-                {busy ? "Saving…" : "Save"}
-              </PrimaryButton>
-              <SecondaryButton
-                disabled={busy}
-                onClick={() => setIncomeOpen(false)}
-              >
-                Cancel
-              </SecondaryButton>
-            </div>
-          </div>
-        ) : null}
         <PrimaryButton onClick={() => setOpen(true)}>
           Add a save goal
         </PrimaryButton>
@@ -1805,95 +864,14 @@ function SaveGoalsDetail() {
       aria-label="Save goals"
     >
       <div className="home-card-head">
-        <div className="save-goal-detail-head">
-          <div>
-            <p className="home-card-kicker">Save goals</p>
-            <h2>
-              {goals.length === 0 ? "Save towards something" : "Saving toward"}
-            </h2>
-          </div>
-          <button
-            type="button"
-            className="save-goal-inbound-figure save-goal-inbound-edit"
-            aria-label="Edit daily inbound"
-            aria-expanded={incomeOpen}
-            onClick={() => {
-              setIncomeOpen((v) => !v);
-              setEditMonthly(String(settings.monthlyIncome));
-              setError("");
-            }}
-          >
-            {formatMoneyDown(rate)}
-            <span className="tiny muted save-goal-inbound-edit-hint">/ day</span>
-          </button>
+        <div>
+          <p className="home-card-kicker">Save goals</p>
+          <h2>{goals.length === 0 ? "Save towards something" : "Ledger"}</h2>
+          <p className="tiny muted" style={{ margin: "4px 0 0" }}>
+            Manual adjustments only — daily inbound is paused.
+          </p>
         </div>
       </div>
-
-      {incomeOpen ? (
-        <div className="save-goal-create save-goal-income-edit">
-          <p className="eyebrow">Daily inbound</p>
-          <p className="tiny muted" style={{ marginTop: 0 }}>
-            Set your monthly save budget — it becomes today&apos;s daily amount
-            for the chips below.
-          </p>
-          <label className="field">
-            <span className="field-label">Monthly amount</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              step="1"
-              value={editMonthly}
-              onChange={(e) => setEditMonthly(e.target.value)}
-              autoFocus
-            />
-          </label>
-          <p className="tiny save-goal-rate">
-            → {formatMoneyDown(draftRate)} / day this month
-          </p>
-          {error ? (
-            <p className="tiny" style={{ color: "var(--danger)" }}>
-              {error}
-            </p>
-          ) : null}
-          <div className="save-goal-create-actions">
-            <PrimaryButton
-              disabled={busy}
-              onClick={() => void saveMonthlyIncome()}
-            >
-              {busy ? "Saving…" : "Save"}
-            </PrimaryButton>
-            <SecondaryButton
-              disabled={busy}
-              onClick={() => {
-                setIncomeOpen(false);
-                setError("");
-              }}
-            >
-              Cancel
-            </SecondaryButton>
-          </div>
-        </div>
-      ) : null}
-
-      {goals.length > 0 ? (
-        <InboundBreakdown
-          goals={goals}
-          busy={busy}
-          onPercentChange={(id, percent) => void setPercent(id, percent)}
-        />
-      ) : null}
-
-      {goals.length > 0 && today ? (
-        <DailyLedger
-          today={today}
-          goals={goals}
-          busy={busy}
-          onApply={(opts) => void applyTotals(opts)}
-          onUndoApply={() => void undoApply()}
-          onClearDaySpend={(date) => void clearDaySpend(date)}
-        />
-      ) : null}
 
       {goals.map((g) => (
         <div key={g.id}>
@@ -2087,16 +1065,6 @@ function SaveGoalsDetail() {
               placeholder="500"
             />
           </label>
-          {goals.length > 0 ? (
-            <label className="check-row">
-              <input
-                type="checkbox"
-                checked={claimDaily}
-                onChange={(e) => setClaimDaily(e.target.checked)}
-              />
-              <span>100% daily inbound here</span>
-            </label>
-          ) : null}
           <div className="save-goal-create-actions">
             <PrimaryButton onClick={() => void create()} disabled={busy}>
               {busy ? "Saving…" : "Create"}
