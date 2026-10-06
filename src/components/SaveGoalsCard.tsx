@@ -9,14 +9,15 @@ import {
   amountToGo,
   dailyIncomeRate,
   floorDollar,
+  formatCalendarMonthLabel,
   formatMoney,
   formatMoneyDown,
   formatTargetDateLabel,
+  groupSaveGoalClosesByMonth,
   inboundPercent,
   leftoverBeforeApply,
   listSaveGoalAdjustments,
   listSaveGoalAdjustmentsForGoal,
-  listSaveGoalCloseDays,
   listSaveGoalSpendEntries,
   normalizeSaveGoalSettings,
   progressRatio,
@@ -27,6 +28,7 @@ import {
   saveGoalSpendCategoryLabel,
   spendCategoryLabelsForDate,
   splitPoolByWeight,
+  type SaveGoalMonthSummary,
 } from "@/lib/save-goals";
 import type {
   SaveGoal,
@@ -255,6 +257,118 @@ function DailyLedgerDay({
   );
 }
 
+function MonthAppliedLine({
+  summary,
+  goals,
+}: {
+  summary: SaveGoalMonthSummary;
+  goals: SaveGoal[];
+}) {
+  const nameById = new Map(goals.map((g) => [g.id, g.name]));
+  const parts = Object.entries(summary.appliedByGoalId)
+    .filter(([, amount]) => amount !== 0)
+    .map(
+      ([goalId, amount]) =>
+        `${nameById.get(goalId) ?? "Goal"} ${formatMoney(amount)}`,
+    );
+  if (!parts.length) {
+    return <p className="tiny muted save-goal-month-line">Applied —</p>;
+  }
+  return (
+    <p className="tiny save-goal-month-line">
+      <span className="save-goal-month-kicker">Applied</span> {parts.join(" · ")}
+    </p>
+  );
+}
+
+function MonthSpendLine({ summary }: { summary: SaveGoalMonthSummary }) {
+  const parts = SAVE_GOAL_SPEND_CATEGORIES.map((c) => {
+    const amount = summary.spendByCategory[c.id] ?? 0;
+    if (amount <= 0) return null;
+    return `${c.label} ${formatMoney(amount)}`;
+  }).filter(Boolean) as string[];
+  if (!parts.length) {
+    return <p className="tiny muted save-goal-month-line">Spend $0</p>;
+  }
+  return (
+    <p className="tiny save-goal-month-line">
+      <span className="save-goal-month-kicker">Spend</span> {parts.join(" · ")}
+    </p>
+  );
+}
+
+function PriorMonthBlock({
+  monthKey,
+  isCurrentMonth,
+  summary,
+  goals,
+  busy,
+  onClearDaySpend,
+}: {
+  monthKey: string;
+  isCurrentMonth: boolean;
+  summary: SaveGoalMonthSummary;
+  goals: SaveGoal[];
+  busy?: boolean;
+  onClearDaySpend?: (date: string) => void;
+}) {
+  const { state } = useApp();
+  const [open, setOpen] = useState(isCurrentMonth);
+  const label = formatCalendarMonthLabel(monthKey);
+  const dayCount = summary.days.length;
+
+  function renderDays() {
+    return summary.days.map((d) => (
+      <DailyLedgerDay
+        key={d.date}
+        label={formatTargetDateLabel(d.date)}
+        inbound={d.dailyIncome}
+        spend={d.spendTotal}
+        leftover={d.leftover}
+        lump={d.lumpSum}
+        closed
+        goals={goals}
+        day={d}
+        spendCategories={spendCategoryLabelsForDate(state, d.date)}
+        busy={busy}
+        onRemoveSpend={
+          onClearDaySpend && d.spendTotal > 0
+            ? () => onClearDaySpend(d.date)
+            : undefined
+        }
+      />
+    ));
+  }
+
+  // In-progress month: daily cards only (always expanded).
+  if (isCurrentMonth) {
+    return <div className="save-goal-ledger-month current">{renderDays()}</div>;
+  }
+
+  return (
+    <div className="save-goal-ledger-month">
+      <button
+        type="button"
+        className="save-goal-month-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+        <span className="save-goal-month-title">{label}</span>
+        <span className="tiny muted">{dayCount} day{dayCount === 1 ? "" : "s"}</span>
+      </button>
+      {!open ? (
+        <div className="save-goal-month-summary">
+          <MonthAppliedLine summary={summary} goals={goals} />
+          <MonthSpendLine summary={summary} />
+        </div>
+      ) : (
+        <div className="save-goal-ledger-history-list">{renderDays()}</div>
+      )}
+    </div>
+  );
+}
+
 /** Daily inbound − spend = leftover ledger (today + recent closes). */
 function DailyLedger({
   today,
@@ -295,10 +409,14 @@ function DailyLedger({
     () => leftoverBeforeApply(state, today),
     [state, today],
   );
-  const history = useMemo(() => {
-    const closes = listSaveGoalCloseDays(state).filter((d) => d.date !== today);
-    return closes.slice(0, 14);
-  }, [state, today]);
+  const monthGroups = useMemo(
+    () => groupSaveGoalClosesByMonth(state, today),
+    [state, today],
+  );
+  const historyCount = monthGroups.reduce(
+    (n, g) => n + g.summary.days.length,
+    0,
+  );
 
   const spendShown = todayClose ? todayClose.spendTotal : running.spend;
   const leftShown = todayClose ? todayClose.leftover : running.left;
@@ -586,7 +704,7 @@ function DailyLedger({
           ) : null}
         </div>
       ) : null}
-      {history.length > 0 ? (
+      {historyCount > 0 ? (
         <div className="save-goal-ledger-history">
           <button
             type="button"
@@ -595,28 +713,19 @@ function DailyLedger({
             onClick={() => setHistoryOpen((v) => !v)}
           >
             <span aria-hidden="true">{historyOpen ? "▾" : "▸"}</span>
-            Prior days ({history.length})
+            Prior days ({historyCount})
           </button>
           {historyOpen ? (
             <div className="save-goal-ledger-history-list">
-              {history.map((d) => (
-                <DailyLedgerDay
-                  key={d.date}
-                  label={formatTargetDateLabel(d.date)}
-                  inbound={d.dailyIncome}
-                  spend={d.spendTotal}
-                  leftover={d.leftover}
-                  lump={d.lumpSum}
-                  closed
-                  goals={[...(state.saveGoals ?? [])]}
-                  day={d}
-                  spendCategories={spendCategoryLabelsForDate(state, d.date)}
+              {monthGroups.map((g) => (
+                <PriorMonthBlock
+                  key={g.monthKey}
+                  monthKey={g.monthKey}
+                  isCurrentMonth={g.isCurrentMonth}
+                  summary={g.summary}
+                  goals={goals}
                   busy={busy}
-                  onRemoveSpend={
-                    onClearDaySpend && d.spendTotal > 0
-                      ? () => onClearDaySpend(d.date)
-                      : undefined
-                  }
+                  onClearDaySpend={onClearDaySpend}
                 />
               ))}
             </div>

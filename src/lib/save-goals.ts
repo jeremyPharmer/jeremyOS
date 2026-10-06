@@ -386,10 +386,20 @@ export function recomputeSavedAmounts(
   });
 }
 
+/**
+ * One-time data cleanup: drop junk Sep 15, 2026 close/spend rows and bump
+ * goals created that day to Sep 29 so the ledger starts there. Idempotent.
+ */
+const DISCARD_SAVE_GOAL_DATES = new Set(["2026-09-15"]);
+const BUMP_GOAL_CREATED_ON: Record<string, string> = {
+  "2026-09-15": "2026-09-29",
+};
+
 export function normalizeSaveGoals(state: RebuildState): RebuildState {
   const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
   const days = (state.saveGoalDays ?? [])
     .filter((d) => d && DATE_RE.test(d.date))
+    .filter((d) => !DISCARD_SAVE_GOAL_DATES.has(d.date))
     .map((d) => ({
       date: d.date,
       dailyIncome: round2(Number(d.dailyIncome) || 0),
@@ -412,26 +422,34 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
     .sort((a, b) => a.date.localeCompare(b.date));
 
   let goals = recomputeSavedAmounts(
-    (state.saveGoals ?? []).map((g) => ({
-      id: String(g.id),
-      name: String(g.name ?? "").trim() || "Save goal",
-      targetAmount: Math.max(1, floorDollar(Number(g.targetAmount) || 1)),
-      savedAmount: round2(Number(g.savedAmount) || 0),
-      createdOn: DATE_RE.test(g.createdOn) ? g.createdOn : days[0]?.date ?? "1970-01-01",
-      status:
-        g.status === "archived" || g.status === "reached" || g.status === "active"
-          ? g.status
-          : "active",
-      allocationWeight: Number.isFinite(g.allocationWeight)
-        ? Number(g.allocationWeight)
-        : 0,
-    })),
+    (state.saveGoals ?? []).map((g) => {
+      const rawCreated = DATE_RE.test(g.createdOn)
+        ? g.createdOn
+        : days[0]?.date ?? "1970-01-01";
+      return {
+        id: String(g.id),
+        name: String(g.name ?? "").trim() || "Save goal",
+        targetAmount: Math.max(1, floorDollar(Number(g.targetAmount) || 1)),
+        savedAmount: round2(Number(g.savedAmount) || 0),
+        createdOn: BUMP_GOAL_CREATED_ON[rawCreated] ?? rawCreated,
+        status:
+          g.status === "archived" ||
+          g.status === "reached" ||
+          g.status === "active"
+            ? g.status
+            : "active",
+        allocationWeight: Number.isFinite(g.allocationWeight)
+          ? Number(g.allocationWeight)
+          : 0,
+      };
+    }),
     days,
   );
   goals = normalizeInboundPercents(goals);
 
   const spendEntries = (state.saveGoalSpendEntries ?? [])
     .filter((e) => e && DATE_RE.test(e.date) && e.id)
+    .filter((e) => !DISCARD_SAVE_GOAL_DATES.has(e.date))
     .map((e) => {
       const kind = e.kind === "add" ? ("add" as const) : ("spend" as const);
       return {
@@ -1393,6 +1411,97 @@ export function listSaveGoalCloseDays(state: RebuildState): SaveGoalDay[] {
     .filter((d) => (d.kind ?? "close") === "close")
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/** YYYY-MM from a calendar date. */
+export function calendarMonthKey(date: string): string {
+  return date.slice(0, 7);
+}
+
+/** "September 2026" from YYYY-MM. */
+export function formatCalendarMonthLabel(monthKey: string): string {
+  const [ys, ms] = monthKey.split("-");
+  const y = Number(ys);
+  const m = Number(ms);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) {
+    return monthKey;
+  }
+  return new Date(y, m - 1, 1).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+export type SaveGoalMonthSummary = {
+  monthKey: string;
+  /** Close-day allocation totals per goal (net applied that month). */
+  appliedByGoalId: Record<string, number>;
+  /** Categorized spend totals for the month (predefined buckets only). */
+  spendByCategory: Partial<Record<SaveGoalSpendCategory, number>>;
+  /** Close days in the month, newest first. */
+  days: SaveGoalDay[];
+};
+
+/**
+ * Roll up applied closes + categorized spend for one calendar month.
+ * `today` marks the in-progress month (not used for math — caller decides collapse).
+ */
+export function summarizeSaveGoalMonth(
+  state: RebuildState,
+  monthKey: string,
+): SaveGoalMonthSummary {
+  const prefix = `${monthKey}-`;
+  const days = listSaveGoalCloseDays(state).filter((d) =>
+    d.date.startsWith(prefix),
+  );
+  const appliedByGoalId: Record<string, number> = {};
+  for (const day of days) {
+    for (const a of day.allocations ?? []) {
+      appliedByGoalId[a.goalId] = round2(
+        (appliedByGoalId[a.goalId] ?? 0) + a.amount,
+      );
+    }
+  }
+  const spendByCategory: Partial<Record<SaveGoalSpendCategory, number>> = {};
+  for (const e of state.saveGoalSpendEntries ?? []) {
+    if (!e.date.startsWith(prefix) || entryKind(e) !== "spend") continue;
+    const cat = coerceSaveGoalSpendCategory(e.category);
+    if (!cat) continue;
+    spendByCategory[cat] = round2((spendByCategory[cat] ?? 0) + e.amount);
+  }
+  return { monthKey, appliedByGoalId, spendByCategory, days };
+}
+
+/**
+ * Prior close days grouped by calendar month (newest month first).
+ * Current month stays expanded as daily cards; completed months collapse.
+ */
+export function groupSaveGoalClosesByMonth(
+  state: RebuildState,
+  today: string,
+): Array<{
+  monthKey: string;
+  /** True when monthKey === today’s YYYY-MM — always show daily rows. */
+  isCurrentMonth: boolean;
+  summary: SaveGoalMonthSummary;
+}> {
+  if (!DATE_RE.test(today)) return [];
+  const currentMonth = calendarMonthKey(today);
+  const closes = listSaveGoalCloseDays(state).filter((d) => d.date !== today);
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  for (const d of closes) {
+    const mk = calendarMonthKey(d.date);
+    if (seen.has(mk)) continue;
+    seen.add(mk);
+    keys.push(mk);
+  }
+  keys.sort((a, b) => b.localeCompare(a));
+  return keys.map((monthKey) => ({
+    monthKey,
+    isCurrentMonth: monthKey === currentMonth,
+    summary: summarizeSaveGoalMonth(state, monthKey),
+  }));
 }
 
 export function saveGoalCloseForDate(

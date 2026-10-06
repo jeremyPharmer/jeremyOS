@@ -30,12 +30,15 @@ import {
   removeSaveGoalAdjustment,
   removeSaveGoalSpend,
   clearSaveGoalDaySpend,
+  formatCalendarMonthLabel,
+  groupSaveGoalClosesByMonth,
   setGoalInboundPercent,
   setInboundPercents,
   setSoleDailyTarget,
   spendCategoryLabelsForDate,
   spendTotalForDate,
   splitPoolByWeight,
+  summarizeSaveGoalMonth,
   updateSaveGoal,
   updateSaveGoalSettings,
 } from "./save-goals";
@@ -1134,5 +1137,132 @@ describe("deleteSaveGoal", () => {
     expect(gift().status).toBe("active");
     expect(gift().savedAmount).toBeCloseTo(40, 2);
     expect(inboundPercent(gift())).toBe(100);
+  });
+});
+
+describe("discard Sep 15 2026 + month rollups", () => {
+  it("normalize drops 2026-09-15 close/spend and bumps createdOn to Sep 29", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "General",
+      targetAmount: 2900,
+      createdOn: "2026-09-15",
+    });
+    // createdOn bump happens on normalize inside createSaveGoal
+    expect(state.saveGoals![0].createdOn).toBe("2026-09-29");
+
+    state = applySaveGoalDayTotals(state, { date: "2026-09-29" });
+    const goalId = state.saveGoals![0].id;
+    // Simulate legacy junk still on disk (pre-cleanup close + spend).
+    const junked = {
+      ...state,
+      saveGoals: state.saveGoals!.map((g) => ({
+        ...g,
+        createdOn: "2026-09-15",
+      })),
+      saveGoalDays: [
+        ...(state.saveGoalDays ?? []),
+        {
+          date: "2026-09-15",
+          dailyIncome: 7,
+          spendTotal: 0,
+          leftover: 7,
+          lumpSum: 0,
+          allocations: [{ goalId, amount: 5.6 }],
+          kind: "close" as const,
+        },
+      ],
+      saveGoalSpendEntries: [
+        {
+          id: "junk-sep15",
+          date: "2026-09-15",
+          amount: 3,
+          kind: "spend" as const,
+          category: "meals" as const,
+        },
+      ],
+    };
+    expect(junked.saveGoalDays.some((d) => d.date === "2026-09-15")).toBe(
+      true,
+    );
+
+    state = normalizeSaveGoals(junked);
+    expect(saveGoalCloseForDate(state, "2026-09-15")).toBeNull();
+    expect(spendTotalForDate(state, "2026-09-15")).toBe(0);
+    expect(saveGoalCloseForDate(state, "2026-09-29")).not.toBeNull();
+    expect(state.saveGoals![0].createdOn).toBe("2026-09-29");
+    expect(state.saveGoals![0].savedAmount).toBe(
+      saveGoalCloseForDate(state, "2026-09-29")!.allocations[0].amount,
+    );
+  });
+
+  it("summarizes applied-by-goal and spend-by-category for a month", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "General",
+      targetAmount: 2900,
+      createdOn: "2026-09-29",
+    });
+    state = createSaveGoal(state, {
+      name: "Reserve",
+      targetAmount: 500,
+      createdOn: "2026-09-29",
+      claimDailyInbound: false,
+    });
+    const general = () => state.saveGoals!.find((g) => g.name === "General")!;
+    const reserve = () => state.saveGoals!.find((g) => g.name === "Reserve")!;
+    state = setInboundPercents(state, {
+      [general().id]: 80,
+      [reserve().id]: 20,
+    });
+
+    state = addSaveGoalSpend(state, {
+      date: "2026-09-30",
+      amount: 5,
+      kind: "spend",
+      category: "meals",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-09-30",
+      amount: 2,
+      kind: "spend",
+      category: "entertainment",
+    });
+    state = applySaveGoalDayTotals(state, { date: "2026-09-29" });
+    state = applySaveGoalDayTotals(state, { date: "2026-09-30" });
+
+    const summary = summarizeSaveGoalMonth(state, "2026-09");
+    expect(formatCalendarMonthLabel("2026-09")).toBe("September 2026");
+    expect(summary.days).toHaveLength(2);
+    expect(summary.appliedByGoalId[general().id]).toBeGreaterThan(0);
+    expect(summary.appliedByGoalId[reserve().id]).toBeGreaterThan(0);
+    expect(summary.spendByCategory.meals).toBe(5);
+    expect(summary.spendByCategory.entertainment).toBe(2);
+  });
+
+  it("groups prior closes: current month expanded, past months collapsible", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "General",
+      targetAmount: 2900,
+      createdOn: "2026-09-29",
+    });
+    state = applySaveGoalDayTotals(state, { date: "2026-09-29" });
+    state = applySaveGoalDayTotals(state, { date: "2026-09-30" });
+    state = applySaveGoalDayTotals(state, { date: "2026-10-01" });
+    state = applySaveGoalDayTotals(state, { date: "2026-10-02" });
+
+    const groups = groupSaveGoalClosesByMonth(state, "2026-10-06");
+    expect(groups.map((g) => g.monthKey)).toEqual(["2026-10", "2026-09"]);
+    expect(groups[0].isCurrentMonth).toBe(true);
+    expect(groups[0].summary.days.map((d) => d.date)).toEqual([
+      "2026-10-02",
+      "2026-10-01",
+    ]);
+    expect(groups[1].isCurrentMonth).toBe(false);
+    expect(groups[1].summary.days).toHaveLength(2);
   });
 });
