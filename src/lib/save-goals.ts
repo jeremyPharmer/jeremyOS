@@ -1113,10 +1113,12 @@ export function clearSaveGoalDaySpend(
     });
   }
   const reserveAdjustIds = new Set(
-    removing.map((e) => e.reserveAdjustId).filter(Boolean) as string[],
+    removing
+      .map((e) => e.reserveAdjustId)
+      .filter((id): id is string => Boolean(id)),
   );
   const days = (state.saveGoalDays ?? []).filter(
-    (day) => !reserveAdjustIds.has(day.id),
+    (day) => !day.id || !reserveAdjustIds.has(day.id),
   );
   let next: RebuildState = {
     ...state,
