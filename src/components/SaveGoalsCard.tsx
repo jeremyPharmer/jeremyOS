@@ -25,7 +25,7 @@ import {
   round2,
   SAVE_GOAL_SPEND_CATEGORIES,
   saveGoalCloseForDate,
-  saveGoalSpendCategoryLabel,
+  saveGoalSpendEntryLabel,
   spendCategoryLabelsForDate,
   splitPoolByWeight,
   type SaveGoalMonthSummary,
@@ -1085,6 +1085,7 @@ function HomeSaveGoalsGlance() {
   const [entryAmount, setEntryAmount] = useState("");
   const [spendCategory, setSpendCategory] =
     useState<SaveGoalSpendCategory | "">("");
+  const [otherNote, setOtherNote] = useState("");
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -1123,6 +1124,8 @@ function HomeSaveGoalsGlance() {
       setError("Pick a category.");
       return;
     }
+    const note =
+      spendCategory === "other" ? otherNote.trim().slice(0, 80) : undefined;
     setBusy(true);
     setError("");
     try {
@@ -1132,9 +1135,11 @@ function HomeSaveGoalsGlance() {
         amount,
         kind: "spend",
         category: spendCategory,
+        ...(note ? { note } : {}),
       });
       setEntryAmount("");
       setSpendCategory("");
+      setOtherNote("");
       setSubtractOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not subtract");
@@ -1213,13 +1218,30 @@ function HomeSaveGoalsGlance() {
                       key={c.id}
                       type="button"
                       className={`chip${spendCategory === c.id ? " selected" : ""}`}
-                      onClick={() => setSpendCategory(c.id)}
+                      onClick={() => {
+                        setSpendCategory(c.id);
+                        if (c.id !== "other") setOtherNote("");
+                      }}
                       disabled={busy}
                     >
                       {c.label}
                     </button>
                   ))}
                 </div>
+                {spendCategory === "other" ? (
+                  <label className="field save-goal-other-note">
+                    <span className="field-label">What was it?</span>
+                    <input
+                      type="text"
+                      value={otherNote}
+                      onChange={(e) => setOtherNote(e.target.value)}
+                      placeholder="e.g. parking, gift wrap"
+                      maxLength={80}
+                      disabled={busy}
+                      autoComplete="off"
+                    />
+                  </label>
+                ) : null}
               </div>
               {error ? (
                 <p className="tiny" style={{ color: "var(--danger)" }}>
@@ -1237,6 +1259,7 @@ function HomeSaveGoalsGlance() {
                   onClick={() => {
                     setSubtractOpen(false);
                     setSpendCategory("");
+                    setOtherNote("");
                     setError("");
                   }}
                   disabled={busy}
@@ -1252,6 +1275,7 @@ function HomeSaveGoalsGlance() {
                   setError("");
                   setEntryAmount("");
                   setSpendCategory("");
+                  setOtherNote("");
                   setSubtractOpen(true);
                 }}
                 disabled={busy}
@@ -1297,7 +1321,7 @@ function HomeSaveGoalsGlance() {
                         <span>
                           {isAdd
                             ? "Add"
-                            : saveGoalSpendCategoryLabel(e.category)}
+                            : saveGoalSpendEntryLabel(e)}
                         </span>
                         <span className="save-goal-ledger-spend-val">
                           {isAdd ? "+" : "−"}

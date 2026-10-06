@@ -60,6 +60,20 @@ export function saveGoalSpendCategoryLabel(
   );
 }
 
+/** Category label for a spend line; Other includes free-text note when set. */
+export function saveGoalSpendEntryLabel(
+  entry: Pick<SaveGoalSpendEntry, "category" | "note" | "kind">,
+): string {
+  if (entryKind(entry) === "add") return "Add";
+  const cat = coerceSaveGoalSpendCategory(entry.category);
+  const base = saveGoalSpendCategoryLabel(cat);
+  if (cat === "other") {
+    const note = entry.note?.trim();
+    if (note) return `Other · ${note}`;
+  }
+  return base;
+}
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function round2(n: number): number {
@@ -503,7 +517,7 @@ export function spendTotalForDate(state: RebuildState, date: string): number {
 
 /**
  * Soft labels for spend categories used on a date (unique, oldest-first).
- * Empty when there were no categorized subtract lines.
+ * Other lines with a note show as "Other · note". Empty when none.
  */
 export function spendCategoryLabelsForDate(
   state: RebuildState,
@@ -513,7 +527,7 @@ export function spendCategoryLabelsForDate(
   const seen = new Set<string>();
   for (const e of listSaveGoalSpendEntries(state, date)) {
     if (entryKind(e) !== "spend") continue;
-    const label = saveGoalSpendCategoryLabel(e.category);
+    const label = saveGoalSpendEntryLabel(e);
     if (!e.category || label === "Spend" || seen.has(label)) continue;
     seen.add(label);
     labels.push(label);

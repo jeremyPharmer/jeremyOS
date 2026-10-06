@@ -2849,6 +2849,16 @@ button.save-goal-rate.save-goal-inbound-edit {
   white-space: nowrap;
 }
 
+.save-goal-other-note {
+  margin-top: 10px;
+  text-align: left;
+}
+
+.save-goal-other-note .field-label {
+  display: block;
+  margin-bottom: 4px;
+}
+
 .save-goal-ledger-day {
   display: flex;
   flex-direction: column;
