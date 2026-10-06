@@ -68,7 +68,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 17. **RB-041 — Save Goals: Reserve hub + fixed $/day ETA** — **Done / shipped prod 2026-10-06** (PR #266, `cursor/save-goals-reserve-hub-impl-8ada` → jeremyos-prod). **Reserve** = holding tank (no ETA); **new** inbound → Reserve; transfer Reserve → named goals; ETA = remaining ÷ **fixed $/day**. **No-migrate honored** (existing named-goal balances stay put). Detail: [`items/save-goals-reserve-hub.md`](./items/save-goals-reserve-hub.md).
 18. **RB-021 — Journal photos (attach + paperclip)** — optional pics on journal/evening entries; paperclip (or similar) on year slots when a photo is present; tap to view; **reuse** existing photo infra. Detail: [`items/journal-photos.md`](./items/journal-photos.md).
 
-**Mid-flight (finish thin; do not expand):** RB-011 (fund auto-credit), RB-010 (journal backfill) — personal-tool integrity, ranks 31–32. Do **not** widen RB-010 into edit-past ([RB-022](./items/journal-edit-star-calendar.md)) or into Ignore dismiss ([RB-039](./items/ignore-missed-journal-days.md)). Days before context is **[RB-040](./items/journal-days-before.md)** (separate). Save Goals (**RB-037** / **RB-041**) is a **new parallel ledger** — do not fold into RB-011 / RB-006.
+**Mid-flight (finish thin; do not expand):** RB-011 (fund auto-credit), RB-010 (journal backfill) — personal-tool integrity, ranks 31–32. Do **not** widen RB-010 into edit-past ([RB-022](./items/journal-edit-star-calendar.md)) or into Ignore dismiss ([RB-039](./items/ignore-missed-journal-days.md)). Days before context is **[RB-040](./items/journal-days-before.md)** (separate). Save Goals (**RB-037** In Progress; **RB-041** Done) is a **new parallel ledger** — do not fold into RB-011 / RB-006.
 
 ### Next
 
