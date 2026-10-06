@@ -500,6 +500,11 @@ export type SaveGoalSettings = {
   /** Default 500 — lands conceptually on incomeDayOfMonth */
   monthlyIncome: number;
   incomeDayOfMonth: number;
+  /**
+   * Bumped when the ledger is wiped for a manual true-up.
+   * Rows/spends from an older epoch are discarded on normalize.
+   */
+  historyEpoch?: number;
 };
 
 export type SaveGoalAllocation = {
@@ -630,6 +635,11 @@ export type RebuildState = {
   saveGoalDays?: SaveGoalDay[];
   /** Running spend subtractions before Apply totals (Home saver ledger) */
   saveGoalSpendEntries?: SaveGoalSpendEntry[];
+  /**
+   * Per-day inbound override (YYYY-MM-DD → dollars). When set, replaces the
+   * default monthly/days rate for that calendar day.
+   */
+  saveGoalInboundByDate?: Record<string, number>;
 };
 
 export type CustomAgendaEvent = {

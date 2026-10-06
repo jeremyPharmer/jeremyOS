@@ -90,6 +90,7 @@ export function defaultSaveGoalSettings(): SaveGoalSettings {
   return {
     monthlyIncome: DEFAULT_MONTHLY_INCOME,
     incomeDayOfMonth: DEFAULT_INCOME_DAY,
+    historyEpoch: 0,
   };
 }
 
@@ -100,6 +101,7 @@ export function normalizeSaveGoalSettings(
   if (!raw) return base;
   const monthly = Number(raw.monthlyIncome);
   const day = Number(raw.incomeDayOfMonth);
+  const epoch = Number(raw.historyEpoch);
   return {
     monthlyIncome:
       Number.isFinite(monthly) && monthly >= 0
@@ -109,6 +111,8 @@ export function normalizeSaveGoalSettings(
       Number.isFinite(day) && day >= 1 && day <= 28
         ? Math.floor(day)
         : base.incomeDayOfMonth,
+    historyEpoch:
+      Number.isFinite(epoch) && epoch >= 0 ? Math.floor(epoch) : 0,
   };
 }
 
@@ -406,41 +410,78 @@ export function recomputeSavedAmounts(
  */
 export const SAVE_GOAL_LEDGER_START = "2026-10-01";
 
+/**
+ * Bump to wipe all closes/spends/inbound overrides so Jeremy can true up
+ * manually from Oct 1. Runs once per epoch on normalize.
+ */
+export const SAVE_GOAL_HISTORY_EPOCH = 3;
+
 function isSeptember2026(date: string): boolean {
   return DATE_RE.test(date) && date.startsWith("2026-09-");
 }
 
-export function normalizeSaveGoals(state: RebuildState): RebuildState {
+function normalizeInboundByDate(
+  raw: Record<string, number> | undefined,
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const [date, value] of Object.entries(raw)) {
+    if (!DATE_RE.test(date) || isSeptember2026(date)) continue;
+    const n = round2(Number(value));
+    if (!Number.isFinite(n) || n < 0) continue;
+    out[date] = n;
+  }
+  return out;
+}
+
+/** Default daily rate, or per-day override when set. */
+export function dayInboundBase(state: RebuildState, date: string): number {
   const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
-  const days = (state.saveGoalDays ?? [])
-    .filter((d) => d && DATE_RE.test(d.date))
-    .filter((d) => !isSeptember2026(d.date))
-    .map((d) => ({
-      date: d.date,
-      dailyIncome: round2(Number(d.dailyIncome) || 0),
-      spendTotal: round2(Math.max(0, Number(d.spendTotal) || 0)),
-      leftover: round2(Number(d.leftover) || 0),
-      lumpSum: round2(Math.max(0, Number(d.lumpSum) || 0)),
-      allocations: (d.allocations ?? []).map((a) => ({
-        goalId: String(a.goalId),
-        amount: round2(Number(a.amount) || 0),
-      })),
-      kind: d.kind === "adjust" ? ("adjust" as const) : ("close" as const),
-      id: d.id ? String(d.id) : d.kind === "adjust" ? newId("sga") : undefined,
-      source:
-        d.source === "auto" || d.source === "manual" ? d.source : undefined,
-      note:
-        d.kind === "adjust" && d.note
-          ? String(d.note).trim().slice(0, 80)
-          : undefined,
-    }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const override = state.saveGoalInboundByDate?.[date];
+  if (override !== undefined && Number.isFinite(override) && override >= 0) {
+    return round2(override);
+  }
+  return dailyIncomeRate(date, settings.monthlyIncome);
+}
+
+export function normalizeSaveGoals(state: RebuildState): RebuildState {
+  let settings = normalizeSaveGoalSettings(state.saveGoalSettings);
+  const clearHistory = (settings.historyEpoch ?? 0) < SAVE_GOAL_HISTORY_EPOCH;
+  if (clearHistory) {
+    settings = { ...settings, historyEpoch: SAVE_GOAL_HISTORY_EPOCH };
+  }
+
+  const days = clearHistory
+    ? []
+    : (state.saveGoalDays ?? [])
+        .filter((d) => d && DATE_RE.test(d.date))
+        .filter((d) => !isSeptember2026(d.date))
+        .map((d) => ({
+          date: d.date,
+          dailyIncome: round2(Number(d.dailyIncome) || 0),
+          spendTotal: round2(Math.max(0, Number(d.spendTotal) || 0)),
+          leftover: round2(Number(d.leftover) || 0),
+          lumpSum: round2(Math.max(0, Number(d.lumpSum) || 0)),
+          allocations: (d.allocations ?? []).map((a) => ({
+            goalId: String(a.goalId),
+            amount: round2(Number(a.amount) || 0),
+          })),
+          kind: d.kind === "adjust" ? ("adjust" as const) : ("close" as const),
+          id: d.id ? String(d.id) : d.kind === "adjust" ? newId("sga") : undefined,
+          source:
+            d.source === "auto" || d.source === "manual" ? d.source : undefined,
+          note:
+            d.kind === "adjust" && d.note
+              ? String(d.note).trim().slice(0, 80)
+              : undefined,
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
 
   let goals = recomputeSavedAmounts(
     (state.saveGoals ?? []).map((g) => {
       const rawCreated = DATE_RE.test(g.createdOn)
         ? g.createdOn
-        : days[0]?.date ?? "1970-01-01";
+        : days[0]?.date ?? SAVE_GOAL_LEDGER_START;
       return {
         id: String(g.id),
         name: String(g.name ?? "").trim() || "Save goal",
@@ -464,28 +505,36 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
   );
   goals = normalizeInboundPercents(goals);
 
-  const spendEntries = (state.saveGoalSpendEntries ?? [])
-    .filter((e) => e && DATE_RE.test(e.date) && e.id)
-    .filter((e) => !isSeptember2026(e.date))
-    .map((e) => {
-      const kind = e.kind === "add" ? ("add" as const) : ("spend" as const);
-      return {
-        id: String(e.id),
-        date: e.date,
-        amount: round2(Math.max(0, Number(e.amount) || 0)),
-        kind,
-        category:
-          kind === "spend" ? coerceSaveGoalSpendCategory(e.category) : undefined,
-        note: e.note ? String(e.note).trim().slice(0, 80) : undefined,
-        at: e.at ? String(e.at) : undefined,
-      };
-    })
-    .filter((e) => e.amount > 0)
-    .sort((a, b) => {
-      const byDate = a.date.localeCompare(b.date);
-      if (byDate !== 0) return byDate;
-      return String(a.at ?? a.id).localeCompare(String(b.at ?? b.id));
-    });
+  const spendEntries = clearHistory
+    ? []
+    : (state.saveGoalSpendEntries ?? [])
+        .filter((e) => e && DATE_RE.test(e.date) && e.id)
+        .filter((e) => !isSeptember2026(e.date))
+        .map((e) => {
+          const kind = e.kind === "add" ? ("add" as const) : ("spend" as const);
+          return {
+            id: String(e.id),
+            date: e.date,
+            amount: round2(Math.max(0, Number(e.amount) || 0)),
+            kind,
+            category:
+              kind === "spend"
+                ? coerceSaveGoalSpendCategory(e.category)
+                : undefined,
+            note: e.note ? String(e.note).trim().slice(0, 80) : undefined,
+            at: e.at ? String(e.at) : undefined,
+          };
+        })
+        .filter((e) => e.amount > 0)
+        .sort((a, b) => {
+          const byDate = a.date.localeCompare(b.date);
+          if (byDate !== 0) return byDate;
+          return String(a.at ?? a.id).localeCompare(String(b.at ?? b.id));
+        });
+
+  const saveGoalInboundByDate = clearHistory
+    ? {}
+    : normalizeInboundByDate(state.saveGoalInboundByDate);
 
   return {
     ...state,
@@ -493,6 +542,7 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
     saveGoals: goals,
     saveGoalDays: days,
     saveGoalSpendEntries: spendEntries,
+    saveGoalInboundByDate,
   };
 }
 
@@ -569,13 +619,12 @@ export function leftoverBeforeApply(
   spend: number;
   left: number;
 } {
-  const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
   if (!DATE_RE.test(date)) {
     return { base: 0, carryIn: 0, inbound: 0, adds: 0, spend: 0, left: 0 };
   }
   const start = saveGoalAccrualStart(state, date);
   if (date < start) {
-    const base = dailyIncomeRate(date, settings.monthlyIncome);
+    const base = dayInboundBase(state, date);
     const adds = addTotalForDate(state, date);
     const spend = spendTotalForDate(state, date);
     return {
@@ -598,7 +647,7 @@ export function leftoverBeforeApply(
     left: 0,
   };
   for (const d of datesInRange(start, date)) {
-    const base = dailyIncomeRate(d, settings.monthlyIncome);
+    const base = dayInboundBase(state, d);
     const inbound = round2(base + carry);
     const adds = addTotalForDate(state, d);
     const spend = spendTotalForDate(state, d);
@@ -863,6 +912,40 @@ export function clearSaveGoalDaySpend(
   return normalizeSaveGoals(next);
 }
 
+/**
+ * Set (or clear) the inbound for one calendar day, overwriting the default
+ * monthly/days rate. Does not apply leftover into goals.
+ */
+export function setSaveGoalDayInbound(
+  state: RebuildState,
+  input: { date: string; amount: number },
+): RebuildState {
+  const d = String(input.date ?? "").trim();
+  if (!DATE_RE.test(d)) {
+    throw Object.assign(new Error("date required"), { status: 400 });
+  }
+  if (isSeptember2026(d)) {
+    throw Object.assign(new Error("September 2026 is closed — start Oct 1"), {
+      status: 400,
+    });
+  }
+  const amount = round2(Number(input.amount));
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw Object.assign(new Error("inbound must be ≥ 0"), { status: 400 });
+  }
+  const prev = normalizeInboundByDate(state.saveGoalInboundByDate);
+  const next = { ...prev };
+  if (amount === 0) {
+    delete next[d];
+  } else {
+    next[d] = amount;
+  }
+  return normalizeSaveGoals({
+    ...state,
+    saveGoalInboundByDate: next,
+  });
+}
+
 export function createSaveGoal(
   state: RebuildState,
   input: {
@@ -1068,7 +1151,11 @@ export function updateSaveGoalSettings(
   }
   return normalizeSaveGoals({
     ...state,
-    saveGoalSettings: { monthlyIncome, incomeDayOfMonth },
+    saveGoalSettings: {
+      monthlyIncome,
+      incomeDayOfMonth,
+      historyEpoch: prev.historyEpoch,
+    },
   });
 }
 

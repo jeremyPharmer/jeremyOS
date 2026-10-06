@@ -14,6 +14,7 @@ import {
   setGoalInboundPercent,
   setInboundPercents,
   setSaveGoalSavedAmount,
+  setSaveGoalDayInbound,
   setSoleDailyTarget,
   undoApplySaveGoalDayTotals,
   updateSaveGoal,
@@ -146,6 +147,19 @@ export async function POST(req: Request) {
             ? body.allocations
             : undefined,
           note: body.note !== undefined ? String(body.note) : undefined,
+        });
+      }
+
+      if (action === "setInbound") {
+        const inboundDate = String(body.date ?? "").trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(inboundDate)) {
+          const err = new Error("Pick a date for inbound");
+          (err as Error & { status: number }).status = 400;
+          throw err;
+        }
+        return setSaveGoalDayInbound(prev, {
+          date: inboundDate,
+          amount: Number(body.amount),
         });
       }
 
