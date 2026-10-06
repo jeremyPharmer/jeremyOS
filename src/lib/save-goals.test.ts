@@ -1164,8 +1164,8 @@ describe("deleteSaveGoal", () => {
   });
 });
 
-describe("discard Sep 15 2026 + month rollups", () => {
-  it("normalize drops 2026-09-15 close/spend and bumps createdOn to Sep 29", () => {
+describe("ledger start Oct 1 2026 + month rollups", () => {
+  it("normalize drops all September closes/spends and bumps createdOn to Oct 1", () => {
     let state = emptyState();
     state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
     state = createSaveGoal(state, {
@@ -1173,17 +1173,15 @@ describe("discard Sep 15 2026 + month rollups", () => {
       targetAmount: 2900,
       createdOn: "2026-09-15",
     });
-    // createdOn bump happens on normalize inside createSaveGoal
-    expect(state.saveGoals![0].createdOn).toBe("2026-09-29");
+    expect(state.saveGoals![0].createdOn).toBe("2026-10-01");
 
-    state = applySaveGoalDayTotals(state, { date: "2026-09-29" });
+    state = applySaveGoalDayTotals(state, { date: "2026-10-01" });
     const goalId = state.saveGoals![0].id;
-    // Simulate legacy junk still on disk (pre-cleanup close + spend).
     const junked = {
       ...state,
       saveGoals: state.saveGoals!.map((g) => ({
         ...g,
-        createdOn: "2026-09-15",
+        createdOn: "2026-09-29",
       })),
       saveGoalDays: [
         ...(state.saveGoalDays ?? []),
@@ -1196,28 +1194,48 @@ describe("discard Sep 15 2026 + month rollups", () => {
           allocations: [{ goalId, amount: 5.6 }],
           kind: "close" as const,
         },
+        {
+          date: "2026-09-29",
+          dailyIncome: 16,
+          spendTotal: 0,
+          leftover: 16,
+          lumpSum: 0,
+          allocations: [{ goalId, amount: 12.8 }],
+          kind: "close" as const,
+        },
+        {
+          date: "2026-09-30",
+          dailyIncome: 16,
+          spendTotal: 0,
+          leftover: 16,
+          lumpSum: 0,
+          allocations: [{ goalId, amount: 12.8 }],
+          kind: "close" as const,
+        },
       ],
       saveGoalSpendEntries: [
         {
-          id: "junk-sep15",
-          date: "2026-09-15",
+          id: "junk-sep30",
+          date: "2026-09-30",
           amount: 3,
           kind: "spend" as const,
           category: "meals" as const,
         },
       ],
     };
-    expect(junked.saveGoalDays.some((d) => d.date === "2026-09-15")).toBe(
-      true,
+    expect(junked.saveGoalDays.filter((d) => d.date.startsWith("2026-09"))).toHaveLength(
+      3,
     );
 
     state = normalizeSaveGoals(junked);
     expect(saveGoalCloseForDate(state, "2026-09-15")).toBeNull();
-    expect(spendTotalForDate(state, "2026-09-15")).toBe(0);
-    expect(saveGoalCloseForDate(state, "2026-09-29")).not.toBeNull();
-    expect(state.saveGoals![0].createdOn).toBe("2026-09-29");
+    expect(saveGoalCloseForDate(state, "2026-09-29")).toBeNull();
+    expect(saveGoalCloseForDate(state, "2026-09-30")).toBeNull();
+    expect(spendTotalForDate(state, "2026-09-30")).toBe(0);
+    expect(saveGoalCloseForDate(state, "2026-10-01")).not.toBeNull();
+    expect(state.saveGoals![0].createdOn).toBe("2026-10-01");
     expect(state.saveGoals![0].savedAmount).toBe(
-      saveGoalCloseForDate(state, "2026-09-29")!.allocations[0].amount,
+      saveGoalCloseForDate(state, "2026-10-01")!.allocations[0].amount,
     );
   });
 
@@ -1227,12 +1245,12 @@ describe("discard Sep 15 2026 + month rollups", () => {
     state = createSaveGoal(state, {
       name: "General",
       targetAmount: 2900,
-      createdOn: "2026-09-29",
+      createdOn: "2026-10-01",
     });
     state = createSaveGoal(state, {
       name: "Reserve",
       targetAmount: 500,
-      createdOn: "2026-09-29",
+      createdOn: "2026-10-01",
       claimDailyInbound: false,
     });
     const general = () => state.saveGoals!.find((g) => g.name === "General")!;
@@ -1243,22 +1261,22 @@ describe("discard Sep 15 2026 + month rollups", () => {
     });
 
     state = addSaveGoalSpend(state, {
-      date: "2026-09-30",
+      date: "2026-10-02",
       amount: 5,
       kind: "spend",
       category: "meals",
     });
     state = addSaveGoalSpend(state, {
-      date: "2026-09-30",
+      date: "2026-10-02",
       amount: 2,
       kind: "spend",
       category: "entertainment",
     });
-    state = applySaveGoalDayTotals(state, { date: "2026-09-29" });
-    state = applySaveGoalDayTotals(state, { date: "2026-09-30" });
+    state = applySaveGoalDayTotals(state, { date: "2026-10-01" });
+    state = applySaveGoalDayTotals(state, { date: "2026-10-02" });
 
-    const summary = summarizeSaveGoalMonth(state, "2026-09");
-    expect(formatCalendarMonthLabel("2026-09")).toBe("September 2026");
+    const summary = summarizeSaveGoalMonth(state, "2026-10");
+    expect(formatCalendarMonthLabel("2026-10")).toBe("October 2026");
     expect(summary.days).toHaveLength(2);
     expect(summary.appliedByGoalId[general().id]).toBeGreaterThan(0);
     expect(summary.appliedByGoalId[reserve().id]).toBeGreaterThan(0);
@@ -1272,19 +1290,19 @@ describe("discard Sep 15 2026 + month rollups", () => {
     state = createSaveGoal(state, {
       name: "General",
       targetAmount: 2900,
-      createdOn: "2026-09-29",
+      createdOn: "2026-10-01",
     });
-    state = applySaveGoalDayTotals(state, { date: "2026-09-29" });
-    state = applySaveGoalDayTotals(state, { date: "2026-09-30" });
     state = applySaveGoalDayTotals(state, { date: "2026-10-01" });
     state = applySaveGoalDayTotals(state, { date: "2026-10-02" });
+    state = applySaveGoalDayTotals(state, { date: "2026-11-01" });
+    state = applySaveGoalDayTotals(state, { date: "2026-11-02" });
 
-    const groups = groupSaveGoalClosesByMonth(state, "2026-10-06");
-    expect(groups.map((g) => g.monthKey)).toEqual(["2026-10", "2026-09"]);
+    const groups = groupSaveGoalClosesByMonth(state, "2026-11-06");
+    expect(groups.map((g) => g.monthKey)).toEqual(["2026-11", "2026-10"]);
     expect(groups[0].isCurrentMonth).toBe(true);
     expect(groups[0].summary.days.map((d) => d.date)).toEqual([
-      "2026-10-02",
-      "2026-10-01",
+      "2026-11-02",
+      "2026-11-01",
     ]);
     expect(groups[1].isCurrentMonth).toBe(false);
     expect(groups[1].summary.days).toHaveLength(2);
