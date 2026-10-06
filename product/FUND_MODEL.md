@@ -5,7 +5,7 @@ Status: **Decision locked** — supersedes three-bucket 50/25/25 and the old “
 
 **JeremyOS context (2026-08-29):** This ledger remains the locked model for Jeremy’s **personal** incentive / recovery money tools. Under the JeremyOS pivot it is **secondary** to the personal-OS north star (todos, email, podcasts, hub) — not deleted. Implementation polish (RB-006) and Venmo rails (RB-001) are demoted in ranking; do not invent a kill without founder confirmation.
 
-**Save Goals (2026-09-27):** A **separate** discretionary tracker (**RB-037**) — named goals (“Save towards something”), monthly income → daily rate, evening spend/leftover. **Not** a third fund bucket; **not** in Venmo Total; actual money does not move. See § Save Goals below.
+**Save Goals (2026-09-27; mental model 2026-10-06):** A **separate** discretionary tracker (**RB-037** + next slice **RB-041**) — named goals (“Save towards something”); **Reserve** = holding tank / default destination; transfers into named goals; named-goal ETA from **fixed $/day** (not % inbound). **Not** a third fund bucket; **not** in Venmo Total; actual money does not move. See § Save Goals below.
 
 ## Mental model
 
@@ -81,17 +81,18 @@ Handoff detail: `product/UX_HANDOFF_FUND_BUCKETS.md`
 
 ## Save Goals (separate from this ledger)
 
-Canonical backlog: **RB-037**. Product name: **Save Goal**. Home empty CTA: **“Save towards something.”**
+Canonical backlog: **RB-037** (ledger / Adjust mid-flight) + **RB-041** (Reserve-as-hub + fixed $/day). Product name: **Save Goal**. Home empty CTA: **“Save towards something.”**
 
 | Rule | Detail |
 | --- | --- |
-| Job | Track progress toward a named target (gift, trip, holiday) |
+| Job | Track progress toward named targets; **Reserve** holds inbound until transferred |
 | Relation | **Parallel** to Future / Treat — never merges into `state.fund` |
 | Venmo Total | **Excluded** — Save Goal balances do not affect Total |
-| Money movement | **None** — UI + backend tracking only |
-| Income | Default **$500** credited conceptually on the **1st**; daily rate = `monthlyIncome / daysInMonth` |
-| Evening | Enter **total spend**; `leftover = dailyRate − spend` (+ optional lump sum); allocate to active goals; overspend may pull goals **negative**. Unapplied left **rolls**; Apply with roll-in prompts **all** vs **only rolled** (RB-037 §7) |
-| Home | Card shows **to go**, paydown, projected **target date** |
+| Money movement | **None** (real cash) — UI + backend tracking only; **transfers** are ledger moves Reserve → named goal |
+| Reserve | Holding tank / default destination; **no** projected payoff ETA (RB-041) |
+| Named-goal ETA | Fixed **$/day** on that goal; date updates as transfers raise saved / shrink to-go (RB-041) |
+| Ledger entry (now) | **Adjust** remains the digital entry path while daily % mix / daily apply UI is paused (ledger-only) |
+| Historical (paused) | Monthly income → daily rate; evening spend/leftover; % allocate; Apply all vs only rolled (RB-037 §7) — do not revive as primary model under RB-041 |
 
 Do **not** debit Future or Treat when allocating to a Save Goal. Do **not** confuse with reward-moment **Save for the Future** (skip Treat) — different words, different ledger.
 

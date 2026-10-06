@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-031 |
-| Rank | 23 |
+| Rank | 24 |
 | Priority | P1 |
 | Status | Ready |
 | Effort | S |
