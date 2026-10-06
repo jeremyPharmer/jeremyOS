@@ -5,7 +5,7 @@
 | ID | RB-041 |
 | Rank | 17 |
 | Priority | P0 |
-| Status | Ready |
+| Status | In Progress |
 | Effort | S |
 | Target due | TBD |
 | Milestone | v1.x |
@@ -102,7 +102,8 @@ Ship soon after ledger-only lands. Thin and numbers-first.
 | Reserve target amount | **None** for ETA — balance-only hub; do not show “$X to go” as a goal race |
 | Transfer direction v1 | **Reserve → named goal** only |
 | Missing $/day | Named goal shows to-go / progress but **no** projected date until rate &gt; 0 |
-| Inbound Adjust | Credits **Reserve** |
+| Inbound Adjust | Credits **Reserve** (new credits only) |
+| Existing balances on ship | **Remain where they are** — do **not** migrate named-goal balances into Reserve |
 | Ledger-only complementarity | Keep Adjust as entry path; do not re-enable daily apply/% mix in this slice |
 
 ## Dependencies & risks
@@ -115,6 +116,7 @@ Ship soon after ledger-only lands. Thin and numbers-first.
 
 ## Notes
 
-- **Intake 2026-10-06:** Founder paused daily % mix / daily apply (ledger-only in flight). Clarified Reserve = holding tank; named goals funded by moves from Reserve; fixed $/day drives dynamic payoff dates. Captured as **RB-041** Ready / rank **17** / P0 — next Save Goals intent after ledger-only, without bumping unrelated higher P0s.
+- **Intake 2026-10-06:** Founder paused daily % mix / daily apply (ledger-only in flight). Clarified Reserve = holding tank; named goals funded by moves from Reserve; fixed $/day drives dynamic payoff dates. Captured as **RB-041** rank **17** / P0 — next Save Goals intent after ledger-only, without bumping unrelated higher P0s.
+- **2026-10-06 ship start:** Status → **In Progress** (founder: ship to prod). **Migration locked:** existing named-goal balances **stay put**; only **new** inbound / Adjust credits default to Reserve going forward — no bulk move into Reserve on ship.
 - Supersedes RB-037 §5 target-date math **for named goals** (was inbound % × daily rate) and the example that projected Reserve ETA from %. RB-037 remains the parent item for ledger/Adjust history; **do not** delete RB-037.
 - Related branch context: `cursor/save-goals-ledger-only-8ada` (complementary UI pause).
