@@ -38,6 +38,7 @@ import {
   spendCategoryLabelsForDate,
   spendTotalForDate,
   splitPoolByWeight,
+  saveGoalSpendEntryLabel,
   summarizeSaveGoalMonth,
   updateSaveGoal,
   updateSaveGoalSettings,
@@ -849,6 +850,29 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     expect(spendCategoryLabelsForDate(state, "2026-04-01")).toEqual([
       "Entertainment",
       "Meals",
+    ]);
+  });
+
+  it("Other spend can carry a free-text note in the label", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 500,
+      createdOn: "2026-04-01",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 8.18,
+      kind: "spend",
+      category: "other",
+      note: "  parking meter  ",
+    });
+    expect(state.saveGoalSpendEntries![0].note).toBe("parking meter");
+    expect(saveGoalSpendEntryLabel(state.saveGoalSpendEntries![0])).toBe(
+      "Other · parking meter",
+    );
+    expect(spendCategoryLabelsForDate(state, "2026-04-01")).toEqual([
+      "Other · parking meter",
     ]);
   });
 
