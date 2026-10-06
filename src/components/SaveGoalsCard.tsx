@@ -155,31 +155,31 @@ function GoalProgressRow({
           />
         </div>
       ) : null}
-      <div className="save-goal-meta">
-        {reserve ? (
-          <span className="tiny muted">Holding tank — fund goals from here</span>
-        ) : (
-          <span className="tiny">
-            {formatMoney(Math.max(0, goal.savedAmount))} of{" "}
-            {formatMoney(goal.targetAmount)}
-            {daily > 0 ? (
-              <>
-                {" "}
-                · {formatMoneyDown(daily)}/day
-              </>
-            ) : null}
-            {under ? (
-              <span className="save-goal-under">
-                {" "}
-                · {formatMoney(Math.abs(goal.savedAmount))} under
-              </span>
-            ) : null}
-          </span>
-        )}
-        {dateLine ? (
-          <span className="tiny save-goal-eta">{dateLine}</span>
-        ) : null}
-      </div>
+      {!reserve || dateLine ? (
+        <div className="save-goal-meta">
+          {!reserve ? (
+            <span className="tiny">
+              {formatMoney(Math.max(0, goal.savedAmount))} of{" "}
+              {formatMoney(goal.targetAmount)}
+              {daily > 0 ? (
+                <>
+                  {" "}
+                  · {formatMoneyDown(daily)}/day
+                </>
+              ) : null}
+              {under ? (
+                <span className="save-goal-under">
+                  {" "}
+                  · {formatMoney(Math.abs(goal.savedAmount))} under
+                </span>
+              ) : null}
+            </span>
+          ) : null}
+          {dateLine ? (
+            <span className="tiny save-goal-eta">{dateLine}</span>
+          ) : null}
+        </div>
+      ) : null}
       <div className="save-goal-inbound-row">
         <button
           type="button"
@@ -1088,9 +1088,6 @@ function SaveGoalsDetail() {
         <div>
           <p className="home-card-kicker">Save goals</p>
           <h2>{goals.length === 0 ? "Save towards something" : "Ledger"}</h2>
-          <p className="tiny muted" style={{ margin: "4px 0 0" }}>
-            Money lands in Reserve; transfer into goals. Set $/day for a payoff date.
-          </p>
         </div>
       </div>
 
