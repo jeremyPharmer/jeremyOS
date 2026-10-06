@@ -841,10 +841,13 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       category: "food",
     });
     expect(state.saveGoalSpendEntries![1].category).toBe("meals");
+<<<<<<< HEAD
     expect(spendCategoryLabelsForDate(state, "2026-04-01")).toEqual([
       "Entertainment",
       "Meals",
     ]);
+=======
+>>>>>>> origin/main
   });
 
   it("manual adds increase day total and leftover", () => {
