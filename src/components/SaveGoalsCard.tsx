@@ -25,6 +25,7 @@ import {
   SAVE_GOAL_SPEND_CATEGORIES,
   saveGoalCloseForDate,
   saveGoalSpendCategoryLabel,
+  spendCategoryLabelsForDate,
   splitPoolByWeight,
 } from "@/lib/save-goals";
 import type {
@@ -166,6 +167,7 @@ function DailyLedgerDay({
   closed,
   goals,
   day,
+  spendCategories,
 }: {
   label: string;
   inbound: number;
@@ -176,8 +178,14 @@ function DailyLedgerDay({
   closed: boolean;
   goals: SaveGoal[];
   day?: SaveGoalDay | null;
+  /** Soft category names shown next to Spend (e.g. Meals) */
+  spendCategories?: string[];
 }) {
   const addTotal = adds ?? 0;
+  const categoryLine =
+    spendCategories && spendCategories.length > 0
+      ? spendCategories.join(" · ")
+      : null;
   return (
     <div className={`save-goal-ledger-day${closed ? "" : " open"}`}>
       <div className="save-goal-ledger-day-head">
@@ -200,7 +208,12 @@ function DailyLedgerDay({
           </div>
         ) : null}
         <div className="save-goal-ledger-row">
-          <span>Spend</span>
+          <span className="save-goal-ledger-spend-label">
+            Spend
+            {categoryLine && spend !== null && spend > 0 ? (
+              <span className="save-goal-ledger-spend-cat">{categoryLine}</span>
+            ) : null}
+          </span>
           <span>
             {spend === null
               ? "—"
@@ -385,6 +398,7 @@ function DailyLedger({
         closed={applied}
         goals={goals}
         day={todayClose}
+        spendCategories={spendCategoryLabelsForDate(state, today)}
       />
       {needsDrawPick ? (
         <div className="save-goal-draw-from">
@@ -576,6 +590,7 @@ function DailyLedger({
                   closed
                   goals={[...(state.saveGoals ?? [])]}
                   day={d}
+                  spendCategories={spendCategoryLabelsForDate(state, d.date)}
                 />
               ))
             : null}

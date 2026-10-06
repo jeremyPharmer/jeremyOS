@@ -2886,6 +2886,22 @@ button.save-goal-rate.save-goal-inbound-edit {
   font-variant-numeric: tabular-nums;
 }
 
+.save-goal-ledger-spend-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.save-goal-ledger-spend-cat {
+  font-weight: 400;
+  font-size: 0.82em;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .save-goal-ledger-row.leftover {
   font-weight: 700;
   padding-top: 2px;

@@ -483,6 +483,26 @@ export function spendTotalForDate(state: RebuildState, date: string): number {
   );
 }
 
+/**
+ * Soft labels for spend categories used on a date (unique, oldest-first).
+ * Empty when there were no categorized subtract lines.
+ */
+export function spendCategoryLabelsForDate(
+  state: RebuildState,
+  date: string,
+): string[] {
+  const labels: string[] = [];
+  const seen = new Set<string>();
+  for (const e of listSaveGoalSpendEntries(state, date)) {
+    if (entryKind(e) !== "spend") continue;
+    const label = saveGoalSpendCategoryLabel(e.category);
+    if (!e.category || label === "Spend" || seen.has(label)) continue;
+    seen.add(label);
+    labels.push(label);
+  }
+  return labels;
+}
+
 /** Sum of manual add lines for a date. */
 export function addTotalForDate(state: RebuildState, date: string): number {
   return round2(
