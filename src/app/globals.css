@@ -2870,18 +2870,28 @@ button.save-goal-rate.save-goal-inbound-edit {
 .save-goal-ledger-history-list {
   display: flex;
   flex-direction: column;
-  margin-top: 4px;
-  padding: 0 2px;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 0;
 }
 
 .save-goal-ledger-history-list .save-goal-ledger-day {
-  padding: 12px 0;
-  border-top: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  margin: 0;
+  padding: 12px 12px 10px;
+  border: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+  border-radius: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+  background: color-mix(in srgb, var(--ink) 3.5%, var(--surface, #fff));
 }
 
 .save-goal-ledger-history-list .save-goal-ledger-day:first-child {
-  border-top: none;
-  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+  padding-top: 12px;
+}
+
+.save-goal-ledger-history-list .save-goal-ledger-date {
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
 }
 
 .save-goal-ledger-day-head {
