@@ -414,7 +414,7 @@ export const SAVE_GOAL_LEDGER_START = "2026-10-01";
  * Bump to wipe all closes/spends/inbound overrides so Jeremy can true up
  * manually from Oct 1. Runs once per epoch on normalize.
  */
-export const SAVE_GOAL_HISTORY_EPOCH = 3;
+export const SAVE_GOAL_HISTORY_EPOCH = 4;
 
 function isSeptember2026(date: string): boolean {
   return DATE_RE.test(date) && date.startsWith("2026-09-");
@@ -603,10 +603,19 @@ function hasSaveGoalClose(state: RebuildState, date: string): boolean {
   );
 }
 
+/** Spend, add, or inbound override — empty calendar days do not mint roll. */
+function dayHasOpenRollActivity(state: RebuildState, date: string): boolean {
+  if (addTotalForDate(state, date) !== 0) return true;
+  if (spendTotalForDate(state, date) !== 0) return true;
+  const override = state.saveGoalInboundByDate?.[date];
+  return override !== undefined && Number.isFinite(override);
+}
+
 /**
  * Day pool before Apply: base daily rate + leftover rolled from prior
- * unapplied days + manual adds − today’s spend entries.
- * Unapplied days do **not** credit goals; their left carries forward.
+ * unapplied days that had activity + manual adds − today’s spend.
+ * Empty unapplied calendar days do **not** invent inbound into the roll
+ * (so a wiped ledger shows only today’s rate until history is entered).
  */
 export function leftoverBeforeApply(
   state: RebuildState,
@@ -648,16 +657,23 @@ export function leftoverBeforeApply(
   };
   for (const d of datesInRange(start, date)) {
     const base = dayInboundBase(state, d);
-    const inbound = round2(base + carry);
     const adds = addTotalForDate(state, d);
     const spend = spendTotalForDate(state, d);
-    const left = round2(inbound + adds - spend);
     if (d === date) {
+      const inbound = round2(base + carry);
+      const left = round2(inbound + adds - spend);
       result = { base, carryIn: carry, inbound, adds, spend, left };
       break;
     }
-    // Applied → spent into goals; nothing rolls. Otherwise left carries on.
-    carry = hasSaveGoalClose(state, d) ? 0 : left;
+    if (hasSaveGoalClose(state, d)) {
+      carry = 0;
+      continue;
+    }
+    // No spend/add/override → skip; don't mint default inbound into the roll.
+    if (!dayHasOpenRollActivity(state, d)) continue;
+    const inbound = round2(base + carry);
+    const left = round2(inbound + adds - spend);
+    carry = left;
   }
   return result;
 }
@@ -728,8 +744,9 @@ export function removeSaveGoalSpend(
 }
 
 /**
- * Prior open days that still roll into `asOfDate` (contiguous unapplied
- * chain after the last close). Does not include `asOfDate` itself.
+ * Prior open days that still roll into `asOfDate` (unapplied days with
+ * spend/add/inbound activity after the last close). Empty calendar days
+ * are skipped. Does not include `asOfDate` itself.
  */
 export function listRolledOpenDatesBefore(
   state: RebuildState,
@@ -743,7 +760,7 @@ export function listRolledOpenDatesBefore(
     if (d === asOfDate) break;
     if (hasSaveGoalClose(state, d)) {
       opens.length = 0;
-    } else {
+    } else if (dayHasOpenRollActivity(state, d)) {
       opens.push(d);
     }
   }

@@ -514,7 +514,7 @@ describe("averageSpendLastDays", () => {
 });
 
 describe("ensureElapsedSaveGoalDays", () => {
-  it("does not auto-credit — unapplied leftover rolls instead", () => {
+  it("does not auto-credit — empty unapplied days do not mint roll", () => {
     let state = emptyState();
     state = createSaveGoal(state, {
       name: "Trip",
@@ -527,10 +527,10 @@ describe("ensureElapsedSaveGoalDays", () => {
     );
     expect(closes).toHaveLength(0);
     expect(state.saveGoals![0].savedAmount).toBe(0);
-    // Apr 1 + Apr 2 rates roll into Apr 3 pool
+    // Empty Apr 1–2 do not invent inbound into Apr 3
     const day3 = leftoverBeforeApply(state, "2026-04-03");
-    expect(day3.carryIn).toBe(32);
-    expect(day3.inbound).toBe(48);
+    expect(day3.carryIn).toBe(0);
+    expect(day3.inbound).toBe(16);
   });
 
   it("stops rolling after a day is applied", () => {
@@ -973,16 +973,29 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       targetAmount: 500,
       createdOn: "2026-04-01",
     });
-    // Apr 1 + Apr 2 unapplied → Apr 3 carryIn 32
-    expect(leftoverBeforeApply(state, "2026-04-03").carryIn).toBe(32);
-    expect(leftoverBeforeApply(state, "2026-04-03").left).toBe(48);
+    // Activity on Apr 1–2 so they roll; empty days would not.
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 1,
+      kind: "spend",
+      category: "meals",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-02",
+      amount: 1,
+      kind: "spend",
+      category: "meals",
+    });
+    // Apr 1 left 15 + Apr 2 left 15+15=30 → carry into Apr 3 = 30? 
+    // Apr1: base16-1=15 rolls; Apr2: inbound31-1=30 rolls; Apr3 carryIn 30
+    expect(leftoverBeforeApply(state, "2026-04-03").carryIn).toBe(30);
     expect(listRolledOpenDatesBefore(state, "2026-04-03")).toEqual([
       "2026-04-01",
       "2026-04-02",
     ]);
 
     state = applySaveGoalRolledOnly(state, { date: "2026-04-03" });
-    expect(state.saveGoals![0].savedAmount).toBe(32);
+    expect(state.saveGoals![0].savedAmount).toBe(30);
     expect(saveGoalCloseForDate(state, "2026-04-03")).toBeNull();
     const today = leftoverBeforeApply(state, "2026-04-03");
     expect(today.carryIn).toBe(0);
@@ -1211,6 +1224,22 @@ describe("ledger start Oct 1 2026 + month rollups", () => {
     expect(leftoverBeforeApply(state, "2026-10-01").base).toBe(12.5);
     expect(leftoverBeforeApply(state, "2026-10-01").inbound).toBe(12.5);
     expect(state.saveGoalInboundByDate?.["2026-10-01"]).toBe(12.5);
+  });
+
+  it("wiped ledger shows only today’s rate — empty prior days do not roll", () => {
+    let state = emptyState();
+    state = updateSaveGoalSettings(state, { monthlyIncome: 500 });
+    state = createSaveGoal(state, {
+      name: "General",
+      targetAmount: 2900,
+      createdOn: "2026-10-01",
+    });
+    // Accrual since Oct 1 but no activity → today is just the daily rate
+    const today = leftoverBeforeApply(state, "2026-10-06");
+    expect(today.carryIn).toBe(0);
+    expect(today.base).toBe(dailyIncomeRate("2026-10-06", 500));
+    expect(today.inbound).toBe(today.base);
+    expect(listRolledOpenDatesBefore(state, "2026-10-06")).toEqual([]);
   });
 
   it("normalize drops all September closes/spends and bumps createdOn to Oct 1", () => {
