@@ -1878,6 +1878,99 @@ h2 {
   gap: 12px;
 }
 
+/* —— Home day hub (Tasks | Workout | Calendar) —— */
+.home-day-hub {
+  gap: 14px;
+  padding-top: 14px;
+}
+
+.home-day-hub-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+  border: 1px solid var(--line);
+}
+
+.home-day-hub-tab {
+  appearance: none;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  padding: 10px 8px;
+  border-radius: 11px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.home-day-hub-tab-active {
+  background: var(--surface-strong);
+  color: var(--text);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.home-day-hub-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.home-day-hub-pane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.home-day-hub-pane-head .home-card-kicker {
+  margin: 0;
+}
+
+.home-day-hub-inline-link {
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.home-day-hub-calendar {
+  min-width: 0;
+}
+
+.home-day-hub-day-panel {
+  margin-top: 2px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.home-day-hub-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.home-day-hub-agenda .agenda-header-top {
+  justify-content: flex-end;
+}
+
+.home-day-hub-agenda .agenda-header {
+  margin-bottom: 0;
+}
+
+.home-day-hub-calendar-mode {
+  gap: 0;
+}
+
 .tasks-day-strip-nav {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -2739,15 +2832,17 @@ button.save-goal-rate.save-goal-inbound-edit {
 
 .save-goal-spend-category .chip-row {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
+  max-width: 22rem;
+  margin-inline: auto;
 }
 
 .save-goal-spend-category .chip {
   flex: 0 0 auto;
   min-width: 0;
-  padding: 7px 10px;
+  padding: 7px 11px;
   font-size: 0.78rem;
   font-weight: 600;
   text-align: center;

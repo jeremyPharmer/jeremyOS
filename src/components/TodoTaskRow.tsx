@@ -59,6 +59,7 @@ export function TodoTaskRow({
   busy,
   clearing = false,
   snoozingOut = false,
+  preview = false,
   doneMeta,
   onComplete,
   onSnooze,
@@ -75,6 +76,8 @@ export function TodoTaskRow({
   clearing?: boolean;
   /** Snooze exit — highlight Snooze, then drop the card */
   snoozingOut?: boolean;
+  /** Future calendar preview — show the row but don't complete/snooze */
+  preview?: boolean;
   /** Extra meta for completed rows (e.g. done date M/D/YY) */
   doneMeta?: string | null;
   onComplete: () => void | Promise<void>;
@@ -88,14 +91,15 @@ export function TodoTaskRow({
   const activeDate = viewDate ?? today;
   const meta = doneMeta ?? taskMeta(item, activeDate, today);
   // Recurring rows keep lastCompletedOn until the next due — only treat as
-  // checked when finished for good, completed today (undo), or animating out.
+  // checked for the occurrence on the day being viewed (or finished for good).
   const doneToday =
     Boolean(item.completed) ||
-    item.lastCompletedOn === today ||
+    item.lastCompletedOn === activeDate ||
     Boolean(doneMeta) ||
     clearing;
   const canSnooze =
-    (activeDate >= today && !doneToday && !item.undated) || snoozingOut;
+    !preview &&
+    ((activeDate >= today && !doneToday && !item.undated) || snoozingOut);
   const group = item.group as TaskGroup | undefined;
   const barStyle = group
     ? { ["--group-color" as string]: TASK_GROUP_COLORS[group] }
@@ -131,7 +135,7 @@ export function TodoTaskRow({
           <button
             type="button"
             className="tasks-check-btn"
-            disabled={busy || doneToday || snoozingOut}
+            disabled={busy || doneToday || snoozingOut || preview}
             aria-label={`Complete ${item.label}`}
             onClick={onComplete}
           >
@@ -164,7 +168,7 @@ export function TodoTaskRow({
           <button
             type="button"
             className="check-box-btn"
-            disabled={busy || doneToday || snoozingOut}
+            disabled={busy || doneToday || snoozingOut || preview}
             aria-label={`Complete ${item.label}`}
             onClick={onComplete}
           >

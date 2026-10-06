@@ -17,11 +17,19 @@ export const SAVE_GOAL_SPEND_CATEGORIES: {
   id: SaveGoalSpendCategory;
   label: string;
 }[] = [
-  { id: "food", label: "Food" },
-  { id: "books_movies", label: "Books" },
+  { id: "meals", label: "Meals" },
+  { id: "snacks", label: "Snacks" },
   { id: "clothes", label: "Clothes" },
-  { id: "maintenance", label: "Maint." },
+  { id: "entertainment", label: "Entertainment" },
+  { id: "other", label: "Other" },
 ];
+
+/** Older subtract categories → current ids (normalize / labels). */
+const LEGACY_SPEND_CATEGORY: Record<string, SaveGoalSpendCategory> = {
+  food: "meals",
+  books_movies: "entertainment",
+  maintenance: "other",
+};
 
 const SPEND_CATEGORY_IDS = new Set(
   SAVE_GOAL_SPEND_CATEGORIES.map((c) => c.id),
@@ -33,12 +41,22 @@ export function isSaveGoalSpendCategory(
   return typeof value === "string" && SPEND_CATEGORY_IDS.has(value as SaveGoalSpendCategory);
 }
 
+/** Accept current or legacy category ids; returns canonical id. */
+export function coerceSaveGoalSpendCategory(
+  value: unknown,
+): SaveGoalSpendCategory | undefined {
+  if (typeof value !== "string") return undefined;
+  if (isSaveGoalSpendCategory(value)) return value;
+  return LEGACY_SPEND_CATEGORY[value];
+}
+
 export function saveGoalSpendCategoryLabel(
-  category: SaveGoalSpendCategory | undefined,
+  category: SaveGoalSpendCategory | string | undefined,
 ): string {
   if (!category) return "Spend";
+  const id = coerceSaveGoalSpendCategory(category) ?? category;
   return (
-    SAVE_GOAL_SPEND_CATEGORIES.find((c) => c.id === category)?.label ?? "Spend"
+    SAVE_GOAL_SPEND_CATEGORIES.find((c) => c.id === id)?.label ?? "Spend"
   );
 }
 
@@ -422,9 +440,7 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
         amount: round2(Math.max(0, Number(e.amount) || 0)),
         kind,
         category:
-          kind === "spend" && isSaveGoalSpendCategory(e.category)
-            ? e.category
-            : undefined,
+          kind === "spend" ? coerceSaveGoalSpendCategory(e.category) : undefined,
         note: e.note ? String(e.note).trim().slice(0, 80) : undefined,
         at: e.at ? String(e.at) : undefined,
       };
@@ -564,13 +580,15 @@ export function addSaveGoalSpend(
   const kind = input.kind === "add" ? "add" : "spend";
   let category: SaveGoalSpendCategory | undefined;
   if (kind === "spend") {
-    if (!isSaveGoalSpendCategory(input.category)) {
+    category = coerceSaveGoalSpendCategory(input.category);
+    if (!category) {
       throw Object.assign(
-        new Error("Pick a category: food, books/movies, clothes, or maintenance"),
+        new Error(
+          "Pick a category: meals, snacks, clothes, entertainment, or other",
+        ),
         { status: 400 },
       );
     }
-    category = input.category;
   }
   const entry: SaveGoalSpendEntry = {
     id: newId("sgs"),

@@ -3,10 +3,8 @@
 import type { ReactNode } from "react";
 import { HomeDateHeader } from "@/components/HomeDateHeader";
 import { WeatherBanner } from "@/components/WeatherBanner";
-import { TodayAgendaCard } from "@/components/TodayAgendaCard";
-import { TodayRebuildPanel } from "@/components/TodayRebuildPanel";
+import { HomeDayHub } from "@/components/HomeDayHub";
 import { DailyCrosswordCard } from "@/components/DailyCrosswordCard";
-import { MoveHubCard } from "@/components/MoveHubCard";
 import { WeekPlanPanel } from "@/components/WeekPlanPanel";
 import { BillsPanelCard } from "@/components/BillsPanelCard";
 import { SoccerPanelCard } from "@/components/SoccerPanelCard";
@@ -29,19 +27,6 @@ type WeekRow = {
   done: number;
   target: number;
 };
-
-function AgendaBlock() {
-  return <TodayAgendaCard />;
-}
-
-function HubsPair({ hero }: { hero?: boolean }) {
-  return (
-    <div className={hero ? "home-card-grid home-hubs-hero" : "home-card-grid"}>
-      <MoveHubCard />
-      <DailyCrosswordCard />
-    </div>
-  );
-}
 
 function HeaderStrip({ date }: { date: string }) {
   return (
@@ -75,6 +60,14 @@ function CommandBoard({
   );
 }
 
+function DayHubHero({ compact }: { compact?: boolean }) {
+  return (
+    <div className={compact ? "home-today-compact" : "home-today-hero"}>
+      <HomeDayHub />
+    </div>
+  );
+}
+
 function layoutBody(
   id: HomeLayoutId,
   today: string,
@@ -85,11 +78,8 @@ function layoutBody(
       return (
         <>
           <HeaderStrip date={today} />
-          <div className="home-today-hero">
-            <TodayRebuildPanel />
-          </div>
-          <AgendaBlock />
-          <HubsPair />
+          <DayHubHero />
+          <DailyCrosswordCard />
           <SaveGoalsCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
@@ -100,14 +90,8 @@ function layoutBody(
         <>
           <HomeDateHeader date={today} />
           <WeatherBanner />
-          <TodayRebuildPanel />
-          <AgendaBlock />
-          <div className="home-split-day">
-            <div className="home-split-primary">
-              <MoveHubCard />
-            </div>
-            <CrosswordRail />
-          </div>
+          <HomeDayHub />
+          <CrosswordRail />
           <SaveGoalsCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
@@ -118,11 +102,7 @@ function layoutBody(
         <>
           <HomeDateHeader date={today} />
           <WeatherBanner />
-          <TodayRebuildPanel />
-          <AgendaBlock />
-          <div className="home-train-hero">
-            <MoveHubCard />
-          </div>
+          <HomeDayHub />
           <DailyCrosswordCard />
           <SaveGoalsCard />
           <SportsPair />
@@ -139,10 +119,9 @@ function layoutBody(
             <WeatherBanner />
           </div>
           <div className="home-ritual-today">
-            <TodayRebuildPanel />
+            <HomeDayHub />
           </div>
-          <AgendaBlock />
-          <HubsPair />
+          <DailyCrosswordCard />
           <SaveGoalsCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
@@ -152,11 +131,7 @@ function layoutBody(
       return (
         <>
           <HeaderStrip date={today} />
-          <div className="home-today-compact">
-            <TodayRebuildPanel />
-          </div>
-          <AgendaBlock />
-          <MoveHubCard />
+          <DayHubHero compact />
           <CommandBoard today={today} week={week} />
           <SaveGoalsCard />
           <SportsPair />
@@ -166,14 +141,12 @@ function layoutBody(
       return (
         <>
           <HomeDateHeader date={today} />
-          <TodayRebuildPanel />
-          <AgendaBlock />
+          <HomeDayHub />
           <div className="home-wind-hero">
             <DailyCrosswordCard />
           </div>
           <SaveGoalsCard />
           <SportsPair />
-          <MoveHubCard />
           <WeekPlanPanel today={today} week={week} />
         </>
       );
@@ -182,9 +155,8 @@ function layoutBody(
         <>
           <HomeDateHeader date={today} />
           <WeatherBanner />
-          <TodayRebuildPanel />
-          <AgendaBlock />
-          <HubsPair hero />
+          <HomeDayHub />
+          <DailyCrosswordCard />
           <SaveGoalsCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
@@ -196,9 +168,8 @@ function layoutBody(
         <>
           <HomeDateHeader date={today} />
           <WeatherBanner />
-          <TodayRebuildPanel />
-          <AgendaBlock />
-          <HubsPair />
+          <HomeDayHub />
+          <DailyCrosswordCard />
           <SaveGoalsCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
@@ -215,13 +186,9 @@ export function HomeShell({
   week: WeekRow[];
 }) {
   const { homeLayout } = useHomeLayout();
-
   return (
-    <main
-      className={`fade-in home-cos stack home-layout home-layout-${homeLayout}`}
-      data-home-layout={homeLayout}
-    >
+    <div className={`home-cos home-layout home-layout-${homeLayout}`}>
       {layoutBody(homeLayout, today, week)}
-    </main>
+    </div>
   );
 }

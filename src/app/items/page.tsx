@@ -6,16 +6,12 @@ import { useApp } from "@/components/AppProvider";
 import { TodoComposer, type TodoComposerPayload } from "@/components/TodoComposer";
 import { TodoTaskRow } from "@/components/TodoTaskRow";
 import { TaskAnalyticsPanel } from "@/components/TaskAnalyticsPanel";
-import { TaskMonthCalendar } from "@/components/TaskMonthCalendar";
-import { formatDisplayDate, parseDate } from "@/lib/journey";
 import {
   completedTodosOn,
   doneDateLabel,
   openDatedTodosOn,
-  openTaskColorsByDate,
   openUndatedTodos,
 } from "@/lib/task-groups";
-import { monthKey } from "@/lib/workouts";
 import type { DayProvision } from "@/lib/types";
 
 export default function ItemsPage() {
@@ -30,37 +26,19 @@ export default function ItemsPage() {
   const [completedOpen, setCompletedOpen] = useState(false);
   const [undatedOpen, setUndatedOpen] = useState(true);
 
-  const initialMonth = useMemo(() => {
-    if (!today) return "";
-    const d = parseDate(today);
-    return monthKey(d.getFullYear(), d.getMonth() + 1);
-  }, [today]);
-  const [month, setMonth] = useState(initialMonth);
-  const [selectedDate, setSelectedDate] = useState(today);
-
   useEffect(() => {
     if (!state.profile?.onboarded) router.replace("/onboarding");
   }, [state.profile, router]);
 
-  useEffect(() => {
-    if (!today) return;
-    setSelectedDate((prev) => prev || today);
-    if (!month) {
-      const d = parseDate(today);
-      setMonth(monthKey(d.getFullYear(), d.getMonth() + 1));
-    }
-  }, [today, month]);
-
   const todos = state.dayProvisions ?? [];
-  const dayColors = useMemo(() => openTaskColorsByDate(todos), [todos]);
   const dayTodos = useMemo(
-    () => (selectedDate ? openDatedTodosOn(todos, selectedDate) : []),
-    [todos, selectedDate],
+    () => (today ? openDatedTodosOn(todos, today) : []),
+    [todos, today],
   );
   const undatedTodos = useMemo(() => openUndatedTodos(todos), [todos]);
   const dayCompleted = useMemo(
-    () => (selectedDate ? completedTodosOn(todos, selectedDate) : []),
-    [todos, selectedDate],
+    () => (today ? completedTodosOn(todos, today) : []),
+    [todos, today],
   );
 
   async function run(id: string | null, body: Record<string, unknown>) {
@@ -109,11 +87,6 @@ export default function ItemsPage() {
       undated: payload.undated,
       trackOverTime: payload.trackOverTime,
     });
-    if (payload.date && !payload.undated) {
-      setSelectedDate(payload.date);
-      const d = parseDate(payload.date);
-      setMonth(monthKey(d.getFullYear(), d.getMonth() + 1));
-    }
   }
 
   function renderRow(
@@ -125,7 +98,7 @@ export default function ItemsPage() {
         key={item.id}
         item={item}
         today={today!}
-        viewDate={selectedDate}
+        viewDate={today}
         busy={busyId === item.id}
         clearing={exitingTodos[item.id] === "complete"}
         snoozingOut={exitingTodos[item.id] === "snooze"}
@@ -163,7 +136,7 @@ export default function ItemsPage() {
     );
   }
 
-  if (!state.profile?.onboarded || !today || !month || !selectedDate) {
+  if (!state.profile?.onboarded || !today) {
     return null;
   }
 
@@ -171,7 +144,9 @@ export default function ItemsPage() {
     <main className="stack fade-in">
       <p className="eyebrow">Tasks</p>
       <h1>Tasks</h1>
-      <p className="muted">Due dates on the calendar — tap a day to work the list.</p>
+      <p className="muted">
+        Master list for today — pick days from the Home calendar.
+      </p>
 
       <TaskAnalyticsPanel />
 
@@ -195,57 +170,40 @@ export default function ItemsPage() {
         />
       )}
 
-      <section className="panel workout-calendar-panel task-calendar-panel">
-        <TaskMonthCalendar
-          monthKey={month}
-          today={today}
-          selectedDate={selectedDate}
-          dayColors={dayColors}
-          onMonthChange={setMonth}
-          onSelectDate={setSelectedDate}
-        />
+      <section className="panel task-day-panel">
+        <p className="eyebrow task-day-heading">Today</p>
+        {dayTodos.length === 0 ? (
+          <p className="muted tiny" style={{ margin: 0 }}>
+            Nothing due today.
+          </p>
+        ) : (
+          <div className="daily-actions">
+            {dayTodos.map((item) => renderRow(item))}
+          </div>
+        )}
 
-        <div className="task-day-panel">
-          <div key={selectedDate} className="task-day-panel-body">
-            <p className="eyebrow task-day-heading">
-              {selectedDate === today
-                ? "Today"
-                : formatDisplayDate(selectedDate)}
-            </p>
-            {dayTodos.length === 0 ? (
-              <p className="muted tiny" style={{ margin: 0 }}>
-                Nothing due this day.
-              </p>
-            ) : (
+        {dayCompleted.length > 0 && (
+          <div className="task-group-completed">
+            <button
+              type="button"
+              className="task-group-completed-toggle"
+              aria-expanded={completedOpen}
+              onClick={() => setCompletedOpen((v) => !v)}
+            >
+              <span className="task-group-chevron" aria-hidden>
+                {completedOpen ? "▾" : "▸"}
+              </span>
+              Completed ({dayCompleted.length})
+            </button>
+            {completedOpen && (
               <div className="daily-actions">
-                {dayTodos.map((item) => renderRow(item))}
-              </div>
-            )}
-
-            {dayCompleted.length > 0 && (
-              <div className="task-group-completed">
-                <button
-                  type="button"
-                  className="task-group-completed-toggle"
-                  aria-expanded={completedOpen}
-                  onClick={() => setCompletedOpen((v) => !v)}
-                >
-                  <span className="task-group-chevron" aria-hidden>
-                    {completedOpen ? "▾" : "▸"}
-                  </span>
-                  Completed ({dayCompleted.length})
-                </button>
-                {completedOpen && (
-                  <div className="daily-actions">
-                    {dayCompleted.map((item) =>
-                      renderRow(item, { done: true, snooze: false }),
-                    )}
-                  </div>
+                {dayCompleted.map((item) =>
+                  renderRow(item, { done: true, snooze: false }),
                 )}
               </div>
             )}
           </div>
-        </div>
+        )}
       </section>
 
       {undatedTodos.length > 0 && (

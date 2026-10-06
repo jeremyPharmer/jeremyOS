@@ -127,8 +127,14 @@ export async function POST(req: Request) {
       }
 
       if (action === "adjust") {
+        const adjustDate = String(body.date ?? "").trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(adjustDate)) {
+          const err = new Error("Pick a date for the adjustment");
+          (err as Error & { status: number }).status = 400;
+          throw err;
+        }
         return applySaveGoalAdjustment(prev, {
-          date: String(body.date ?? today),
+          date: adjustDate,
           amount: Number(body.amount),
           mode: body.mode === "custom" ? "custom" : "preset",
           goalId: body.goalId !== undefined ? String(body.goalId) : undefined,

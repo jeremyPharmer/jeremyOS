@@ -324,7 +324,12 @@ function AgendaEventRow({
 /**
  * Combined today’s calendar agenda on Home (RB-023).
  */
-export function TodayAgendaCard() {
+export function TodayAgendaCard({
+  embedded = false,
+}: {
+  /** When true, omit outer home-card chrome (used inside HomeDayHub). */
+  embedded?: boolean;
+}) {
   const { today, state, post } = useApp();
   const [viewDate, setViewDate] = useState(today);
   const [monthKey, setMonthKey] = useState(
@@ -713,10 +718,17 @@ export function TodayAgendaCard() {
   }
 
   return (
-    <section className="home-card home-card-agenda" aria-label="Today's calendar">
+    <section
+      className={
+        embedded
+          ? "home-day-hub-agenda"
+          : "home-card home-card-agenda"
+      }
+      aria-label="Today's calendar"
+    >
       <header className="agenda-header">
         <div className="agenda-header-top">
-          <p className="home-card-kicker">Calendar</p>
+          {embedded ? null : <p className="home-card-kicker">Calendar</p>}
           <div className="agenda-header-actions">
             <button
               type="button"

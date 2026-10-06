@@ -187,6 +187,31 @@ describe("openTaskColorsByDate", () => {
     ]);
     expect(colors["2026-09-11"]).toBeUndefined();
   });
+
+  it("expands daily recurring tasks across the month range", () => {
+    const colors = openTaskColorsByDate(
+      [
+        todo({
+          id: "med",
+          label: "Medication",
+          group: "home",
+          date: "2026-10-07",
+          lastCompletedOn: "2026-10-06",
+          recurrence: {
+            kind: "repeat",
+            frequency: "day",
+            interval: 1,
+            ends: { type: "never" },
+          },
+        }),
+      ],
+      { from: "2026-10-01", to: "2026-10-10" },
+    );
+    expect(colors["2026-10-06"]).toBeUndefined();
+    expect(colors["2026-10-07"]).toEqual([TASK_GROUP_COLORS.home]);
+    expect(colors["2026-10-08"]).toEqual([TASK_GROUP_COLORS.home]);
+    expect(colors["2026-10-10"]).toEqual([TASK_GROUP_COLORS.home]);
+  });
 });
 
 describe("openDatedTodosOn / undated / completedTodosOn", () => {
@@ -209,6 +234,34 @@ describe("openDatedTodosOn / undated / completedTodosOn", () => {
     expect(openUndatedTodos(items).map((t) => t.id)).toEqual(["2"]);
     expect(completedTodosOn(items, "2026-09-10").map((t) => t.id)).toEqual([
       "3",
+    ]);
+  });
+
+  it("lists recurring tasks on future scheduled days unchecked", () => {
+    const items = [
+      todo({
+        id: "med",
+        label: "Medication",
+        group: "home",
+        date: "2026-10-07",
+        lastCompletedOn: "2026-10-06",
+        recurrence: {
+          kind: "repeat",
+          frequency: "day",
+          interval: 1,
+          ends: { type: "never" },
+        },
+      }),
+    ];
+    expect(openDatedTodosOn(items, "2026-10-06").map((t) => t.id)).toEqual([]);
+    expect(openDatedTodosOn(items, "2026-10-07").map((t) => t.id)).toEqual([
+      "med",
+    ]);
+    expect(openDatedTodosOn(items, "2026-10-09").map((t) => t.id)).toEqual([
+      "med",
+    ]);
+    expect(completedTodosOn(items, "2026-10-06").map((t) => t.id)).toEqual([
+      "med",
     ]);
   });
 });
