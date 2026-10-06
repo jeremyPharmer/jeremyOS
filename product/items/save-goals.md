@@ -17,9 +17,9 @@ Jeremy wants a simple way to save toward a named thing (gift, trip, holiday) on 
 
 ## Outcome
 
-- Home shows a **Save Goals** card per active goal: name, **to go**, progress paid down over time, projected **target date**.
-- Monthly income ($500 on the 1st) is converted to a **per-day rate**; evening close captures **total spend**, leftover (or deficit), and allocation to goals.
-- Optional **lump-sum** days split among goals.
+- Home shows a **Save Goals** card per active goal: name, **to go**, progress paid down over time, projected **target date** (**named goals only** — see [RB-041](./save-goals-reserve-hub.md) for Reserve-as-hub).
+- **Mid-flight (2026-10):** ledger-only UI pauses daily inbound % mix / daily apply; **Adjust** remains the digital ledger entry path.
+- **Next Save Goals slice:** [RB-041](./save-goals-reserve-hub.md) — Reserve holding tank + transfer + fixed $/day projection (supersedes %→ETA for named goals).
 - Tracking-only UI + backend — no rails, no Venmo, no debit from Future/Treat.
 
 ## Naming (locked)
@@ -151,29 +151,23 @@ Insert a thin **Money today** step in evening close (after mood/journal is fine;
 
 ### 5. Target date calculation rules
 
-For each **active** goal with `savedAmount < targetAmount`:
+> **Superseded for product direction (2026-10-06):** Founder locked **Reserve = holding tank (no ETA)** and **named-goal ETA = fixed $/day** after Reserve→goal transfers. Implement that model under **[RB-041](./save-goals-reserve-hub.md)**. Do **not** project a payoff date for Reserve. The %×daily-rate math below is **historical / paused** with ledger-only (daily % mix UI suppressed).
+
+~~For each **active** goal with `savedAmount < targetAmount`:~~
 
 ```text
-remaining = targetAmount − savedAmount          // cents OK
-share = inboundPercent(goal) / 100              // live chip %
-
-// Steady pace = regular daily inbound × %  (e.g. $16 × 20% = $3.20/day)
-// Ignore Left, rolled carry, one-time adds/lumps, and today’s spend.
-base = dailyIncomeRate(today)                   // floored whole dollars
+// HISTORICAL (paused) — replaced by RB-041 fixed $/day on named goals
+remaining = targetAmount − savedAmount
+share = inboundPercent(goal) / 100
+base = dailyIncomeRate(today)
 goalDaily = base × share
-if goalDaily ≤ 0 or share ≤ 0 → targetDate = null  // UI: "Needs leftover" / "0% daily"
-
-// If today not yet applied, count today’s regular credit once
-if today open: remaining -= goalDaily
-etaDays = ceil(remaining / goalDaily)
-targetDate = today + etaDays calendar days
+…
 ```
 
-Example: Reserve $985 to go at 20% of $16/day → $3.20/day → ~308 days (show **year** in the label).
+~~Example: Reserve $985 to go at 20% of $16/day → …~~ **Do not** show Reserve ETA.
 
-- If `savedAmount >= targetAmount` → show **Reached** (no date needed).
+- If `savedAmount >= targetAmount` → show **Reached** (no date needed) on **named** goals.
 - Do not use Future/Treat or `historicalDailySpend` in this math.
-- Recalculate on read so inbound % steppers update the date immediately.
 - Date labels always include the year (goals often land next calendar year).
 
 ### 6. Create / settings (thin)
@@ -245,3 +239,5 @@ Do **not** invent a third “apply through yesterday but rewrite today’s close
 - **Intake 2026-09-27:** Founder asked for Home “Save towards something”, to-go paydown, $500/mo → per day, lump sums, evening spend/leftover (incl. negative), target date; tracking only; “let’s go.” Elevated to **Ready / rank 13 / P0** — not parked with demoted fund rails (RB-001/RB-006).
 - Distinct from reward-moment **Save for the Future** (skip Treat) — different words, different ledger.
 - **2026-09-28 Apply-with-roll:** Founder unsure how to prompt elegantly when unapplied leftover rolls across days. Locked §7: two money-first choices (apply all vs apply only rolled); appear iff `carryIn !== 0`; default = apply all (= current single apply). Ship as RB-037 polish — no new ID.
+- **2026-10 ledger-only (mid-flight):** Pause daily inbound % mix / daily apply UI; Adjust remains ledger entry. Branch context: `cursor/save-goals-ledger-only-8ada`. Complementary to — not replaced by — RB-041.
+- **2026-10-06 Reserve-as-hub:** Founder clarified mental model → new slice **[RB-041](./save-goals-reserve-hub.md)** (rank 17). RB-037 stays parent In Progress for ledger/Adjust; RB-041 is next Save Goals intent after ledger-only.

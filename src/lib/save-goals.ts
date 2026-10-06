@@ -149,6 +149,35 @@ export function activeSaveGoals(state: RebuildState): SaveGoal[] {
   return (state.saveGoals ?? []).filter((g) => g.status === "active");
 }
 
+export const RESERVE_GOAL_NAME = "Reserve";
+
+/** Reserve holding tank — by role, or legacy name match when role omitted. */
+export function isReserveGoal(
+  goal: Pick<SaveGoal, "name" | "role">,
+): boolean {
+  if (goal.role === "reserve") return true;
+  if (goal.role === "goal") return false;
+  return goal.name.trim().toLowerCase() === RESERVE_GOAL_NAME.toLowerCase();
+}
+
+export function findReserveGoal(state: RebuildState): SaveGoal | undefined {
+  return activeSaveGoals(state).find((g) => isReserveGoal(g));
+}
+
+export function namedSaveGoals(state: RebuildState): SaveGoal[] {
+  return activeSaveGoals(state).filter((g) => !isReserveGoal(g));
+}
+
+/** Fixed $/day pace on a named goal (0 = no ETA). */
+export function goalDollarsPerDay(
+  goal: Pick<SaveGoal, "dollarsPerDay" | "role" | "name">,
+): number {
+  if (isReserveGoal(goal)) return 0;
+  const n = Number(goal.dollarsPerDay);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return round2(n);
+}
+
 /** Preset % of daily inbound for a goal (0–100). */
 export function inboundPercent(
   goal: Pick<SaveGoal, "allocationWeight">,
@@ -169,16 +198,24 @@ export function progressRatio(goal: Pick<SaveGoal, "targetAmount" | "savedAmount
 
 /**
  * Normalize active inbound %.
- * - Sum may be ≤ 100 (unallocated remainder is fine).
+ * - Reserve is excluded (holding tank — weight forced to 0).
+ * - Named-goal sum may be ≤ 100 (unallocated remainder is fine).
  * - Sum > 100 is scaled down to 100.
  * - Legacy equal relative weights (all `1`) become equal percents.
  */
 export function normalizeInboundPercents(goals: SaveGoal[]): SaveGoal[] {
-  const actives = goals.filter((g) => g.status === "active");
-  if (!actives.length) return goals;
+  const namedActives = goals.filter(
+    (g) => g.status === "active" && !isReserveGoal(g),
+  );
+  const withReservePinned = goals.map((g) =>
+    g.status === "active" && isReserveGoal(g)
+      ? { ...g, allocationWeight: 0, role: "reserve" as const, dollarsPerDay: 0 }
+      : g,
+  );
+  if (!namedActives.length) return withReservePinned;
 
-  const clamped = goals.map((g) =>
-    g.status === "active"
+  const clamped = withReservePinned.map((g) =>
+    g.status === "active" && !isReserveGoal(g)
       ? {
           ...g,
           allocationWeight: round2(
@@ -187,7 +224,9 @@ export function normalizeInboundPercents(goals: SaveGoal[]): SaveGoal[] {
         }
       : g,
   );
-  const activeClamped = clamped.filter((g) => g.status === "active");
+  const activeClamped = clamped.filter(
+    (g) => g.status === "active" && !isReserveGoal(g),
+  );
   const rawSum = round2(
     activeClamped.reduce((s, g) => s + g.allocationWeight, 0),
   );
@@ -195,7 +234,7 @@ export function normalizeInboundPercents(goals: SaveGoal[]): SaveGoal[] {
   if (rawSum <= 0) {
     const firstId = activeClamped[0].id;
     return clamped.map((g) =>
-      g.status !== "active"
+      g.status !== "active" || isReserveGoal(g)
         ? g
         : { ...g, allocationWeight: g.id === firstId ? 100 : 0 },
     );
@@ -260,7 +299,7 @@ export function setGoalInboundPercent(
   percent: number,
 ): RebuildState {
   const id = String(goalId ?? "").trim();
-  const actives = activeSaveGoals(state);
+  const actives = activeSaveGoals(state).filter((g) => !isReserveGoal(g));
   if (!actives.some((g) => g.id === id)) {
     throw Object.assign(new Error("Save goal not found"), { status: 404 });
   }
@@ -395,6 +434,9 @@ export function recomputeSavedAmounts(
     let status = g.status;
     if (status === "archived") {
       /* keep */
+    } else if (isReserveGoal(g)) {
+      // Holding tank — never auto-mark reached from a leftover target.
+      status = "active";
     } else if (savedAmount >= g.targetAmount) {
       status = "reached";
     } else if (status === "reached" && savedAmount < g.targetAmount) {
@@ -402,6 +444,41 @@ export function recomputeSavedAmounts(
     }
     return { ...g, savedAmount, status };
   });
+}
+
+/**
+ * Ensure an active Reserve holding tank exists. Does **not** migrate named-goal
+ * balances (founder: existing balances stay put).
+ */
+function ensureReserveAmongGoals(
+  goals: SaveGoal[],
+  createdOn: string,
+): SaveGoal[] {
+  const hasReserve = goals.some(
+    (g) => g.status !== "archived" && isReserveGoal(g),
+  );
+  if (hasReserve) {
+    return goals.map((g) =>
+      g.status !== "archived" && isReserveGoal(g)
+        ? { ...g, role: "reserve" as const, dollarsPerDay: 0 }
+        : g.role
+          ? g
+          : { ...g, role: "goal" as const },
+    );
+  }
+  const reserve: SaveGoal = {
+    id: newId("sg"),
+    name: RESERVE_GOAL_NAME,
+    // Placeholder target — UI ignores to-go / ETA for Reserve.
+    targetAmount: 1,
+    savedAmount: 0,
+    createdOn: DATE_RE.test(createdOn) ? createdOn : SAVE_GOAL_LEDGER_START,
+    status: "active",
+    allocationWeight: 0,
+    role: "reserve",
+    dollarsPerDay: 0,
+  };
+  return [...goals, reserve];
 }
 
 /**
@@ -482,9 +559,23 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
       const rawCreated = DATE_RE.test(g.createdOn)
         ? g.createdOn
         : days[0]?.date ?? SAVE_GOAL_LEDGER_START;
+      const name = String(g.name ?? "").trim() || "Save goal";
+      const role: SaveGoal["role"] =
+        g.role === "reserve" || g.role === "goal"
+          ? g.role
+          : name.trim().toLowerCase() === RESERVE_GOAL_NAME.toLowerCase()
+            ? "reserve"
+            : "goal";
+      const dollarsRaw = Number(g.dollarsPerDay);
+      const dollarsPerDay =
+        role === "reserve"
+          ? 0
+          : Number.isFinite(dollarsRaw) && dollarsRaw > 0
+            ? round2(dollarsRaw)
+            : 0;
       return {
         id: String(g.id),
-        name: String(g.name ?? "").trim() || "Save goal",
+        name,
         targetAmount: Math.max(1, floorDollar(Number(g.targetAmount) || 1)),
         savedAmount: round2(Number(g.savedAmount) || 0),
         createdOn: isSeptember2026(rawCreated)
@@ -499,10 +590,13 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
         allocationWeight: Number.isFinite(g.allocationWeight)
           ? Number(g.allocationWeight)
           : 0,
+        role,
+        dollarsPerDay,
       };
     }),
     days,
   );
+  goals = ensureReserveAmongGoals(goals, days[0]?.date ?? SAVE_GOAL_LEDGER_START);
   goals = normalizeInboundPercents(goals);
 
   const spendEntries = clearHistory
@@ -969,8 +1063,10 @@ export function createSaveGoal(
     name: string;
     targetAmount: number;
     createdOn: string;
-    /** When true (default if first/only), this goal gets 100% of daily inbound */
+    /** When true, this goal gets 100% of daily inbound (legacy; default false) */
     claimDailyInbound?: boolean;
+    /** Fixed $/day for named-goal ETA (ignored on Reserve) */
+    dollarsPerDay?: number;
   },
 ): RebuildState {
   const name = input.name.trim().slice(0, 80);
@@ -991,6 +1087,19 @@ export function createSaveGoal(
       ? Boolean(input.claimDailyInbound)
       : existingActives.length === 0;
 
+  const isReserveName =
+    name.trim().toLowerCase() === RESERVE_GOAL_NAME.toLowerCase();
+  if (isReserveName && findReserveGoal(state)) {
+    // Idempotent — Reserve is auto-created; creating again is a no-op.
+    return normalizeSaveGoals(state);
+  }
+
+  const dollarsRaw = Number(input.dollarsPerDay);
+  const dollarsPerDay =
+    isReserveName || !Number.isFinite(dollarsRaw) || dollarsRaw <= 0
+      ? 0
+      : round2(dollarsRaw);
+
   const goal: SaveGoal = {
     id: newId("sg"),
     name,
@@ -999,6 +1108,8 @@ export function createSaveGoal(
     createdOn: input.createdOn,
     status: "active",
     allocationWeight: claim ? 100 : 0,
+    role: isReserveName ? "reserve" : "goal",
+    dollarsPerDay,
   };
 
   let others = state.saveGoals ?? [];
@@ -1014,12 +1125,12 @@ export function createSaveGoal(
   });
 }
 
-/** Set every active goal’s daily inbound % (must sum to 100). */
+/** Set every active named goal’s daily inbound % (must sum to 100). Reserve stays 0. */
 export function setInboundPercents(
   state: RebuildState,
   percents: Record<string, number>,
 ): RebuildState {
-  const actives = activeSaveGoals(state);
+  const actives = activeSaveGoals(state).filter((g) => !isReserveGoal(g));
   if (!actives.length) {
     throw Object.assign(new Error("No active save goals"), { status: 400 });
   }
@@ -1047,24 +1158,27 @@ export function setInboundPercents(
   return normalizeSaveGoals({
     ...state,
     saveGoals: (state.saveGoals ?? []).map((g) =>
-      nextMap.has(g.id)
-        ? { ...g, allocationWeight: nextMap.get(g.id)! }
-        : g,
+      isReserveGoal(g)
+        ? { ...g, allocationWeight: 0 }
+        : nextMap.has(g.id)
+          ? { ...g, allocationWeight: nextMap.get(g.id)! }
+          : g,
     ),
   });
 }
 
-/** Chip shortcut: send 100% of daily inbound to one goal. */
+/** Chip shortcut: send 100% of daily inbound to one named goal. */
 export function setSoleDailyTarget(
   state: RebuildState,
   goalId: string,
 ): RebuildState {
   const id = String(goalId ?? "").trim();
-  if (!activeSaveGoals(state).some((g) => g.id === id)) {
+  const named = activeSaveGoals(state).filter((g) => !isReserveGoal(g));
+  if (!named.some((g) => g.id === id)) {
     throw Object.assign(new Error("Save goal not found"), { status: 404 });
   }
   const percents: Record<string, number> = {};
-  for (const g of activeSaveGoals(state)) {
+  for (const g of named) {
     percents[g.id] = g.id === id ? 100 : 0;
   }
   return setInboundPercents(state, percents);
@@ -1077,6 +1191,7 @@ export function updateSaveGoal(
     name?: string;
     targetAmount?: number;
     status?: SaveGoal["status"];
+    dollarsPerDay?: number;
   },
 ): RebuildState {
   const id = String(input.id ?? "").trim();
@@ -1088,13 +1203,19 @@ export function updateSaveGoal(
 
   const nextGoals = goals.map((g) => {
     if (g.id !== id) return g;
+    const reserve = isReserveGoal(g);
     const name =
       input.name !== undefined ? String(input.name).trim().slice(0, 80) : g.name;
     if (!name) {
       throw Object.assign(new Error("Name required"), { status: 400 });
     }
+    if (reserve && name.trim().toLowerCase() !== RESERVE_GOAL_NAME.toLowerCase()) {
+      throw Object.assign(new Error("Reserve cannot be renamed"), {
+        status: 400,
+      });
+    }
     let targetAmount = g.targetAmount;
-    if (input.targetAmount !== undefined) {
+    if (input.targetAmount !== undefined && !reserve) {
       targetAmount = floorDollar(Number(input.targetAmount));
       if (!Number.isFinite(targetAmount) || targetAmount <= 0) {
         throw Object.assign(new Error("Target must be greater than 0"), {
@@ -1102,8 +1223,29 @@ export function updateSaveGoal(
         });
       }
     }
+    let dollarsPerDay = goalDollarsPerDay(g);
+    if (input.dollarsPerDay !== undefined) {
+      if (reserve) {
+        dollarsPerDay = 0;
+      } else {
+        const raw = Number(input.dollarsPerDay);
+        if (!Number.isFinite(raw) || raw < 0) {
+          throw Object.assign(new Error("Daily amount must be $0 or more"), {
+            status: 400,
+          });
+        }
+        dollarsPerDay = round2(raw);
+      }
+    }
     const status = input.status ?? g.status;
-    return { ...g, name, targetAmount, status };
+    return {
+      ...g,
+      name,
+      targetAmount,
+      status,
+      role: reserve ? ("reserve" as const) : ("goal" as const),
+      dollarsPerDay,
+    };
   });
 
   return normalizeSaveGoals({ ...state, saveGoals: nextGoals });
@@ -1248,7 +1390,10 @@ function resolveLeftoverAlloc(
 
   const activeIds = new Set(goals.map((g) => g.id));
   let drawId = String(input.drawFromGoalId ?? "").trim();
-  if (!drawId && goals.length === 1) {
+  const named = goals.filter((g) => !isReserveGoal(g));
+  if (!drawId && named.length === 1) {
+    drawId = named[0].id;
+  } else if (!drawId && goals.length === 1) {
     drawId = goals[0].id;
   }
   if (!drawId) {
@@ -1492,6 +1637,115 @@ export function applySaveGoalAdjustment(
   });
 }
 
+/** Credit the Reserve holding tank (Adjust inbound / top-ups). */
+export function creditSaveGoalReserve(
+  state: RebuildState,
+  input: { date: string; amount: number; note?: string },
+): RebuildState {
+  if (!DATE_RE.test(input.date)) {
+    throw Object.assign(new Error("date required"), { status: 400 });
+  }
+  const amount = round2(Number(input.amount));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw Object.assign(new Error("amount must be greater than 0"), {
+      status: 400,
+    });
+  }
+  const withReserve = normalizeSaveGoals(state);
+  const reserve = findReserveGoal(withReserve);
+  if (!reserve) {
+    throw Object.assign(new Error("Reserve not found"), { status: 404 });
+  }
+  const note = input.note?.trim().slice(0, 80) || "Inbound";
+  const day: SaveGoalDay = {
+    id: newId("sga"),
+    date: input.date,
+    kind: "adjust",
+    dailyIncome: 0,
+    spendTotal: 0,
+    leftover: 0,
+    lumpSum: amount,
+    allocations: [{ goalId: reserve.id, amount }],
+    note,
+  };
+  return normalizeSaveGoals({
+    ...withReserve,
+    saveGoalDays: [...(withReserve.saveGoalDays ?? []), day],
+  });
+}
+
+/**
+ * Move money Reserve → named goal. Caps at available Reserve balance.
+ * Existing named-goal balances are never migrated automatically.
+ */
+export function transferSaveGoalFromReserve(
+  state: RebuildState,
+  input: { date: string; amount: number; toGoalId: string; note?: string },
+): RebuildState {
+  if (!DATE_RE.test(input.date)) {
+    throw Object.assign(new Error("date required"), { status: 400 });
+  }
+  const amount = round2(Number(input.amount));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw Object.assign(new Error("amount must be greater than 0"), {
+      status: 400,
+    });
+  }
+  const toGoalId = String(input.toGoalId ?? "").trim();
+  if (!toGoalId) {
+    throw Object.assign(new Error("Pick a goal to fund"), { status: 400 });
+  }
+
+  const withReserve = normalizeSaveGoals(state);
+  const reserve = findReserveGoal(withReserve);
+  if (!reserve) {
+    throw Object.assign(new Error("Reserve not found"), { status: 404 });
+  }
+  if (toGoalId === reserve.id) {
+    throw Object.assign(new Error("Pick a named goal, not Reserve"), {
+      status: 400,
+    });
+  }
+  const dest = activeSaveGoals(withReserve).find((g) => g.id === toGoalId);
+  if (!dest || isReserveGoal(dest)) {
+    throw Object.assign(new Error("Save goal not found"), { status: 404 });
+  }
+  const available = round2(Math.max(0, reserve.savedAmount));
+  if (amount > available) {
+    throw Object.assign(
+      new Error(
+        available <= 0
+          ? "Reserve is empty"
+          : `Only ${formatMoney(available)} available in Reserve`,
+      ),
+      { status: 400 },
+    );
+  }
+
+  const note =
+    input.note?.trim().slice(0, 80) ||
+    `Transfer → ${dest.name}`.slice(0, 80);
+  const day: SaveGoalDay = {
+    id: newId("sga"),
+    date: input.date,
+    kind: "adjust",
+    dailyIncome: 0,
+    spendTotal: 0,
+    leftover: 0,
+    lumpSum: 0,
+    allocations: [
+      { goalId: reserve.id, amount: round2(-amount) },
+      { goalId: dest.id, amount: round2(amount) },
+    ],
+    note,
+  };
+
+  return normalizeSaveGoals({
+    ...withReserve,
+    saveGoalDays: [...(withReserve.saveGoalDays ?? []), day],
+  });
+}
+
 /** Remove a one-time adjustment by id (undo). Close/evening rows are untouched. */
 export function removeSaveGoalAdjustment(
   state: RebuildState,
@@ -1686,6 +1940,11 @@ export function deleteSaveGoal(
   if (!goal || goal.status === "archived") {
     throw Object.assign(new Error("Save goal not found"), { status: 404 });
   }
+  if (isReserveGoal(goal)) {
+    throw Object.assign(new Error("Reserve cannot be deleted"), {
+      status: 400,
+    });
+  }
 
   let next = state;
   const reallocateTo = String(input.reallocateToGoalId ?? "").trim();
@@ -1752,12 +2011,9 @@ export type SaveGoalProjection = {
 };
 
 /**
- * Project a target date from what’s already saved + a steady daily pace.
- *
- * Pace = daily inbound rate × this goal’s % (e.g. $16 × 20% = $3.20/day).
- * Ignores rolled carry, one-time adds/lumps, and today’s spend — those are
- * one-offs; the date assumes the regular daily split keeps going.
- * Recalculates on read so % chip changes update the date immediately.
+ * Project a target date for a **named** goal from remaining ÷ fixed $/day.
+ * Reserve has no payoff ETA (holding tank). Recalculates on read so transfers
+ * that raise savedAmount move the date immediately.
  */
 export function projectSaveGoalTargetDate(
   state: RebuildState,
@@ -1765,6 +2021,19 @@ export function projectSaveGoalTargetDate(
   today: string,
 ): SaveGoalProjection {
   const remaining0 = round2(goal.targetAmount - goal.savedAmount);
+
+  if (isReserveGoal(goal)) {
+    return {
+      goalId: goal.id,
+      remaining: Math.max(0, remaining0),
+      projectedPoolPerDay: 0,
+      goalDaily: 0,
+      etaDays: null,
+      targetDate: null,
+      status: "needs_leftover",
+    };
+  }
+
   if (remaining0 <= 0 || goal.status === "reached") {
     return {
       goalId: goal.id,
@@ -1777,8 +2046,8 @@ export function projectSaveGoalTargetDate(
     };
   }
 
-  const share = inboundPercent(goal) / 100;
-  if (share <= 0) {
+  const goalDaily = goalDollarsPerDay(goal);
+  if (goalDaily <= 0) {
     return {
       goalId: goal.id,
       remaining: remaining0,
@@ -1790,45 +2059,11 @@ export function projectSaveGoalTargetDate(
     };
   }
 
-  const settings = normalizeSaveGoalSettings(state.saveGoalSettings);
-  // Steady inbound only — not Left (which can include adds / roll).
-  const projectedPoolPerDay = dailyIncomeRate(today, settings.monthlyIncome);
-  const goalDaily = round2(projectedPoolPerDay * share);
-  if (goalDaily <= 0) {
-    return {
-      goalId: goal.id,
-      remaining: remaining0,
-      projectedPoolPerDay,
-      goalDaily: 0,
-      etaDays: null,
-      targetDate: null,
-      status: "needs_leftover",
-    };
-  }
-
-  let remaining = remaining0;
-  // If today isn’t applied yet, count today’s expected regular credit once.
-  if (!hasSaveGoalClose(state, today)) {
-    remaining = round2(remaining - goalDaily);
-  }
-
-  if (remaining <= 0) {
-    return {
-      goalId: goal.id,
-      remaining: 0,
-      projectedPoolPerDay,
-      goalDaily,
-      etaDays: 0,
-      targetDate: today,
-      status: "on_track",
-    };
-  }
-
-  const etaDays = Math.ceil(remaining / goalDaily);
+  const etaDays = Math.ceil(remaining0 / goalDaily);
   return {
     goalId: goal.id,
-    remaining,
-    projectedPoolPerDay,
+    remaining: remaining0,
+    projectedPoolPerDay: goalDaily,
     goalDaily,
     etaDays,
     targetDate: addDays(today, etaDays),

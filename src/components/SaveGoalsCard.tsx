@@ -10,6 +10,9 @@ import {
   floorDollar,
   formatMoney,
   formatMoneyDown,
+  formatTargetDateLabel,
+  goalDollarsPerDay,
+  isReserveGoal,
   leftoverBeforeApply,
   listSaveGoalAdjustmentsForGoal,
   listSaveGoalSpendEntries,
@@ -92,54 +95,87 @@ function GoalProgressRow({
   today,
   onEdit,
   onRemoveAdjust,
+  onTransfer,
   busy,
 }: {
   goal: SaveGoal;
   today: string;
   onEdit: (goal: SaveGoal) => void;
   onRemoveAdjust: (id: string) => void;
+  onTransfer?: () => void;
   busy: boolean;
 }) {
   const { state } = useApp();
+  const reserve = isReserveGoal(goal);
   const toGo = amountToGo(goal);
   const ratio = progressRatio(goal);
   const projection = projectSaveGoalTargetDate(state, goal, today);
   const under = goal.savedAmount < 0;
-  // Daily-% ETA paused — ledger-only; show Reached when done.
-  const dateLine = projection.status === "reached" ? "Reached" : null;
+  const daily = goalDollarsPerDay(goal);
+
+  let dateLine: string | null = null;
+  if (!reserve) {
+    if (projection.status === "reached") {
+      dateLine = "Reached";
+    } else if (projection.targetDate) {
+      dateLine = formatTargetDateLabel(projection.targetDate);
+    } else if (daily <= 0) {
+      dateLine = "Set $/day to project";
+    }
+  }
 
   return (
     <article className="save-goal-row" aria-label={goal.name}>
       <div className="save-goal-row-head">
         <h3 className="save-goal-name">{goal.name}</h3>
-        <p className="save-goal-togo">
-          {formatMoney(toGo)} <span className="save-goal-togo-label">to go</span>
-        </p>
+        {reserve ? (
+          <p className="save-goal-togo">
+            {formatMoney(Math.max(0, goal.savedAmount))}{" "}
+            <span className="save-goal-togo-label">available</span>
+          </p>
+        ) : (
+          <p className="save-goal-togo">
+            {formatMoney(toGo)}{" "}
+            <span className="save-goal-togo-label">to go</span>
+          </p>
+        )}
       </div>
-      <div
-        className="save-goal-bar"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(ratio * 100)}
-        aria-label={`${Math.round(ratio * 100)}% saved`}
-      >
-        <span
-          className="save-goal-bar-fill"
-          style={{ width: `${Math.round(ratio * 100)}%` }}
-        />
-      </div>
+      {!reserve ? (
+        <div
+          className="save-goal-bar"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(ratio * 100)}
+          aria-label={`${Math.round(ratio * 100)}% saved`}
+        >
+          <span
+            className="save-goal-bar-fill"
+            style={{ width: `${Math.round(ratio * 100)}%` }}
+          />
+        </div>
+      ) : null}
       <div className="save-goal-meta">
-        <span className="tiny">
-          {formatMoney(Math.max(0, goal.savedAmount))} of{" "}
-          {formatMoney(goal.targetAmount)}
-          {under ? (
-            <span className="save-goal-under">
-              {" "}
-              · {formatMoney(Math.abs(goal.savedAmount))} under
-            </span>
-          ) : null}
-        </span>
+        {reserve ? (
+          <span className="tiny muted">Holding tank — fund goals from here</span>
+        ) : (
+          <span className="tiny">
+            {formatMoney(Math.max(0, goal.savedAmount))} of{" "}
+            {formatMoney(goal.targetAmount)}
+            {daily > 0 ? (
+              <>
+                {" "}
+                · {formatMoneyDown(daily)}/day
+              </>
+            ) : null}
+            {under ? (
+              <span className="save-goal-under">
+                {" "}
+                · {formatMoney(Math.abs(goal.savedAmount))} under
+              </span>
+            ) : null}
+          </span>
+        )}
         {dateLine ? (
           <span className="tiny save-goal-eta">{dateLine}</span>
         ) : null}
@@ -153,6 +189,16 @@ function GoalProgressRow({
         >
           Edit
         </button>
+        {reserve && onTransfer ? (
+          <button
+            type="button"
+            className="save-goal-add-link"
+            disabled={busy || goal.savedAmount <= 0}
+            onClick={onTransfer}
+          >
+            Transfer
+          </button>
+        ) : null}
       </div>
       <GoalAdjustmentLog
         goalId={goal.id}
@@ -171,6 +217,115 @@ const ADJUST_REASON_PRESETS = [
   { id: "transfer", label: "Transfer" },
   { id: "other", label: "Other" },
 ] as const;
+
+function TransferFromReservePanel({
+  reserve,
+  namedGoals,
+  today,
+  busy,
+  error,
+  onCancel,
+  onSubmit,
+}: {
+  reserve: SaveGoal;
+  namedGoals: SaveGoal[];
+  today: string;
+  busy: boolean;
+  error: string;
+  onCancel: () => void;
+  onSubmit: (input: {
+    date: string;
+    amount: number;
+    toGoalId: string;
+  }) => void;
+}) {
+  const [transferDate, setTransferDate] = useState(
+    () => today || SAVE_GOAL_LEDGER_START,
+  );
+  const [amount, setAmount] = useState("");
+  const [toGoalId, setToGoalId] = useState(namedGoals[0]?.id ?? "");
+  const available = Math.max(0, reserve.savedAmount);
+
+  useEffect(() => {
+    if (today && (!transferDate || transferDate > today)) {
+      setTransferDate(today);
+    }
+  }, [today, transferDate]);
+
+  useEffect(() => {
+    if (!toGoalId && namedGoals[0]) setToGoalId(namedGoals[0].id);
+  }, [namedGoals, toGoalId]);
+
+  return (
+    <div className="save-goal-create">
+      <p className="eyebrow">Transfer from Reserve</p>
+      <p className="tiny muted" style={{ margin: "0 0 10px" }}>
+        {formatMoney(available)} available
+      </p>
+      <label className="field">
+        <span className="field-label">Date</span>
+        <input
+          type="date"
+          value={transferDate}
+          min={SAVE_GOAL_LEDGER_START}
+          max={today || undefined}
+          onChange={(e) => setTransferDate(e.target.value)}
+          required
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">Amount</span>
+        <input
+          type="number"
+          inputMode="decimal"
+          min={0.01}
+          step="0.01"
+          max={available}
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="50"
+          autoFocus
+        />
+      </label>
+      <p className="field-label" style={{ marginBottom: 6 }}>
+        Into
+      </p>
+      <div className="chip-row">
+        {namedGoals.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            className={`chip${toGoalId === g.id ? " selected" : ""}`}
+            onClick={() => setToGoalId(g.id)}
+          >
+            {g.name}
+          </button>
+        ))}
+      </div>
+      {error ? (
+        <p className="tiny" style={{ color: "var(--danger)" }}>
+          {error}
+        </p>
+      ) : null}
+      <div className="save-goal-create-actions">
+        <PrimaryButton
+          disabled={busy || !transferDate || !toGoalId || available <= 0}
+          onClick={() => {
+            const raw = Number(amount);
+            if (!transferDate || !toGoalId) return;
+            if (!Number.isFinite(raw) || raw <= 0) return;
+            onSubmit({ date: transferDate, amount: raw, toGoalId });
+          }}
+        >
+          {busy ? "Saving…" : "Transfer"}
+        </PrimaryButton>
+        <SecondaryButton onClick={onCancel} disabled={busy}>
+          Cancel
+        </SecondaryButton>
+      </div>
+    </div>
+  );
+}
 
 function AdjustPanel({
   goals,
@@ -313,7 +468,7 @@ function AdjustPanel({
           </label>
         ) : (
           <p className="tiny muted" style={{ margin: "8px 0 0" }}>
-            Sets the inbound amount recorded for this date.
+            Credits Reserve (holding tank) for this date.
           </p>
         )}
       </div>
@@ -349,6 +504,7 @@ function AdjustPanel({
             const raw = Number(adjustAmount);
             if (!Number.isFinite(raw) || raw < 0) return;
             if (isInbound) {
+              if (raw <= 0) return;
               onSetInbound({ date: adjustDate, amount: raw });
               return;
             }
@@ -365,7 +521,7 @@ function AdjustPanel({
           {busy
             ? "Saving…"
             : isInbound
-              ? "Set inbound"
+              ? "Credit Reserve"
               : adjustSign === "add"
                 ? "Add"
                 : "Subtract"}
@@ -673,22 +829,40 @@ function SaveGoalsDetail() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
+  const [createDaily, setCreateDaily] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [editing, setEditing] = useState<SaveGoal | null>(null);
   const [editName, setEditName] = useState("");
   const [editTarget, setEditTarget] = useState("");
   const [editSaved, setEditSaved] = useState("");
+  const [editDaily, setEditDaily] = useState("");
   const [deleting, setDeleting] = useState<SaveGoal | null>(null);
   const [reallocateTo, setReallocateTo] = useState<string>("");
 
-  const goals = useMemo(() => activeSaveGoals(state), [state]);
+  const goals = useMemo(() => {
+    const all = activeSaveGoals(state);
+    return [...all].sort((a, b) => {
+      const ar = isReserveGoal(a) ? 0 : 1;
+      const br = isReserveGoal(b) ? 0 : 1;
+      if (ar !== br) return ar - br;
+      return a.name.localeCompare(b.name);
+    });
+  }, [state]);
+  const reserve = goals.find((g) => isReserveGoal(g)) ?? null;
+  const namedGoals = goals.filter((g) => !isReserveGoal(g));
 
   async function create() {
     const targetAmount = Number(target);
+    const dollarsPerDay = Number(createDaily);
     if (!name.trim() || !Number.isFinite(targetAmount) || targetAmount <= 0) {
       setError("Name and a target over $0 are required.");
+      return;
+    }
+    if (createDaily !== "" && (!Number.isFinite(dollarsPerDay) || dollarsPerDay < 0)) {
+      setError("Enter a daily amount of $0 or more.");
       return;
     }
     setBusy(true);
@@ -698,11 +872,14 @@ function SaveGoalsDetail() {
         action: "create",
         name: name.trim(),
         targetAmount,
-        // Daily inbound paused — goals are ledger buckets only.
         claimDailyInbound: false,
+        ...(createDaily !== "" && Number.isFinite(dollarsPerDay)
+          ? { dollarsPerDay }
+          : {}),
       });
       setName("");
       setTarget("");
+      setCreateDaily("");
       setOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create goal");
@@ -750,21 +927,52 @@ function SaveGoalsDetail() {
       setError("Pick a date for inbound.");
       return;
     }
-    if (!Number.isFinite(input.amount) || input.amount < 0) {
-      setError("Enter an inbound of $0 or more.");
+    if (!Number.isFinite(input.amount) || input.amount <= 0) {
+      setError("Enter an inbound greater than 0.");
       return;
     }
     setBusy(true);
     setError("");
     try {
       await post("/api/save-goals", {
-        action: "setInbound",
+        action: "creditReserve",
         date: input.date,
         amount: input.amount,
+        note: "Inbound",
       });
       setAdjustOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not set inbound");
+      setError(e instanceof Error ? e.message : "Could not credit Reserve");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitTransfer(input: {
+    date: string;
+    amount: number;
+    toGoalId: string;
+  }) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+      setError("Pick a date for the transfer.");
+      return;
+    }
+    if (!Number.isFinite(input.amount) || input.amount <= 0) {
+      setError("Enter an amount greater than 0.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "transferFromReserve",
+        date: input.date,
+        amount: input.amount,
+        toGoalId: input.toGoalId,
+      });
+      setTransferOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not transfer");
     } finally {
       setBusy(false);
     }
@@ -772,14 +980,22 @@ function SaveGoalsDetail() {
 
   async function saveEdit() {
     if (!editing) return;
+    const reserve = isReserveGoal(editing);
     const targetAmount = Number(editTarget);
     const savedAmount = Number(editSaved);
-    if (!editName.trim() || !Number.isFinite(targetAmount) || targetAmount <= 0) {
-      setError("Name and a target over $0 are required.");
-      return;
+    const dollarsPerDay = Number(editDaily);
+    if (!reserve) {
+      if (!editName.trim() || !Number.isFinite(targetAmount) || targetAmount <= 0) {
+        setError("Name and a target over $0 are required.");
+        return;
+      }
+      if (!Number.isFinite(dollarsPerDay) || dollarsPerDay < 0) {
+        setError("Enter a daily amount of $0 or more.");
+        return;
+      }
     }
     if (!Number.isFinite(savedAmount)) {
-      setError("Enter a saved total (whole dollars).");
+      setError("Enter a saved total.");
       return;
     }
     setBusy(true);
@@ -788,8 +1004,13 @@ function SaveGoalsDetail() {
       await post("/api/save-goals", {
         action: "update",
         id: editing.id,
-        name: editName.trim(),
-        targetAmount,
+        ...(reserve
+          ? {}
+          : {
+              name: editName.trim(),
+              targetAmount,
+              dollarsPerDay,
+            }),
         savedAmount,
         date: today,
       });
@@ -855,7 +1076,7 @@ function SaveGoalsDetail() {
   }
 
   const othersForDelete = deleting
-    ? goals.filter((g) => g.id !== deleting.id)
+    ? goals.filter((g) => g.id !== deleting.id && !isReserveGoal(g))
     : [];
 
   return (
@@ -868,7 +1089,7 @@ function SaveGoalsDetail() {
           <p className="home-card-kicker">Save goals</p>
           <h2>{goals.length === 0 ? "Save towards something" : "Ledger"}</h2>
           <p className="tiny muted" style={{ margin: "4px 0 0" }}>
-            Manual adjustments only — daily inbound is paused.
+            Money lands in Reserve; transfer into goals. Set $/day for a payoff date.
           </p>
         </div>
       </div>
@@ -880,48 +1101,83 @@ function SaveGoalsDetail() {
             today={today}
             busy={busy}
             onRemoveAdjust={(id) => void removeAdjust(id)}
+            onTransfer={
+              isReserveGoal(g) && namedGoals.length > 0
+                ? () => {
+                    setTransferOpen(true);
+                    setAdjustOpen(false);
+                    setEditing(null);
+                    setError("");
+                  }
+                : undefined
+            }
             onEdit={(goal) => {
               setEditing(goal);
               setEditName(goal.name);
               setEditTarget(String(goal.targetAmount));
               setEditSaved(String(floorDollar(goal.savedAmount)));
+              setEditDaily(String(goalDollarsPerDay(goal) || ""));
               setDeleting(null);
               setReallocateTo("");
+              setTransferOpen(false);
               setError("");
             }}
           />
           {editing?.id === g.id && !deleting ? (
             <div className="save-goal-create" style={{ marginTop: 8 }}>
               <p className="eyebrow">Edit</p>
+              {!isReserveGoal(g) ? (
+                <>
+                  <label className="field">
+                    <span className="field-label">Name</span>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      maxLength={80}
+                      autoFocus
+                    />
+                  </label>
+                  <label className="field">
+                    <span className="field-label">Target</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      step="1"
+                      value={editTarget}
+                      onChange={(e) => setEditTarget(e.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span className="field-label">$/day toward goal</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step="0.01"
+                      value={editDaily}
+                      onChange={(e) => setEditDaily(e.target.value)}
+                      placeholder="10"
+                    />
+                  </label>
+                </>
+              ) : (
+                <p className="tiny muted" style={{ margin: "0 0 8px" }}>
+                  Reserve is the holding tank — adjust the balance only.
+                </p>
+              )}
               <label className="field">
-                <span className="field-label">Name</span>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  maxLength={80}
-                  autoFocus
-                />
-              </label>
-              <label className="field">
-                <span className="field-label">Target</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  step="1"
-                  value={editTarget}
-                  onChange={(e) => setEditTarget(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span className="field-label">Saved toward goal</span>
+                <span className="field-label">
+                  {isReserveGoal(g) ? "Balance" : "Saved toward goal"}
+                </span>
                 <input
                   type="number"
                   inputMode="numeric"
                   step="1"
                   value={editSaved}
                   onChange={(e) => setEditSaved(e.target.value)}
+                  autoFocus={isReserveGoal(g)}
                 />
               </label>
               <div className="save-goal-create-actions">
@@ -938,19 +1194,21 @@ function SaveGoalsDetail() {
                   Cancel
                 </SecondaryButton>
               </div>
-              <button
-                type="button"
-                className="save-goal-add-link"
-                style={{ marginTop: 10 }}
-                disabled={busy}
-                onClick={() => {
-                  setDeleting(g);
-                  setReallocateTo("");
-                  setError("");
-                }}
-              >
-                Delete
-              </button>
+              {!isReserveGoal(g) ? (
+                <button
+                  type="button"
+                  className="save-goal-add-link"
+                  style={{ marginTop: 10 }}
+                  disabled={busy}
+                  onClick={() => {
+                    setDeleting(g);
+                    setReallocateTo("");
+                    setError("");
+                  }}
+                >
+                  Delete
+                </button>
+              ) : null}
             </div>
           ) : null}
           {deleting?.id === g.id ? (
@@ -1016,6 +1274,18 @@ function SaveGoalsDetail() {
         </p>
       ) : null}
 
+      {transferOpen && reserve && namedGoals.length > 0 ? (
+        <TransferFromReservePanel
+          reserve={reserve}
+          namedGoals={namedGoals}
+          today={today ?? SAVE_GOAL_LEDGER_START}
+          busy={busy}
+          error={error}
+          onCancel={() => setTransferOpen(false)}
+          onSubmit={(input) => void submitTransfer(input)}
+        />
+      ) : null}
+
       {adjustOpen ? (
         <AdjustPanel
           goals={goals}
@@ -1065,6 +1335,18 @@ function SaveGoalsDetail() {
               placeholder="500"
             />
           </label>
+          <label className="field">
+            <span className="field-label">$/day toward goal (optional)</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              value={createDaily}
+              onChange={(e) => setCreateDaily(e.target.value)}
+              placeholder="10"
+            />
+          </label>
           <div className="save-goal-create-actions">
             <PrimaryButton onClick={() => void create()} disabled={busy}>
               {busy ? "Saving…" : "Create"}
@@ -1072,6 +1354,7 @@ function SaveGoalsDetail() {
             <SecondaryButton
               onClick={() => {
                 setOpen(false);
+                setCreateDaily("");
                 setError("");
               }}
               disabled={busy}
@@ -1085,15 +1368,37 @@ function SaveGoalsDetail() {
           <button
             type="button"
             className="save-goal-add-link"
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              setOpen(true);
+              setTransferOpen(false);
+              setAdjustOpen(false);
+            }}
           >
             + Add
           </button>
+          {reserve && namedGoals.length > 0 ? (
+            <button
+              type="button"
+              className="save-goal-add-link"
+              onClick={() => {
+                setTransferOpen(true);
+                setAdjustOpen(false);
+                setOpen(false);
+                setError("");
+              }}
+            >
+              Transfer
+            </button>
+          ) : null}
           {goals.length > 0 ? (
             <button
               type="button"
               className="save-goal-add-link"
-              onClick={() => setAdjustOpen(true)}
+              onClick={() => {
+                setAdjustOpen(true);
+                setTransferOpen(false);
+                setOpen(false);
+              }}
             >
               Adjust
             </button>

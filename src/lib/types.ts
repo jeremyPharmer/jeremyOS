@@ -481,6 +481,9 @@ export type VitalsReading = {
 /** Named discretionary save target — separate from Future/Treat (RB-037). */
 export type SaveGoalStatus = "active" | "reached" | "archived";
 
+/** Reserve = holding tank; goal = named save target (RB-041). */
+export type SaveGoalRole = "reserve" | "goal";
+
 export type SaveGoal = {
   id: string;
   name: string;
@@ -492,8 +495,19 @@ export type SaveGoal = {
   /**
    * Preset share of **daily inbound leftover** (0–100). Active goals’ percents
    * sum to 100. Bulk add/subtract uses the same split unless overridden.
+   * Legacy — UI paused; Reserve hub uses transfers + fixed $/day instead.
    */
   allocationWeight: number;
+  /**
+   * `reserve` = system holding tank (no payoff ETA).
+   * `goal` = named target. Omitted on legacy rows → inferred from name.
+   */
+  role?: SaveGoalRole;
+  /**
+   * Fixed dollars-per-day pace for named-goal ETA (RB-041).
+   * Ignored on Reserve. Projection = remaining ÷ dollarsPerDay.
+   */
+  dollarsPerDay?: number;
 };
 
 export type SaveGoalSettings = {
