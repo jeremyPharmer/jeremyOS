@@ -757,11 +757,6 @@ function HomeSaveGoalsGlance() {
       <div className="home-card-head save-goal-glance-head">
         <div>
           <p className="home-card-kicker save-goal-glance-kicker">Save goals</p>
-          {reserve ? (
-            <p className="tiny muted save-goal-day-total-label">
-              Reserve {formatMoneyDown(reserveAvailable)}
-            </p>
-          ) : null}
         </div>
       </div>
 
