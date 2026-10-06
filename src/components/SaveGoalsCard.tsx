@@ -41,7 +41,10 @@ function GoalAdjustmentLog({
 }) {
   const { state } = useApp();
   const rows = useMemo(
-    () => listSaveGoalAdjustmentsForGoal(state, goalId),
+    () =>
+      listSaveGoalAdjustmentsForGoal(state, goalId).filter(
+        (d) => d.goalAmount > 0,
+      ),
     [state, goalId],
   );
   const [open, setOpen] = useState(false);
@@ -866,9 +869,7 @@ function ExpenseDayHistory({
 
   return (
     <div className="save-goal-expense-history" aria-label="Expense ledger by day">
-      <p className="eyebrow" style={{ marginBottom: 8 }}>
-        Expenses
-      </p>
+      <h2 className="save-goal-ledger-heading">Ledger</h2>
       {months.map(([monthKey, monthDays]) => {
         const open = openMonths[monthKey] ?? false;
         const monthTotal = monthDays.reduce((s, d) => s + d.total, 0);
@@ -1242,7 +1243,7 @@ function SaveGoalsDetail() {
       <div className="home-card-head">
         <div>
           <p className="home-card-kicker">Save goals</p>
-          <h2>{goals.length === 0 ? "Save towards something" : "Ledger"}</h2>
+          {goals.length === 0 ? <h2>Save towards something</h2> : null}
         </div>
       </div>
 
