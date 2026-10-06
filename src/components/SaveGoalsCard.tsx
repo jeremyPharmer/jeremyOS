@@ -520,14 +520,174 @@ function AdjustPanel({
   );
 }
 
-/** Home — log expenses from Reserve; day expense ledger only. */
-function HomeSaveGoalsGlance() {
-  const { state, today, post } = useApp();
-  const [subtractOpen, setSubtractOpen] = useState(false);
+/** Shared log-expense form — date + amount + category; always debits Reserve. */
+function LogExpensePanel({
+  defaultDate,
+  reserveAvailable,
+  busy,
+  error,
+  onCancel,
+  onSubmit,
+}: {
+  defaultDate: string;
+  reserveAvailable: number;
+  busy: boolean;
+  error: string;
+  onCancel: () => void;
+  onSubmit: (input: {
+    date: string;
+    amount: number;
+    category: SaveGoalSpendCategory;
+    note?: string;
+  }) => void;
+}) {
+  const [spendDate, setSpendDate] = useState(defaultDate);
   const [entryAmount, setEntryAmount] = useState("");
   const [spendCategory, setSpendCategory] =
     useState<SaveGoalSpendCategory | "">("");
   const [otherNote, setOtherNote] = useState("");
+  const [localError, setLocalError] = useState("");
+
+  useEffect(() => {
+    if (defaultDate) setSpendDate(defaultDate);
+  }, [defaultDate]);
+
+  function submit() {
+    const amount = Number(entryAmount);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(spendDate)) {
+      setLocalError("Pick a date.");
+      return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setLocalError("Enter an amount greater than 0.");
+      return;
+    }
+    if (!spendCategory) {
+      setLocalError("Pick a category.");
+      return;
+    }
+    if (amount > reserveAvailable) {
+      setLocalError(
+        reserveAvailable <= 0
+          ? "Reserve is empty — add to Reserve first."
+          : `Only ${formatMoney(reserveAvailable)} available in Reserve.`,
+      );
+      return;
+    }
+    const note =
+      spendCategory === "other" ? otherNote.trim().slice(0, 80) : undefined;
+    setLocalError("");
+    onSubmit({
+      date: spendDate,
+      amount,
+      category: spendCategory,
+      ...(note ? { note } : {}),
+    });
+  }
+
+  const amount = Number(entryAmount);
+  const amountOk = Number.isFinite(amount) && amount > 0;
+  const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(spendDate);
+  const overReserve = amountOk && amount > reserveAvailable;
+  const canSubmit =
+    dateOk && amountOk && Boolean(spendCategory) && !overReserve;
+  const showError = localError || error;
+
+  return (
+    <div className="save-goal-create">
+      <label className="field">
+        <span className="field-label">Date</span>
+        <input
+          type="date"
+          value={spendDate}
+          max={defaultDate || undefined}
+          onChange={(e) => setSpendDate(e.target.value)}
+          disabled={busy}
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">Amount</span>
+        <input
+          type="number"
+          inputMode="decimal"
+          min={0.01}
+          step="0.01"
+          value={entryAmount}
+          onChange={(e) => setEntryAmount(e.target.value)}
+          placeholder="8.18"
+          autoFocus
+          disabled={busy}
+        />
+      </label>
+      <p className="tiny muted" style={{ margin: 0 }}>
+        From Reserve · {formatMoney(reserveAvailable)} available
+      </p>
+      <div className="save-goal-spend-category">
+        <p className="field-label" style={{ marginBottom: 6 }}>
+          Category
+        </p>
+        <div className="chip-row">
+          {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`chip${spendCategory === c.id ? " selected" : ""}`}
+              onClick={() => {
+                setSpendCategory(c.id);
+                if (c.id !== "other") setOtherNote("");
+              }}
+              disabled={busy}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+        {spendCategory === "other" ? (
+          <label className="field save-goal-other-note">
+            <span className="field-label">What was it?</span>
+            <input
+              type="text"
+              value={otherNote}
+              onChange={(e) => setOtherNote(e.target.value)}
+              placeholder="e.g. parking, gift wrap"
+              maxLength={80}
+              disabled={busy}
+              autoComplete="off"
+            />
+          </label>
+        ) : null}
+      </div>
+      {overReserve && !localError ? (
+        <p className="tiny" style={{ color: "var(--danger)" }}>
+          {reserveAvailable <= 0
+            ? "Reserve is empty — add to Reserve first."
+            : `Only ${formatMoney(reserveAvailable)} available in Reserve.`}
+        </p>
+      ) : null}
+      {showError ? (
+        <p className="tiny" style={{ color: "var(--danger)" }}>
+          {showError}
+        </p>
+      ) : null}
+      <div className="save-goal-create-actions">
+        <PrimaryButton
+          onClick={submit}
+          disabled={busy || !canSubmit}
+        >
+          {busy ? "Saving…" : "Log expense"}
+        </PrimaryButton>
+        <SecondaryButton onClick={onCancel} disabled={busy}>
+          Cancel
+        </SecondaryButton>
+      </div>
+    </div>
+  );
+}
+
+/** Home — log expenses from Reserve; today’s expense lines. */
+function HomeSaveGoalsGlance() {
+  const { state, today, post } = useApp();
+  const [subtractOpen, setSubtractOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -548,40 +708,23 @@ function HomeSaveGoalsGlance() {
     [state, today],
   );
 
-  async function submitSubtract() {
-    const amount = Number(entryAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setError("Enter an amount greater than 0.");
-      return;
-    }
-    if (!spendCategory) {
-      setError("Pick a category.");
-      return;
-    }
-    if (amount > reserveAvailable) {
-      setError(
-        reserveAvailable <= 0
-          ? "Reserve is empty — add to Reserve on Save goals first."
-          : `Only ${formatMoney(reserveAvailable)} available in Reserve.`,
-      );
-      return;
-    }
-    const note =
-      spendCategory === "other" ? otherNote.trim().slice(0, 80) : undefined;
+  async function submitLog(input: {
+    date: string;
+    amount: number;
+    category: SaveGoalSpendCategory;
+    note?: string;
+  }) {
     setBusy(true);
     setError("");
     try {
       await post("/api/save-goals", {
         action: "addSpend",
-        date: today,
-        amount,
+        date: input.date,
+        amount: input.amount,
         kind: "spend",
-        category: spendCategory,
-        ...(note ? { note } : {}),
+        category: input.category,
+        ...(input.note ? { note: input.note } : {}),
       });
-      setEntryAmount("");
-      setSpendCategory("");
-      setOtherNote("");
       setSubtractOpen(false);
       setLedgerOpen(true);
     } catch (e) {
@@ -628,92 +771,23 @@ function HomeSaveGoalsGlance() {
         </p>
       ) : (
         <>
-          {subtractOpen ? (
-            <div className="save-goal-create">
-              <label className="field">
-                <span className="field-label">Amount</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0.01}
-                  step="0.01"
-                  value={entryAmount}
-                  onChange={(e) => setEntryAmount(e.target.value)}
-                  placeholder="8.18"
-                  autoFocus
-                />
-              </label>
-              <p className="tiny muted" style={{ margin: 0 }}>
-                From Reserve · {formatMoney(reserveAvailable)} available
-              </p>
-              <div className="save-goal-spend-category">
-                <p className="field-label" style={{ marginBottom: 6 }}>
-                  Category
-                </p>
-                <div className="chip-row">
-                  {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className={`chip${spendCategory === c.id ? " selected" : ""}`}
-                      onClick={() => {
-                        setSpendCategory(c.id);
-                        if (c.id !== "other") setOtherNote("");
-                      }}
-                      disabled={busy}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-                {spendCategory === "other" ? (
-                  <label className="field save-goal-other-note">
-                    <span className="field-label">What was it?</span>
-                    <input
-                      type="text"
-                      value={otherNote}
-                      onChange={(e) => setOtherNote(e.target.value)}
-                      placeholder="e.g. parking, gift wrap"
-                      maxLength={80}
-                      disabled={busy}
-                      autoComplete="off"
-                    />
-                  </label>
-                ) : null}
-              </div>
-              {error ? (
-                <p className="tiny" style={{ color: "var(--danger)" }}>
-                  {error}
-                </p>
-              ) : null}
-              <div className="save-goal-create-actions">
-                <PrimaryButton
-                  onClick={() => void submitSubtract()}
-                  disabled={busy || !spendCategory}
-                >
-                  {busy ? "Saving…" : "Log expense"}
-                </PrimaryButton>
-                <SecondaryButton
-                  onClick={() => {
-                    setSubtractOpen(false);
-                    setSpendCategory("");
-                    setOtherNote("");
-                    setError("");
-                  }}
-                  disabled={busy}
-                >
-                  Cancel
-                </SecondaryButton>
-              </div>
-            </div>
+          {subtractOpen && today ? (
+            <LogExpensePanel
+              defaultDate={today}
+              reserveAvailable={reserveAvailable}
+              busy={busy}
+              error={error}
+              onCancel={() => {
+                setSubtractOpen(false);
+                setError("");
+              }}
+              onSubmit={(input) => void submitLog(input)}
+            />
           ) : (
             <div className="save-goal-glance-actions">
               <PrimaryButton
                 onClick={() => {
                   setError("");
-                  setEntryAmount("");
-                  setSpendCategory("");
-                  setOtherNote("");
                   setSubtractOpen(true);
                 }}
                 disabled={busy}
@@ -881,6 +955,7 @@ function SaveGoalsDetail() {
   const [error, setError] = useState("");
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
   const [editing, setEditing] = useState<SaveGoal | null>(null);
   const [editName, setEditName] = useState("");
   const [editTarget, setEditTarget] = useState("");
@@ -1114,6 +1189,33 @@ function SaveGoalsDetail() {
     }
   }
 
+  async function submitLog(input: {
+    date: string;
+    amount: number;
+    category: SaveGoalSpendCategory;
+    note?: string;
+  }) {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "addSpend",
+        date: input.date,
+        amount: input.amount,
+        kind: "spend",
+        category: input.category,
+        ...(input.note ? { note: input.note } : {}),
+      });
+      setLogOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not log expense");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const reserveAvailable = Math.max(0, reserve?.savedAmount ?? 0);
+
   if (goals.length === 0 && !open) {
     return (
       <section
@@ -1167,6 +1269,7 @@ function SaveGoalsDetail() {
               setReallocateTo("");
               setTransferOpen(false);
               setAdjustOpen(false);
+              setLogOpen(false);
               setOpen(false);
               setError("");
             }}
@@ -1327,6 +1430,20 @@ function SaveGoalsDetail() {
         </p>
       ) : null}
 
+      {logOpen && today ? (
+        <LogExpensePanel
+          defaultDate={today}
+          reserveAvailable={reserveAvailable}
+          busy={busy}
+          error={error}
+          onCancel={() => {
+            setLogOpen(false);
+            setError("");
+          }}
+          onSubmit={(input) => void submitLog(input)}
+        />
+      ) : null}
+
       {transferOpen && reserve && namedGoals.length > 0 ? (
         <TransferFromReservePanel
           reserve={reserve}
@@ -1416,22 +1533,26 @@ function SaveGoalsDetail() {
             </SecondaryButton>
           </div>
         </div>
-      ) : (
+      ) : logOpen || transferOpen || adjustOpen ? null : (
         <div className="save-goal-actions-row" role="group" aria-label="Ledger actions">
           <SecondaryButton
+            disabled={goals.length === 0}
             onClick={() => {
-              setOpen(true);
+              setLogOpen(true);
               setTransferOpen(false);
               setAdjustOpen(false);
+              setOpen(false);
               setEditing(null);
+              setError("");
             }}
           >
-            Add
+            Log
           </SecondaryButton>
           <SecondaryButton
             disabled={!reserve || namedGoals.length === 0}
             onClick={() => {
               setTransferOpen(true);
+              setLogOpen(false);
               setAdjustOpen(false);
               setOpen(false);
               setEditing(null);
@@ -1441,15 +1562,15 @@ function SaveGoalsDetail() {
             Transfer
           </SecondaryButton>
           <SecondaryButton
-            disabled={goals.length === 0}
             onClick={() => {
-              setAdjustOpen(true);
+              setOpen(true);
+              setLogOpen(false);
               setTransferOpen(false);
-              setOpen(false);
+              setAdjustOpen(false);
               setEditing(null);
             }}
           >
-            Adjust
+            Add
           </SecondaryButton>
         </div>
       )}
