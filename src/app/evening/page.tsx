@@ -34,17 +34,6 @@ import {
 } from "@/lib/journal";
 import type { NewsHeadline } from "@/lib/news";
 import type { OnThisDayEvent } from "@/lib/on-this-day";
-import {
-  activeSaveGoals,
-  formatMoney,
-  formatMoneyDown,
-  leftoverBeforeApply,
-  listSaveGoalSpendEntries,
-  SAVE_GOAL_SPEND_CATEGORIES,
-  saveGoalCloseForDate,
-  saveGoalSpendCategoryLabel,
-} from "@/lib/save-goals";
-import type { SaveGoalSpendCategory } from "@/lib/types";
 import { completedTodosForUndo, openTodosOn } from "@/lib/todos";
 import type { DailyForecast } from "@/lib/weather";
 
@@ -120,16 +109,6 @@ function EveningPageInner() {
   const [oneLine, setOneLine] = useState("");
   const [standOut, setStandOut] = useState("");
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
-  const [applySaveGoals, setApplySaveGoals] = useState(true);
-  const [drawFromGoalId, setDrawFromGoalId] = useState("");
-  const [entryKind, setEntryKind] = useState<"add" | "spend" | null>(null);
-  const [entryAmount, setEntryAmount] = useState("");
-  const [spendCategory, setSpendCategory] =
-    useState<SaveGoalSpendCategory | "">("");
-  const [ledgerOpen, setLedgerOpen] = useState(false);
-  const [rollPrompt, setRollPrompt] = useState(false);
-  const [rollScope, setRollScope] = useState<"all" | "rolled">("all");
-  const [saveBusy, setSaveBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [starBusy, setStarBusy] = useState(false);
   const [starPending, setStarPending] = useState(false);
@@ -348,30 +327,6 @@ function EveningPageInner() {
     return sevenDayTrendInsight(state, briefingDate);
   }, [briefingDate, state, today]);
 
-  const moneyDate = effectiveDate || today || "";
-  const saveGoals = useMemo(() => activeSaveGoals(state), [state]);
-  const dayLedger = useMemo(
-    () =>
-      moneyDate
-        ? leftoverBeforeApply(state, moneyDate)
-        : { base: 0, carryIn: 0, inbound: 0, adds: 0, spend: 0, left: 0 },
-    [state, moneyDate],
-  );
-  const dayTotalShown = dayLedger.inbound + dayLedger.adds;
-  const daySpends = useMemo(
-    () => (moneyDate ? listSaveGoalSpendEntries(state, moneyDate) : []),
-    [state, moneyDate],
-  );
-  const dayApplied = useMemo(
-    () => (moneyDate ? Boolean(saveGoalCloseForDate(state, moneyDate)) : false),
-    [state, moneyDate],
-  );
-  const needsDrawPick = dayLedger.left < 0 && saveGoals.length > 1;
-  const resolvedDrawFrom =
-    drawFromGoalId ||
-    (saveGoals.length === 1 ? saveGoals[0].id : undefined);
-  const canApplyNegative = !needsDrawPick || Boolean(drawFromGoalId);
-
   const tomorrowDate = today ? addDays(today, 1) : "";
 
   const collapsedSummary = useMemo(() => {
@@ -403,100 +358,10 @@ function EveningPageInner() {
     setStarPending((prev) => !prev);
   }
 
-  async function submitEveningEntry() {
-    const amount = Number(entryAmount);
-    if (!entryKind || !Number.isFinite(amount) || amount <= 0) {
-      setError("Enter an amount greater than 0.");
-      return;
-    }
-    if (entryKind === "spend" && !spendCategory) {
-      setError("Pick a category.");
-      return;
-    }
-    setSaveBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", {
-        action: "addSpend",
-        date: moneyDate,
-        amount,
-        kind: entryKind,
-        category: entryKind === "spend" ? spendCategory : undefined,
-      });
-      setEntryAmount("");
-      setSpendCategory("");
-      setEntryKind(null);
-    } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : entryKind === "add"
-            ? "Could not add"
-            : "Could not subtract",
-      );
-    } finally {
-      setSaveBusy(false);
-    }
-  }
-
-  async function removeEveningSpend(id: string) {
-    setSaveBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", { action: "removeSpend", id });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not remove");
-    } finally {
-      setSaveBusy(false);
-    }
-  }
-
-  async function applyEveningTotals(scope: "all" | "rolled" = "all") {
-    const needsDraw =
-      (scope === "all" && dayLedger.left < 0) ||
-      (scope === "rolled" && dayLedger.carryIn < 0);
-    if (needsDraw && !resolvedDrawFrom) {
-      setError("Pick a goal to take from.");
-      return;
-    }
-    setSaveBusy(true);
-    setError("");
-    try {
-      await post("/api/save-goals", {
-        action: "applyTotals",
-        date: moneyDate,
-        scope,
-        drawFromGoalId: needsDraw ? resolvedDrawFrom : undefined,
-      });
-      setApplySaveGoals(false);
-      setRollPrompt(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not apply");
-    } finally {
-      setSaveBusy(false);
-    }
-  }
-
-  function requestEveningApply() {
-    if (dayLedger.carryIn !== 0 && !dayApplied) {
-      setRollScope("all");
-      setRollPrompt(true);
-      setError("");
-      return;
-    }
-    void applyEveningTotals("all");
-  }
-
   async function submit() {
     if (!oneLine.trim() || !effectiveDate) return;
     if (mood == null || stress == null) {
       setError("Tap a number for mood and stress.");
-      return;
-    }
-    const shouldApply =
-      saveGoals.length > 0 && applySaveGoals && !dayApplied;
-    if (shouldApply && dayLedger.left < 0 && !resolvedDrawFrom) {
-      setError("Pick a goal to take from.");
       return;
     }
     setBusy(true);
@@ -518,9 +383,6 @@ function EveningPageInner() {
         oneLine: snapshot.headline,
         expandedJournal: snapshot.summary || undefined,
         photoDataUrl: photoDataUrl || undefined,
-        applySaveGoals: shouldApply,
-        drawFromGoalId:
-          shouldApply && dayLedger.left < 0 ? resolvedDrawFrom : undefined,
       });
       setStarPending(false);
       setClosed(snapshot);
@@ -771,294 +633,6 @@ function EveningPageInner() {
             ) : null}
           </div>
 
-          {!closeDone && saveGoals.length > 0 ? (
-            <div className="open-edition-money" aria-label="Save ledger">
-              <p className="open-edition-kicker">Save ledger</p>
-              <div className="save-goal-glance-head" style={{ marginTop: 4 }}>
-                <div>
-                  <p className="open-edition-money-note" style={{ margin: 0 }}>
-                    Day total {formatMoneyDown(dayTotalShown)}
-                    {dayLedger.carryIn !== 0 ? (
-                      <>
-                        {" "}
-                        · {dayLedger.carryIn > 0 ? "+" : ""}
-                        {formatMoneyDown(dayLedger.carryIn)} rolled
-                      </>
-                    ) : null}
-                  </p>
-                </div>
-                <p className="save-goal-inbound-figure" aria-label="Left today">
-                  {formatMoneyDown(dayLedger.left)}
-                </p>
-              </div>
-
-              {entryKind ? (
-                <div className="save-goal-create" style={{ marginTop: 10 }}>
-                  <label className="open-edition-lead-field">
-                    <span className="open-edition-kicker">
-                      {entryKind === "add" ? "Add" : "Subtract"}
-                    </span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min={0.01}
-                      step="0.01"
-                      value={entryAmount}
-                      onChange={(e) => setEntryAmount(e.target.value)}
-                      placeholder="8.18"
-                      autoFocus
-                    />
-                  </label>
-                  {entryKind === "spend" ? (
-                    <div className="save-goal-spend-category">
-                      <p className="open-edition-kicker" style={{ marginBottom: 6 }}>
-                        Category
-                      </p>
-                      <div className="chip-row">
-                        {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
-                          <button
-                            key={c.id}
-                            type="button"
-                            className={`chip${spendCategory === c.id ? " selected" : ""}`}
-                            onClick={() => setSpendCategory(c.id)}
-                            disabled={saveBusy}
-                          >
-                            {c.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                  <div className="save-goal-create-actions">
-                    <PrimaryButton
-                      onClick={() => void submitEveningEntry()}
-                      disabled={
-                        saveBusy || (entryKind === "spend" && !spendCategory)
-                      }
-                    >
-                      {saveBusy
-                        ? "Saving…"
-                        : entryKind === "add"
-                          ? "Add"
-                          : "Subtract"}
-                    </PrimaryButton>
-                    <SecondaryButton
-                      onClick={() => {
-                        setEntryKind(null);
-                        setSpendCategory("");
-                        setError("");
-                      }}
-                      disabled={saveBusy}
-                    >
-                      Cancel
-                    </SecondaryButton>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className="save-goal-glance-actions"
-                  style={{ marginTop: 10 }}
-                >
-                  <SecondaryButton
-                    onClick={() => {
-                      setError("");
-                      setEntryAmount("");
-                      setSpendCategory("");
-                      setEntryKind("add");
-                    }}
-                    disabled={saveBusy}
-                  >
-                    Add
-                  </SecondaryButton>
-                  <SecondaryButton
-                    onClick={() => {
-                      setError("");
-                      setEntryAmount("");
-                      setSpendCategory("");
-                      setEntryKind("spend");
-                    }}
-                    disabled={saveBusy}
-                  >
-                    Subtract
-                  </SecondaryButton>
-                  {!rollPrompt ? (
-                    <PrimaryButton
-                      onClick={requestEveningApply}
-                      disabled={saveBusy || dayApplied || !canApplyNegative}
-                    >
-                      {saveBusy
-                        ? "Saving…"
-                        : dayApplied
-                          ? "Applied"
-                          : "Apply totals"}
-                    </PrimaryButton>
-                  ) : null}
-                </div>
-              )}
-
-              {rollPrompt && !dayApplied ? (
-                <div
-                  className="save-goal-roll-prompt"
-                  style={{ marginTop: 12 }}
-                  role="group"
-                  aria-label="Apply rolled amount"
-                >
-                  <p className="tiny" style={{ margin: "0 0 10px" }}>
-                    <strong>{formatMoney(dayLedger.left)} left</strong> includes{" "}
-                    <strong>
-                      {formatMoney(Math.abs(dayLedger.carryIn))}
-                    </strong>{" "}
-                    that rolled in.
-                  </p>
-                  <div className="save-goal-roll-options">
-                    <button
-                      type="button"
-                      className={`save-goal-roll-option${rollScope === "all" ? " selected" : ""}`}
-                      onClick={() => setRollScope("all")}
-                      disabled={saveBusy}
-                    >
-                      <span className="save-goal-roll-option-label">
-                        Apply all {formatMoney(Math.abs(dayLedger.left))}
-                      </span>
-                      <span className="tiny muted">
-                        {dayLedger.left < 0
-                          ? "Takes the full left from your goals — rolled + today."
-                          : "Puts the full left into your goals — rolled + today."}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`save-goal-roll-option${rollScope === "rolled" ? " selected" : ""}`}
-                      onClick={() => setRollScope("rolled")}
-                      disabled={saveBusy}
-                    >
-                      <span className="save-goal-roll-option-label">
-                        Apply only the{" "}
-                        {formatMoney(Math.abs(dayLedger.carryIn))} rolled
-                      </span>
-                      <span className="tiny muted">
-                        {dayLedger.carryIn < 0
-                          ? "Goals take the rolled amount; today’s leftover keeps rolling."
-                          : "Goals get the rolled amount; today’s leftover keeps rolling."}
-                      </span>
-                    </button>
-                  </div>
-                  <div className="save-goal-create-actions" style={{ marginTop: 12 }}>
-                    <PrimaryButton
-                      onClick={() => void applyEveningTotals(rollScope)}
-                      disabled={
-                        saveBusy ||
-                        ((rollScope === "all"
-                          ? dayLedger.left < 0
-                          : dayLedger.carryIn < 0) &&
-                          saveGoals.length > 1 &&
-                          !drawFromGoalId)
-                      }
-                    >
-                      {saveBusy ? "Saving…" : "Confirm"}
-                    </PrimaryButton>
-                    <SecondaryButton
-                      onClick={() => setRollPrompt(false)}
-                      disabled={saveBusy}
-                    >
-                      Cancel
-                    </SecondaryButton>
-                  </div>
-                </div>
-              ) : null}
-
-              {(needsDrawPick ||
-                (rollPrompt &&
-                  rollScope === "rolled" &&
-                  dayLedger.carryIn < 0 &&
-                  saveGoals.length > 1)) &&
-              !dayApplied ? (
-                <div className="save-goal-draw-from" style={{ marginTop: 12 }}>
-                  <p className="open-edition-kicker" style={{ marginBottom: 6 }}>
-                    Take from
-                  </p>
-                  <div className="chip-row">
-                    {saveGoals.map((g) => (
-                      <button
-                        key={g.id}
-                        type="button"
-                        className={`chip${drawFromGoalId === g.id ? " selected" : ""}`}
-                        onClick={() => setDrawFromGoalId(g.id)}
-                        disabled={saveBusy || busy}
-                      >
-                        {g.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              <label className="check-row" style={{ marginTop: 12 }}>
-                <input
-                  type="checkbox"
-                  checked={dayApplied || applySaveGoals}
-                  disabled={dayApplied}
-                  onChange={(e) => setApplySaveGoals(e.target.checked)}
-                />
-                <span>
-                  {dayApplied
-                    ? "Leftover already applied to goals"
-                    : "Apply leftover when I close the day"}
-                </span>
-              </label>
-              <p className="open-edition-money-note" style={{ marginTop: 6 }}>
-                Skip apply and leftover rolls into tomorrow.
-              </p>
-
-              {daySpends.filter((e) => (e.kind ?? "spend") !== "add").length >
-                0 || dayApplied ? (
-                <div className="save-goal-home-ledger" style={{ marginTop: 10 }}>
-                  <button
-                    type="button"
-                    className="save-goal-log-toggle"
-                    aria-expanded={ledgerOpen}
-                    onClick={() => setLedgerOpen((v) => !v)}
-                  >
-                    <span aria-hidden="true">{ledgerOpen ? "▾" : "▸"}</span>
-                    Expenses (
-                    {
-                      daySpends.filter((e) => (e.kind ?? "spend") !== "add")
-                        .length
-                    }
-                    )
-                  </button>
-                  {ledgerOpen ? (
-                    <div className="save-goal-ledger-rows home-ledger-body">
-                      {daySpends
-                        .filter((e) => (e.kind ?? "spend") !== "add")
-                        .map((e) => (
-                          <div
-                            key={e.id}
-                            className="save-goal-ledger-row spend"
-                          >
-                            <span>
-                              {saveGoalSpendCategoryLabel(e.category)}
-                            </span>
-                            <span className="save-goal-ledger-spend-val">
-                              −{formatMoney(e.amount)}
-                              <button
-                                type="button"
-                                className="save-goal-add-link"
-                                disabled={saveBusy}
-                                onClick={() => void removeEveningSpend(e.id)}
-                              >
-                                Undo
-                              </button>
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
           {error ? <p style={{ color: "var(--danger)" }}>{error}</p> : null}
 
           {closeDone ? (
@@ -1068,15 +642,7 @@ function EveningPageInner() {
           ) : (
             <PrimaryButton
               onClick={submit}
-              disabled={
-                busy ||
-                !oneLine.trim() ||
-                !scalesReady ||
-                (applySaveGoals &&
-                  !dayApplied &&
-                  needsDrawPick &&
-                  !drawFromGoalId)
-              }
+              disabled={busy || !oneLine.trim() || !scalesReady}
             >
               {busy ? "Saving…" : "Close the paper"}
             </PrimaryButton>
