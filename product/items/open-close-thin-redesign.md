@@ -5,7 +5,7 @@
 | ID | RB-042 |
 | Rank | 8 |
 | Priority | P0 |
-| Status | In Progress |
+| Status | Done |
 | Effort | M |
 | Target due | TBD |
 | Milestone | v1.x |
@@ -71,6 +71,7 @@ Exact schema shape (`dayRating` on `EveningCheckIn` vs rename) is eng’s call �
 ## Notes
 
 - Intake / lock: **2026-10-07** founder thin Open/Close redesign.
+- **Shipped 2026-10-07:** `/morning` + `/evening` thin UI; Home gate; `dayRating` 1–5; live on prod (PR #276).
 - **Rank 8 / P0 / Ready / Effort M** — Now queue after Gmail Ready; active ritual work (chrome parity RB-038 Done; content thin-down is this item).
 - Supersedes RB-038 “keep Mood+Stress + paper sections” content lock; RB-038 visual parity history stands as Done, not the target content set.
 - Supersedes RB-032 rich twin briefing body as the *active* Open/Close scope.
