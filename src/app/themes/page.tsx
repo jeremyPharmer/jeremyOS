@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { earthThemes, THEMES, type ThemeId } from "@/lib/themes";
+import {
+  featuredDarkThemes,
+  featuredLightThemes,
+  THEMES,
+  type ThemeId,
+} from "@/lib/themes";
 import { useTheme } from "@/components/ThemeProvider";
 
 type RoleKey = "bg" | "accent" | "accent2" | "good" | "text";
@@ -15,20 +20,6 @@ const PALETTE_ROLES: { key: RoleKey; label: string }[] = [
 ];
 
 const ROLE_COLORS: Partial<Record<ThemeId, Record<RoleKey, string>>> = {
-  "bone-graphite": {
-    bg: "#f3f0ea",
-    accent: "#3a3a38",
-    accent2: "#5c5a56",
-    good: "#6a7d68",
-    text: "#3a3a38",
-  },
-  "river-stone": {
-    bg: "#eceee9",
-    accent: "#5c6560",
-    accent2: "#7a8480",
-    good: "#5f7d6a",
-    text: "#3d4540",
-  },
   "wheat-umber": {
     bg: "#f2eadc",
     accent: "#6b4f3a",
@@ -36,54 +27,68 @@ const ROLE_COLORS: Partial<Record<ThemeId, Record<RoleKey, string>>> = {
     good: "#6a7d58",
     text: "#3a2e24",
   },
-  "moss-linen": {
-    bg: "#f1eee6",
-    accent: "#5e6b55",
-    accent2: "#7a8770",
-    good: "#5a7a5e",
-    text: "#2e322c",
+  "navy-crest": {
+    bg: "#eef1f6",
+    accent: "#0b1f4a",
+    accent2: "#c9a227",
+    good: "#3d8f6e",
+    text: "#0b1f4a",
   },
-  "taupe-ink": {
-    bg: "#ebe6df",
-    accent: "#2c2926",
-    accent2: "#5a524c",
-    good: "#6a7a62",
-    text: "#2c2926",
+  "retro-arcade": {
+    bg: "#f7f1e3",
+    accent: "#0d7377",
+    accent2: "#e0a100",
+    good: "#4a8f5c",
+    text: "#1f2a24",
   },
-  "charcoal-oak": {
-    bg: "#1a1c1b",
-    accent: "#c4a574",
-    accent2: "#d4b888",
-    good: "#7a9a78",
-    text: "#e8e4dc",
+  "citrus-press": {
+    bg: "#fff8e7",
+    accent: "#2a2a28",
+    accent2: "#e6b422",
+    good: "#5a9a62",
+    text: "#2a2a28",
   },
-  "espresso-night": {
-    bg: "#14110f",
-    accent: "#d8cfc3",
-    accent2: "#e4dcd2",
-    good: "#8a9e7a",
-    text: "#e8e0d6",
+  "glacier-mint": {
+    bg: "#f3faf8",
+    accent: "#1f6f66",
+    accent2: "#7ec8b8",
+    good: "#2f9e7a",
+    text: "#163832",
   },
-  "slate-umber": {
-    bg: "#171a1c",
-    accent: "#a67c52",
-    accent2: "#b89068",
-    good: "#6a9a80",
-    text: "#e4e8ec",
+  "brick-folio": {
+    bg: "#f7f0e8",
+    accent: "#9a3b2e",
+    accent2: "#c45a4a",
+    good: "#5a8a62",
+    text: "#2c2420",
   },
-  "forest-dusk": {
-    bg: "#121614",
-    accent: "#c5b896",
-    accent2: "#d4c8a8",
-    good: "#7a9e7a",
-    text: "#e4e0d4",
+  "ink-stripe": {
+    bg: "#fafafa",
+    accent: "#111111",
+    accent2: "#5a5a5a",
+    good: "#2f8f5c",
+    text: "#111111",
   },
-  "ink-sienna": {
-    bg: "#101010",
-    accent: "#b07a55",
-    accent2: "#c4906a",
-    good: "#7a9a78",
-    text: "#e8e4e0",
+  "void-amber": {
+    bg: "#0e0e10",
+    accent: "#e0a040",
+    accent2: "#f0b860",
+    good: "#5ee0a0",
+    text: "#ececf0",
+  },
+  "deep-harbor": {
+    bg: "#07101f",
+    accent: "#d4b45a",
+    accent2: "#e4c878",
+    good: "#5fbf9a",
+    text: "#e6eef8",
+  },
+  "graphite-bloom": {
+    bg: "#151618",
+    accent: "#c97b84",
+    accent2: "#d9949c",
+    good: "#7a9e8a",
+    text: "#ece8ea",
   },
 };
 
@@ -194,7 +199,7 @@ function PaletteSection({
 }: {
   title: string;
   blurb: string;
-  options: ReturnType<typeof earthThemes>;
+  options: ReturnType<typeof featuredLightThemes>;
   theme: ThemeId;
   setTheme: (id: ThemeId) => void;
   startIndex?: number;
@@ -224,18 +229,17 @@ function PaletteSection({
 
 export default function ThemesPage() {
   const { theme, setTheme } = useTheme();
-  const earth = earthThemes();
-  const earthLight = earth.slice(0, 5);
-  const earthDark = earth.slice(5);
+  const light = featuredLightThemes();
+  const dark = featuredDarkThemes();
 
   return (
     <main className="page themes-board">
       <header className="themes-board-header">
-        <p className="eyebrow">Appearance</p>
+        <p className="eyebrow">Appearance · review board</p>
         <h1>Color palettes</h1>
         <p className="muted">
-          Ten earth &amp; neutral directions — five light, five dark. Tap to
-          restyle live. Same set as Settings → Appearance.
+          Wheat Umber stays. Nine new options — navy/gold, retro, citrus, mint,
+          brick, ink, plus three darks. Tap to restyle live.
         </p>
         <div className="themes-board-links">
           <Link href="/" className="themes-board-link">
@@ -250,20 +254,20 @@ export default function ThemesPage() {
       <LivePreview />
 
       <PaletteSection
-        title="Light"
-        blurb="Bone, stone, wheat, moss, taupe — soft day grounds."
-        options={earthLight}
+        title="Light & varied"
+        blurb="Wheat kept, then navy crest, retro, citrus, glacier, brick, ink."
+        options={light}
         theme={theme}
         setTheme={setTheme}
       />
 
       <PaletteSection
         title="Dark"
-        blurb="Charcoal, espresso, slate, forest, ink — dark grounds, quiet heat."
-        options={earthDark}
+        blurb="Void amber, deep harbor, graphite bloom."
+        options={dark}
         theme={theme}
         setTheme={setTheme}
-        startIndex={5}
+        startIndex={7}
       />
     </main>
   );

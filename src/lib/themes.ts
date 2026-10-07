@@ -64,7 +64,16 @@ export type ThemeId =
   | "espresso-night"
   | "slate-umber"
   | "forest-dusk"
-  | "ink-sienna";
+  | "ink-sienna"
+  | "navy-crest"
+  | "retro-arcade"
+  | "citrus-press"
+  | "glacier-mint"
+  | "brick-folio"
+  | "ink-stripe"
+  | "void-amber"
+  | "deep-harbor"
+  | "graphite-bloom";
 
 export type ThemeOption = {
   id: ThemeId;
@@ -79,9 +88,9 @@ export type ThemeOption = {
 };
 
 /** Default theme when nothing is stored. */
-export const DEFAULT_THEME_ID: ThemeId = "bone-graphite";
+export const DEFAULT_THEME_ID: ThemeId = "wheat-umber";
 
-/** Modern accent set (archived from Settings — still loadable if saved). */
+/** Modern accent set (archived — still loadable if saved). */
 export const MODERN_THEME_IDS: ThemeId[] = [
   "signal-ink",
   "chartreuse-cut",
@@ -95,7 +104,7 @@ export const MODERN_THEME_IDS: ThemeId[] = [
   "copper-fog",
 ];
 
-/** Neutral / earth set — 5 light + 5 dark. Active Settings options. */
+/** Prior earth set (archived — still loadable if saved). */
 export const EARTH_THEME_IDS: ThemeId[] = [
   "bone-graphite",
   "river-stone",
@@ -109,8 +118,28 @@ export const EARTH_THEME_IDS: ThemeId[] = [
   "ink-sienna",
 ];
 
-/** Themes shown in Settings + palette board. */
-export const FEATURED_THEME_IDS: ThemeId[] = [...EARTH_THEME_IDS];
+/**
+ * Active Settings / palette board.
+ * Wheat Umber kept + 9 new (6 varied light, 3 dark).
+ */
+export const FEATURED_THEME_IDS: ThemeId[] = [
+  "wheat-umber",
+  "navy-crest",
+  "retro-arcade",
+  "citrus-press",
+  "glacier-mint",
+  "brick-folio",
+  "ink-stripe",
+  "void-amber",
+  "deep-harbor",
+  "graphite-bloom",
+];
+
+/** Light / varied feels in the featured board (first 7). */
+export const FEATURED_LIGHT_IDS: ThemeId[] = FEATURED_THEME_IDS.slice(0, 7);
+
+/** Dark themes in the featured board (last 3). */
+export const FEATURED_DARK_IDS: ThemeId[] = FEATURED_THEME_IDS.slice(7);
 
 /** @deprecated Use FEATURED_THEME_IDS — kept as an alias for older imports. */
 export const RETHINK_THEME_IDS: ThemeId[] = FEATURED_THEME_IDS;
@@ -205,7 +234,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Quiet paper day — neutral chrome, no loud accents.",
     layout: "paper",
     swatches: ["#f3f0ea", "#3a3a38", "#8a8680"],
-    featured: true,
   },
   {
     id: "river-stone",
@@ -214,7 +242,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Soft mineral calm — cool neutrals, steady focus.",
     layout: "briefing",
     swatches: ["#eceee9", "#5c6560", "#8b948c"],
-    featured: true,
   },
   {
     id: "wheat-umber",
@@ -232,7 +259,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Soft utility — linen surfaces, quiet green accent.",
     layout: "studio",
     swatches: ["#f1eee6", "#5e6b55", "#9aa38f"],
-    featured: true,
   },
   {
     id: "taupe-ink",
@@ -241,7 +267,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Gallery taupe — soft walls, ink for hierarchy.",
     layout: "paper",
     swatches: ["#ebe6df", "#2c2926", "#8b8178"],
-    featured: true,
   },
   {
     id: "charcoal-oak",
@@ -250,7 +275,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Dark wood study — low glare, oak warmth.",
     layout: "cozy",
     swatches: ["#1a1c1b", "#c4a574", "#8a8f88"],
-    featured: true,
   },
   {
     id: "espresso-night",
@@ -259,7 +283,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "After-hours coffee shop — deep brown, soft cream.",
     layout: "ritual",
     swatches: ["#14110f", "#d8cfc3", "#8f7f6e"],
-    featured: true,
   },
   {
     id: "slate-umber",
@@ -268,7 +291,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Cool night mineral — slate ground, umber signal.",
     layout: "briefing",
     swatches: ["#171a1c", "#a67c52", "#7a848c"],
-    featured: true,
   },
   {
     id: "forest-dusk",
@@ -277,7 +299,6 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Dusk trail — dark canopy, soft khaki text.",
     layout: "ritual",
     swatches: ["#121614", "#c5b896", "#6d7a6e"],
-    featured: true,
   },
   {
     id: "ink-sienna",
@@ -286,6 +307,88 @@ export const THEMES: ThemeOption[] = [
     layoutHint: "Studio night — black ground, quiet sienna heat.",
     layout: "studio",
     swatches: ["#101010", "#b07a55", "#8a8580"],
+  },
+
+  // ── Review board (Wheat + 9) ──
+  {
+    id: "navy-crest",
+    label: "Navy Crest",
+    description: "Deep navy with soft gold",
+    layoutHint: "Crest day — almost-navy authority, gold for action.",
+    layout: "briefing",
+    swatches: ["#eef1f6", "#0b1f4a", "#c9a227"],
+    featured: true,
+  },
+  {
+    id: "retro-arcade",
+    label: "Retro Arcade",
+    description: "Cream with teal + mustard",
+    layoutHint: "70s console energy — playful without neon noise.",
+    layout: "studio",
+    swatches: ["#f7f1e3", "#0d7377", "#e0a100"],
+    featured: true,
+  },
+  {
+    id: "citrus-press",
+    label: "Citrus Press",
+    description: "Pale lemon with charcoal",
+    layoutHint: "Morning zest — bright field, ink for hierarchy.",
+    layout: "ritual",
+    swatches: ["#fff8e7", "#2a2a28", "#e6b422"],
+    featured: true,
+  },
+  {
+    id: "glacier-mint",
+    label: "Glacier Mint",
+    description: "Ice white with mint signal",
+    layoutHint: "Cool reset — airy ice, mint for done states.",
+    layout: "briefing",
+    swatches: ["#f3faf8", "#1f6f66", "#7ec8b8"],
+    featured: true,
+  },
+  {
+    id: "brick-folio",
+    label: "Brick Folio",
+    description: "Paper cream with brick red",
+    layoutHint: "Editorial folio — warm paper, brick accent.",
+    layout: "paper",
+    swatches: ["#f7f0e8", "#9a3b2e", "#2c2420"],
+    featured: true,
+  },
+  {
+    id: "ink-stripe",
+    label: "Ink Stripe",
+    description: "Gallery white with bold ink",
+    layoutHint: "Graphic quiet — high contrast, almost no color.",
+    layout: "paper",
+    swatches: ["#fafafa", "#111111", "#5a5a5a"],
+    featured: true,
+  },
+  {
+    id: "void-amber",
+    label: "Void Amber",
+    description: "Near-black with amber heat",
+    layoutHint: "Night focus — void ground, amber cues.",
+    layout: "ritual",
+    swatches: ["#0e0e10", "#e0a040", "#9a9aa2"],
+    featured: true,
+  },
+  {
+    id: "deep-harbor",
+    label: "Deep Harbor",
+    description: "Night navy with soft gold",
+    layoutHint: "After-hours crest — dark navy, gold glow.",
+    layout: "ledger",
+    swatches: ["#07101f", "#d4b45a", "#7a8eab"],
+    featured: true,
+  },
+  {
+    id: "graphite-bloom",
+    label: "Graphite Bloom",
+    description: "Dark graphite with dusty rose",
+    layoutHint: "Soft night — graphite walls, rose signal.",
+    layout: "cozy",
+    swatches: ["#151618", "#c97b84", "#9aa0a8"],
     featured: true,
   },
   {
@@ -568,7 +671,7 @@ export function themeLayout(id: ThemeId): LayoutId {
 }
 
 export function themeMetaColor(id: ThemeId): string {
-  return getTheme(id)?.swatches[0] ?? "#f3f0ea";
+  return getTheme(id)?.swatches[0] ?? "#f2eadc";
 }
 
 export function featuredThemes(): ThemeOption[] {
@@ -581,6 +684,14 @@ export function modernThemes(): ThemeOption[] {
 
 export function earthThemes(): ThemeOption[] {
   return EARTH_THEME_IDS.map((id) => getTheme(id)!).filter(Boolean);
+}
+
+export function featuredLightThemes(): ThemeOption[] {
+  return FEATURED_LIGHT_IDS.map((id) => getTheme(id)!).filter(Boolean);
+}
+
+export function featuredDarkThemes(): ThemeOption[] {
+  return FEATURED_DARK_IDS.map((id) => getTheme(id)!).filter(Boolean);
 }
 
 export function rethinkThemes(): ThemeOption[] {

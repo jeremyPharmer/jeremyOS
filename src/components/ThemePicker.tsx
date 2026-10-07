@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { earthThemes, type ThemeId } from "@/lib/themes";
+import {
+  featuredDarkThemes,
+  featuredLightThemes,
+  type ThemeId,
+} from "@/lib/themes";
 import { useTheme } from "@/components/ThemeProvider";
 
 function ThemeGrid({
@@ -9,7 +13,7 @@ function ThemeGrid({
   theme,
   setTheme,
 }: {
-  options: ReturnType<typeof earthThemes>;
+  options: ReturnType<typeof featuredLightThemes>;
   theme: ThemeId;
   setTheme: (id: ThemeId) => void;
 }) {
@@ -50,25 +54,24 @@ function ThemeGrid({
 
 export function ThemePicker() {
   const { theme, setTheme } = useTheme();
-  const earth = earthThemes();
-  const earthLight = earth.slice(0, 5);
-  const earthDark = earth.slice(5);
+  const light = featuredLightThemes();
+  const dark = featuredDarkThemes();
 
   return (
     <section className="panel theme-picker">
       <p className="eyebrow">Appearance</p>
       <p className="muted" style={{ marginTop: 0, lineHeight: 1.45 }}>
-        Earth &amp; neutral palettes — five light, five dark.{" "}
+        Wheat Umber kept, plus nine new feels — six light, three dark.{" "}
         <Link href="/themes" style={{ color: "var(--accent)", fontWeight: 600 }}>
           Palette board
         </Link>
       </p>
 
-      <p className="theme-picker-group-label">Light</p>
-      <ThemeGrid options={earthLight} theme={theme} setTheme={setTheme} />
+      <p className="theme-picker-group-label">Light &amp; varied</p>
+      <ThemeGrid options={light} theme={theme} setTheme={setTheme} />
 
       <p className="theme-picker-group-label">Dark</p>
-      <ThemeGrid options={earthDark} theme={theme} setTheme={setTheme} />
+      <ThemeGrid options={dark} theme={theme} setTheme={setTheme} />
     </section>
   );
 }
