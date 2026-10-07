@@ -11,16 +11,16 @@ import {
   formatMoney,
   formatMoneyDown,
   formatTargetDateLabel,
+  formatCalendarMonthLabel,
   goalDollarsPerDay,
+  groupSaveGoalExpensesByDay,
   isReserveGoal,
-  leftoverBeforeApply,
   listSaveGoalAdjustmentsForGoal,
   listSaveGoalSpendEntries,
   progressRatio,
   projectSaveGoalTargetDate,
   SAVE_GOAL_LEDGER_START,
   SAVE_GOAL_SPEND_CATEGORIES,
-  saveGoalCloseForDate,
   saveGoalSpendEntryLabel,
 } from "@/lib/save-goals";
 import type {
@@ -41,7 +41,10 @@ function GoalAdjustmentLog({
 }) {
   const { state } = useApp();
   const rows = useMemo(
-    () => listSaveGoalAdjustmentsForGoal(state, goalId),
+    () =>
+      listSaveGoalAdjustmentsForGoal(state, goalId).filter(
+        (d) => d.goalAmount > 0,
+      ),
     [state, goalId],
   );
   const [open, setOpen] = useState(false);
@@ -520,71 +523,215 @@ function AdjustPanel({
   );
 }
 
-/** Home saver — day total + add/subtract + collapsed ledger. Apply on /save-goals + evening. */
-function HomeSaveGoalsGlance() {
-  const { state, today, post } = useApp();
-  const [subtractOpen, setSubtractOpen] = useState(false);
+/** Shared log-expense form — date + amount + category; always debits Reserve. */
+function LogExpensePanel({
+  defaultDate,
+  reserveAvailable,
+  busy,
+  error,
+  onCancel,
+  onSubmit,
+}: {
+  defaultDate: string;
+  reserveAvailable: number;
+  busy: boolean;
+  error: string;
+  onCancel: () => void;
+  onSubmit: (input: {
+    date: string;
+    amount: number;
+    category: SaveGoalSpendCategory;
+    note?: string;
+  }) => void;
+}) {
+  const [spendDate, setSpendDate] = useState(defaultDate);
   const [entryAmount, setEntryAmount] = useState("");
   const [spendCategory, setSpendCategory] =
     useState<SaveGoalSpendCategory | "">("");
   const [otherNote, setOtherNote] = useState("");
-  const [ledgerOpen, setLedgerOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [localError, setLocalError] = useState("");
 
-  const goals = useMemo(() => activeSaveGoals(state), [state]);
-  const day = useMemo(() => {
-    if (!today) {
-      return {
-        base: 0,
-        carryIn: 0,
-        inbound: 0,
-        adds: 0,
-        spend: 0,
-        left: 0,
-      };
-    }
-    return leftoverBeforeApply(state, today);
-  }, [state, today]);
-  const entries = useMemo(
-    () => (today ? listSaveGoalSpendEntries(state, today) : []),
-    [state, today],
-  );
-  const todayClose = useMemo(
-    () => (today ? saveGoalCloseForDate(state, today) : null),
-    [state, today],
-  );
-  const applied = Boolean(todayClose);
+  useEffect(() => {
+    if (defaultDate) setSpendDate(defaultDate);
+  }, [defaultDate]);
 
-  async function submitSubtract() {
+  function submit() {
     const amount = Number(entryAmount);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(spendDate)) {
+      setLocalError("Pick a date.");
+      return;
+    }
     if (!Number.isFinite(amount) || amount <= 0) {
-      setError("Enter an amount greater than 0.");
+      setLocalError("Enter an amount greater than 0.");
       return;
     }
     if (!spendCategory) {
-      setError("Pick a category.");
+      setLocalError("Pick a category.");
+      return;
+    }
+    if (amount > reserveAvailable) {
+      setLocalError(
+        reserveAvailable <= 0
+          ? "Reserve is empty — add to Reserve first."
+          : `Only ${formatMoney(reserveAvailable)} available in Reserve.`,
+      );
       return;
     }
     const note =
       spendCategory === "other" ? otherNote.trim().slice(0, 80) : undefined;
+    setLocalError("");
+    onSubmit({
+      date: spendDate,
+      amount,
+      category: spendCategory,
+      ...(note ? { note } : {}),
+    });
+  }
+
+  const amount = Number(entryAmount);
+  const amountOk = Number.isFinite(amount) && amount > 0;
+  const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(spendDate);
+  const overReserve = amountOk && amount > reserveAvailable;
+  const canSubmit =
+    dateOk && amountOk && Boolean(spendCategory) && !overReserve;
+  const showError = localError || error;
+
+  return (
+    <div className="save-goal-create">
+      <label className="field">
+        <span className="field-label">Date</span>
+        <input
+          type="date"
+          value={spendDate}
+          max={defaultDate || undefined}
+          onChange={(e) => setSpendDate(e.target.value)}
+          disabled={busy}
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">Amount</span>
+        <input
+          type="number"
+          inputMode="decimal"
+          min={0.01}
+          step="0.01"
+          value={entryAmount}
+          onChange={(e) => setEntryAmount(e.target.value)}
+          placeholder="8.18"
+          autoFocus
+          disabled={busy}
+        />
+      </label>
+      <p className="tiny muted" style={{ margin: 0 }}>
+        From Reserve · {formatMoney(reserveAvailable)} available
+      </p>
+      <div className="save-goal-spend-category">
+        <p className="field-label" style={{ marginBottom: 6 }}>
+          Category
+        </p>
+        <div className="chip-row">
+          {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`chip${spendCategory === c.id ? " selected" : ""}`}
+              onClick={() => {
+                setSpendCategory(c.id);
+                if (c.id !== "other") setOtherNote("");
+              }}
+              disabled={busy}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+        {spendCategory === "other" ? (
+          <label className="field save-goal-other-note">
+            <span className="field-label">What was it?</span>
+            <input
+              type="text"
+              value={otherNote}
+              onChange={(e) => setOtherNote(e.target.value)}
+              placeholder="e.g. parking, gift wrap"
+              maxLength={80}
+              disabled={busy}
+              autoComplete="off"
+            />
+          </label>
+        ) : null}
+      </div>
+      {overReserve && !localError ? (
+        <p className="tiny" style={{ color: "var(--danger)" }}>
+          {reserveAvailable <= 0
+            ? "Reserve is empty — add to Reserve first."
+            : `Only ${formatMoney(reserveAvailable)} available in Reserve.`}
+        </p>
+      ) : null}
+      {showError ? (
+        <p className="tiny" style={{ color: "var(--danger)" }}>
+          {showError}
+        </p>
+      ) : null}
+      <div className="save-goal-create-actions">
+        <PrimaryButton
+          onClick={submit}
+          disabled={busy || !canSubmit}
+        >
+          {busy ? "Saving…" : "Log expense"}
+        </PrimaryButton>
+        <SecondaryButton onClick={onCancel} disabled={busy}>
+          Cancel
+        </SecondaryButton>
+      </div>
+    </div>
+  );
+}
+
+/** Home — log expenses from Reserve; today’s expense lines. */
+function HomeSaveGoalsGlance() {
+  const { state, today, post } = useApp();
+  const [subtractOpen, setSubtractOpen] = useState(false);
+  const [ledgerOpen, setLedgerOpen] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const goals = useMemo(() => activeSaveGoals(state), [state]);
+  const reserve = useMemo(
+    () => goals.find((g) => isReserveGoal(g)) ?? null,
+    [goals],
+  );
+  const reserveAvailable = Math.max(0, reserve?.savedAmount ?? 0);
+  const entries = useMemo(
+    () =>
+      today
+        ? listSaveGoalSpendEntries(state, today).filter(
+            (e) => (e.kind ?? "spend") !== "add",
+          )
+        : [],
+    [state, today],
+  );
+
+  async function submitLog(input: {
+    date: string;
+    amount: number;
+    category: SaveGoalSpendCategory;
+    note?: string;
+  }) {
     setBusy(true);
     setError("");
     try {
       await post("/api/save-goals", {
         action: "addSpend",
-        date: today,
-        amount,
+        date: input.date,
+        amount: input.amount,
         kind: "spend",
-        category: spendCategory,
-        ...(note ? { note } : {}),
+        category: input.category,
+        ...(input.note ? { note: input.note } : {}),
       });
-      setEntryAmount("");
-      setSpendCategory("");
-      setOtherNote("");
       setSubtractOpen(false);
+      setLedgerOpen(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not subtract");
+      setError(e instanceof Error ? e.message : "Could not log expense");
     } finally {
       setBusy(false);
     }
@@ -602,7 +749,8 @@ function HomeSaveGoalsGlance() {
     }
   }
 
-  const ledgerCount = entries.length + (applied ? 1 : 0);
+  const ledgerCount = entries.length;
+  const daySpendTotal = entries.reduce((s, e) => s + e.amount, 0);
 
   return (
     <section
@@ -612,12 +760,6 @@ function HomeSaveGoalsGlance() {
       <div className="home-card-head save-goal-glance-head">
         <div>
           <p className="home-card-kicker save-goal-glance-kicker">Save goals</p>
-          {day.carryIn !== 0 ? (
-            <p className="tiny muted save-goal-day-total-label">
-              {day.carryIn > 0 ? "+" : ""}
-              {formatMoneyDown(day.carryIn)} rolled
-            </p>
-          ) : null}
         </div>
       </div>
 
@@ -627,89 +769,23 @@ function HomeSaveGoalsGlance() {
         </p>
       ) : (
         <>
-          {subtractOpen ? (
-            <div className="save-goal-create">
-              <label className="field">
-                <span className="field-label">Amount</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={0.01}
-                  step="0.01"
-                  value={entryAmount}
-                  onChange={(e) => setEntryAmount(e.target.value)}
-                  placeholder="8.18"
-                  autoFocus
-                />
-              </label>
-              <div className="save-goal-spend-category">
-                <p className="field-label" style={{ marginBottom: 6 }}>
-                  Category
-                </p>
-                <div className="chip-row">
-                  {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className={`chip${spendCategory === c.id ? " selected" : ""}`}
-                      onClick={() => {
-                        setSpendCategory(c.id);
-                        if (c.id !== "other") setOtherNote("");
-                      }}
-                      disabled={busy}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-                {spendCategory === "other" ? (
-                  <label className="field save-goal-other-note">
-                    <span className="field-label">What was it?</span>
-                    <input
-                      type="text"
-                      value={otherNote}
-                      onChange={(e) => setOtherNote(e.target.value)}
-                      placeholder="e.g. parking, gift wrap"
-                      maxLength={80}
-                      disabled={busy}
-                      autoComplete="off"
-                    />
-                  </label>
-                ) : null}
-              </div>
-              {error ? (
-                <p className="tiny" style={{ color: "var(--danger)" }}>
-                  {error}
-                </p>
-              ) : null}
-              <div className="save-goal-create-actions">
-                <PrimaryButton
-                  onClick={() => void submitSubtract()}
-                  disabled={busy || !spendCategory}
-                >
-                  {busy ? "Saving…" : "Log expense"}
-                </PrimaryButton>
-                <SecondaryButton
-                  onClick={() => {
-                    setSubtractOpen(false);
-                    setSpendCategory("");
-                    setOtherNote("");
-                    setError("");
-                  }}
-                  disabled={busy}
-                >
-                  Cancel
-                </SecondaryButton>
-              </div>
-            </div>
+          {subtractOpen && today ? (
+            <LogExpensePanel
+              defaultDate={today}
+              reserveAvailable={reserveAvailable}
+              busy={busy}
+              error={error}
+              onCancel={() => {
+                setSubtractOpen(false);
+                setError("");
+              }}
+              onSubmit={(input) => void submitLog(input)}
+            />
           ) : (
             <div className="save-goal-glance-actions">
               <PrimaryButton
                 onClick={() => {
                   setError("");
-                  setEntryAmount("");
-                  setSpendCategory("");
-                  setOtherNote("");
                   setSubtractOpen(true);
                 }}
                 disabled={busy}
@@ -725,12 +801,6 @@ function HomeSaveGoalsGlance() {
             </p>
           ) : null}
 
-          {applied ? (
-            <p className="tiny save-goal-applied-line">
-              <span className="save-goal-applied-badge">Applied</span>
-            </p>
-          ) : null}
-
           {ledgerCount > 0 ? (
             <div className="save-goal-home-ledger">
               <button
@@ -740,53 +810,26 @@ function HomeSaveGoalsGlance() {
                 onClick={() => setLedgerOpen((v) => !v)}
               >
                 <span aria-hidden="true">{ledgerOpen ? "▾" : "▸"}</span>
-                Ledger ({ledgerCount})
+                Today ({ledgerCount}) · {formatMoney(daySpendTotal)}
               </button>
               {ledgerOpen ? (
                 <div className="save-goal-ledger-rows home-ledger-body">
-                  <div className="save-goal-ledger-row">
-                    <span>Inbound</span>
-                    <span>{formatMoney(day.inbound)}</span>
-                  </div>
-                  {entries.map((e) => {
-                    const isAdd = e.kind === "add";
-                    return (
-                      <div key={e.id} className="save-goal-ledger-row spend">
-                        <span>
-                          {isAdd
-                            ? "Add"
-                            : saveGoalSpendEntryLabel(e)}
-                        </span>
-                        <span className="save-goal-ledger-spend-val">
-                          {isAdd ? "+" : "−"}
-                          {formatMoney(e.amount)}
-                          <button
-                            type="button"
-                            className="save-goal-add-link"
-                            disabled={busy}
-                            onClick={() => void removeEntry(e.id)}
-                          >
-                            Undo
-                          </button>
-                        </span>
-                      </div>
-                    );
-                  })}
-                  <div className="save-goal-ledger-row leftover">
-                    <span>Left</span>
-                    <span>{formatMoney(day.left)}</span>
-                  </div>
-                  {applied && todayClose ? (
-                    <p className="tiny muted save-goal-ledger-alloc">
-                      {(todayClose.allocations ?? [])
-                        .filter((a) => a.amount !== 0)
-                        .map((a) => {
-                          const g = goals.find((x) => x.id === a.goalId);
-                          return `${g?.name ?? "Goal"} ${formatMoney(a.amount)}`;
-                        })
-                        .join(" · ")}
-                    </p>
-                  ) : null}
+                  {entries.map((e) => (
+                    <div key={e.id} className="save-goal-ledger-row spend">
+                      <span>{saveGoalSpendEntryLabel(e)}</span>
+                      <span className="save-goal-ledger-spend-val">
+                        −{formatMoney(e.amount)}
+                        <button
+                          type="button"
+                          className="save-goal-add-link"
+                          disabled={busy}
+                          onClick={() => void removeEntry(e.id)}
+                        >
+                          Undo
+                        </button>
+                      </span>
+                    </div>
+                  ))}
                 </div>
               ) : null}
             </div>
@@ -801,7 +844,102 @@ function HomeSaveGoalsGlance() {
   );
 }
 
-/** Full save-goals surface — ledger-only (daily inbound / % mix paused). */
+/** Day-segmented expense history on the saver page (no inbound). */
+function ExpenseDayHistory({
+  busy,
+  onRemove,
+}: {
+  busy: boolean;
+  onRemove: (id: string) => void;
+}) {
+  const { state } = useApp();
+  const days = useMemo(() => groupSaveGoalExpensesByDay(state), [state]);
+  const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
+
+  if (!days.length) return null;
+
+  const byMonth = new Map<string, typeof days>();
+  for (const d of days) {
+    const mk = d.date.slice(0, 7);
+    const list = byMonth.get(mk) ?? [];
+    list.push(d);
+    byMonth.set(mk, list);
+  }
+  const months = [...byMonth.entries()];
+
+  return (
+    <div className="save-goal-expense-history" aria-label="Expense ledger by day">
+      <h2 className="save-goal-ledger-heading">Ledger</h2>
+      {months.map(([monthKey, monthDays]) => {
+        const open = openMonths[monthKey] ?? false;
+        const monthTotal = monthDays.reduce((s, d) => s + d.total, 0);
+        return (
+          <div key={monthKey} className="save-goal-ledger-month">
+            <button
+              type="button"
+              className="save-goal-month-toggle"
+              aria-expanded={open}
+              onClick={() =>
+                setOpenMonths((prev) => ({
+                  ...prev,
+                  [monthKey]: !open,
+                }))
+              }
+            >
+              <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+              <span className="save-goal-month-title">
+                {formatCalendarMonthLabel(monthKey)}
+              </span>
+              <span className="tiny muted">
+                {monthDays.length} day{monthDays.length === 1 ? "" : "s"} ·{" "}
+                {formatMoney(monthTotal)}
+              </span>
+            </button>
+            {open ? (
+              <div className="save-goal-ledger-history-list">
+                {monthDays.map((day) => (
+                  <div
+                    key={day.date}
+                    className="save-goal-ledger-day"
+                  >
+                    <div className="save-goal-ledger-day-head">
+                      <span className="save-goal-ledger-date">
+                        {formatTargetDateLabel(day.date)}
+                      </span>
+                      <span className="tiny muted">
+                        −{formatMoney(day.total)}
+                      </span>
+                    </div>
+                    <div className="save-goal-ledger-rows">
+                      {day.entries.map((e) => (
+                        <div key={e.id} className="save-goal-ledger-row spend">
+                          <span>{saveGoalSpendEntryLabel(e)}</span>
+                          <span className="save-goal-ledger-spend-val">
+                            −{formatMoney(e.amount)}
+                            <button
+                              type="button"
+                              className="save-goal-add-link"
+                              disabled={busy}
+                              onClick={() => onRemove(e.id)}
+                            >
+                              Undo
+                            </button>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Full save-goals surface — Reserve hub + goals + expense history. */
 function SaveGoalsDetail() {
   const { state, today, post } = useApp();
   const [open, setOpen] = useState(false);
@@ -812,6 +950,7 @@ function SaveGoalsDetail() {
   const [error, setError] = useState("");
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
   const [editing, setEditing] = useState<SaveGoal | null>(null);
   const [editName, setEditName] = useState("");
   const [editTarget, setEditTarget] = useState("");
@@ -1033,6 +1172,45 @@ function SaveGoalsDetail() {
     }
   }
 
+  async function removeSpend(id: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", { action: "removeSpend", id });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not undo expense");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitLog(input: {
+    date: string;
+    amount: number;
+    category: SaveGoalSpendCategory;
+    note?: string;
+  }) {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "addSpend",
+        date: input.date,
+        amount: input.amount,
+        kind: "spend",
+        category: input.category,
+        ...(input.note ? { note: input.note } : {}),
+      });
+      setLogOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not log expense");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const reserveAvailable = Math.max(0, reserve?.savedAmount ?? 0);
+
   if (goals.length === 0 && !open) {
     return (
       <section
@@ -1065,7 +1243,7 @@ function SaveGoalsDetail() {
       <div className="home-card-head">
         <div>
           <p className="home-card-kicker">Save goals</p>
-          <h2>{goals.length === 0 ? "Save towards something" : "Ledger"}</h2>
+          {goals.length === 0 ? <h2>Save towards something</h2> : null}
         </div>
       </div>
 
@@ -1086,6 +1264,7 @@ function SaveGoalsDetail() {
               setReallocateTo("");
               setTransferOpen(false);
               setAdjustOpen(false);
+              setLogOpen(false);
               setOpen(false);
               setError("");
             }}
@@ -1235,10 +1414,29 @@ function SaveGoalsDetail() {
         </div>
       ))}
 
+      <ExpenseDayHistory
+        busy={busy}
+        onRemove={(id) => void removeSpend(id)}
+      />
+
       {error ? (
         <p className="tiny" style={{ color: "var(--danger)" }}>
           {error}
         </p>
+      ) : null}
+
+      {logOpen && today ? (
+        <LogExpensePanel
+          defaultDate={today}
+          reserveAvailable={reserveAvailable}
+          busy={busy}
+          error={error}
+          onCancel={() => {
+            setLogOpen(false);
+            setError("");
+          }}
+          onSubmit={(input) => void submitLog(input)}
+        />
       ) : null}
 
       {transferOpen && reserve && namedGoals.length > 0 ? (
@@ -1330,22 +1528,26 @@ function SaveGoalsDetail() {
             </SecondaryButton>
           </div>
         </div>
-      ) : (
+      ) : logOpen || transferOpen || adjustOpen ? null : (
         <div className="save-goal-actions-row" role="group" aria-label="Ledger actions">
           <SecondaryButton
+            disabled={goals.length === 0}
             onClick={() => {
-              setOpen(true);
+              setLogOpen(true);
               setTransferOpen(false);
               setAdjustOpen(false);
+              setOpen(false);
               setEditing(null);
+              setError("");
             }}
           >
-            Add
+            Log
           </SecondaryButton>
           <SecondaryButton
             disabled={!reserve || namedGoals.length === 0}
             onClick={() => {
               setTransferOpen(true);
+              setLogOpen(false);
               setAdjustOpen(false);
               setOpen(false);
               setEditing(null);
@@ -1355,15 +1557,15 @@ function SaveGoalsDetail() {
             Transfer
           </SecondaryButton>
           <SecondaryButton
-            disabled={goals.length === 0}
             onClick={() => {
-              setAdjustOpen(true);
+              setOpen(true);
+              setLogOpen(false);
               setTransferOpen(false);
-              setOpen(false);
+              setAdjustOpen(false);
               setEditing(null);
             }}
           >
-            Adjust
+            Add
           </SecondaryButton>
         </div>
       )}

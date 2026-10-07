@@ -2956,6 +2956,22 @@ button.save-goal-rate.save-goal-inbound-edit {
   border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
 }
 
+.save-goal-expense-history {
+  margin-top: 16px;
+}
+
+.save-goal-ledger-heading {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.save-goal-ledger-month:first-of-type {
+  border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  padding-top: 10px;
+}
+
 .save-goal-ledger-month:first-child {
   border-top: none;
   padding-top: 0;

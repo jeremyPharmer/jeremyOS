@@ -559,18 +559,20 @@ export type SaveGoalSpendCategory =
   | "entertainment"
   | "other";
 
-/** Mid-day ledger line on the Home saver tile (before Apply totals). */
+/** Mid-day / Home expense line (RB-041: spend debits Reserve). */
 export type SaveGoalSpendEntry = {
   id: string;
   date: string;
   /** Positive amount — meaning depends on `kind` */
   amount: number;
-  /** spend = subtract from day total; add = manual top-up */
+  /** spend = expense (debits Reserve); add = legacy top-up */
   kind?: "spend" | "add";
   /** Required for spend lines */
   category?: SaveGoalSpendCategory;
   note?: string;
   at?: string;
+  /** Linked Reserve debit adjust id (undo restores Reserve) */
+  reserveAdjustId?: string;
 };
 
 export type RebuildState = {
