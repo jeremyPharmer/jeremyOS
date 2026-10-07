@@ -1,6 +1,6 @@
 # Fund model (locked)
 
-Last updated: 2026-09-27  
+Last updated: 2026-10-07  
 Status: **Decision locked** — supersedes three-bucket 50/25/25 and the old “Save into Treat” direction.
 
 **JeremyOS context (2026-08-29):** This ledger remains the locked model for Jeremy’s **personal** incentive / recovery money tools. Under the JeremyOS pivot it is **secondary** to the personal-OS north star (todos, email, podcasts, hub) — not deleted. Implementation polish (RB-006) and Venmo rails (RB-001) are demoted in ranking; do not invent a kill without founder confirmation.
@@ -91,8 +91,9 @@ Canonical backlog: **RB-037** (ledger / Adjust mid-flight) + **RB-041** (Reserve
 | Money movement | **None** (real cash) — UI + backend tracking only; **transfers** are ledger moves Reserve → named goal |
 | Reserve | Holding tank / default destination; **no** projected payoff ETA (RB-041) |
 | Named-goal ETA | Fixed **$/day** on that goal; date updates as transfers raise saved / shrink to-go (RB-041) |
-| Ledger entry (now) | **Adjust** remains the digital entry path while daily % mix / daily apply UI is paused (ledger-only) |
-| Historical (paused) | Monthly income → daily rate; evening spend/leftover; % allocate; Apply all vs only rolled (RB-037 §7) — do not revive as primary model under RB-041 |
+| Ledger entry (now) | **Adjust** (and Home Reserve / transfer) — digital entry path; daily % mix / daily apply UI paused (ledger-only) |
+| Close / evening | **Removed (2026-10-07)** — no Save Ledger / Day total / Add·Subtract·Apply / leftover block on `/evening`. Close-surface cut only; Save Goals product stays |
+| Historical (paused) | Monthly income → daily rate; evening spend/leftover; % allocate; Apply all vs only rolled (RB-037 §7) — do not revive on Close or as primary model under RB-041 |
 
 Do **not** debit Future or Treat when allocating to a Save Goal. Do **not** confuse with reward-moment **Save for the Future** (skip Treat) — different words, different ledger.
 

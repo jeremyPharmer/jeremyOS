@@ -1,7 +1,7 @@
 # JeremyOS — Product decisions (locked)
 
 Last updated: 2026-10-05  
-Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening mood ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). **2026-09-15:** Gmail **inbox** centralization elevated (**RB-002** Ready / rank 7) — connect + read inbox in JeremyOS; outbound send = phase 1b. **2026-09-27:** **Save Goals** (**RB-037**) — Home “Save towards something”; separate from Future/Treat; tracking only; In Progress / rank 15. **2026-09-28:** **Close edition = Open parity** (**RB-038**) — The Daily Close matches The Daily Open / edition-box look; evening content + fund locks unchanged. **2026-10-05:** **Ignore missed journal days** (**RB-039**) — past missed/incomplete only; persisted dismiss; today never ignorable. Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
+Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening mood ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). **2026-09-15:** Gmail **inbox** centralization elevated (**RB-002** Ready / rank 7) — connect + read inbox in JeremyOS; outbound send = phase 1b. **2026-09-27:** **Save Goals** (**RB-037**) — Home “Save towards something”; separate from Future/Treat; tracking only; In Progress / rank 15. **2026-10-07:** Save Ledger **removed from Close** (`/evening`) — Home/Adjust path stays; not a product kill. **2026-09-28:** **Close edition = Open parity** (**RB-038**) — The Daily Close matches The Daily Open / edition-box look; evening content + fund locks unchanged. **2026-10-05:** **Ignore missed journal days** (**RB-039**) — past missed/incomplete only; persisted dismiss; today never ignorable. Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
 
 ---
 
@@ -157,7 +157,7 @@ projected = alreadyReclaimed + waitingReclaim + daysToGo × historicalDailySpend
 | **≠ fund buckets** | Separate from Future / Treat / Venmo Total — see `product/FUND_MODEL.md` § Save Goals |
 | **Money** | Does **not** move real cash; no Venmo; no debit from Future/Treat |
 | **Income math** | `dailyRate = monthlyIncome / daysInMonth` (default monthlyIncome = 500) |
-| **Evening** | Enter total spend; allocate leftover (+ optional lump) to active goals; overspend draws goals down (may go negative) |
+| **Evening / Close** | **Removed 2026-10-07** — no Save Ledger / Day total / Add·Subtract·Apply / leftover on `/evening`. Entry = Home + Adjust (+ Reserve transfer). Product stays; Close surface cut only |
 | **Rank / status** | **Rank 15 / P0 / In Progress / Effort M** — Now queue after five-year journal + Ignore-missed (RB-039); founder-elevated personal tool |
 | **≠** | Reward-moment “Save for the Future” (skip Treat) |
 
@@ -213,7 +213,8 @@ Money integrity items already In Progress (e.g. end-of-day reclaim auto-credit) 
 | **ID** | **RB-038** |
 | **Name** | **The Daily Close** (Evening edition) — twin of **The Daily Open** |
 | **Change** | Visual/structure parity only: mast, edition-box check-in, collapsed reopen, paper story sections |
-| **Keep** | Mood+Stress; journal headline/summary; Remember; tomorrow weather; tasks; body/mind; world news (Close-only); this-day-in-history; backfill; star/photo; Save Goals spend block when live |
+| **Keep** | Mood+Stress; journal headline/summary; Remember; tomorrow weather; tasks; body/mind; world news (Close-only); this-day-in-history; backfill; star/photo |
+| **Not on Close** | Save Ledger / Save Goals spend block (removed 2026-10-07 — see RB-037) |
 | **Do not change** | Fund buckets / Venmo Total / waiting-reclaim accrual; Treat/Save on Home only; evening metric set; news never in `oneLine`; no dismiss/skip; no LLM |
 | **Rank / status** | **Rank 8 / P0 / Ready / Effort M** — after Gmail Ready; ahead of Done ritual parents |
 
