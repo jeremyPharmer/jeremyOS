@@ -555,8 +555,11 @@ export type SaveGoalDay = {
 export type SaveGoalSpendCategory =
   | "meals"
   | "snacks"
+  | "coffee"
   | "clothes"
   | "entertainment"
+  | "subs"
+  | "transport"
   | "other";
 
 /** Mid-day / Home expense line (RB-041: spend debits Reserve). */
