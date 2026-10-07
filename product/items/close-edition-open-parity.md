@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-038 |
-| Rank | 8 |
+| Rank | 9 |
 | Priority | P0 |
 | Status | Done |
 | Effort | M |
@@ -77,7 +77,7 @@ Morning **Open** shipped a clearer **“The Daily Open” / edition-box** newspa
 
 | Lock | Detail |
 | --- | --- |
-| Evening metrics | **Mood + Stress** only (1–10); aligned close always |
+| Evening metrics | **Superseded 2026-10-07 by [RB-042](./open-close-thin-redesign.md):** single **dayRating 1–5**; Mood+Stress dropped. Aligned close always. |
 | Journal fields | Headline + optional summary; news **never** written into `oneLine` |
 | Treat / Save | **Home** reward card only — evening does **not** host Claim / Save for the Future |
 | Waiting reclaim | Day-end **or** evening close, first wins; **no double credit**; close is **not** a gate for funds to show |
@@ -101,3 +101,4 @@ Morning **Open** shipped a clearer **“The Daily Open” / edition-box** newspa
 - Effort **M:** shared shell remount + Close content remapped into edition stories — not a CSS-only restyle, not a new ritual.
 - Related: [RB-029](./evening-close-recap-news.md) (recap + news parent), [RB-032](./daily-briefing-open-close-redesign.md) (twin redesign Done).
 - **2026-10-07:** Founder cut Save Ledger from Close — Money today removed from keep list; Save Goals stay on Home/Adjust ([RB-037](./save-goals.md)).
+- **2026-10-07:** Content keep-list (Mood+Stress + paper sections) **superseded by [RB-042](./open-close-thin-redesign.md)** thin redesign. This item stays **Done** for chrome parity history; do not rebuild rich Close paper. Rank → **9**.
