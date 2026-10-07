@@ -88,7 +88,7 @@ export type MorningBriefing = {
   paragraphs: string[];
 };
 
-/** Clamp morning metric to integer 1–10. */
+/** Clamp morning metric to integer 1–10 (legacy / unused Open fields). */
 export function clampMorningScore(n: number): number {
   if (!Number.isFinite(n)) return 5;
   return Math.min(10, Math.max(1, Math.round(n)));

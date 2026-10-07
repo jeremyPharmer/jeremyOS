@@ -245,9 +245,15 @@ export type TodoEvent = {
 
 export type EveningCheckIn = {
   date: string;
+  /**
+   * Legacy evening mood 1–10. New closes (RB-042) write `dayRating` 1–5 and
+   * mirror it here for soft readers; prefer `dayRating` when present.
+   */
   mood: number;
-  /** Evening stress 1–10; optional on legacy rows */
+  /** @deprecated RB-042 — dropped from Close UI; optional on legacy rows */
   stress?: number;
+  /** Day rating 1–5 (RB-042). Prefer over mood for new closes. */
+  dayRating?: number;
   /** @deprecated removed from evening UI; use craving flow events */
   craving?: number;
   /**
