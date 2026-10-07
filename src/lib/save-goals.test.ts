@@ -876,6 +876,32 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       "Entertainment",
       "Meals",
     ]);
+
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 4.5,
+      kind: "spend",
+      category: "coffee",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 12,
+      kind: "spend",
+      category: "subs",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 22,
+      kind: "spend",
+      category: "transport",
+    });
+    expect(spendCategoryLabelsForDate(state, "2026-04-01")).toEqual([
+      "Entertainment",
+      "Meals",
+      "Coffee",
+      "Subs",
+      "Transport",
+    ]);
   });
 
   it("Other spend can carry a free-text note in the label", () => {
