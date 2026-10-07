@@ -46,7 +46,6 @@ Morning **Open** shipped a clearer **“The Daily Open” / edition-box** newspa
 | **Mood + Stress** (1–10 tap chips) | Evening check-in only — **not** morning’s five scales |
 | **Journal** — Headline + optional short summary (~5 sentences soft) | Personal prose → `oneLine` / `expandedJournal` |
 | **Star** + optional **photo** | RB-022 / RB-021 surfaces on evening |
-| **Money today** (Save Goals spend / leftover / lump) | When [RB-037](./save-goals.md) is live — **tracking only**; numbers-first, one block |
 | **Move to Rebuild** preview / confirm (as today) | Personal fund tool — do not redesign ledger |
 | **Remember** (post-close lead) | Persisted headline + summary; never empty curly quotes |
 | **Weather = tomorrow** | Slightly richer than Home strip; **not** today’s Open weather |
@@ -68,6 +67,7 @@ Morning **Open** shipped a clearer **“The Daily Open” / edition-box** newspa
 - LLM / generative evening essay
 - Treat / Save reward moment on evening (stays **Home** celebration card)
 - Changing fund buckets, Venmo Total, waiting-reclaim accrual, or Save Goals math
+- **Save Ledger / Money today on Close** — removed 2026-10-07 (RB-037); do not re-add
 - Reopening morning Open layout (Open is the reference)
 - Dismiss / skip / “Not today”
 - Interactive task completion inside the edition
@@ -82,7 +82,7 @@ Morning **Open** shipped a clearer **“The Daily Open” / edition-box** newspa
 | Treat / Save | **Home** reward card only — evening does **not** host Claim / Save for the Future |
 | Waiting reclaim | Day-end **or** evening close, first wins; **no double credit**; close is **not** a gate for funds to show |
 | Future / Treat split | 30/70 (user `treatSplit`) on Move — unchanged |
-| Save Goals | Parallel tracker; evening spend/leftover; **not** Venmo Total; **not** Future/Treat debit |
+| Save Goals | Parallel tracker on **Home / Adjust** — **no** Save Ledger on Close (2026-10-07); **not** Venmo Total; **not** Future/Treat debit |
 | Home entry | Open / Close header buttons; muted when done but **reopenable**; **no** dismiss |
 | Generation | Rules-based / templated — LLM still Later |
 
@@ -90,7 +90,7 @@ Morning **Open** shipped a clearer **“The Daily Open” / edition-box** newspa
 
 - **Parent Done:** [RB-032](./daily-briefing-open-close-redesign.md) — twin ritual shipped; this is a **Close chrome iterate** after Open’s edition-box evolution
 - **Reference UI:** `/morning` `open-edition` (mast, box, collapsed, paper stories) — reuse classes or extract a shared twin shell
-- **Save Goals denseness:** keep Money today as one edition-box / story block; do not balloon Close into a finance worksheet ([RB-037](./save-goals.md))
+- **Save Goals:** no Money today / Save Ledger block on Close ([RB-037](./save-goals.md) lock 2026-10-07)
 - **UXUI owns surface;** Reese only if check-in/save API contracts need thin adjustments — fund mutations stay untouched
 
 ## Notes
@@ -100,3 +100,4 @@ Morning **Open** shipped a clearer **“The Daily Open” / edition-box** newspa
 - Why rank **8 / P0:** elevated morning/evening EA ritual; Close is visibly behind Open after edition-box ship. Sits after framing / todos / mid-flight task IP / Gmail Ready; ahead of Done ritual parents and journal polish so twin parity can ship without reopening RB-027/029/030/032 as active Now slots.
 - Effort **M:** shared shell remount + Close content remapped into edition stories — not a CSS-only restyle, not a new ritual.
 - Related: [RB-029](./evening-close-recap-news.md) (recap + news parent), [RB-032](./daily-briefing-open-close-redesign.md) (twin redesign Done).
+- **2026-10-07:** Founder cut Save Ledger from Close — Money today removed from keep list; Save Goals stay on Home/Adjust ([RB-037](./save-goals.md)).

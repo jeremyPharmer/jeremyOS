@@ -19,6 +19,7 @@ Jeremy wants a simple way to save toward a named thing (gift, trip, holiday) on 
 
 - Home shows a **Save Goals** card per active goal: name, **to go**, progress paid down over time, projected **target date** (**named goals only** — see [RB-041](./save-goals-reserve-hub.md) for Reserve-as-hub).
 - **Mid-flight (2026-10):** ledger-only UI pauses daily inbound % mix / daily apply; **Adjust** remains the digital ledger entry path.
+- **Close (2026-10-07):** Save Ledger block **removed from `/evening` entirely** (Day total, Add/Subtract/Apply, leftover checkbox). **Not** a kill of Save Goals — Home + Adjust + Reserve hub stay.
 - **Next Save Goals slice:** [RB-041](./save-goals-reserve-hub.md) — Reserve holding tank + transfer + fixed $/day projection (supersedes %→ETA for named goals).
 - Tracking-only UI + backend — no rails, no Venmo, no debit from Future/Treat.
 
@@ -39,7 +40,7 @@ Jeremy wants a simple way to save toward a named thing (gift, trip, holiday) on 
 | Source | `historicalDailySpend` → waiting reclaim → Move | Monthly income ($500 default) → daily rate − spend → leftover |
 | Money moves? | Honor-system reclaim / Move / Treat spend (Venmo story) | **Never** — UI + `db.json` tracking only |
 | Ledger | `state.fund` | `state.saveGoals` + `state.saveGoalDays` (new) |
-| Evening | Journal / reclaim ensure; no Treat/Save moment | **New step:** spend + leftover / deficit allocation |
+| Evening | Journal / reclaim ensure; no Treat/Save moment | **No Save Ledger on Close** (removed 2026-10-07); entry via Home / Adjust |
 
 Do **not** debit Future or Treat when funding a Save Goal. Do **not** include Save Goal balances in Venmo Total.
 
@@ -113,9 +114,11 @@ Examples at `$500` (**daily rate** floors to whole dollars; Subtract/Add lines k
 - Snapshot `dailyIncome` onto `SaveGoalDay` when the day is closed so later settings edits do not rewrite history.
 - Mental model copy: “$500 lands on the 1st; each day of the month gets an equal share.”
 
-### 3. Evening close flow changes
+### 3. Evening close flow changes — **REMOVED from Close (2026-10-07)**
 
-Insert a thin **Money today** step in evening close (after mood/journal is fine; before or after Move-to-Rebuild — **do not block** reclaim / journal). Suggested order: mood → journal → **Save Goals day** → existing reclaim/Move UI if any → success recap.
+> **Product lock:** Founder crossed out Save Ledger on `/evening`. **Do not** ship or revive Money today / Save Ledger / Day total / Add·Subtract·Apply / leftover on Close. Entry path = **Home + Adjust** (+ Reserve transfer per RB-041). Spec below is **historical** only (original v1 intent + Apply-with-roll polish).
+
+~~Insert a thin **Money today** step in evening close (after mood/journal is fine; before or after Move-to-Rebuild — **do not block** reclaim / journal). Suggested order: mood → journal → **Save Goals day** → existing reclaim/Move UI if any → success recap.~~
 
 **Fields**
 
@@ -241,3 +244,4 @@ Do **not** invent a third “apply through yesterday but rewrite today’s close
 - **2026-09-28 Apply-with-roll:** Founder unsure how to prompt elegantly when unapplied leftover rolls across days. Locked §7: two money-first choices (apply all vs apply only rolled); appear iff `carryIn !== 0`; default = apply all (= current single apply). Ship as RB-037 polish — no new ID.
 - **2026-10 ledger-only (mid-flight):** Pause daily inbound % mix / daily apply UI; Adjust remains ledger entry. Branch context: `cursor/save-goals-ledger-only-8ada`. Complementary to — not replaced by — RB-041.
 - **2026-10-06 Reserve-as-hub:** Founder clarified mental model → new slice **[RB-041](./save-goals-reserve-hub.md)** (rank 17). RB-037 stays parent In Progress for ledger/Adjust; RB-041 is next Save Goals intent after ledger-only.
+- **2026-10-07 Close Save Ledger cut:** Founder: remove Save Ledger section from evening Close entirely (crossed out in UI). **Stance: Close surface only** — do **not** kill Save Goals / RB-037 / RB-041. No new backlog ID; no rank change; eng thin removal under this item (+ Close chrome notes on RB-038).

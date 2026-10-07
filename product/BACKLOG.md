@@ -6,7 +6,7 @@ Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly fr
 
 **Ranking rule:** lower rank number = higher priority. Rank is the source of truth.
 
-Last updated: 2026-10-06
+Last updated: 2026-10-07
 
 | Rank | ID | Item | Priority | Status | Effort | Target due | Milestone | File |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |

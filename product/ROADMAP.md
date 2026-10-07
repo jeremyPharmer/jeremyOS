@@ -7,7 +7,7 @@ Recovery journey + fund/incentive tools remain **personal tools** when useful (n
 Maintained by the **Head of Product** agent (`.cursor/agents/head-of-product.md`).  
 **Priority ranking is the primary planning signal.** Due dates, effort, and timeline support rank — they do not override it.
 
-Last updated: 2026-10-06
+Last updated: 2026-10-07
 
 ## North star (locked 2026-08-29)
 
@@ -64,7 +64,7 @@ Build filter: see [RB-013](./items/personal-os-north-star.md).
 13. **RB-016 — Five-year / paper journal UX** — same calendar day across years; headline + short summary; journal vibes (not stacked cards). Detail: [`items/five-year-journal-ux.md`](./items/five-year-journal-ux.md). Distinct from RB-010 backfill integrity; Ignore dismiss is **RB-039**; Days before is **RB-040**.
 14. **RB-039 — Ignore missed / incomplete journal days** — **In Progress / scope locked 2026-10-05.** Past missed/incomplete only (**today never**); **persisted** dismiss from Journal + evening catch-up; **no** synthetic close; **no** reclaim/milestone side effects. Effort **XS**. Detail: [`items/ignore-missed-journal-days.md`](./items/ignore-missed-journal-days.md).
 15. **RB-040 — Journal: Days before (year lead-up)** — **In Progress / scope locked 2026-10-05.** Drop date-banner subtitle; per-year **Days before** inline-expands **3 prior calendar days** for that year; quiet empties (no Close/Ignore nag). Effort **S**. Detail: [`items/journal-days-before.md`](./items/journal-days-before.md).
-16. **RB-037 — Save Goals (“Save towards something”)** — **In Progress / scope locked 2026-09-27** (+ **Apply-with-roll polish 2026-09-28** + **ledger-only mid-flight 2026-10**). Home card + Adjust ledger; daily % mix / daily apply UI **paused**; **tracking only** — separate from Future/Treat / Venmo Total. Detail: [`items/save-goals.md`](./items/save-goals.md).
+16. **RB-037 — Save Goals (“Save towards something”)** — **In Progress / scope locked 2026-09-27** (+ **Apply-with-roll polish 2026-09-28** + **ledger-only mid-flight 2026-10** + **Close Save Ledger removed 2026-10-07**). Home card + Adjust ledger; **no** Save Ledger on `/evening`; daily % mix / daily apply UI **paused**; **tracking only** — separate from Future/Treat / Venmo Total. Detail: [`items/save-goals.md`](./items/save-goals.md).
 17. **RB-041 — Save Goals: Reserve hub + fixed $/day ETA** — **Done / shipped prod 2026-10-06** (PR #266, `cursor/save-goals-reserve-hub-impl-8ada` → jeremyos-prod). **Reserve** = holding tank (no ETA); **new** inbound → Reserve; transfer Reserve → named goals; ETA = remaining ÷ **fixed $/day**. **No-migrate honored** (existing named-goal balances stay put). Detail: [`items/save-goals-reserve-hub.md`](./items/save-goals-reserve-hub.md).
 18. **RB-021 — Journal photos (attach + paperclip)** — optional pics on journal/evening entries; paperclip (or similar) on year slots when a photo is present; tap to view; **reuse** existing photo infra. Detail: [`items/journal-photos.md`](./items/journal-photos.md).
 
