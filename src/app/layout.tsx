@@ -23,11 +23,11 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#f3f0ea",
+  themeColor: "#f2eadc",
   viewportFit: "cover",
 };
 
-const themeBootScript = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var layouts=${JSON.stringify(THEME_LAYOUT_BOOT)};var t=localStorage.getItem(k)||${JSON.stringify(DEFAULT_THEME_ID)};document.documentElement.setAttribute("data-theme",t);document.documentElement.setAttribute("data-layout",layouts[t]||"paper");var hk=${JSON.stringify(HOME_LAYOUT_STORAGE_KEY)};var hl=localStorage.getItem(hk)||${JSON.stringify(DEFAULT_HOME_LAYOUT)};document.documentElement.setAttribute("data-home-layout",hl);}catch(e){document.documentElement.setAttribute("data-theme",${JSON.stringify(DEFAULT_THEME_ID)});document.documentElement.setAttribute("data-layout","paper");document.documentElement.setAttribute("data-home-layout",${JSON.stringify(DEFAULT_HOME_LAYOUT)});}})();`;
+const themeBootScript = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var layouts=${JSON.stringify(THEME_LAYOUT_BOOT)};var t=localStorage.getItem(k)||${JSON.stringify(DEFAULT_THEME_ID)};document.documentElement.setAttribute("data-theme",t);document.documentElement.setAttribute("data-layout",layouts[t]||"cozy");var hk=${JSON.stringify(HOME_LAYOUT_STORAGE_KEY)};var hl=localStorage.getItem(hk)||${JSON.stringify(DEFAULT_HOME_LAYOUT)};document.documentElement.setAttribute("data-home-layout",hl);}catch(e){document.documentElement.setAttribute("data-theme",${JSON.stringify(DEFAULT_THEME_ID)});document.documentElement.setAttribute("data-layout","cozy");document.documentElement.setAttribute("data-home-layout",${JSON.stringify(DEFAULT_HOME_LAYOUT)});}})();`;
 
 export default function RootLayout({
   children,
