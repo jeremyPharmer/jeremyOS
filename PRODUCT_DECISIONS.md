@@ -1,7 +1,7 @@
 # JeremyOS — Product decisions (locked)
 
-Last updated: 2026-10-05  
-Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening mood ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). **2026-09-15:** Gmail **inbox** centralization elevated (**RB-002** Ready / rank 7) — connect + read inbox in JeremyOS; outbound send = phase 1b. **2026-09-27:** **Save Goals** (**RB-037**) — Home “Save towards something”; separate from Future/Treat; tracking only; In Progress / rank 15. **2026-10-07:** Save Ledger **removed from Close** (`/evening`) — Home/Adjust path stays; not a product kill. **2026-09-28:** **Close edition = Open parity** (**RB-038**) — The Daily Close matches The Daily Open / edition-box look; evening content + fund locks unchanged. **2026-10-05:** **Ignore missed journal days** (**RB-039**) — past missed/incomplete only; persisted dismiss; today never ignorable. Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
+Last updated: 2026-10-07  
+Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). **2026-09-15:** Gmail **inbox** centralization elevated (**RB-002** Ready / rank 7) — connect + read inbox in JeremyOS; outbound send = phase 1b. **2026-09-27:** **Save Goals** (**RB-037**) — Home “Save towards something”; separate from Future/Treat; tracking only; In Progress / rank 15. **2026-10-07:** Save Ledger **removed from Close** (`/evening`) — Home/Adjust path stays; not a product kill. **2026-09-28:** **Close edition = Open parity** (**RB-038**) — chrome Done; **content thinned by RB-042**. **2026-10-05:** **Ignore missed journal days** (**RB-039**) — past missed/incomplete only; persisted dismiss; today never ignorable. **2026-10-07:** **Open/Close thin redesign** (**RB-042**) — Close = journal + star + photo + dayRating 1–5 (Mood/Stress **dropped**); Open = Home gate on sleep quality 1–5 + focus line + lean briefing. Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
 
 ---
 
@@ -18,7 +18,7 @@ Status: **JeremyOS pivot recorded** — executive assistant / personal OS north 
 | **Elevate** | Email/Gmail skills, podcast + regular recovery content, to-do lists, five-year journal, home cameras (Reolink), workout tracker, favorite recipes, connections to other apps/sites Jeremy creates |
 | **Recovery / fund** | Still valid as **personal tools** without trail language; secondary to EA / personal OS in ranking — not killed without evidence |
 | **Journey nav** | **Keep “Journey”** as nav label / surface name (locked 2026-08-29; was open on RB-012) |
-| **Daily mood / feeling** | **Keep and elevate** morning start + evening mood/stress/feelings as personal EA ritual |
+| **Daily Open / Close ritual** | **Keep and elevate** as personal EA ritual — **thinned 2026-10-07 (RB-042):** Open = sleep quality 1–5 + focus line; Close = journal + single day rating 1–5. **Mood + Stress dropped** (supersedes 2026-08-29 multi-metric wording) |
 | **Craving stats** | **Drop / Won't Do** — Journey/Home craving charts, pattern panels, craving analytics (RB-009 Won't Do) |
 | **Home craving CTA** | **Removed** “I’m having a craving” from Home — **RB-020 Done** (2026-08-29; ID remapped from branch-local RB-017) |
 
@@ -56,15 +56,17 @@ Venmo reconcile / link = later (UI totals first).
 
 Still available as Jeremy’s personal recovery tools under JeremyOS (executive assistant / personal OS) — not the product north star. No trail metaphor in UX copy (RB-012). Do not expand this loop for “generic daily love” (see RB-013).
 
-**Elevated (2026-08-29):** morning + evening **mood / feeling** that starts and ends the day — founder loves this; treat as personal EA ritual, not optional chrome.
+**Elevated (2026-08-29; thinned 2026-10-07):** morning Open + evening Close that start and end the day — founder loves the ritual; treat as personal EA ritual, not optional chrome. **Metrics thinned by RB-042** (below) — ritual kept, multi-scale Mood/Stress **dropped**.
 
 **Dropped (2026-08-29):** craving **stats / analytics** and Home **“I’m having a craving”** CTA — **RB-020 Done**; RB-009 Won't Do for pattern insights.
 
+**Dropped (2026-10-07 — RB-042):** evening **Mood + Stress** (1–10); morning multi-scales (mood/energy/stress/sleep-hours UI); Open/Close rich paper body (workout, world news, multi-scale chrome, Into the day, edition wait as needed). Supersedes prior PRODUCT_DECISIONS / RB-032 / RB-038 content locks that kept Mood+Stress and twin paper sections.
+
 Interactive every day:
 
-**Morning** — Start the day (sleep + mood/state on 1–10 taps + one focus line) → **conversational** day-start briefing (**calendar + open windows / Try here** first; weather/feeling secondary; rules-based — [RB-029](./product/items/morning-briefing-conversational.md); parent ship [RB-027](./product/items/morning-day-start-briefing.md)); **no** morning Items checklist; tasks stay on Home; focus/intention unchanged; feeds evening close later. Surface look: **The Daily Open** / edition-box newspaper ([RB-032](./product/items/daily-briefing-open-close-redesign.md) Done; Open edition evolved in place).  
+**Morning (Open)** — **Gate Home** until **sleep quality 1–5** is submitted for today. Fields: sleep quality **1–5** + focus line labeled **“One thing I will focus on today”** (replaces intention / do-well; may still store as `intention`). After submit → Home. Lean briefing show: **this-day-in-history** journal (prior years; hide if empty); **today weather** with morning/afternoon/evening derived phrases; **real-language calendar + tasks prose** (rules-based OK; generative AI optional later). **No** morning Items checklist; tasks stay on Home / prose. Canonical item: **[RB-042](./product/items/open-close-thin-redesign.md)**. Parents Done: [RB-027](./product/items/morning-day-start-briefing.md), [RB-030](./product/items/morning-briefing-conversational.md), [RB-032](./product/items/daily-briefing-open-close-redesign.md).  
 **Day** — Log supports: recovery content (2/wk), meditation (5), medication (7), gym (4). **No** Home craving-timer CTA (RB-020).  
-**Evening** — Close the day: **Mood + Stress** (1–10), journal **headline** + optional **short summary** (~5 sentences soft limit; maps to stored `oneLine` / `expandedJournal`) → Move to Rebuild → Treat/Save if milestone. **Missed closes** can be backfilled from Journal (pick a day in the current run without an evening) via the same evening path (**RB-010** — journal only; funds for that day may already be in waiting reclaim via end-of-day accrual). Surface look: **The Daily Close** must match Open’s edition-box format (**[RB-038](./product/items/close-edition-open-parity.md)**) — chrome/structure only; evening content + fund rules below stay locked.
+**Evening (Close)** — Close the day: journal **headline** + optional **short summary** (~5 sentences soft limit; maps to stored `oneLine` / `expandedJournal`) + **star** + **photo** + single **day rating 1–5** (`dayRating` — **not** mood; **no** stress) → Move to Rebuild → Treat/Save if milestone. **No** Mood/Stress. **No** paper body (weather/news/tasks/bodymind/history/etc.). **Missed closes** can be backfilled from Journal (pick a day in the current run without an evening) via the same evening path (**RB-010** — journal only; funds for that day may already be in waiting reclaim via end-of-day accrual). Chrome history: [RB-038](./product/items/close-edition-open-parity.md) Done; **content = RB-042**.
 
 **Journal UI (RB-016)** — Paper **five-year** layout: one calendar day (month-day) shows that day across up to five years (headline + summary). Not a stacked feed. Catch-up for missed evenings stays a thin link; integrity rules remain RB-010. **Ignore past missed/incomplete days** (not today) is **RB-039** — persisted dismiss from catch-up; does not create a close; does not change reclaim/milestones.
 
@@ -158,7 +160,7 @@ projected = alreadyReclaimed + waitingReclaim + daysToGo × historicalDailySpend
 | **Money** | Does **not** move real cash; no Venmo; no debit from Future/Treat |
 | **Income math** | `dailyRate = monthlyIncome / daysInMonth` (default monthlyIncome = 500) |
 | **Evening / Close** | **Removed 2026-10-07** — no Save Ledger / Day total / Add·Subtract·Apply / leftover on `/evening`. Entry = Home + Adjust (+ Reserve transfer). Product stays; Close surface cut only |
-| **Rank / status** | **Rank 15 / P0 / In Progress / Effort M** — Now queue after five-year journal + Ignore-missed (RB-039); founder-elevated personal tool |
+| **Rank / status** | **Rank 17 / P0 / In Progress / Effort M** — Now queue after five-year journal + Ignore-missed (RB-039); founder-elevated personal tool |
 | **≠** | Reward-moment “Save for the Future” (skip Treat) |
 
 ## Ignore missed / incomplete journal days (locked 2026-10-05)
@@ -172,7 +174,7 @@ projected = alreadyReclaimed + waitingReclaim + daysToGo × historicalDailySpend
 | **Today** | **Never ignorable** |
 | **Integrity** | No reclaim, Move, milestone, or clean-day side effects; no fabricated journal prose |
 | **Restore** | Out of v1 UI; storage stays reversible for a later un-ignore |
-| **Rank / status** | **Rank 14 / P0 / Ready / Effort XS** — Now, immediately after RB-016; eng can ship thin slice now |
+| **Rank / status** | **Rank 15 / P0 / In Progress / Effort XS** — Now, immediately after RB-016; eng can ship thin slice now |
 | **≠** | RB-010 backfill (complete the close); RB-016 five-year presentation; RB-022 edit/star/calendar |
 
 ## Deferred
@@ -205,7 +207,7 @@ Money integrity items already In Progress (e.g. end-of-day reclaim auto-credit) 
 | **Start eng?** | **Not full ship yet** — finish or free-lane around In Progress RB-026 / RB-033 / journal; **OAuth/consent spike OK early** (restricted Gmail scopes) |
 | **≠ calendar** | Google Calendar OAuth remains **RB-023** (Done); separate grant from Gmail |
 
-## Close edition = Open parity (locked 2026-09-28)
+## Close edition = Open parity (locked 2026-09-28; content superseded 2026-10-07)
 
 | Decision | Detail |
 | --- | --- |
@@ -213,10 +215,22 @@ Money integrity items already In Progress (e.g. end-of-day reclaim auto-credit) 
 | **ID** | **RB-038** |
 | **Name** | **The Daily Close** (Evening edition) — twin of **The Daily Open** |
 | **Change** | Visual/structure parity only: mast, edition-box check-in, collapsed reopen, paper story sections |
-| **Keep** | Mood+Stress; journal headline/summary; Remember; tomorrow weather; tasks; body/mind; world news (Close-only); this-day-in-history; backfill; star/photo |
+| **Status** | **Done** (chrome). **Content keep-list superseded by RB-042** — do not rebuild Mood+Stress or rich paper body |
 | **Not on Close** | Save Ledger / Save Goals spend block (removed 2026-10-07 — see RB-037) |
-| **Do not change** | Fund buckets / Venmo Total / waiting-reclaim accrual; Treat/Save on Home only; evening metric set; news never in `oneLine`; no dismiss/skip; no LLM |
-| **Rank / status** | **Rank 8 / P0 / Ready / Effort M** — after Gmail Ready; ahead of Done ritual parents |
+| **Do not change** | Fund buckets / Venmo Total / waiting-reclaim accrual; Treat/Save on Home only; news never in `oneLine`; no dismiss/skip |
+
+## Open / Close thin redesign (locked 2026-10-07)
+
+| Decision | Detail |
+| --- | --- |
+| **Ask** | Founder: thin Open/Close — Close journal + star + photo + day rating 1–5; Open gates Home on sleep quality 1–5 + focus + lean briefing |
+| **ID** | **RB-042** |
+| **Close** | Journal headline + short summary; star; photo; single **dayRating 1–5**. **Drop Mood/Stress entirely.** **Drop paper body** (weather/news/tasks/bodymind/etc.) |
+| **Open** | **Gate Home** until sleep quality 1–5 submitted for today → then Home. Fields: sleep quality 1–5 + focus **“One thing I will focus on today”** (replaces intention/do-well). Show: this-day-in-history (hide if empty); today weather morning/afternoon/evening phrases; real-language calendar+tasks prose (rules-based OK). Strip workout, world news, multi-scales, Into the day, edition wait chrome as needed |
+| **Supersedes** | Evening Mood+Stress 1–10 lock; “keep/elevate mood ritual” as multi-metric; RB-032 rich twin paper body as active scope; RB-038 content keep-list |
+| **API** | Evening: **`dayRating` 1–5** (not `mood`); drop stress on new writes. Morning: **`sleepQuality` 1–5** for gate; focus may reuse `intention` with new label. Legacy mood/stress/multi-scale rows: read soft; no backfill required |
+| **Do not change** | Fund / Venmo / Treat-Save / waiting reclaim; no dismiss/skip; aligned close always |
+| **Rank / status** | **Rank 8 / P0 / Ready / Effort M** — Now after Gmail Ready |
 
 ## Trail metaphor retirement (locked 2026-08-29)
 
@@ -224,4 +238,4 @@ Founder follow-up: drop trailer/trail theming — product is an executive assist
 
 ## Journey label + craving cut (locked 2026-08-29)
 
-Founder follow-up: keep Journey (nav/surface); keep daily mood/feeling start+end; drop craving stats; drop Home “I’m having a craving.” Product: RB-012 Journey label locked; **RB-020 Done** (UI cut shipped; ID remapped from branch-local RB-017 after main assigned RB-017–019); RB-009 craving patterns → Won't Do.
+Founder follow-up: keep Journey (nav/surface); keep daily start+end ritual; drop craving stats; drop Home “I’m having a craving.” Product: RB-012 Journey label locked; **RB-020 Done** (UI cut shipped; ID remapped from branch-local RB-017 after main assigned RB-017–019); RB-009 craving patterns → Won't Do. **2026-10-07:** start+end ritual metrics thinned to Open sleep quality + Close dayRating (**RB-042**) — Mood/Stress multi-metric wording superseded.
