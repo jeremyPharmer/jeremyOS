@@ -626,25 +626,27 @@ function LogExpensePanel({
         From Reserve · {formatMoney(reserveAvailable)} available
       </p>
       <div className="save-goal-spend-category">
-        <p className="field-label" style={{ marginBottom: 6 }}>
-          Category
-        </p>
-        <div className="chip-row">
-          {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              className={`chip${spendCategory === c.id ? " selected" : ""}`}
-              onClick={() => {
-                setSpendCategory(c.id);
-                if (c.id !== "other") setOtherNote("");
-              }}
-              disabled={busy}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
+        <label className="field">
+          <span className="field-label">Category</span>
+          <select
+            value={spendCategory}
+            onChange={(e) => {
+              const next = e.target.value as SaveGoalSpendCategory | "";
+              setSpendCategory(next);
+              if (next !== "other") setOtherNote("");
+            }}
+            disabled={busy}
+          >
+            <option value="" disabled>
+              Pick a category
+            </option>
+            {SAVE_GOAL_SPEND_CATEGORIES.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </label>
         {spendCategory === "other" ? (
           <label className="field save-goal-other-note">
             <span className="field-label">What was it?</span>

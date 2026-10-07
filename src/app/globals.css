@@ -2876,26 +2876,14 @@ button.save-goal-rate.save-goal-inbound-edit {
 
 .save-goal-spend-category {
   margin: 10px 0 4px;
-  text-align: center;
 }
 
-.save-goal-spend-category .chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  max-width: 22rem;
-  margin-inline: auto;
+.save-goal-spend-category .field {
+  margin: 0;
 }
 
-.save-goal-spend-category .chip {
-  flex: 0 0 auto;
-  min-width: 0;
-  padding: 7px 11px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-align: center;
-  white-space: nowrap;
+.save-goal-spend-category select {
+  width: 100%;
 }
 
 .save-goal-other-note {
