@@ -560,6 +560,8 @@ export type SaveGoalSpendCategory =
   | "entertainment"
   | "subs"
   | "transport"
+  | "gifts"
+  | "health"
   | "other";
 
 /** Mid-day / Home expense line (RB-041: spend debits Reserve). */

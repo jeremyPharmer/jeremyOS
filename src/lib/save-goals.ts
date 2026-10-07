@@ -24,6 +24,8 @@ export const SAVE_GOAL_SPEND_CATEGORIES: {
   { id: "entertainment", label: "Entertainment" },
   { id: "subs", label: "Subs" },
   { id: "transport", label: "Transport" },
+  { id: "gifts", label: "Gifts" },
+  { id: "health", label: "Health" },
   { id: "other", label: "Other" },
 ];
 
@@ -857,7 +859,7 @@ export function addSaveGoalSpend(
     if (!category) {
       throw Object.assign(
         new Error(
-          "Pick a category: meals, snacks, coffee, clothes, entertainment, subs, transport, or other",
+          "Pick a category: meals, snacks, coffee, clothes, entertainment, subs, transport, gifts, health, or other",
         ),
         { status: 400 },
       );

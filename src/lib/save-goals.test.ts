@@ -895,12 +895,26 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
       kind: "spend",
       category: "transport",
     });
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 40,
+      kind: "spend",
+      category: "gifts",
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-04-01",
+      amount: 15,
+      kind: "spend",
+      category: "health",
+    });
     expect(spendCategoryLabelsForDate(state, "2026-04-01")).toEqual([
       "Entertainment",
       "Meals",
       "Coffee",
       "Subs",
       "Transport",
+      "Gifts",
+      "Health",
     ]);
   });
 
