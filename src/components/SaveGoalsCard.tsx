@@ -316,6 +316,103 @@ function TransferFromReservePanel({
   );
 }
 
+/** Credit Reserve (PayPal, paycheck, etc.). */
+function DepositToReservePanel({
+  today,
+  busy,
+  error,
+  onCancel,
+  onSubmit,
+}: {
+  today: string;
+  busy: boolean;
+  error: string;
+  onCancel: () => void;
+  onSubmit: (input: { date: string; amount: number; note?: string }) => void;
+}) {
+  const [depositDate, setDepositDate] = useState(
+    () => today || SAVE_GOAL_LEDGER_START,
+  );
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    if (today && (!depositDate || depositDate > today)) {
+      setDepositDate(today);
+    }
+  }, [today, depositDate]);
+
+  return (
+    <div className="save-goal-create">
+      <p className="eyebrow">Deposit to Reserve</p>
+      <p className="tiny muted" style={{ margin: "0 0 10px" }}>
+        Add funds to the holding tank
+      </p>
+      <label className="field">
+        <span className="field-label">Date</span>
+        <input
+          type="date"
+          value={depositDate}
+          min={SAVE_GOAL_LEDGER_START}
+          max={today || undefined}
+          onChange={(e) => setDepositDate(e.target.value)}
+          required
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">Amount</span>
+        <input
+          type="number"
+          inputMode="decimal"
+          min={0.01}
+          step="0.01"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="100"
+          autoFocus
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">Note (optional)</span>
+        <input
+          type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="PayPal, paycheck…"
+          maxLength={80}
+          autoComplete="off"
+        />
+      </label>
+      {error ? (
+        <p className="tiny" style={{ color: "var(--danger)" }}>
+          {error}
+        </p>
+      ) : null}
+      <div className="save-goal-create-actions">
+        <PrimaryButton
+          disabled={busy || !depositDate}
+          onClick={() => {
+            const raw = Number(amount);
+            if (!depositDate) return;
+            if (!Number.isFinite(raw) || raw <= 0) return;
+            const trimmed = note.trim().slice(0, 80);
+            onSubmit({
+              date: depositDate,
+              amount: raw,
+              ...(trimmed ? { note: trimmed } : {}),
+            });
+          }}
+        >
+          {busy ? "Saving…" : "Deposit"}
+        </PrimaryButton>
+        <SecondaryButton onClick={onCancel} disabled={busy}>
+          Cancel
+        </SecondaryButton>
+      </div>
+    </div>
+  );
+}
+
 function AdjustPanel({
   goals,
   today,
@@ -953,6 +1050,7 @@ function SaveGoalsDetail() {
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
   const [editing, setEditing] = useState<SaveGoal | null>(null);
   const [editName, setEditName] = useState("");
   const [editTarget, setEditTarget] = useState("");
@@ -1062,6 +1160,36 @@ function SaveGoalsDetail() {
       setAdjustOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not credit Reserve");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitDeposit(input: {
+    date: string;
+    amount: number;
+    note?: string;
+  }) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+      setError("Pick a date for the deposit.");
+      return;
+    }
+    if (!Number.isFinite(input.amount) || input.amount <= 0) {
+      setError("Enter an amount greater than 0.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "creditReserve",
+        date: input.date,
+        amount: input.amount,
+        note: input.note?.trim() || "Deposit",
+      });
+      setDepositOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not deposit to Reserve");
     } finally {
       setBusy(false);
     }
@@ -1267,6 +1395,7 @@ function SaveGoalsDetail() {
               setTransferOpen(false);
               setAdjustOpen(false);
               setLogOpen(false);
+              setDepositOpen(false);
               setOpen(false);
               setError("");
             }}
@@ -1441,6 +1570,19 @@ function SaveGoalsDetail() {
         />
       ) : null}
 
+      {depositOpen ? (
+        <DepositToReservePanel
+          today={today ?? SAVE_GOAL_LEDGER_START}
+          busy={busy}
+          error={error}
+          onCancel={() => {
+            setDepositOpen(false);
+            setError("");
+          }}
+          onSubmit={(input) => void submitDeposit(input)}
+        />
+      ) : null}
+
       {transferOpen && reserve && namedGoals.length > 0 ? (
         <TransferFromReservePanel
           reserve={reserve}
@@ -1530,12 +1672,13 @@ function SaveGoalsDetail() {
             </SecondaryButton>
           </div>
         </div>
-      ) : logOpen || transferOpen || adjustOpen ? null : (
+      ) : logOpen || depositOpen || transferOpen || adjustOpen ? null : (
         <div className="save-goal-actions-row" role="group" aria-label="Ledger actions">
           <SecondaryButton
             disabled={goals.length === 0}
             onClick={() => {
               setLogOpen(true);
+              setDepositOpen(false);
               setTransferOpen(false);
               setAdjustOpen(false);
               setOpen(false);
@@ -1546,10 +1689,25 @@ function SaveGoalsDetail() {
             Log
           </SecondaryButton>
           <SecondaryButton
+            disabled={!reserve}
+            onClick={() => {
+              setDepositOpen(true);
+              setLogOpen(false);
+              setTransferOpen(false);
+              setAdjustOpen(false);
+              setOpen(false);
+              setEditing(null);
+              setError("");
+            }}
+          >
+            Deposit
+          </SecondaryButton>
+          <SecondaryButton
             disabled={!reserve || namedGoals.length === 0}
             onClick={() => {
               setTransferOpen(true);
               setLogOpen(false);
+              setDepositOpen(false);
               setAdjustOpen(false);
               setOpen(false);
               setEditing(null);
@@ -1562,6 +1720,7 @@ function SaveGoalsDetail() {
             onClick={() => {
               setOpen(true);
               setLogOpen(false);
+              setDepositOpen(false);
               setTransferOpen(false);
               setAdjustOpen(false);
               setEditing(null);
