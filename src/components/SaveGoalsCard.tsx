@@ -790,7 +790,7 @@ function LogExpensePanel({
 function HomeSaveGoalsGlance() {
   const { state, today, post } = useApp();
   const [subtractOpen, setSubtractOpen] = useState(false);
-  const [ledgerOpen, setLedgerOpen] = useState(true);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
