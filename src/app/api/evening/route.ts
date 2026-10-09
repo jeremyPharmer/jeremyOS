@@ -13,6 +13,7 @@ import {
   applySaveGoalDayTotals,
   recordSaveGoalDay,
 } from "@/lib/save-goals";
+import { clampFiveScore } from "@/lib/open-day-prose";
 import { updateState } from "@/lib/store";
 import type { EveningCheckIn, SaveGoalAllocation } from "@/lib/types";
 
@@ -52,12 +53,27 @@ export async function POST(req: Request) {
         throw err;
       }
 
+      // RB-042: single day rating 1–5. Soft-accept legacy mood if dayRating omitted.
+      const dayRaw =
+        body.dayRating !== undefined && body.dayRating !== null
+          ? Number(body.dayRating)
+          : body.mood !== undefined && body.mood !== null
+            ? Number(body.mood)
+            : Number.NaN;
+      if (!Number.isFinite(dayRaw)) {
+        const err = new Error("Day rating is required");
+        (err as Error & { status: number }).status = 400;
+        throw err;
+      }
+      const dayRating = clampFiveScore(dayRaw);
+
       // Close always counts as aligned for reclaim / milestones.
       // Journey reset is Settings → Reset my journey.
       const evening: EveningCheckIn = {
         date,
-        mood: Number(body.mood),
-        stress: Number(body.stress),
+        dayRating,
+        // Mirror for legacy soft-readers that still look at mood.
+        mood: dayRating,
         craving:
           body.craving !== undefined ? Number(body.craving) : undefined,
         alignment: "aligned",

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-027 |
-| Rank | 10 |
+| Rank | 11 |
 | Priority | P0 |
 | Status | Done |
 | Effort | M |
@@ -79,4 +79,5 @@ Jeremy opens morning, taps a fast 1–10 check-in, and lands on a **day-start br
 - Related (not this ID): extend Home agenda past 9PM when events run later — separate PR / branch; track as dependency note only.
 - **2026-09-11:** evening counterpart intake → **[RB-029](./evening-close-recap-news.md)** (close success = day recap + 3–5 news; fix empty Headline quotes; do not overload journal `oneLine`).
 - Supersedes prior morning copy that assumed post-check-in Today’s Rebuild / Items checklist as the primary morning destination.
-- **2026-09-12:** Active Open/Close Daily briefing twin redesign is **[RB-032](./daily-briefing-open-close-redesign.md)** (rank 5) — do not reopen this item; iterate there.
+- **2026-09-12:** Active Open/Close Daily briefing twin redesign is **[RB-032](./daily-briefing-open-close-redesign.md)** (Done) — do not reopen this item; iterate there.
+- **2026-10-07:** Five-scale Open check-in + intention label **superseded by [RB-042](./open-close-thin-redesign.md)** (sleep quality 1–5 + “One thing I will focus on today”; Home gate). Rank → **11**.

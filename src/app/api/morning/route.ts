@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getMorning, todayInTz } from "@/lib/journey";
 import { clampMorningScore, clampSleepHours } from "@/lib/morning-briefing";
+import { clampFiveScore } from "@/lib/open-day-prose";
 import { pickMorningQuote } from "@/lib/quotes";
 import { updateState } from "@/lib/store";
 import type { MorningCheckIn } from "@/lib/types";
@@ -11,11 +12,10 @@ export async function POST(req: Request) {
     const action = String(body.action ?? "create");
 
     if (action === "updateIntention") {
-      // RB-027 dropped intention from morning UI; keep endpoint for older clients.
       const intention = String(body.intention ?? "").trim();
       if (!intention) {
         return NextResponse.json(
-          { error: "Intention is required" },
+          { error: "Focus is required" },
           { status: 400 },
         );
       }
@@ -58,7 +58,6 @@ export async function POST(req: Request) {
         return {
           ...prev,
           mornings: prev.mornings.filter((m) => m.date !== date),
-          // Clear morning skip so Start the day can return to the list
           skips: (prev.skips ?? []).filter(
             (s) => !(s.date === date && s.itemKey === "morning"),
           ),
@@ -70,10 +69,19 @@ export async function POST(req: Request) {
     const intention = String(body.intention ?? "").trim();
     if (!intention) {
       return NextResponse.json(
-        { error: "Intention is required" },
+        { error: "One thing to focus on is required" },
         { status: 400 },
       );
     }
+
+    const sleepRaw = Number(body.sleepQuality);
+    if (!Number.isFinite(sleepRaw)) {
+      return NextResponse.json(
+        { error: "Sleep quality is required" },
+        { status: 400 },
+      );
+    }
+    const sleepQuality = clampFiveScore(sleepRaw);
 
     const state = await updateState((prev) => {
       if (!prev.profile) {
@@ -88,19 +96,31 @@ export async function POST(req: Request) {
         throw err;
       }
       const quote = pickMorningQuote(prev.quoteLog, date);
+      // RB-042: Open collects sleep quality 1–5 + focus only.
+      // Unused vitals stored at a neutral mid so legacy readers stay sane.
       const morning: MorningCheckIn = {
         date,
-        // Sleep hours hidden from Open for now — keep a neutral stored default.
         sleepHours: clampSleepHours(
           body.sleepHours === undefined || body.sleepHours === null
             ? Number.NaN
             : Number(body.sleepHours),
         ),
-        sleepQuality: clampMorningScore(Number(body.sleepQuality)),
-        mood: clampMorningScore(Number(body.mood)),
-        energy: clampMorningScore(Number(body.energy)),
-        stress: clampMorningScore(Number(body.stress)),
-        // Morning craving scale removed from UI; kept optional for older rows.
+        sleepQuality,
+        mood: clampMorningScore(
+          body.mood === undefined || body.mood === null
+            ? Number.NaN
+            : Number(body.mood),
+        ),
+        energy: clampMorningScore(
+          body.energy === undefined || body.energy === null
+            ? Number.NaN
+            : Number(body.energy),
+        ),
+        stress: clampMorningScore(
+          body.stress === undefined || body.stress === null
+            ? Number.NaN
+            : Number(body.stress),
+        ),
         craving: body.craving !== undefined ? Number(body.craving) : undefined,
         intention,
         trigger: body.trigger ? String(body.trigger) : undefined,
@@ -115,7 +135,6 @@ export async function POST(req: Request) {
           ...(prev.quoteLog ?? []),
           { quoteId: quote.id, usedOn: date },
         ],
-        // Completing morning clears a same-day "Not today" dismiss
         skips: (prev.skips ?? []).filter(
           (s) => !(s.date === date && s.itemKey === "morning"),
         ),

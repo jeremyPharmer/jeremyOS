@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | RB-029 |
-| Rank | 11 |
+| Rank | 12 |
 | Priority | P0 |
 | Status | Done |
 | Effort | M |
@@ -50,3 +50,4 @@ After evening close, Jeremy lands on a clear **day recap** plus a short **world 
 - Related: [RB-027](./morning-day-start-briefing.md) (morning pair), [RB-016](./five-year-journal-ux.md) (headline stays personal), [RB-010](./backfill-missed-evening-journal-close.md) (evening path integrity — distinct).
 - **2026-09-12:** Active Open/Close Daily briefing twin redesign is **[RB-032](./daily-briefing-open-close-redesign.md)** (Done) — do not reopen this item.
 - **2026-09-28:** Close chrome follow-on to match Open edition-box → **[RB-038](./close-edition-open-parity.md)**.
+- **2026-10-07:** Recap + world-news Close body **superseded as active scope by [RB-042](./open-close-thin-redesign.md)** (journal + dayRating only; no paper body). Rank → **12**.
