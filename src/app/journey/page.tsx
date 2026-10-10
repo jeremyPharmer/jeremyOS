@@ -4,218 +4,19 @@ import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { PrimaryButton, SecondaryButton } from "@/components/ui";
 import {
-  CONDITION_METRICS,
-  filledTrendPointsInRange,
+  SLEEP_QUALITY_SCALE_5_START,
   formatTrendDate,
   resolveConditionRange,
-  type ConditionMetric,
+  sleepQualityAverage,
+  sleepQualityPointsInRange,
   type ConditionRangePreset,
 } from "@/lib/trends";
 import type { RebuildState, VitalsPeriod } from "@/lib/types";
-import { medicationAdherence } from "@/lib/medication-adherence";
-import { formatVitalsReading, vitalsSorted } from "@/lib/vitals";
-
-type ChartAxis = "scale" | "hours";
-
-const AXIS_SPECS: Record<
-  ChartAxis,
-  { min: number; max: number; ticks: number[] }
-> = {
-  scale: { min: 1, max: 10, ticks: [1, 4, 7, 10] },
-  hours: { min: 0, max: 14, ticks: [0, 7, 14] },
-};
-
-function LineChartFrame({
-  width = 320,
-  height = 180,
-  points,
-  series,
-  rangeStart,
-  rangeEnd,
-  emptyMessage,
-  footer,
-}: {
-  width?: number;
-  height?: number;
-  points: { date: string }[];
-  series: {
-    key: string;
-    color: string;
-    axis: ChartAxis;
-    values: (number | undefined)[];
-  }[];
-  rangeStart: string;
-  rangeEnd: string;
-  emptyMessage: string;
-  footer?: string;
-}) {
-  const axesUsed = [...new Set(series.map((s) => s.axis))];
-  const leftAxis: ChartAxis = axesUsed[0] ?? "scale";
-  const rightAxis: ChartAxis | null =
-    axesUsed.length > 1
-      ? axesUsed.find((a) => a !== leftAxis) ?? null
-      : null;
-  const pad = {
-    top: 16,
-    right: rightAxis ? 28 : 12,
-    bottom: 28,
-    left: 28,
-  };
-  const innerW = width - pad.left - pad.right;
-  const innerH = height - pad.top - pad.bottom;
-  const xSpan = Math.max(points.length - 1, 1);
-
-  function yCoord(value: number, axis: ChartAxis): number {
-    const spec = AXIS_SPECS[axis];
-    const span = Math.max(spec.max - spec.min, 1);
-    return pad.top + innerH - ((value - spec.min) / span) * innerH;
-  }
-
-  const xs = points.map((_, i) =>
-    points.length === 1
-      ? pad.left + innerW / 2
-      : pad.left + (i / xSpan) * innerW,
-  );
-
-  const paths = series
-    .map((s) => {
-      const segments: { x: number; y: number }[][] = [];
-      let current: { x: number; y: number }[] = [];
-      for (let i = 0; i < s.values.length; i++) {
-        const v = s.values[i];
-        if (v === undefined) {
-          if (current.length > 0) {
-            segments.push(current);
-            current = [];
-          }
-          continue;
-        }
-        current.push({ x: xs[i]!, y: yCoord(v, s.axis) });
-      }
-      if (current.length > 0) segments.push(current);
-      if (segments.length === 0) return null;
-      const d = segments
-        .map((coords) =>
-          coords
-            .map(
-              (c, i) =>
-                `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`,
-            )
-            .join(" "),
-        )
-        .join(" ");
-      const coords = segments.flat();
-      return { ...s, d, coords };
-    })
-    .filter(Boolean) as {
-    key: string;
-    color: string;
-    d: string;
-    coords: { x: number; y: number }[];
-  }[];
-
-  const first = rangeStart;
-  const last = rangeEnd;
-
-  if (points.length === 0) {
-    return (
-      <p className="muted" style={{ marginTop: 12 }}>
-        {emptyMessage}
-      </p>
-    );
-  }
-
-  const axisLeft = pad.left;
-  const axisRight = width - pad.right;
-  const axisY = height - 10;
-  const leftTicks = AXIS_SPECS[leftAxis].ticks;
-  const rightTicks = rightAxis ? AXIS_SPECS[rightAxis].ticks : [];
-
-  return (
-    <>
-      <svg
-        key={`${rangeStart}-${rangeEnd}-${points.length}`}
-        className="trend-svg"
-        viewBox={`0 0 ${width} ${height}`}
-        role="img"
-        aria-label="Trend chart"
-      >
-        {leftTicks.map((v) => {
-          const y = yCoord(v, leftAxis);
-          return (
-            <g key={`left-${v}`}>
-              <line
-                x1={pad.left}
-                x2={width - pad.right}
-                y1={y}
-                y2={y}
-                className="trend-grid"
-              />
-              <text x={4} y={y + 3} className="trend-axis">
-                {v}
-              </text>
-            </g>
-          );
-        })}
-        {rightTicks.map((v) => {
-          const y = yCoord(v, rightAxis!);
-          return (
-            <text
-              key={`right-${v}`}
-              x={width - 4}
-              y={y + 3}
-              textAnchor="end"
-              className="trend-axis"
-            >
-              {v}
-            </text>
-          );
-        })}
-        <line
-          x1={axisLeft}
-          x2={axisRight}
-          y1={axisY}
-          y2={axisY}
-          className="trend-axis-line"
-        />
-        {paths.map((p) => (
-          <g key={p.key}>
-            <path d={p.d} fill="none" stroke={p.color} strokeWidth="2.25" />
-            {p.coords.map((c, i) => (
-              <circle
-                key={`${p.key}-${i}`}
-                cx={c.x}
-                cy={c.y}
-                r="3.2"
-                fill={p.color}
-              />
-            ))}
-          </g>
-        ))}
-        {first && (
-          <text x={axisLeft} y={height - 8} className="trend-axis">
-            {formatTrendDate(first)}
-          </text>
-        )}
-        {last && last !== first && (
-          <text
-            x={axisRight}
-            y={height - 8}
-            textAnchor="end"
-            className="trend-axis"
-          >
-            {formatTrendDate(last)}
-          </text>
-        )}
-      </svg>
-      {footer && (
-        <p className="tiny" style={{ marginTop: 8 }}>
-          {footer}
-        </p>
-      )}
-    </>
-  );
-}
+import {
+  filledVitalsPointsInRange,
+  formatVitalsReading,
+  vitalsSorted,
+} from "@/lib/vitals";
 
 const RANGE_OPTIONS: { key: ConditionRangePreset; label: string }[] = [
   { key: "7", label: "7 days" },
@@ -224,34 +25,22 @@ const RANGE_OPTIONS: { key: ConditionRangePreset; label: string }[] = [
   { key: "custom", label: "Custom" },
 ];
 
-function ConditionsChart({
+function SleepQualityChart({
   state,
   today,
-  journeyStart,
 }: {
   state: RebuildState;
   today: string;
-  journeyStart: string;
 }) {
+  const minStart = SLEEP_QUALITY_SCALE_5_START;
   const [preset, setPreset] = useState<ConditionRangePreset>("30");
-  const [customStart, setCustomStart] = useState(journeyStart);
+  const [customStart, setCustomStart] = useState(minStart);
   const [customEnd, setCustomEnd] = useState(today);
-  const [active, setActive] = useState<Record<ConditionMetric, boolean>>({
-    sleepHours: false,
-    sleepQuality: true,
-    mood: true,
-    energy: true,
-    stress: true,
-  });
-
-  function toggle(key: ConditionMetric) {
-    setActive((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
 
   function selectPreset(next: ConditionRangePreset) {
     setPreset(next);
     if (next === "custom") {
-      const bounds = resolveConditionRange(preset, journeyStart, today, {
+      const bounds = resolveConditionRange(preset, minStart, today, {
         start: customStart,
         end: customEnd,
       });
@@ -264,27 +53,42 @@ function ConditionsChart({
     () =>
       resolveConditionRange(
         preset,
-        journeyStart,
+        minStart,
         today,
         preset === "custom" ? { start: customStart, end: customEnd } : undefined,
       ),
-    [preset, journeyStart, today, customStart, customEnd],
+    [preset, minStart, today, customStart, customEnd],
   );
 
   const points = useMemo(
-    () => filledTrendPointsInRange(state, range.start, range.end),
+    () => sleepQualityPointsInRange(state, range.start, range.end),
     [state, range.start, range.end],
   );
 
-  const series = CONDITION_METRICS.filter((m) => active[m.key]).map((m) => ({
-    key: m.key,
-    color: m.color,
-    axis: m.axis as ChartAxis,
-    values: points.map((p) => p[m.key]),
-  }));
+  const avg = useMemo(() => sleepQualityAverage(points), [points]);
+  const loggedCount = points.filter((p) => p.sleepQuality != null).length;
 
   return (
-    <div className="trends">
+    <div className="health-sleep">
+      <div className="health-sleep-summary">
+        {avg != null ? (
+          <>
+            <p className="health-sleep-avg">
+              <span className="health-sleep-avg-num">{avg.toFixed(1)}</span>
+              <span className="health-sleep-avg-unit">avg · 1–5</span>
+            </p>
+            <p className="muted health-sleep-detail">
+              {loggedCount} night{loggedCount === 1 ? "" : "s"} since{" "}
+              {formatTrendDate(range.start)}
+            </p>
+          </>
+        ) : (
+          <p className="muted health-sleep-detail">
+            Sleep quality appears after Open check-ins (1–5).
+          </p>
+        )}
+      </div>
+
       <div className="trend-range-toggles" role="group" aria-label="Date range">
         {RANGE_OPTIONS.map((option) => (
           <button
@@ -308,7 +112,7 @@ function ConditionsChart({
             <input
               type="date"
               value={customStart}
-              min={journeyStart}
+              min={minStart}
               max={customEnd}
               onChange={(e) => setCustomStart(e.target.value)}
             />
@@ -325,90 +129,430 @@ function ConditionsChart({
           </label>
         </div>
       )}
-      <div className="trend-toggles">
-        {CONDITION_METRICS.map((m) => (
-          <button
-            key={m.key}
-            type="button"
-            className={active[m.key] ? "trend-toggle on" : "trend-toggle"}
-            style={{ ["--trend" as string]: m.color }}
-            onClick={() => toggle(m.key)}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
-      <LineChartFrame
+
+      <SleepLineChart
         points={points}
-        series={series}
         rangeStart={range.start}
         rangeEnd={range.end}
-        emptyMessage="Trends appear as you log mornings."
-        footer="Quality, mood, energy, stress (1–10). Tap to show or hide."
       />
     </div>
   );
 }
 
+function SleepLineChart({
+  points,
+  rangeStart,
+  rangeEnd,
+  width = 320,
+  height = 168,
+}: {
+  points: { date: string; sleepQuality?: number }[];
+  rangeStart: string;
+  rangeEnd: string;
+  width?: number;
+  height?: number;
+}) {
+  const pad = { top: 14, right: 12, bottom: 28, left: 28 };
+  const innerW = width - pad.left - pad.right;
+  const innerH = height - pad.top - pad.bottom;
+  const min = 1;
+  const max = 5;
+  const ticks = [1, 2, 3, 4, 5];
+  const color = "#6aaf8e";
+  const xSpan = Math.max(points.length - 1, 1);
 
-function MedicationAdherenceCard({ today }: { today: string }) {
-  const { post, state } = useApp();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const adherence = useMemo(
-    () => medicationAdherence(state, today),
-    [state, today],
-  );
-
-  async function tookIt() {
-    setBusy(true);
-    setError("");
-    try {
-      await post("/api/support", {
-        date: today,
-        supportType: "medication",
-        completed: true,
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save");
-    } finally {
-      setBusy(false);
-    }
+  function yCoord(value: number): number {
+    return pad.top + innerH - ((value - min) / (max - min)) * innerH;
   }
 
-  return (
-    <div className="med-adherence">
-      {adherence.percent != null ? (
-        <>
-          <p className="med-adherence-pct">
-            <span className="med-adherence-num">{adherence.percent}%</span>
-            <span className="med-adherence-unit"> days covered</span>
-          </p>
-          <p className="muted med-adherence-detail">
-            {adherence.daysCovered} of {adherence.daysElapsed} days since{" "}
-            {formatTrendDate(adherence.firstDoseDate!)} — tracking daily.
-          </p>
-        </>
-      ) : (
-        <p className="muted med-adherence-detail">
-          {adherence.configured
-            ? "Log the first dose to start your adherence % — one tap per day."
-            : "Turn on Medication in Settings → Supports to track adherence here."}
-        </p>
-      )}
+  const xs = points.map((_, i) =>
+    points.length === 1
+      ? pad.left + innerW / 2
+      : pad.left + (i / xSpan) * innerW,
+  );
 
-      {error && <p className="form-error">{error}</p>}
+  const coords: { x: number; y: number }[] = [];
+  const segments: { x: number; y: number }[][] = [];
+  let current: { x: number; y: number }[] = [];
+  for (let i = 0; i < points.length; i++) {
+    const v = points[i]!.sleepQuality;
+    if (v === undefined) {
+      if (current.length > 0) {
+        segments.push(current);
+        current = [];
+      }
+      continue;
+    }
+    const c = { x: xs[i]!, y: yCoord(v) };
+    coords.push(c);
+    current.push(c);
+  }
+  if (current.length > 0) segments.push(current);
 
-      {adherence.configured && (
-        adherence.takenToday ? (
-          <p className="med-adherence-done">Taken today</p>
-        ) : (
-          <PrimaryButton onClick={() => void tookIt()} disabled={busy}>
-            {busy ? "Saving…" : "Took it today"}
-          </PrimaryButton>
+  if (coords.length === 0) {
+    return (
+      <p className="muted" style={{ marginTop: 12 }}>
+        No sleep quality yet in this range.
+      </p>
+    );
+  }
+
+  const pathD = segments
+    .map((seg) =>
+      seg
+        .map(
+          (c, i) =>
+            `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`,
         )
+        .join(" "),
+    )
+    .join(" ");
+
+  const areaD = segments
+    .map((seg) => {
+      if (seg.length === 0) return "";
+      const baseY = yCoord(min);
+      const line = seg
+        .map(
+          (c, i) =>
+            `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`,
+        )
+        .join(" ");
+      const last = seg[seg.length - 1]!;
+      const first = seg[0]!;
+      return `${line} L ${last.x.toFixed(1)} ${baseY.toFixed(1)} L ${first.x.toFixed(1)} ${baseY.toFixed(1)} Z`;
+    })
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <svg
+      key={`${rangeStart}-${rangeEnd}-${points.length}`}
+      className="trend-svg health-sleep-svg"
+      viewBox={`0 0 ${width} ${height}`}
+      role="img"
+      aria-label="Sleep quality trend"
+    >
+      <defs>
+        <linearGradient id="sleepFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      {ticks.map((v) => {
+        const y = yCoord(v);
+        return (
+          <g key={`tick-${v}`}>
+            <line
+              x1={pad.left}
+              x2={width - pad.right}
+              y1={y}
+              y2={y}
+              className="trend-grid"
+            />
+            <text x={4} y={y + 3} className="trend-axis">
+              {v}
+            </text>
+          </g>
+        );
+      })}
+      {areaD && <path d={areaD} fill="url(#sleepFill)" />}
+      <path d={pathD} fill="none" stroke={color} strokeWidth="2.4" />
+      {coords.map((c, i) => (
+        <circle key={i} cx={c.x} cy={c.y} r="3.4" fill={color} />
+      ))}
+      <text x={pad.left} y={height - 8} className="trend-axis">
+        {formatTrendDate(rangeStart)}
+      </text>
+      {rangeEnd !== rangeStart && (
+        <text
+          x={width - pad.right}
+          y={height - 8}
+          textAnchor="end"
+          className="trend-axis"
+        >
+          {formatTrendDate(rangeEnd)}
+        </text>
       )}
+    </svg>
+  );
+}
+
+function BloodPressureViz({
+  state,
+  today,
+}: {
+  state: RebuildState;
+  today: string;
+}) {
+  const minStart =
+    state.profile?.currentRunStartedOn ??
+    state.profile?.startDate ??
+    today;
+  const [preset, setPreset] = useState<ConditionRangePreset>("30");
+  const [customStart, setCustomStart] = useState(minStart);
+  const [customEnd, setCustomEnd] = useState(today);
+
+  const range = useMemo(
+    () =>
+      resolveConditionRange(
+        preset,
+        minStart,
+        today,
+        preset === "custom" ? { start: customStart, end: customEnd } : undefined,
+      ),
+    [preset, minStart, today, customStart, customEnd],
+  );
+
+  const points = useMemo(
+    () => filledVitalsPointsInRange(state, range.start, range.end),
+    [state, range.start, range.end],
+  );
+
+  const latest = useMemo(() => vitalsSorted(state)[0], [state]);
+
+  return (
+    <div className="health-bp">
+      {latest && (
+        <div className="health-bp-latest">
+          <p className="health-bp-latest-vals">
+            {latest.systolic}
+            <span className="health-bp-slash">/</span>
+            {latest.diastolic}
+            <span className="health-bp-unit"> mmHg</span>
+          </p>
+          <p className="muted health-bp-latest-meta">
+            Latest · {formatTrendDate(latest.date)} ·{" "}
+            {latest.period.toUpperCase()} · {latest.heartRate} bpm
+          </p>
+        </div>
+      )}
+
+      <div className="trend-range-toggles" role="group" aria-label="BP date range">
+        {RANGE_OPTIONS.map((option) => (
+          <button
+            key={option.key}
+            type="button"
+            className={
+              preset === option.key
+                ? "trend-range-toggle on"
+                : "trend-range-toggle"
+            }
+            onClick={() => {
+              setPreset(option.key);
+              if (option.key === "custom") {
+                const bounds = resolveConditionRange(preset, minStart, today, {
+                  start: customStart,
+                  end: customEnd,
+                });
+                setCustomStart(bounds.start);
+                setCustomEnd(bounds.end);
+              }
+            }}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+      {preset === "custom" && (
+        <div className="trend-custom-range">
+          <label className="trend-custom-field">
+            <span className="field-label">From</span>
+            <input
+              type="date"
+              value={customStart}
+              min={minStart}
+              max={customEnd}
+              onChange={(e) => setCustomStart(e.target.value)}
+            />
+          </label>
+          <label className="trend-custom-field">
+            <span className="field-label">To</span>
+            <input
+              type="date"
+              value={customEnd}
+              min={customStart}
+              max={today}
+              onChange={(e) => setCustomEnd(e.target.value)}
+            />
+          </label>
+        </div>
+      )}
+
+      <BpRangeChart
+        points={points}
+        rangeStart={range.start}
+        rangeEnd={range.end}
+      />
     </div>
+  );
+}
+
+function BpRangeChart({
+  points,
+  rangeStart,
+  rangeEnd,
+  width = 320,
+  height = 180,
+}: {
+  points: {
+    date: string;
+    systolic?: number;
+    diastolic?: number;
+    heartRate?: number;
+  }[];
+  rangeStart: string;
+  rangeEnd: string;
+  width?: number;
+  height?: number;
+}) {
+  const pad = { top: 14, right: 28, bottom: 28, left: 32 };
+  const innerW = width - pad.left - pad.right;
+  const innerH = height - pad.top - pad.bottom;
+  const bpMin = 60;
+  const bpMax = 180;
+  const bpTicks = [60, 90, 120, 150, 180];
+  const hrMin = 40;
+  const hrMax = 120;
+  const sysColor = "#c45c4a";
+  const diaColor = "#d48a4a";
+  const hrColor = "#4a7eb5";
+
+  const logged = points.filter(
+    (p) => p.systolic != null && p.diastolic != null,
+  );
+
+  if (logged.length === 0) {
+    return (
+      <p className="muted" style={{ marginTop: 12 }}>
+        Blood pressure readings appear as you log them.
+      </p>
+    );
+  }
+
+  function yBp(v: number): number {
+    return pad.top + innerH - ((v - bpMin) / (bpMax - bpMin)) * innerH;
+  }
+  function yHr(v: number): number {
+    return pad.top + innerH - ((v - hrMin) / (hrMax - hrMin)) * innerH;
+  }
+
+  const n = Math.max(logged.length, 1);
+  const slot = innerW / n;
+  const barW = Math.min(10, Math.max(4, slot * 0.45));
+
+  const hrCoords = logged
+    .map((p, i) => {
+      if (p.heartRate == null) return null;
+      const x = pad.left + slot * i + slot / 2;
+      return { x, y: yHr(p.heartRate) };
+    })
+    .filter(Boolean) as { x: number; y: number }[];
+
+  const hrPath =
+    hrCoords.length > 1
+      ? hrCoords
+          .map(
+            (c, i) =>
+              `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`,
+          )
+          .join(" ")
+      : "";
+
+  return (
+    <>
+      <svg
+        key={`${rangeStart}-${rangeEnd}-${logged.length}`}
+        className="trend-svg health-bp-svg"
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label="Blood pressure range chart"
+      >
+        {bpTicks.map((v) => {
+          const y = yBp(v);
+          return (
+            <g key={`bp-${v}`}>
+              <line
+                x1={pad.left}
+                x2={width - pad.right}
+                y1={y}
+                y2={y}
+                className="trend-grid"
+              />
+              <text x={4} y={y + 3} className="trend-axis">
+                {v}
+              </text>
+            </g>
+          );
+        })}
+        <text
+          x={width - 4}
+          y={yHr(80) + 3}
+          textAnchor="end"
+          className="trend-axis"
+        >
+          HR
+        </text>
+        {logged.map((p, i) => {
+          const x = pad.left + slot * i + slot / 2;
+          const ySys = yBp(p.systolic!);
+          const yDia = yBp(p.diastolic!);
+          return (
+            <g key={p.date}>
+              <line
+                x1={x}
+                x2={x}
+                y1={ySys}
+                y2={yDia}
+                stroke={sysColor}
+                strokeWidth={barW}
+                strokeLinecap="round"
+                opacity={0.85}
+              />
+              <circle cx={x} cy={ySys} r={3} fill={sysColor} />
+              <circle cx={x} cy={yDia} r={3} fill={diaColor} />
+            </g>
+          );
+        })}
+        {hrPath && (
+          <path
+            d={hrPath}
+            fill="none"
+            stroke={hrColor}
+            strokeWidth="1.75"
+            strokeDasharray="3 3"
+            opacity={0.9}
+          />
+        )}
+        {hrCoords.map((c, i) => (
+          <circle key={`hr-${i}`} cx={c.x} cy={c.y} r="2.4" fill={hrColor} />
+        ))}
+        <text x={pad.left} y={height - 8} className="trend-axis">
+          {formatTrendDate(logged[0]!.date)}
+        </text>
+        {logged.length > 1 && (
+          <text
+            x={width - pad.right}
+            y={height - 8}
+            textAnchor="end"
+            className="trend-axis"
+          >
+            {formatTrendDate(logged[logged.length - 1]!.date)}
+          </text>
+        )}
+      </svg>
+      <div className="health-bp-legend" aria-hidden>
+        <span>
+          <i style={{ background: sysColor }} /> Systolic
+        </span>
+        <span>
+          <i style={{ background: diaColor }} /> Diastolic
+        </span>
+        <span>
+          <i style={{ background: hrColor }} /> HR
+        </span>
+      </div>
+    </>
   );
 }
 
@@ -422,6 +566,7 @@ function VitalsLogCard({ today }: { today: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
 
   const recent = useMemo(() => vitalsSorted(state).slice(0, 40), [state]);
 
@@ -555,27 +700,42 @@ function VitalsLogCard({ today }: { today: string }) {
       )}
 
       {recent.length > 0 && (
-        <ul className="vitals-recent">
-          {recent.map((r) => (
-            <li key={r.id} className="vitals-recent-row">
-              <div>
-                <p className="vitals-recent-date">
-                  {formatTrendDate(r.date)} · {r.period.toUpperCase()}
-                </p>
-                <p className="vitals-recent-vals">{formatVitalsReading(r)}</p>
-              </div>
-              <button
-                type="button"
-                className="vitals-recent-del"
-                disabled={busy}
-                onClick={() => void remove(r.id)}
-                aria-label="Delete reading"
-              >
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="vitals-history">
+          <button
+            type="button"
+            className="vitals-history-toggle"
+            aria-expanded={listOpen}
+            onClick={() => setListOpen((v) => !v)}
+          >
+            <span>All readings ({recent.length})</span>
+            <span className={listOpen ? "caret open" : "caret"} aria-hidden>
+              ▾
+            </span>
+          </button>
+          {listOpen && (
+            <ul className="vitals-recent">
+              {recent.map((r) => (
+                <li key={r.id} className="vitals-recent-row">
+                  <div>
+                    <p className="vitals-recent-date">
+                      {formatTrendDate(r.date)} · {r.period.toUpperCase()}
+                    </p>
+                    <p className="vitals-recent-vals">{formatVitalsReading(r)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="vitals-recent-del"
+                    disabled={busy}
+                    onClick={() => void remove(r.id)}
+                    aria-label="Delete reading"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );
@@ -583,40 +743,30 @@ function VitalsLogCard({ today }: { today: string }) {
 
 export default function JourneyPage() {
   const { state, today } = useApp();
-  const journeyStart =
-    state.profile?.currentRunStartedOn ??
-    state.profile?.startDate ??
-    today ??
-    "";
 
   return (
     <main className="stack fade-in">
       <header className="hero-day">
-        <p className="eyebrow">Journey</p>
         <h1>Health</h1>
+        <p className="muted">Sleep first. Blood pressure when you need it.</p>
       </header>
 
-      <section className="panel">
-        <p className="eyebrow">Tracking</p>
-        <h2 style={{ marginBottom: 10 }}>Medication adherence</h2>
-        {today && <MedicationAdherenceCard today={today} />}
+      <section className="panel health-primary">
+        <p className="eyebrow">Primary</p>
+        <h2 style={{ marginBottom: 10 }}>Sleep quality</h2>
+        {today && <SleepQualityChart state={state} today={today} />}
       </section>
 
-      <section className="panel">
-        <p className="eyebrow">Log</p>
+      <section className="panel health-secondary">
+        <p className="eyebrow">Vitals</p>
         <h2 style={{ marginBottom: 10 }}>Blood pressure</h2>
-        {today && <VitalsLogCard today={today} />}
-      </section>
-
-      <section className="panel">
-        <p className="eyebrow">Over time</p>
-        <h2 style={{ marginBottom: 10 }}>Conditions</h2>
-        {today && journeyStart && (
-          <ConditionsChart
-            state={state}
-            today={today}
-            journeyStart={journeyStart}
-          />
+        {today && (
+          <>
+            <BloodPressureViz state={state} today={today} />
+            <div style={{ marginTop: 16 }}>
+              <VitalsLogCard today={today} />
+            </div>
+          </>
         )}
       </section>
     </main>
