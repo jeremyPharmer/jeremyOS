@@ -19,6 +19,8 @@ type DraftExercise = {
   reps: string;
   repMode: WorkoutRepMode;
   tracksWeight: boolean;
+  /** User chose Other… — keep custom field open even before they type a name */
+  customName: boolean;
 };
 
 function emptyExercise(): DraftExercise {
@@ -29,10 +31,14 @@ function emptyExercise(): DraftExercise {
     reps: "10",
     repMode: "reps",
     tracksWeight: false,
+    customName: false,
   };
 }
 
-function draftFromRoutine(r: WorkoutRoutine): {
+function draftFromRoutine(
+  r: WorkoutRoutine,
+  knownNames: Set<string>,
+): {
   id: string;
   name: string;
   type: WorkoutType;
@@ -42,23 +48,26 @@ function draftFromRoutine(r: WorkoutRoutine): {
     id: r.id,
     name: r.name,
     type: r.type!,
-    exercises: r.exercises.map((ex) => ({
-      key: ex.id,
-      id: ex.id,
-      name: ex.name,
-      sets: String(ex.sets),
-      reps: String(ex.reps),
-      repMode: ex.repMode ?? "reps",
-      tracksWeight: ex.tracksWeight,
-    })),
+    exercises: r.exercises.map((ex) => {
+      const trimmed = ex.name.trim();
+      const isKnown = Boolean(trimmed) && knownNames.has(trimmed.toLowerCase());
+      return {
+        key: ex.id,
+        id: ex.id,
+        name: ex.name,
+        sets: String(ex.sets),
+        reps: String(ex.reps),
+        repMode: ex.repMode ?? "reps",
+        tracksWeight: ex.tracksWeight,
+        customName: Boolean(trimmed) && !isKnown,
+      };
+    }),
   };
 }
 
-function exerciseSelectValue(
-  name: string,
-  knownNames: Set<string>,
-): string {
-  const trimmed = name.trim();
+function exerciseSelectValue(ex: DraftExercise, knownNames: Set<string>): string {
+  if (ex.customName) return WORKOUT_CUSTOM;
+  const trimmed = ex.name.trim();
   if (!trimmed) return "";
   if (knownNames.has(trimmed.toLowerCase())) return trimmed;
   return WORKOUT_CUSTOM;
@@ -102,7 +111,7 @@ export function WorkoutRoutineBuilder() {
   }
 
   function startEdit(r: WorkoutRoutine) {
-    const d = draftFromRoutine(r);
+    const d = draftFromRoutine(r, knownNameKeys);
     setEditingId(d.id);
     setName(d.name);
     setType(d.type);
@@ -123,13 +132,17 @@ export function WorkoutRoutineBuilder() {
   }
 
   function pickExercise(key: string, value: string) {
-    if (value === "" || value === WORKOUT_CUSTOM) {
-      updateExercise(key, { name: "" });
+    if (value === "") {
+      updateExercise(key, { name: "", customName: false });
+      return;
+    }
+    if (value === WORKOUT_CUSTOM) {
+      updateExercise(key, { name: "", customName: true });
       return;
     }
     const match = knownByLower.get(value.toLowerCase());
     if (!match) {
-      updateExercise(key, { name: value });
+      updateExercise(key, { name: value, customName: true });
       return;
     }
     updateExercise(key, {
@@ -138,6 +151,7 @@ export function WorkoutRoutineBuilder() {
       reps: String(match.reps),
       repMode: match.repMode,
       tracksWeight: match.tracksWeight,
+      customName: false,
     });
   }
 
@@ -285,7 +299,7 @@ export function WorkoutRoutineBuilder() {
           <div className="workout-routine-exercises">
             <p className="workout-log-label">Exercises</p>
             {exercises.map((ex, i) => {
-              const selectValue = exerciseSelectValue(ex.name, knownNameKeys);
+              const selectValue = exerciseSelectValue(ex, knownNameKeys);
               const showCustom =
                 known.length === 0 || selectValue === WORKOUT_CUSTOM;
               return (
@@ -328,23 +342,26 @@ export function WorkoutRoutineBuilder() {
                             {k.name}
                           </option>
                         ))}
-                        <option value={WORKOUT_CUSTOM}>Other…</option>
+                        <option value={WORKOUT_CUSTOM}>Custom…</option>
                       </select>
                     </label>
                   ) : null}
                   {showCustom && (
                     <label className="workout-log-field">
                       <span className="workout-log-label">
-                        {known.length > 0 ? "Custom name" : "Name"}
+                        {known.length > 0 ? "Custom exercise" : "Name"}
                       </span>
                       <input
                         className="workout-log-input"
                         value={ex.name}
                         onChange={(e) =>
-                          updateExercise(ex.key, { name: e.target.value })
+                          updateExercise(ex.key, {
+                            name: e.target.value,
+                            customName: true,
+                          })
                         }
-                        placeholder="Exercise name"
-                        aria-label={`Exercise ${i + 1} name`}
+                        placeholder="e.g. Cable crunch"
+                        aria-label={`Exercise ${i + 1} custom name`}
                         autoComplete="off"
                       />
                     </label>
