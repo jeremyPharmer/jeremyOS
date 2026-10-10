@@ -17,7 +17,7 @@ Was: unpaid promise that craving/support data would surface as Journey “Over t
 
 ## Outcome (superseded 2026-08-29)
 
-**Won't Do** under JeremyOS north star + founder ask. Craving **stats / analytics / pattern panels** are dropped — not paused for later polish. Removal of shipped craving-stats surfaces and the Home craving CTA is owned by **[RB-020](./drop-craving-stats-home-cta.md)**. Morning/evening mood & feeling stay; Journey nav label stays.
+**Won't Do** under JeremyOS north star + founder ask. Craving **stats / analytics / pattern panels** are dropped — not paused for later polish. Removal of shipped craving-stats surfaces and the Home craving CTA is owned by **[RB-020](./drop-craving-stats-home-cta.md)**. Morning/evening ritual kept (thinned by [RB-042](./open-close-thin-redesign.md)); nav label is now **Health** ([RB-043](./health-tab-sleep-primary.md)) — Journey keep from 2026-08-29 superseded.
 
 ## Scope (v1) — archived intent (do not build)
 

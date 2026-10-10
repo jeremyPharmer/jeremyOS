@@ -1,11 +1,11 @@
-# Journey: med adherence card + drop vitals chart
+# Journey: med adherence card + drop vitals chart — Won't Do (superseded)
 
 | Field | Value |
 | --- | --- |
 | ID | RB-031 |
-| Rank | 25 |
+| Rank | 26 |
 | Priority | P1 |
-| Status | Ready |
+| Status | Won't Do |
 | Effort | S |
 | Target due | TBD |
 | Milestone | v1.x |
@@ -13,41 +13,37 @@
 
 ## Problem
 
-On Journey, the **Vitals chart** adds noise next to the BP/HR log list Jeremy actually uses. Separately, he takes a daily medication (default Support `type: "medication"`) and wants a clear **adherence** signal — percent of days covered since first dose — as its own card, framed as a daily reminder + light education, not a new clinical system.
+~~On Journey, the Vitals chart adds noise next to the BP/HR log list. Separately, medication adherence as its own Journey card.~~
+
+**Superseded 2026-10-10:** Founder no longer wants Medication adherence tracking. Health tab reshape is owned by **[RB-043](./health-tab-sleep-primary.md)** (sleep primary, drop Conditions, keep vitals data, better vitals viz later).
 
 ## Outcome
 
-Journey shows (1) vitals as **list-only** (no chart) and (2) a **Medication adherence** card with % days covered from first logged dose through today, with optional same-day “took it” via existing support completion.
+**Won't Do.** Do **not** ship a Medication adherence card. Vitals **data** stay (RB-028); Health page direction (label, sleep primary, Conditions cut, no med adherence) = **RB-043**.
 
-## Scope (v1)
+## Scope (v1) — historical (locked 2026-09-11; superseded)
 
-Locked **2026-09-11** (thin ship):
+~~1. Drop the Vitals chart — keep BP/HR list.~~  
+~~2. Medication adherence card on Journey from medication Support + SupportCompletion.~~  
+~~3–7. % days covered, same-day “took it”, Journey only.~~
 
-1. **Drop the Vitals chart** — remove the separate Journey vitals chart panel; **keep** the BP/HR list (`VitalsLogCard` / dates + measures). Do not merge vitals into Conditions.
-2. **Medication adherence card on Journey** — dedicated card (sibling to vitals / other Journey panels), not buried only inside weekly Supports UI.
-3. **Data source = existing medication Support** — default Support with `type: "medication"` (weeklyTarget 7) + **SupportCompletion** ledger by date. No new “education med” or separate adherence store.
-4. **First dose** — earliest SupportCompletion date for that medication support (fallback: support created/start date if product needs a floor when completions exist; if zero completions, show empty / start state, not a fake %).
-5. **% days covered** — count of distinct calendar days with a completion ÷ count of calendar days from first dose **through today** (inclusive). Surface that % on the card; short framing copy OK (daily reminder + what “days covered” means) — **not** medical advice.
-6. **Optional same-day “took it”** — reuse existing `/api/support` (or equivalent SupportCompletion write path); do not invent a parallel med-log API for v1.
-7. **Journey only** — not Home, morning, or evening ritual surfaces.
+Active product instead:
+
+- **No** Medication adherence section ([RB-043](./health-tab-sleep-primary.md))
+- Drop historic **Conditions** chart; sleep quality **1–5** primary on **Health**
+- Keep BP/HR data; visualize differently from list-only (follow sleep)
 
 ## Out of scope / later
 
-- New medication / prescription data model or multi-med regimens
-- Pharmacy, refill, dose timing (AM/PM), dosage amounts
-- Adherence charts / sparklines; reintroducing vitals chart
-- Alerts, streaks-as-shame, clinician export, medical advice
-- Home or morning “took meds” CTA (unless founder reopens)
-- Changing weekly Support target math beyond what’s needed to read completions for this card
+N/A — item closed as Won't Do / superseded.
 
 ## Dependencies & risks
 
-- Depends on shipped [RB-028](./journey-vitals-bp-hr.md) vitals list; this item **cuts** the chart half of that Outcome.
-- Medication Support must remain a default / discoverable support; if missing for a user, card should degrade gracefully (empty / setup nudge — thin).
-- “Education is a daily reminder” interpreted as **UX framing** (reminder + % days covered education), not a second product entity — revisit only if founder means a distinct Education med.
+- Do not implement med-adherence UI “while in Journey/Health”
+- Vitals list/chart history still referenced by RB-028 / RB-043
 
 ## Notes
 
-- Intake **2026-09-11** — founder Journey ask; engineering already has chart as separate panel vs `VitalsLogCard`, and SupportCompletion as best first-dose / coverage source.
-- Rank **15** / **P1** / Effort **S** — thin follow-on immediately after Done vitals [RB-028](./journey-vitals-bp-hr.md); ahead of [RB-018](./workout-tracker.md). Does not displace P0 EA / journal / todo work.
-- Supersedes RB-028 Outcome language that promised a Vitals **chart/trends** surface for ongoing product; list + neutral log remain; chart removed by this item.
+- Intake **2026-09-11** — founder Journey ask (med adherence + drop vitals chart).
+- **2026-10-10:** Status → **Won't Do**; superseded by [RB-043](./health-tab-sleep-primary.md). Med adherence removed from product direction; Health rename + sleep primary + Conditions drop replace this follow-on.
+- Rank **26** (terminal with other closed/later health follow-ons).
