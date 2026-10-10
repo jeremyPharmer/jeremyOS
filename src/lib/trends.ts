@@ -202,6 +202,64 @@ function mitigationLabels(c: {
 
 export type ConditionRangePreset = "7" | "30" | "90" | "custom";
 
+/**
+ * Open sleep quality moved to 1–5 (RB-042). Health sleep chart starts here;
+ * legacy 1–10 mornings before this date are ignored for the primary series.
+ */
+export const SLEEP_QUALITY_SCALE_5_START = "2026-10-07";
+
+/** True when a morning sleepQuality belongs to the Open 1–5 era. */
+export function isSleepQualityFiveScale(
+  value: number | undefined,
+  date: string,
+): value is number {
+  return (
+    value != null &&
+    Number.isFinite(value) &&
+    value >= 1 &&
+    value <= 5 &&
+    date >= SLEEP_QUALITY_SCALE_5_START
+  );
+}
+
+/**
+ * Sleep quality points for Health (RB-043): 1–5 only, from scale start.
+ * Missing days included for x-axis when start/end span calendar days.
+ */
+export function sleepQualityPointsInRange(
+  state: RebuildState,
+  startBound: string,
+  endBound: string,
+): { date: string; sleepQuality?: number }[] {
+  const floor =
+    startBound < SLEEP_QUALITY_SCALE_5_START
+      ? SLEEP_QUALITY_SCALE_5_START
+      : startBound;
+  if (!endBound || floor > endBound) return [];
+  const byDate = new Map<string, number>();
+  for (const m of state.mornings) {
+    if (m.date < floor || m.date > endBound) continue;
+    if (isSleepQualityFiveScale(m.sleepQuality, m.date)) {
+      byDate.set(m.date, m.sleepQuality);
+    }
+  }
+  return datesInRange(floor, endBound).map((date) => {
+    const sleepQuality = byDate.get(date);
+    return sleepQuality != null ? { date, sleepQuality } : { date };
+  });
+}
+
+/** Average of logged 1–5 sleep quality points in range (undefined if none). */
+export function sleepQualityAverage(
+  points: { sleepQuality?: number }[],
+): number | undefined {
+  const vals = points
+    .map((p) => p.sleepQuality)
+    .filter((v): v is number => v != null && Number.isFinite(v));
+  if (vals.length === 0) return undefined;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
 /** Morning state metrics (1–10). Mood can fall back to evening. No morning craving. */
 export function trendPointsInRange(
   state: RebuildState,
@@ -260,7 +318,10 @@ function clampDate(date: string, min: string, max: string): string {
   return date;
 }
 
-/** Resolve preset/custom bounds for Journey charts (clamped to current journey). */
+/**
+ * Resolve preset/custom bounds for Health charts.
+ * `minStart` floors the window (journey start, or sleep 1–5 era start).
+ */
 export function resolveConditionRange(
   preset: ConditionRangePreset,
   journeyStart: string,

@@ -53,12 +53,13 @@ Product docs, user-facing naming, chrome, and copy consistently present **Jeremy
 - Avoid half-renames (docs say JeremyOS EA, UI still screams ReBuild trail) — prefer one coherent pass for high-traffic chrome
 - Effort **M** already covers rename + framing + trail-copy/IA drop; if inventory reveals far more surfaces than expected, note spillover — do **not** auto-promote to L/XL mega-project
 - Open: legal / display variants (“Jeremy OS” vs “JeremyOS”) — default **JeremyOS**
-- **Locked (2026-08-29):** keep **Journey** as the nav label / surface name (not Calendar / Log / Journal)
+- **Was locked (2026-08-29):** keep **Journey** as the nav label — **superseded 2026-10-10** by [RB-043](./health-tab-sleep-primary.md): nav/tab label → **Health** (route may stay `/journey`)
 
 ## Notes
 
 - Intake **2026-08-29** from founder: first lean “Jeremy PS” → corrected to **JeremyOS**.
 - Follow-up **2026-08-29**: drop trailer/trail theming; product is an executive assistant — **rebrand, not start over** (interpretation: “trailer” = trail hiking metaphor unless contradicted).
 - Follow-up **2026-08-29**: founder confirmed keep **Journey** nav label; elevate morning/evening mood loop; craving stats + Home craving CTA cut via [RB-020](./drop-craving-stats-home-cta.md).
+- **2026-10-10:** Journey nav label keep **superseded** — rename to **Health** ([RB-043](./health-tab-sleep-primary.md)); craving-cut item RB-020 stays Done.
 - Rank **1** / **P0** — naming, EA framing, and trail retirement must lead before feature work is re-sold as ReBuild/trail polish.
 - Related: [RB-013 Personal OS north star](./personal-os-north-star.md).

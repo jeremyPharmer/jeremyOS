@@ -1,7 +1,7 @@
 # JeremyOS — Product decisions (locked)
 
-Last updated: 2026-10-07  
-Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** keep Journey label + morning/evening ritual; drop craving stats and Home craving CTA (**RB-020**; RB-009 Won't Do). Personal tools intake: cameras / workout / recipes (RB-017–019). **2026-09-15:** Gmail **inbox** centralization elevated (**RB-002** Ready / rank 7) — connect + read inbox in JeremyOS; outbound send = phase 1b. **2026-09-27:** **Save Goals** (**RB-037**) — Home “Save towards something”; separate from Future/Treat; tracking only; In Progress / rank 15. **2026-10-07:** Save Ledger **removed from Close** (`/evening`) — Home/Adjust path stays; not a product kill. **2026-09-28:** **Close edition = Open parity** (**RB-038**) — chrome Done; **content thinned by RB-042**. **2026-10-05:** **Ignore missed journal days** (**RB-039**) — past missed/incomplete only; persisted dismiss; today never ignorable. **2026-10-07:** **Open/Close thin redesign** (**RB-042**) — Close = journal + star + photo + dayRating 1–5 (Mood/Stress **dropped**); Open = Home gate on sleep quality 1–5 + focus line + lean briefing. Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
+Last updated: 2026-10-10  
+Status: **JeremyOS pivot recorded** — executive assistant / personal OS north star; trail metaphor retiring; recovery/fund remain personal tools. **2026-08-29 follow-up:** morning/evening ritual + drop craving stats / Home craving CTA (**RB-020**; RB-009 Won't Do); Journey label keep **superseded 2026-10-10** → **Health** (**RB-043**). Personal tools intake: cameras / workout / recipes (RB-017–019). **2026-09-15:** Gmail **inbox** centralization elevated (**RB-002** Ready / rank 7) — connect + read inbox in JeremyOS; outbound send = phase 1b. **2026-09-27:** **Save Goals** (**RB-037**) — Home “Save towards something”; separate from Future/Treat; tracking only. **2026-10-07:** Save Ledger **removed from Close** (`/evening`) — Home/Adjust path stays; not a product kill. **2026-09-28:** **Close edition = Open parity** (**RB-038**) — chrome Done; **content thinned by RB-042**. **2026-10-05:** **Ignore missed journal days** (**RB-039**) — past missed/incomplete only; persisted dismiss; today never ignorable. **2026-10-07:** **Open/Close thin redesign** (**RB-042**) — Close = journal + star + photo + dayRating 1–5 (Mood/Stress **dropped**); Open = Home gate on sleep quality 1–5 + focus line + lean briefing. **2026-10-10:** **Health tab** (**RB-043**) — nav label Journey→Health; sleep quality 1–5 primary; drop Conditions chart + med adherence (**RB-031** Won't Do); keep BP/HR data (secondary viz). Prior V1 behaviors (schedule, Treat/Save, fund ledger, daily/weekly loop, Fly envs) stay locked unless explicitly superseded below.
 
 ---
 
@@ -17,12 +17,13 @@ Status: **JeremyOS pivot recorded** — executive assistant / personal OS north 
 | **Rebrand vs rewrite** | **Rebrand / reframe** (RB-012) — keep working tools (journal, fund honesty, auth, APIs, data); retire trail via copy + IA; no greenfield stack |
 | **Elevate** | Email/Gmail skills, podcast + regular recovery content, to-do lists, five-year journal, home cameras (Reolink), workout tracker, favorite recipes, connections to other apps/sites Jeremy creates |
 | **Recovery / fund** | Still valid as **personal tools** without trail language; secondary to EA / personal OS in ranking — not killed without evidence |
-| **Journey nav** | **Keep “Journey”** as nav label / surface name (locked 2026-08-29; was open on RB-012) |
+| **Health nav** | Nav/tab label **Health** (was Journey) — locked **2026-10-10** ([RB-043](./product/items/health-tab-sleep-primary.md)); supersedes 2026-08-29 “keep Journey” (RB-012 / RB-020). Route may stay `/journey` (label-first); `/health` redirect optional later |
 | **Daily Open / Close ritual** | **Keep and elevate** as personal EA ritual — **thinned 2026-10-07 (RB-042):** Open = sleep quality 1–5 + focus line; Close = journal + single day rating 1–5. **Mood + Stress dropped** (supersedes 2026-08-29 multi-metric wording) |
-| **Craving stats** | **Drop / Won't Do** — Journey/Home craving charts, pattern panels, craving analytics (RB-009 Won't Do) |
+| **Health tab content** | **Sleep quality 1–5 primary** (Open era ~2026-10-07); **drop Conditions** multi-metric 1–10 chart; **no Medication adherence**; **keep all BP/HR vitals data** (secondary; better viz than list-only — not the old vitals chart). **RB-031 Won't Do** |
+| **Craving stats** | **Drop / Won't Do** — Health/Home craving charts, pattern panels, craving analytics (RB-009 Won't Do) |
 | **Home craving CTA** | **Removed** “I’m having a craving” from Home — **RB-020 Done** (2026-08-29; ID remapped from branch-local RB-017) |
 
-Canonical backlog: RB-012 (rebrand + drop trail), RB-013 (north star), RB-014 (todos), RB-016 (five-year journal UX), RB-002 (Gmail/email), RB-005 (podcast + recovery content), RB-017 (cameras), RB-018 (workout), RB-019 (recipes), RB-015 (hub); **RB-020** (drop craving CTA/stats — Done). Journal backfill integrity remains RB-010 (distinct from RB-016 paper UI). RB-009 craving patterns = Won't Do.
+Canonical backlog: RB-012 (rebrand + drop trail), RB-013 (north star), RB-014 (todos), RB-016 (five-year journal UX), RB-002 (Gmail/email), RB-005 (podcast + recovery content), RB-017 (cameras), RB-018 (workout), RB-019 (recipes), RB-015 (hub); **RB-020** (drop craving CTA/stats — Done); **RB-043** (Health tab sleep primary). Journal backfill integrity remains RB-010 (distinct from RB-016 paper UI). RB-009 craving patterns = Won't Do. RB-031 med adherence = Won't Do.
 
 ---
 
@@ -65,7 +66,7 @@ Still available as Jeremy’s personal recovery tools under JeremyOS (executive 
 Interactive every day:
 
 **Morning (Open)** — **Gate Home** until **sleep quality 1–5** is submitted for today. Fields: sleep quality **1–5** + focus line labeled **“One thing I will focus on today”** (replaces intention / do-well; may still store as `intention`). After submit → Home. Lean briefing show: **this-day-in-history** journal (prior years; hide if empty); **today weather** with morning/afternoon/evening derived phrases; **real-language calendar + tasks prose** (rules-based OK; generative AI optional later). **No** morning Items checklist; tasks stay on Home / prose. Canonical item: **[RB-042](./product/items/open-close-thin-redesign.md)**. Parents Done: [RB-027](./product/items/morning-day-start-briefing.md), [RB-030](./product/items/morning-briefing-conversational.md), [RB-032](./product/items/daily-briefing-open-close-redesign.md).  
-**Day** — Log supports: recovery content (2/wk), meditation (5), medication (7), gym (4). **No** Home craving-timer CTA (RB-020).  
+**Day** — Log supports: recovery content (2/wk), meditation (5), medication (7), gym (4). **No** Home craving-timer CTA (RB-020). **No** Medication adherence card on Health (**RB-031** Won't Do / **RB-043**).  
 **Evening (Close)** — Close the day: journal **headline** + optional **short summary** (~5 sentences soft limit; maps to stored `oneLine` / `expandedJournal`) + **star** + **photo** + single **day rating 1–5** (`dayRating` — **not** mood; **no** stress) → Move to Rebuild → Treat/Save if milestone. **No** Mood/Stress. **No** paper body (weather/news/tasks/bodymind/history/etc.). **Missed closes** can be backfilled from Journal (pick a day in the current run without an evening) via the same evening path (**RB-010** — journal only; funds for that day may already be in waiting reclaim via end-of-day accrual). Chrome history: [RB-038](./product/items/close-edition-open-parity.md) Done; **content = RB-042**.
 
 **Journal UI (RB-016)** — Paper **five-year** layout: one calendar day (month-day) shows that day across up to five years (headline + summary). Not a stacked feed. Catch-up for missed evenings stays a thin link; integrity rules remain RB-010. **Ignore past missed/incomplete days** (not today) is **RB-039** — persisted dismiss from catch-up; does not create a close; does not change reclaim/milestones.
@@ -236,6 +237,20 @@ Money integrity items already In Progress (e.g. end-of-day reclaim auto-credit) 
 
 Founder follow-up: drop trailer/trail theming — product is an executive assistant. Interpretation: **“trailer” = trail** (hiking/recovery trail copy). **RB-012** owns thin chrome/copy/IA retirement. Do not start over from a blank codebase for metaphor alone.
 
-## Journey label + craving cut (locked 2026-08-29)
+## Journey label + craving cut (locked 2026-08-29; nav superseded 2026-10-10)
 
-Founder follow-up: keep Journey (nav/surface); keep daily start+end ritual; drop craving stats; drop Home “I’m having a craving.” Product: RB-012 Journey label locked; **RB-020 Done** (UI cut shipped; ID remapped from branch-local RB-017 after main assigned RB-017–019); RB-009 craving patterns → Won't Do. **2026-10-07:** start+end ritual metrics thinned to Open sleep quality + Close dayRating (**RB-042**) — Mood/Stress multi-metric wording superseded.
+Founder follow-up (2026-08-29): keep Journey (nav/surface); keep daily start+end ritual; drop craving stats; drop Home “I’m having a craving.” Product: **RB-020 Done** (UI cut shipped; ID remapped from branch-local RB-017 after main assigned RB-017–019); RB-009 craving patterns → Won't Do. **2026-10-07:** start+end ritual metrics thinned to Open sleep quality + Close dayRating (**RB-042**) — Mood/Stress multi-metric wording superseded. **2026-10-10:** “Keep Journey nav label” **superseded** — see **Health tab** lock below (**RB-043**).
+
+## Health tab (locked 2026-10-10)
+
+| Decision | Detail |
+| --- | --- |
+| **Ask** | Founder: rename Journey → **Health**; sleep quality primary; drop Conditions + med adherence; keep BP/HR |
+| **ID** | **[RB-043](./product/items/health-tab-sleep-primary.md)** |
+| **Nav label** | **Health** (not Journey). Supersedes RB-012 / RB-020 Journey keep |
+| **Route** | Prefer keep **`/journey`** (label-first). Optional `/health` redirect later — not required for v1 |
+| **Primary** | **Sleep quality** only — **1–5** scale from Open move (**RB-042**, ~**2026-10-07**). Top of Health page |
+| **Drop** | Historic **Conditions** chart (mood/energy/stress multi-metric **1–10** era); **Medication adherence** section entirely |
+| **Vitals** | **Keep all BP/HR data** ([RB-028](./product/items/journey-vitals-bp-hr.md)); secondary to sleep; visualize differently from list-only (not restore old vitals chart) |
+| **Supersedes** | **[RB-031](./product/items/journey-med-adherence-drop-vitals-chart.md)** → **Won't Do**; Journey nav keep notes |
+| **Rank / status** | **Rank 8 / P0 / In Progress / Effort S** — thin reshape building now |

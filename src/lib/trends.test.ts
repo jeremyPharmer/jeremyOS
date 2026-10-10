@@ -5,10 +5,14 @@ import {
   cravingPlaybook,
   cravingPointsLastYear,
   filledTrendPointsInRange,
+  isSleepQualityFiveScale,
   lastFourWeeks,
   PLAYBOOK_MIN_N,
   resolveConditionRange,
   roundSleepHours,
+  SLEEP_QUALITY_SCALE_5_START,
+  sleepQualityAverage,
+  sleepQualityPointsInRange,
   supportRhythmLastFourWeeks,
   trendPointsInRange,
   trendPointsLastYear,
@@ -167,6 +171,63 @@ describe("resolveConditionRange", () => {
       start: "2026-08-10",
       end: "2026-08-20",
     });
+  });
+});
+
+describe("sleepQualityPointsInRange (RB-043)", () => {
+  it("ignores legacy 1–10 mornings before the 1–5 era", () => {
+    const state = baseState();
+    state.mornings = [
+      {
+        date: "2026-10-05",
+        sleepHours: 7,
+        sleepQuality: 8,
+        mood: 5,
+        energy: 5,
+        stress: 5,
+        craving: 1,
+        intention: "old",
+        completedAt: "",
+      },
+      {
+        date: "2026-10-07",
+        sleepHours: 7,
+        sleepQuality: 4,
+        mood: 5,
+        energy: 5,
+        stress: 5,
+        craving: 1,
+        intention: "new",
+        completedAt: "",
+      },
+      {
+        date: "2026-10-08",
+        sleepHours: 7,
+        sleepQuality: 3,
+        mood: 5,
+        energy: 5,
+        stress: 5,
+        craving: 1,
+        intention: "new",
+        completedAt: "",
+      },
+    ];
+    const points = sleepQualityPointsInRange(
+      state,
+      "2026-10-01",
+      "2026-10-08",
+    );
+    expect(points[0]!.date).toBe(SLEEP_QUALITY_SCALE_5_START);
+    expect(points.find((p) => p.date === "2026-10-05")).toBeUndefined();
+    expect(points.find((p) => p.date === "2026-10-07")?.sleepQuality).toBe(4);
+    expect(points.find((p) => p.date === "2026-10-08")?.sleepQuality).toBe(3);
+    expect(sleepQualityAverage(points)).toBe(3.5);
+  });
+
+  it("rejects values above 5 even after the era start", () => {
+    expect(isSleepQualityFiveScale(8, "2026-10-08")).toBe(false);
+    expect(isSleepQualityFiveScale(5, "2026-10-08")).toBe(true);
+    expect(isSleepQualityFiveScale(3, "2026-10-06")).toBe(false);
   });
 });
 

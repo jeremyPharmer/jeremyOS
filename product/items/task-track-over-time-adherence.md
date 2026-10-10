@@ -13,19 +13,19 @@
 
 ## Problem
 
-Habits Jeremy wants to stick with (meditation, meds, flossing, workouts) are created as repeating tasks, but there’s no simple “how often have I actually done this since I started?” view tied to the task itself. Weekly supports were removed from Home; personal tasks need a light adherence path that surfaces on Journey.
+Habits Jeremy wants to stick with (meditation, meds, flossing, workouts) are created as repeating tasks, but there’s no simple “how often have I actually done this since I started?” view tied to the task itself. Weekly supports were removed from Home; personal tasks need a light adherence path that surfaces on Health (was Journey).
 
 ## Outcome
 
-When creating/editing a repeating task, Jeremy can toggle **Track over time: Yes/No** (same Yes/No pattern as Repeat). Tracked tasks show a simple **adherence % since created** on Journey — enough to prove tracking works (not advanced time ranges or charts yet).
+When creating/editing a repeating task, Jeremy can toggle **Track over time: Yes/No** (same Yes/No pattern as Repeat). Tracked tasks show a simple **adherence % since created** on **Health** — enough to prove tracking works (not advanced time ranges or charts yet).
 
 ## Scope (v1)
 
 - Composer: **Track over time** Yes/No under Repeat (only when Repeat = Yes)
 - Persist `trackOverTime`, `createdAt`, and a completion date log on the task
 - On complete/undo of a tracked recurring task, update the log
-- Journey: list tracked tasks with **% = completions ÷ scheduled occurrences since created** (through today)
-- Copy framing: “Adherence” under Journey (alongside medication card)
+- Health (was Journey): list tracked tasks with **% = completions ÷ scheduled occurrences since created** (through today)
+- Copy framing: “Adherence” on Health — **not** alongside a medication card ([RB-031](./journey-med-adherence-drop-vitals-chart.md) Won't Do; surface = [RB-043](./health-tab-sleep-primary.md))
 
 ## Out of scope / later
 
@@ -41,4 +41,5 @@ When creating/editing a repeating task, Jeremy can toggle **Track over time: Yes
 
 ## Notes
 
-- Intake 2026-09-12 (founder): track meditation / meds / flossing style habits via task create options; show success since created on Journey; keep v1 intentionally thin.
+- Intake 2026-09-12 (founder): track meditation / meds / flossing style habits via task create options; show success since created on Journey/Health; keep v1 intentionally thin.
+- **2026-10-10:** Surface rename Health ([RB-043](./health-tab-sleep-primary.md)); do not pair copy with Medication adherence ([RB-031](./journey-med-adherence-drop-vitals-chart.md) Won't Do).

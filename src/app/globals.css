@@ -9347,13 +9347,16 @@ button.check-item-btn:disabled {
   color: var(--danger);
 }
 
-/* RB-031 — Journey medication adherence */
-.med-adherence {
-  display: grid;
-  gap: 12px;
+/* RB-043 — Health tab: sleep primary + BP range viz */
+.health-primary {
+  border-color: color-mix(in srgb, #6aaf8e 35%, var(--line));
 }
 
-.med-adherence-pct {
+.health-sleep-summary {
+  margin-bottom: 12px;
+}
+
+.health-sleep-avg {
   margin: 0;
   display: flex;
   align-items: baseline;
@@ -9361,7 +9364,7 @@ button.check-item-btn:disabled {
   flex-wrap: wrap;
 }
 
-.med-adherence-num {
+.health-sleep-avg-num {
   font-size: clamp(2.1rem, 8vw, 2.75rem);
   font-weight: 700;
   letter-spacing: -0.04em;
@@ -9369,22 +9372,98 @@ button.check-item-btn:disabled {
   color: var(--text);
 }
 
-.med-adherence-unit {
-  font-size: 1rem;
+.health-sleep-avg-unit {
+  font-size: 0.95rem;
   color: var(--muted);
 }
 
-.med-adherence-detail {
-  margin: 0;
-  font-size: 0.95rem;
+.health-sleep-detail {
+  margin: 6px 0 0;
+  font-size: 0.92rem;
   line-height: 1.45;
 }
 
-.med-adherence-done {
+.health-sleep-svg {
+  margin-top: 8px;
+}
+
+.health-bp-latest {
+  margin-bottom: 12px;
+}
+
+.health-bp-latest-vals {
   margin: 0;
+  font-size: clamp(1.65rem, 6vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.health-bp-slash {
+  margin: 0 2px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.health-bp-unit {
   font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+.health-bp-latest-meta {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+}
+
+.health-bp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.health-bp-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.health-bp-legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.vitals-history {
+  margin-top: 4px;
+}
+
+.vitals-history-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.88rem;
   font-weight: 600;
-  color: var(--accent);
+  cursor: pointer;
+  text-align: left;
+}
+
+.vitals-history-toggle:hover {
+  color: var(--text);
 }
 
 /* RB-032 — Journey tracked-task adherence */
