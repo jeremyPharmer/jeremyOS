@@ -52,11 +52,22 @@ export type SoccerPanel = {
   clubhouseUrl: string;
 };
 
-/** Fall soccer window: Aug 15 – Nov 15 inclusive. */
-export function isSoccerSeason(isoDate: string): boolean {
+/**
+ * Home panel kill switch — Fall 2026 season ended early (founder 2026-10-16).
+ * Flip back to true when the next fall schedule should show again.
+ */
+export const SOCCER_PANEL_ENABLED = false;
+
+/** Calendar window only (Aug 15 – Nov 15). Ignores {@link SOCCER_PANEL_ENABLED}. */
+export function isSoccerSeasonWindow(isoDate: string): boolean {
   const md = isoDate.slice(5);
   if (!/^\d{2}-\d{2}$/.test(md)) return false;
   return md >= "08-15" && md <= "11-15";
+}
+
+/** True when the Home soccer panel should fetch / render. */
+export function isSoccerSeason(isoDate: string): boolean {
+  return SOCCER_PANEL_ENABLED && isSoccerSeasonWindow(isoDate);
 }
 
 export function abbreviateOpponent(name: string): string {

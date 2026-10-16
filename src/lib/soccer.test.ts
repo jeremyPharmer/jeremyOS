@@ -2,22 +2,33 @@ import { describe, expect, it } from "vitest";
 import {
   dateShortLabel,
   isSoccerSeason,
+  isSoccerSeasonWindow,
   mapMaxPrepsContest,
   matchupLabel,
   pickFeaturedGame,
   scheduleWhenLabel,
   selectScheduleWindow,
+  SOCCER_PANEL_ENABLED,
   type SoccerGame,
 } from "./soccer";
 
-describe("isSoccerSeason", () => {
+describe("isSoccerSeasonWindow", () => {
   it("covers Aug 15 – Nov 15", () => {
-    expect(isSoccerSeason("2026-08-15")).toBe(true);
-    expect(isSoccerSeason("2026-09-15")).toBe(true);
-    expect(isSoccerSeason("2026-11-15")).toBe(true);
-    expect(isSoccerSeason("2026-08-14")).toBe(false);
-    expect(isSoccerSeason("2026-11-16")).toBe(false);
-    expect(isSoccerSeason("2026-01-10")).toBe(false);
+    expect(isSoccerSeasonWindow("2026-08-15")).toBe(true);
+    expect(isSoccerSeasonWindow("2026-09-15")).toBe(true);
+    expect(isSoccerSeasonWindow("2026-11-15")).toBe(true);
+    expect(isSoccerSeasonWindow("2026-08-14")).toBe(false);
+    expect(isSoccerSeasonWindow("2026-11-16")).toBe(false);
+    expect(isSoccerSeasonWindow("2026-01-10")).toBe(false);
+  });
+});
+
+describe("isSoccerSeason", () => {
+  it("stays off while SOCCER_PANEL_ENABLED is false (season ended)", () => {
+    expect(SOCCER_PANEL_ENABLED).toBe(false);
+    expect(isSoccerSeason("2026-09-15")).toBe(false);
+    expect(isSoccerSeason("2026-10-16")).toBe(false);
+    expect(isSoccerSeason("2026-11-01")).toBe(false);
   });
 });
 

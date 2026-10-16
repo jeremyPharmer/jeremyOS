@@ -6,6 +6,7 @@ import {
   fetchSoccerPanel,
   mapHudlScheduleEntry,
   scheduleWhenLabel,
+  SOCCER_PANEL_ENABLED,
   type SoccerGame,
 } from "./soccer";
 
@@ -241,27 +242,42 @@ describe("applySoccerScoreOverrides", () => {
 });
 
 describe("fetchSoccerPanel (live Hudl)", () => {
-  it("returns the Warriors schedule starting with Irondequoit", async () => {
+  it("returns null while the Home panel is suppressed", async () => {
     const panel = await fetchSoccerPanel("2026-09-15");
-    expect(panel).not.toBeNull();
-    expect(panel!.games.length).toBeGreaterThan(5);
-    expect(panel!.games[0]!.opponentName.toLowerCase()).toContain("irondequoit");
-    expect(panel!.clubhouseUrl).toContain("hudl.com");
-    expect(panel!.record).not.toBe("—");
-  }, 20000);
+    expect(panel).toBeNull();
+  });
 
-  it("shows Pittsford from MaxPreps when Hudl has no score (0–0)", async () => {
-    const panel = await fetchSoccerPanel("2026-09-20");
-    expect(panel).not.toBeNull();
-    const pittsford = panel!.games.find(
-      (g) =>
-        /pittsford/i.test(g.opponentName) &&
-        g.date.startsWith("2026-09-19"),
-    );
-    expect(pittsford).toBeTruthy();
-    expect(pittsford!.status).toBe("post");
-    expect(pittsford!.usScore).toBe("0");
-    expect(pittsford!.opponentScore).toBe("0");
-    expect(scheduleWhenLabel(pittsford!)).toBe("T 0–0");
-  }, 20000);
+  it.skipIf(!SOCCER_PANEL_ENABLED)(
+    "returns the Warriors schedule starting with Irondequoit",
+    async () => {
+      const panel = await fetchSoccerPanel("2026-09-15");
+      expect(panel).not.toBeNull();
+      expect(panel!.games.length).toBeGreaterThan(5);
+      expect(panel!.games[0]!.opponentName.toLowerCase()).toContain(
+        "irondequoit",
+      );
+      expect(panel!.clubhouseUrl).toContain("hudl.com");
+      expect(panel!.record).not.toBe("—");
+    },
+    20000,
+  );
+
+  it.skipIf(!SOCCER_PANEL_ENABLED)(
+    "shows Pittsford from MaxPreps when Hudl has no score (0–0)",
+    async () => {
+      const panel = await fetchSoccerPanel("2026-09-20");
+      expect(panel).not.toBeNull();
+      const pittsford = panel!.games.find(
+        (g) =>
+          /pittsford/i.test(g.opponentName) &&
+          g.date.startsWith("2026-09-19"),
+      );
+      expect(pittsford).toBeTruthy();
+      expect(pittsford!.status).toBe("post");
+      expect(pittsford!.usScore).toBe("0");
+      expect(pittsford!.opponentScore).toBe("0");
+      expect(scheduleWhenLabel(pittsford!)).toBe("T 0–0");
+    },
+    20000,
+  );
 });
