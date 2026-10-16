@@ -309,7 +309,10 @@ function BloodPressureViz({
     [state, range.start, range.end],
   );
 
-  const latest = useMemo(() => vitalsSorted(state)[0], [state]);
+  const latest = useMemo(
+    () => vitalsSorted(state).find((r) => r.date <= today),
+    [state, today],
+  );
 
   return (
     <div className="health-bp">

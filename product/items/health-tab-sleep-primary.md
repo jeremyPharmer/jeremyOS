@@ -5,7 +5,7 @@
 | ID | RB-043 |
 | Rank | 8 |
 | Priority | P0 |
-| Status | In Progress |
+| Status | Done |
 | Effort | S |
 | Target due | TBD |
 | Milestone | v1.x |
@@ -46,6 +46,7 @@ Locked **2026-10-10** (thin reshape, building now):
 ## Notes
 
 - Intake **2026-10-10** — founder direction for Health tab (was Journey).
-- Rank **8** / **P0** / Effort **S** / **In Progress** — thin reshape in flight; sits in Now after Gmail Ready, ahead of Done ritual history rows.
+- **Shipped 2026-10-10:** nav label Health; sleep quality 1–5 primary chart; Conditions + med adherence removed; BP range-bar viz + log/history kept secondary. Route remains `/journey`.
+- Rank **8** / **P0** / Effort **S** / **Done** — thin reshape shipped.
 - **RB-031** → **Won't Do** (med adherence + prior list-only vitals follow-on superseded by this direction).
 - Eng locks: label **Health**; route **`/journey` OK**; sleep scale **1–5** from Open (~2026-10-07); no med adherence; Conditions chart out; BP/HR data kept, secondary.
