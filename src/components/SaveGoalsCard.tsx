@@ -14,6 +14,7 @@ import {
   formatCalendarMonthLabel,
   goalDollarsPerDay,
   groupSaveGoalExpensesByDay,
+  daysInMonthForDate,
   isReserveGoal,
   listSaveGoalAdjustmentsForGoal,
   listSaveGoalSpendEntries,
@@ -951,7 +952,7 @@ function ExpenseDayHistory({
   busy: boolean;
   onRemove: (id: string) => void;
 }) {
-  const { state } = useApp();
+  const { state, today } = useApp();
   const days = useMemo(() => groupSaveGoalExpensesByDay(state), [state]);
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
 
@@ -972,6 +973,13 @@ function ExpenseDayHistory({
       {months.map(([monthKey, monthDays]) => {
         const open = openMonths[monthKey] ?? false;
         const monthTotal = monthDays.reduce((s, d) => s + d.total, 0);
+        const daysInMonth = daysInMonthForDate(`${monthKey}-01`);
+        let calendarDays = daysInMonth;
+        if (today && today.startsWith(monthKey)) {
+          calendarDays = Math.max(1, Number(today.slice(8, 10)) || 1);
+        } else if (today && monthKey > today.slice(0, 7)) {
+          calendarDays = 0;
+        }
         return (
           <div key={monthKey} className="save-goal-ledger-month">
             <button
@@ -990,7 +998,7 @@ function ExpenseDayHistory({
                 {formatCalendarMonthLabel(monthKey)}
               </span>
               <span className="tiny muted">
-                {monthDays.length} day{monthDays.length === 1 ? "" : "s"} ·{" "}
+                {calendarDays} day{calendarDays === 1 ? "" : "s"} ·{" "}
                 {formatMoney(monthTotal)}
               </span>
             </button>
