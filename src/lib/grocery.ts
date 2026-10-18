@@ -10,6 +10,8 @@ export function normalizeGroceryItems(
   const out: GroceryItem[] = [];
   for (const raw of items) {
     if (!raw || typeof raw !== "object") continue;
+    // Checked rows are not retained — drop any leftover from older builds.
+    if (raw.checked) continue;
     const id = typeof raw.id === "string" ? raw.id.trim() : "";
     const label = typeof raw.label === "string" ? raw.label.trim() : "";
     if (!id || !label) continue;
@@ -20,32 +22,18 @@ export function normalizeGroceryItems(
     out.push({
       id,
       label: label.slice(0, LABEL_MAX),
-      checked: Boolean(raw.checked),
+      checked: false,
       createdAt,
     });
   }
   return out;
 }
 
-/** Open items first (oldest first), then checked (oldest first). */
+/** Oldest first (open list only — checked items are not retained). */
 export function sortGroceryItems(items: GroceryItem[]): GroceryItem[] {
-  const open = items
+  return [...items]
     .filter((i) => !i.checked)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  const done = items
-    .filter((i) => i.checked)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  return [...open, ...done];
-}
-
-export function grocerySummary(items: GroceryItem[]): {
-  total: number;
-  open: number;
-  checked: number;
-} {
-  const total = items.length;
-  const checked = items.filter((i) => i.checked).length;
-  return { total, open: total - checked, checked };
 }
 
 export function addGroceryItem(
@@ -71,25 +59,6 @@ export function addGroceryItem(
   };
 }
 
-export function toggleGroceryItem(
-  state: RebuildState,
-  idRaw: unknown,
-): RebuildState {
-  const id = String(idRaw ?? "").trim();
-  if (!id) {
-    throw Object.assign(new Error("Missing item"), { status: 400 });
-  }
-  const items = normalizeGroceryItems(state.groceryItems);
-  const idx = items.findIndex((i) => i.id === id);
-  if (idx < 0) {
-    throw Object.assign(new Error("Item not found"), { status: 404 });
-  }
-  const next = items.map((i, n) =>
-    n === idx ? { ...i, checked: !i.checked } : i,
-  );
-  return { ...state, groceryItems: next };
-}
-
 export function removeGroceryItem(
   state: RebuildState,
   idRaw: unknown,
@@ -108,14 +77,6 @@ export function removeGroceryItem(
   };
 }
 
-export function clearCheckedGroceryItems(state: RebuildState): RebuildState {
-  const items = normalizeGroceryItems(state.groceryItems);
-  return {
-    ...state,
-    groceryItems: items.filter((i) => !i.checked),
-  };
-}
-
 export function applyGroceryAction(
   state: RebuildState,
   body: Record<string, unknown>,
@@ -123,8 +84,13 @@ export function applyGroceryAction(
 ): RebuildState {
   const action = String(body.action ?? "");
   if (action === "add") return addGroceryItem(state, body.label, nowIso);
-  if (action === "toggle") return toggleGroceryItem(state, body.id);
-  if (action === "remove") return removeGroceryItem(state, body.id);
-  if (action === "clearChecked") return clearCheckedGroceryItems(state);
+  // Check-off and remove are the same — items are not retained.
+  if (action === "remove" || action === "toggle" || action === "check") {
+    return removeGroceryItem(state, body.id);
+  }
+  if (action === "clearChecked") {
+    // No-op now that checked rows are dropped on normalize.
+    return { ...state, groceryItems: normalizeGroceryItems(state.groceryItems) };
+  }
   throw Object.assign(new Error("Unknown grocery action"), { status: 400 });
 }

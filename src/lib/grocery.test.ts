@@ -3,16 +3,13 @@ import { emptyState } from "./journey";
 import {
   addGroceryItem,
   applyGroceryAction,
-  clearCheckedGroceryItems,
-  grocerySummary,
   normalizeGroceryItems,
   removeGroceryItem,
   sortGroceryItems,
-  toggleGroceryItem,
 } from "./grocery";
 
 describe("grocery list", () => {
-  it("adds, toggles, and removes items", () => {
+  it("adds and removes items", () => {
     let state = emptyState();
     state = addGroceryItem(state, "  Milk  ", "2026-10-18T12:00:00.000Z");
     expect(state.groceryItems).toHaveLength(1);
@@ -20,11 +17,6 @@ describe("grocery list", () => {
     expect(state.groceryItems![0].checked).toBe(false);
 
     const id = state.groceryItems![0].id;
-    state = toggleGroceryItem(state, id);
-    expect(state.groceryItems![0].checked).toBe(true);
-    state = toggleGroceryItem(state, id);
-    expect(state.groceryItems![0].checked).toBe(false);
-
     state = removeGroceryItem(state, id);
     expect(state.groceryItems).toEqual([]);
   });
@@ -33,7 +25,7 @@ describe("grocery list", () => {
     expect(() => addGroceryItem(emptyState(), "   ")).toThrow(/name/i);
   });
 
-  it("sorts open before checked", () => {
+  it("sorts oldest first and drops checked leftovers", () => {
     const items = normalizeGroceryItems([
       {
         id: "a",
@@ -54,30 +46,26 @@ describe("grocery list", () => {
         createdAt: "2026-10-18T09:00:00.000Z",
       },
     ]);
+    expect(items.map((i) => i.label)).toEqual(["Bread", "Butter"]);
     expect(sortGroceryItems(items).map((i) => i.label)).toEqual([
       "Butter",
       "Bread",
-      "Eggs",
     ]);
-    expect(grocerySummary(items)).toEqual({ total: 3, open: 2, checked: 1 });
   });
 
-  it("clears checked via action", () => {
+  it("check/toggle removes the item (no retain)", () => {
     let state = emptyState();
     state = addGroceryItem(state, "Apples", "2026-10-18T12:00:00.000Z");
     state = addGroceryItem(state, "Oranges", "2026-10-18T12:01:00.000Z");
     const first = state.groceryItems![0].id;
-    state = toggleGroceryItem(state, first);
-    state = clearCheckedGroceryItems(state);
+    state = applyGroceryAction(state, { action: "check", id: first });
     expect(state.groceryItems!.map((i) => i.label)).toEqual(["Oranges"]);
   });
 
-  it("applyGroceryAction routes add/toggle/remove", () => {
+  it("applyGroceryAction routes add/remove", () => {
     let state = emptyState();
     state = applyGroceryAction(state, { action: "add", label: "Tea" });
     const id = state.groceryItems![0].id;
-    state = applyGroceryAction(state, { action: "toggle", id });
-    expect(state.groceryItems![0].checked).toBe(true);
     state = applyGroceryAction(state, { action: "remove", id });
     expect(state.groceryItems).toEqual([]);
   });
