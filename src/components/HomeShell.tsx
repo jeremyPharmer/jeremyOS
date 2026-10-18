@@ -9,6 +9,7 @@ import { WeekPlanPanel } from "@/components/WeekPlanPanel";
 import { BillsPanelCard } from "@/components/BillsPanelCard";
 import { SoccerPanelCard } from "@/components/SoccerPanelCard";
 import { SaveGoalsCard } from "@/components/SaveGoalsCard";
+import { GroceryListCard } from "@/components/GroceryListCard";
 import { useHomeLayout } from "@/components/LayoutProvider";
 import type { HomeLayoutId } from "@/lib/home-layouts";
 
@@ -81,6 +82,7 @@ function layoutBody(
           <DayHubHero />
           <DailyCrosswordCard />
           <SaveGoalsCard />
+          <GroceryListCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -93,6 +95,7 @@ function layoutBody(
           <HomeDayHub />
           <CrosswordRail />
           <SaveGoalsCard />
+          <GroceryListCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -105,6 +108,7 @@ function layoutBody(
           <HomeDayHub />
           <DailyCrosswordCard />
           <SaveGoalsCard />
+          <GroceryListCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -123,6 +127,7 @@ function layoutBody(
           </div>
           <DailyCrosswordCard />
           <SaveGoalsCard />
+          <GroceryListCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -134,6 +139,7 @@ function layoutBody(
           <DayHubHero compact />
           <CommandBoard today={today} week={week} />
           <SaveGoalsCard />
+          <GroceryListCard />
           <SportsPair />
         </>
       );
@@ -146,6 +152,7 @@ function layoutBody(
             <DailyCrosswordCard />
           </div>
           <SaveGoalsCard />
+          <GroceryListCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -158,6 +165,7 @@ function layoutBody(
           <HomeDayHub />
           <DailyCrosswordCard />
           <SaveGoalsCard />
+          <GroceryListCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>
@@ -171,6 +179,7 @@ function layoutBody(
           <HomeDayHub />
           <DailyCrosswordCard />
           <SaveGoalsCard />
+          <GroceryListCard />
           <SportsPair />
           <WeekPlanPanel today={today} week={week} />
         </>

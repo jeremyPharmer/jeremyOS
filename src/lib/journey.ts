@@ -382,6 +382,7 @@ export function emptyState(): RebuildState {
     saveGoalSettings: { monthlyIncome: 500, incomeDayOfMonth: 1 },
     saveGoals: [],
     saveGoalDays: [],
+    groceryItems: [],
   };
 }
 

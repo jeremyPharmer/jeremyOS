@@ -586,6 +586,14 @@ export type SaveGoalSpendEntry = {
   reserveAdjustId?: string;
 };
 
+/** Grocery list line (RB-044). Distinct from dayProvisions / tasks. */
+export type GroceryItem = {
+  id: string;
+  label: string;
+  checked: boolean;
+  createdAt: string;
+};
+
 export type RebuildState = {
   profile: RebuildProfile | null;
   mornings: MorningCheckIn[];
@@ -667,6 +675,8 @@ export type RebuildState = {
    * default monthly/days rate for that calendar day.
    */
   saveGoalInboundByDate?: Record<string, number>;
+  /** Home grocery list (RB-044) — simple checklist, not tasks */
+  groceryItems?: GroceryItem[];
 };
 
 export type CustomAgendaEvent = {
