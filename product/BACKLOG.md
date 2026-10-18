@@ -29,7 +29,7 @@ Last updated: 2026-10-18
 | 17 | RB-040 | Journal: Days before (year lead-up) | P1 | In Progress | S | TBD | v1.x | [items/journal-days-before.md](./items/journal-days-before.md) |
 | 18 | RB-037 | Save Goals (“Save towards something”) | P0 | In Progress | M | TBD | v1 | [items/save-goals.md](./items/save-goals.md) |
 | 19 | RB-041 | Save Goals: Reserve hub + fixed $/day ETA | P0 | Done | S | TBD | v1.x | [items/save-goals-reserve-hub.md](./items/save-goals-reserve-hub.md) |
-| 20 | RB-044 | Grocery list on Home (under Save Goals) | P1 | Ready | S | TBD | v1.x | [items/grocery-list.md](./items/grocery-list.md) |
+| 20 | RB-044 | Grocery list on Home (under Save Goals) | P1 | In Progress | S | TBD | v1.x | [items/grocery-list.md](./items/grocery-list.md) |
 | 21 | RB-021 | Journal photos (attach + paperclip) | P1 | Backlog | S | TBD | v1.x | [items/journal-photos.md](./items/journal-photos.md) |
 | 22 | RB-022 | Journal edit, star & month calendar | P0 | In Progress | M | TBD | v1.x | [items/journal-edit-star-calendar.md](./items/journal-edit-star-calendar.md) |
 | 23 | RB-024 | Daily Puzzle on Home | P1 | In Progress | M | TBD | v1.x | [items/daily-puzzle-on-home.md](./items/daily-puzzle-on-home.md) |

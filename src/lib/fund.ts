@@ -10,6 +10,7 @@ import type {
   RebuildState,
   Reward,
 } from "./types";
+import { normalizeGroceryItems } from "./grocery";
 import { normalizeSaveGoals } from "./save-goals";
 import {
   normalizeActiveWorkout,
@@ -63,6 +64,7 @@ export function normalizeState(state: RebuildState): RebuildState {
       completed: Math.max(0, Math.floor(state.dailyCrossword?.completed ?? 0)),
       current: state.dailyCrossword?.current,
     },
+    groceryItems: normalizeGroceryItems(state.groceryItems),
   };
   return normalizeSaveGoals(base);
 }

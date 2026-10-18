@@ -5,7 +5,7 @@
 | ID | RB-044 |
 | Rank | 20 |
 | Priority | P1 |
-| Status | Ready |
+| Status | In Progress |
 | Effort | S |
 | Target due | TBD |
 | Milestone | v1.x |
@@ -49,5 +49,5 @@ Thin Home utility — mirror task-list interaction, not a shopping OS.
 ## Notes
 
 - Intake **2026-10-18**: founder wants a grocery list that resembles the task list (collapsed + add items), placed under Save Goals on Home; Google Home integration eventual but out of v1.
-- Status **Ready** for immediate eng implement — thin S slice; ranked after Save Goals Done (RB-041) and before journal photos (RB-021); does **not** bump mid-flight P0s (ranks 1–19).
+- Status **In Progress** — eng implementing thin Home card + `groceryItems` persistence (RB-044).
 - Rank **20** among Near-term / Home surface work.
