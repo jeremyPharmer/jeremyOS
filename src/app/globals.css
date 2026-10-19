@@ -2606,16 +2606,38 @@ h2 {
 }
 
 .grocery-item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  padding: 8px 0;
+  padding: 0;
   border-bottom: 1px solid var(--line);
 }
 
 .grocery-item:last-child {
   border-bottom: none;
+}
+
+.grocery-item-btn {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 10px 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.grocery-item-btn:disabled {
+  cursor: default;
+}
+
+.grocery-item-btn:hover .tasks-check:not(.tasks-check-done),
+.grocery-item-btn:focus-visible .tasks-check:not(.tasks-check-done) {
+  border-color: var(--accent);
+  transform: scale(1.06);
 }
 
 .grocery-label {
@@ -2637,16 +2659,6 @@ h2 {
   transition:
     color 0.35s ease,
     text-decoration-color 0.35s ease;
-}
-
-.grocery-item .grocery-remove {
-  opacity: 0;
-  transition: opacity 0.12s ease;
-}
-
-.grocery-item:hover .grocery-remove,
-.grocery-item:focus-within .grocery-remove {
-  opacity: 1;
 }
 
 .save-goal-rate {
