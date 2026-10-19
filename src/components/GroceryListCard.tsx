@@ -2,10 +2,10 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import { useApp } from "@/components/AppProvider";
-import {
-  grocerySummary,
-  sortGroceryItems,
-} from "@/lib/grocery";
+import { sortGroceryItems } from "@/lib/grocery";
+
+/** Match `.tasks-item-clearing` / clear-row (~0.62s). */
+const CLEAR_MS = 620;
 
 export function GroceryListCard() {
   const { state, post } = useApp();
@@ -13,28 +13,48 @@ export function GroceryListCard() {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [clearingIds, setClearingIds] = useState<Record<string, true>>({});
   const [error, setError] = useState("");
 
   const items = useMemo(
-    () => sortGroceryItems(state.groceryItems ?? []),
+    () =>
+      sortGroceryItems(state.groceryItems ?? []).filter((i) => !i.checked),
     [state.groceryItems],
   );
-  const summary = useMemo(() => grocerySummary(items), [items]);
 
   async function run(
     body: Record<string, unknown>,
-    opts?: { id?: string },
+    opts?: { id?: string; clear?: boolean },
   ) {
-    if (opts?.id) setBusyId(opts.id);
+    const id = opts?.id;
+    if (id) setBusyId(id);
     else setBusy(true);
     setError("");
     try {
+      if (id && opts?.clear) {
+        setClearingIds((prev) => ({ ...prev, [id]: true }));
+        await new Promise((r) => setTimeout(r, CLEAR_MS));
+      }
       await post("/api/grocery", body);
     } catch (e) {
+      if (id) {
+        setClearingIds((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      }
       setError(e instanceof Error ? e.message : "Could not update list");
     } finally {
       setBusy(false);
       setBusyId(null);
+      if (id) {
+        setClearingIds((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      }
     }
   }
 
@@ -56,13 +76,9 @@ export function GroceryListCard() {
   }
 
   const meta =
-    summary.total === 0
+    items.length === 0
       ? "Empty"
-      : summary.open === 0
-        ? `${summary.total} done`
-        : summary.checked > 0
-          ? `${summary.open} left · ${summary.checked} done`
-          : `${summary.open} item${summary.open === 1 ? "" : "s"}`;
+      : `${items.length} item${items.length === 1 ? "" : "s"}`;
 
   return (
     <section
@@ -113,40 +129,39 @@ export function GroceryListCard() {
             <ul className="grocery-list">
               {items.map((item) => {
                 const rowBusy = busyId === item.id;
+                const clearing = Boolean(clearingIds[item.id]);
                 return (
                   <li
                     key={item.id}
-                    className={`grocery-item${item.checked ? " done" : ""}`}
+                    className={`grocery-item${
+                      clearing ? " grocery-item-clearing" : ""
+                    }`}
                   >
                     <button
                       type="button"
                       className="tasks-check-btn"
-                      disabled={rowBusy || busy}
-                      aria-label={
-                        item.checked
-                          ? `Uncheck ${item.label}`
-                          : `Check ${item.label}`
-                      }
+                      disabled={rowBusy || busy || clearing}
+                      aria-label={`Got ${item.label}`}
                       onClick={() =>
                         void run(
-                          { action: "toggle", id: item.id },
-                          { id: item.id },
+                          { action: "remove", id: item.id },
+                          { id: item.id, clear: true },
                         )
                       }
                     >
                       <span
                         className={`tasks-check${
-                          item.checked ? " tasks-check-done" : ""
+                          clearing ? " tasks-check-done" : ""
                         }`}
                       >
-                        {item.checked ? "✓" : ""}
+                        {clearing ? "✓" : ""}
                       </span>
                     </button>
                     <span className="grocery-label">{item.label}</span>
                     <button
                       type="button"
                       className="tasks-action-btn grocery-remove"
-                      disabled={rowBusy || busy}
+                      disabled={rowBusy || busy || clearing}
                       aria-label={`Remove ${item.label}`}
                       onClick={() =>
                         void run(
@@ -162,17 +177,6 @@ export function GroceryListCard() {
               })}
             </ul>
           )}
-
-          {summary.checked > 0 ? (
-            <button
-              type="button"
-              className="btn ghost grocery-clear"
-              disabled={busy}
-              onClick={() => void run({ action: "clearChecked" })}
-            >
-              Clear checked
-            </button>
-          ) : null}
 
           {error ? (
             <p className="tiny" style={{ color: "var(--danger)", margin: 0 }}>

@@ -26,8 +26,8 @@ Thin Home utility — mirror task-list interaction, not a shopping OS.
 - **Placement:** Home card **immediately under the Save Goals card**
 - **Collapse:** Starts **collapsed** (same pattern as the task list); expand to work the list
 - **Items:** Add free-text grocery items
-- **Check-off:** Mark items done / unchecked
-- **Remove:** Delete items from the list
+- **Check-off:** Tap check → strike/fade (task-list clear) → **remove** (not retained)
+- **Remove:** Explicit delete without the check animation
 - **Persistence:** Store in `.data/db.json` (same persistence model as other Home lists)
 - **UX:** Lean; reuse existing Home / task-list affordances where practical — no separate grocery page required in v1
 
@@ -50,4 +50,5 @@ Thin Home utility — mirror task-list interaction, not a shopping OS.
 
 - Intake **2026-10-18**: founder wants a grocery list that resembles the task list (collapsed + add items), placed under Save Goals on Home; Google Home integration eventual but out of v1.
 - Status **In Progress** — eng implementing thin Home card + `groceryItems` persistence (RB-044).
+- **2026-10-18 polish:** Check-off matches tasks — click, fade, remove; do **not** retain checked rows.
 - Rank **20** among Near-term / Home surface work.

@@ -2625,9 +2625,18 @@ h2 {
   word-break: break-word;
 }
 
-.grocery-item.done .grocery-label {
+.grocery-item-clearing {
+  pointer-events: none;
+  animation: clear-row 0.62s cubic-bezier(0.33, 0.1, 0.25, 1) forwards;
+}
+
+.grocery-item-clearing .grocery-label {
   text-decoration: line-through;
-  opacity: 0.55;
+  text-decoration-color: var(--good-strike);
+  color: var(--muted);
+  transition:
+    color 0.35s ease,
+    text-decoration-color 0.35s ease;
 }
 
 .grocery-item .grocery-remove {
@@ -2638,12 +2647,6 @@ h2 {
 .grocery-item:hover .grocery-remove,
 .grocery-item:focus-within .grocery-remove {
   opacity: 1;
-}
-
-.grocery-clear {
-  align-self: flex-start;
-  margin: 0;
-  padding-inline: 0;
 }
 
 .save-goal-rate {
