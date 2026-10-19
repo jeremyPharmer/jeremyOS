@@ -130,6 +130,7 @@ export function GroceryListCard() {
               {items.map((item) => {
                 const rowBusy = busyId === item.id;
                 const clearing = Boolean(clearingIds[item.id]);
+                const disabled = rowBusy || busy || clearing;
                 return (
                   <li
                     key={item.id}
@@ -139,8 +140,8 @@ export function GroceryListCard() {
                   >
                     <button
                       type="button"
-                      className="tasks-check-btn"
-                      disabled={rowBusy || busy || clearing}
+                      className="grocery-item-btn"
+                      disabled={disabled}
                       aria-label={`Got ${item.label}`}
                       onClick={() =>
                         void run(
@@ -153,24 +154,11 @@ export function GroceryListCard() {
                         className={`tasks-check${
                           clearing ? " tasks-check-done" : ""
                         }`}
+                        aria-hidden
                       >
                         {clearing ? "✓" : ""}
                       </span>
-                    </button>
-                    <span className="grocery-label">{item.label}</span>
-                    <button
-                      type="button"
-                      className="tasks-action-btn grocery-remove"
-                      disabled={rowBusy || busy || clearing}
-                      aria-label={`Remove ${item.label}`}
-                      onClick={() =>
-                        void run(
-                          { action: "remove", id: item.id },
-                          { id: item.id },
-                        )
-                      }
-                    >
-                      Remove
+                      <span className="grocery-label">{item.label}</span>
                     </button>
                   </li>
                 );
