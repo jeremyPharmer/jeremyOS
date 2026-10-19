@@ -5,12 +5,15 @@ import {
   applySaveGoalAdjustment,
   applySaveGoalDayTotals,
   applySaveGoalRolledOnly,
+  addSaveGoalIdea,
   clearSaveGoalDaySpend,
   createSaveGoal,
   creditSaveGoalReserve,
   deleteSaveGoal,
+  moveSaveGoalIdea,
   recordSaveGoalDay,
   removeSaveGoalAdjustment,
+  removeSaveGoalIdea,
   removeSaveGoalSpend,
   setGoalInboundPercent,
   setInboundPercents,
@@ -285,6 +288,29 @@ export async function POST(req: Request) {
 
       if (action === "clearDaySpend") {
         return clearSaveGoalDaySpend(prev, String(body.date ?? today));
+      }
+
+      if (action === "addIdea") {
+        return addSaveGoalIdea(prev, {
+          name: String(body.name ?? ""),
+          price: Number(body.price),
+        });
+      }
+
+      if (action === "removeIdea") {
+        return removeSaveGoalIdea(prev, String(body.id ?? ""));
+      }
+
+      if (action === "moveIdea") {
+        return moveSaveGoalIdea(prev, {
+          ideaId: String(body.ideaId ?? body.id ?? ""),
+          toGoalId:
+            body.toGoalId !== undefined && body.toGoalId !== null
+              ? String(body.toGoalId)
+              : undefined,
+          asNewGoal: Boolean(body.asNewGoal),
+          createdOn: String(body.createdOn ?? today),
+        });
       }
 
       const err = new Error(`Unknown action: ${action}`);

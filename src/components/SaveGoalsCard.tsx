@@ -17,6 +17,7 @@ import {
   daysInMonthForDate,
   isReserveGoal,
   listSaveGoalAdjustmentsForGoal,
+  listSaveGoalIdeas,
   listSaveGoalSpendEntries,
   progressRatio,
   projectSaveGoalTargetDate,
@@ -26,6 +27,7 @@ import {
 } from "@/lib/save-goals";
 import type {
   SaveGoal,
+  SaveGoalIdea,
   SaveGoalSpendCategory,
 } from "@/lib/types";
 
@@ -944,6 +946,183 @@ function HomeSaveGoalsGlance() {
   );
 }
 
+/** Capture-first wants with prices — attach to a named goal later. */
+function IdeasSection({
+  namedGoals,
+  busy,
+  onAdd,
+  onRemove,
+  onMove,
+}: {
+  namedGoals: SaveGoal[];
+  busy: boolean;
+  onAdd: (input: { name: string; price: number }) => void;
+  onRemove: (id: string) => void;
+  onMove: (input: {
+    ideaId: string;
+    toGoalId?: string;
+    asNewGoal?: boolean;
+  }) => void;
+}) {
+  const { state } = useApp();
+  const ideas = useMemo(() => listSaveGoalIdeas(state), [state]);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [movingId, setMovingId] = useState<string | null>(null);
+
+  function submitAdd() {
+    const amount = Number(price);
+    if (!name.trim()) return;
+    if (!Number.isFinite(amount) || amount < 0) return;
+    onAdd({ name: name.trim(), price: amount });
+    setName("");
+    setPrice("");
+    setAdding(false);
+  }
+
+  return (
+    <div className="save-goal-ideas" aria-label="Ideas">
+      <h2 className="save-goal-ledger-heading">Ideas</h2>
+      <p className="tiny muted save-goal-ideas-hint">
+        Name + price — attach to a goal when you’re ready
+      </p>
+
+      {ideas.length === 0 && !adding ? (
+        <p className="tiny muted" style={{ margin: "0 0 8px" }}>
+          Nothing parked yet.
+        </p>
+      ) : (
+        <ul className="save-goal-ideas-list">
+          {ideas.map((idea: SaveGoalIdea) => (
+            <li key={idea.id} className="save-goal-idea-row">
+              <div className="save-goal-idea-main">
+                <span className="save-goal-idea-name">{idea.name}</span>
+                <span className="tiny muted">{formatMoney(idea.price)}</span>
+              </div>
+              {movingId === idea.id ? (
+                <div className="save-goal-idea-move">
+                  <div className="chip-row">
+                    <button
+                      type="button"
+                      className="chip"
+                      disabled={busy}
+                      onClick={() => {
+                        onMove({ ideaId: idea.id, asNewGoal: true });
+                        setMovingId(null);
+                      }}
+                    >
+                      New goal
+                    </button>
+                    {namedGoals.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        className="chip"
+                        disabled={busy}
+                        onClick={() => {
+                          onMove({ ideaId: idea.id, toGoalId: g.id });
+                          setMovingId(null);
+                        }}
+                      >
+                        {g.name}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="save-goal-add-link"
+                    disabled={busy}
+                    onClick={() => setMovingId(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="save-goal-idea-actions">
+                  <button
+                    type="button"
+                    className="save-goal-add-link"
+                    disabled={busy}
+                    onClick={() => setMovingId(idea.id)}
+                  >
+                    Move to goal
+                  </button>
+                  <button
+                    type="button"
+                    className="save-goal-add-link"
+                    disabled={busy}
+                    onClick={() => onRemove(idea.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {adding ? (
+        <div className="save-goal-create" style={{ marginTop: 8 }}>
+          <label className="field">
+            <span className="field-label">Name</span>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="AirPods, weekend bag…"
+              maxLength={80}
+              autoFocus
+              disabled={busy}
+            />
+          </label>
+          <label className="field">
+            <span className="field-label">Price</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="1"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="249"
+              disabled={busy}
+            />
+          </label>
+          <div className="save-goal-create-actions">
+            <PrimaryButton
+              onClick={submitAdd}
+              disabled={busy || !name.trim()}
+            >
+              Add idea
+            </PrimaryButton>
+            <SecondaryButton
+              onClick={() => {
+                setAdding(false);
+                setName("");
+                setPrice("");
+              }}
+              disabled={busy}
+            >
+              Cancel
+            </SecondaryButton>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="btn ghost save-goal-ideas-add"
+          disabled={busy}
+          onClick={() => setAdding(true)}
+        >
+          + Add idea
+        </button>
+      )}
+    </div>
+  );
+}
+
 /** Day-segmented expense history on the saver page (no inbound). */
 function ExpenseDayHistory({
   busy,
@@ -1322,6 +1501,56 @@ function SaveGoalsDetail() {
     }
   }
 
+  async function addIdea(input: { name: string; price: number }) {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "addIdea",
+        name: input.name,
+        price: input.price,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not add idea");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeIdea(id: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", { action: "removeIdea", id });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not remove idea");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function moveIdea(input: {
+    ideaId: string;
+    toGoalId?: string;
+    asNewGoal?: boolean;
+  }) {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/save-goals", {
+        action: "moveIdea",
+        ideaId: input.ideaId,
+        toGoalId: input.toGoalId,
+        asNewGoal: input.asNewGoal,
+        createdOn: today,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not move idea");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submitLog(input: {
     date: string;
     amount: number;
@@ -1552,6 +1781,14 @@ function SaveGoalsDetail() {
           ) : null}
         </div>
       ))}
+
+      <IdeasSection
+        namedGoals={namedGoals}
+        busy={busy}
+        onAdd={(input) => void addIdea(input)}
+        onRemove={(id) => void removeIdea(id)}
+        onMove={(input) => void moveIdea(input)}
+      />
 
       <ExpenseDayHistory
         busy={busy}

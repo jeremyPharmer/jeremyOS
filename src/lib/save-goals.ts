@@ -4,6 +4,7 @@ import type {
   SaveGoal,
   SaveGoalAllocation,
   SaveGoalDay,
+  SaveGoalIdea,
   SaveGoalSettings,
   SaveGoalSpendCategory,
   SaveGoalSpendEntry,
@@ -638,6 +639,8 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
     ? {}
     : normalizeInboundByDate(state.saveGoalInboundByDate);
 
+  const saveGoalIdeas = normalizeSaveGoalIdeas(state.saveGoalIdeas);
+
   return {
     ...state,
     saveGoalSettings: settings,
@@ -645,6 +648,7 @@ export function normalizeSaveGoals(state: RebuildState): RebuildState {
     saveGoalDays: days,
     saveGoalSpendEntries: spendEntries,
     saveGoalInboundByDate,
+    saveGoalIdeas,
   };
 }
 
@@ -2208,4 +2212,133 @@ export function formatMoney(n: number): string {
 /** Floored whole dollars for glance day totals / rate. */
 export function formatMoneyDown(n: number): string {
   return formatMoney(floorDollar(n));
+}
+
+const IDEA_NAME_MAX = 80;
+
+export function normalizeSaveGoalIdeas(
+  ideas: SaveGoalIdea[] | undefined,
+): SaveGoalIdea[] {
+  if (!ideas?.length) return [];
+  const out: SaveGoalIdea[] = [];
+  for (const raw of ideas) {
+    if (!raw || typeof raw !== "object") continue;
+    const id = typeof raw.id === "string" ? raw.id.trim() : "";
+    const name = typeof raw.name === "string" ? raw.name.trim() : "";
+    const price = round2(Number(raw.price));
+    if (!id || !name || !Number.isFinite(price) || price < 0) continue;
+    const createdAt =
+      typeof raw.createdAt === "string" && raw.createdAt
+        ? raw.createdAt
+        : new Date(0).toISOString();
+    out.push({
+      id,
+      name: name.slice(0, IDEA_NAME_MAX),
+      price,
+      createdAt,
+    });
+  }
+  return out.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export function listSaveGoalIdeas(state: RebuildState): SaveGoalIdea[] {
+  return normalizeSaveGoalIdeas(state.saveGoalIdeas);
+}
+
+export function addSaveGoalIdea(
+  state: RebuildState,
+  input: { name: string; price: number },
+): RebuildState {
+  const name = String(input.name ?? "").trim().slice(0, IDEA_NAME_MAX);
+  const price = round2(Number(input.price));
+  if (!name) {
+    throw Object.assign(new Error("Name required"), { status: 400 });
+  }
+  if (!Number.isFinite(price) || price < 0) {
+    throw Object.assign(new Error("Price must be $0 or more"), { status: 400 });
+  }
+  const idea: SaveGoalIdea = {
+    id: newId("sgi"),
+    name,
+    price,
+    createdAt: new Date().toISOString(),
+  };
+  return normalizeSaveGoals({
+    ...state,
+    saveGoalIdeas: [...normalizeSaveGoalIdeas(state.saveGoalIdeas), idea],
+  });
+}
+
+export function removeSaveGoalIdea(
+  state: RebuildState,
+  ideaId: string,
+): RebuildState {
+  const id = String(ideaId ?? "").trim();
+  if (!id) {
+    throw Object.assign(new Error("idea id required"), { status: 400 });
+  }
+  const ideas = normalizeSaveGoalIdeas(state.saveGoalIdeas);
+  if (!ideas.some((i) => i.id === id)) {
+    throw Object.assign(new Error("Idea not found"), { status: 404 });
+  }
+  return normalizeSaveGoals({
+    ...state,
+    saveGoalIdeas: ideas.filter((i) => i.id !== id),
+  });
+}
+
+/**
+ * Attach an idea to a save destination, then drop it from Ideas.
+ * - `toGoalId` set → keep existing goal (scratchpad done).
+ * - `asNewGoal: true` → create a named Save Goal from name + price.
+ */
+export function moveSaveGoalIdea(
+  state: RebuildState,
+  input: {
+    ideaId: string;
+    toGoalId?: string;
+    asNewGoal?: boolean;
+    createdOn?: string;
+  },
+): RebuildState {
+  const ideaId = String(input.ideaId ?? "").trim();
+  if (!ideaId) {
+    throw Object.assign(new Error("idea id required"), { status: 400 });
+  }
+  const ideas = normalizeSaveGoalIdeas(state.saveGoalIdeas);
+  const idea = ideas.find((i) => i.id === ideaId);
+  if (!idea) {
+    throw Object.assign(new Error("Idea not found"), { status: 404 });
+  }
+
+  let next: RebuildState = {
+    ...state,
+    saveGoalIdeas: ideas.filter((i) => i.id !== ideaId),
+  };
+
+  if (input.asNewGoal) {
+    const targetAmount = Math.max(1, floorDollar(idea.price) || 1);
+    const createdOn = DATE_RE.test(String(input.createdOn ?? ""))
+      ? String(input.createdOn)
+      : SAVE_GOAL_LEDGER_START;
+    next = createSaveGoal(next, {
+      name: idea.name,
+      targetAmount,
+      createdOn,
+      claimDailyInbound: false,
+    });
+    return normalizeSaveGoals(next);
+  }
+
+  const toGoalId = String(input.toGoalId ?? "").trim();
+  if (!toGoalId) {
+    throw Object.assign(new Error("Pick a goal"), { status: 400 });
+  }
+  const goal = activeSaveGoals(next).find(
+    (g) => g.id === toGoalId && !isReserveGoal(g),
+  );
+  if (!goal) {
+    throw Object.assign(new Error("Save goal not found"), { status: 404 });
+  }
+  return normalizeSaveGoals(next);
 }

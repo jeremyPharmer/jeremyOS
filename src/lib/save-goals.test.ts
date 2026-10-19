@@ -8,6 +8,7 @@ import {
   creditSaveGoalReserve,
   dailyIncomeRate,
   daysInMonthForDate,
+  addSaveGoalIdea,
   addSaveGoalSpend,
   applySaveGoalDayTotals,
   applySaveGoalRolledOnly,
@@ -17,6 +18,9 @@ import {
   deleteSaveGoal,
   isReserveGoal,
   listRolledOpenDatesBefore,
+  listSaveGoalIdeas,
+  moveSaveGoalIdea,
+  removeSaveGoalIdea,
   saveGoalCloseForDate,
   undoApplySaveGoalDayTotals,
   ensureElapsedSaveGoalDays,
@@ -1456,5 +1460,75 @@ describe("ledger start Oct 1 2026 + month rollups", () => {
     ]);
     expect(groups[1].isCurrentMonth).toBe(false);
     expect(groups[1].summary.days).toHaveLength(2);
+  });
+});
+
+describe("save goal ideas", () => {
+  it("adds, lists, and removes ideas without touching balances", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 1000,
+      createdOn: "2026-10-01",
+    });
+    const reserveBefore = findReserveGoal(state)!.savedAmount;
+
+    state = addSaveGoalIdea(state, { name: "AirPods", price: 249 });
+    const ideas = listSaveGoalIdeas(state);
+    expect(ideas).toHaveLength(1);
+    expect(ideas[0].name).toBe("AirPods");
+    expect(ideas[0].price).toBe(249);
+    expect(findReserveGoal(state)!.savedAmount).toBe(reserveBefore);
+
+    state = removeSaveGoalIdea(state, ideas[0].id);
+    expect(listSaveGoalIdeas(state)).toHaveLength(0);
+  });
+
+  it("moves an idea onto an existing named goal (scratchpad only)", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "Trip",
+      targetAmount: 1000,
+      createdOn: "2026-10-01",
+    });
+    const trip = state.saveGoals!.find((g) => g.name === "Trip")!;
+    state = addSaveGoalIdea(state, { name: "Weekend bag", price: 180 });
+    const idea = listSaveGoalIdeas(state)[0];
+
+    state = moveSaveGoalIdea(state, {
+      ideaId: idea.id,
+      toGoalId: trip.id,
+    });
+    expect(listSaveGoalIdeas(state)).toHaveLength(0);
+    expect(state.saveGoals!.find((g) => g.id === trip.id)!.savedAmount).toBe(
+      trip.savedAmount,
+    );
+  });
+
+  it("moves an idea into a new save goal from name + price", () => {
+    let state = emptyState();
+    state = addSaveGoalIdea(state, { name: "AirPods", price: 249.4 });
+    const idea = listSaveGoalIdeas(state)[0];
+
+    state = moveSaveGoalIdea(state, {
+      ideaId: idea.id,
+      asNewGoal: true,
+      createdOn: "2026-10-15",
+    });
+    expect(listSaveGoalIdeas(state)).toHaveLength(0);
+    const created = state.saveGoals!.find((g) => g.name === "AirPods")!;
+    expect(created).toBeTruthy();
+    expect(created.targetAmount).toBe(249);
+    expect(created.createdOn).toBe("2026-10-15");
+    expect(isReserveGoal(created)).toBe(false);
+  });
+
+  it("rejects move without a destination", () => {
+    let state = emptyState();
+    state = addSaveGoalIdea(state, { name: "Thing", price: 10 });
+    const idea = listSaveGoalIdeas(state)[0];
+    expect(() =>
+      moveSaveGoalIdea(state, { ideaId: idea.id }),
+    ).toThrow(/Pick a goal/);
   });
 });
