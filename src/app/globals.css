@@ -3076,15 +3076,14 @@ button.save-goal-rate.save-goal-inbound-edit {
   margin-top: 16px;
 }
 
+.home-card-save-goal-ideas .home-card-head {
+  margin-bottom: 8px;
+}
+
 .save-goal-ideas {
-  margin-top: 20px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.save-goal-ideas-hint {
-  margin: -4px 0 0;
 }
 
 .save-goal-ideas-list {
