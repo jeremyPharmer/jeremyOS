@@ -982,144 +982,144 @@ function IdeasSection({
   }
 
   return (
-    <div className="save-goal-ideas" aria-label="Ideas">
-      <h2 className="save-goal-ledger-heading">Ideas</h2>
-      <p className="tiny muted save-goal-ideas-hint">
-        Name + price — attach to a goal when you’re ready
-      </p>
+    <section
+      className="home-card home-card-save-goal-ideas"
+      aria-label="Ideas"
+    >
+      <div className="home-card-head">
+        <p className="home-card-kicker">Ideas</p>
+      </div>
 
-      {ideas.length === 0 && !adding ? (
-        <p className="tiny muted" style={{ margin: "0 0 8px" }}>
-          Nothing parked yet.
-        </p>
-      ) : (
-        <ul className="save-goal-ideas-list">
-          {ideas.map((idea: SaveGoalIdea) => (
-            <li key={idea.id} className="save-goal-idea-row">
-              <div className="save-goal-idea-main">
-                <span className="save-goal-idea-name">{idea.name}</span>
-                <span className="tiny muted">{formatMoney(idea.price)}</span>
-              </div>
-              {movingId === idea.id ? (
-                <div className="save-goal-idea-move">
-                  <div className="chip-row">
-                    <button
-                      type="button"
-                      className="chip"
-                      disabled={busy}
-                      onClick={() => {
-                        onMove({ ideaId: idea.id, asNewGoal: true });
-                        setMovingId(null);
-                      }}
-                    >
-                      New goal
-                    </button>
-                    {namedGoals.map((g) => (
+      <div className="save-goal-ideas">
+        {ideas.length > 0 ? (
+          <ul className="save-goal-ideas-list">
+            {ideas.map((idea: SaveGoalIdea) => (
+              <li key={idea.id} className="save-goal-idea-row">
+                <div className="save-goal-idea-main">
+                  <span className="save-goal-idea-name">{idea.name}</span>
+                  <span className="tiny muted">{formatMoney(idea.price)}</span>
+                </div>
+                {movingId === idea.id ? (
+                  <div className="save-goal-idea-move">
+                    <div className="chip-row">
                       <button
-                        key={g.id}
                         type="button"
                         className="chip"
                         disabled={busy}
                         onClick={() => {
-                          onMove({ ideaId: idea.id, toGoalId: g.id });
+                          onMove({ ideaId: idea.id, asNewGoal: true });
                           setMovingId(null);
                         }}
                       >
-                        {g.name}
+                        New goal
                       </button>
-                    ))}
+                      {namedGoals.map((g) => (
+                        <button
+                          key={g.id}
+                          type="button"
+                          className="chip"
+                          disabled={busy}
+                          onClick={() => {
+                            onMove({ ideaId: idea.id, toGoalId: g.id });
+                            setMovingId(null);
+                          }}
+                        >
+                          {g.name}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="save-goal-add-link"
+                      disabled={busy}
+                      onClick={() => setMovingId(null)}
+                    >
+                      Cancel
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className="save-goal-add-link"
-                    disabled={busy}
-                    onClick={() => setMovingId(null)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <div className="save-goal-idea-actions">
-                  <button
-                    type="button"
-                    className="save-goal-add-link"
-                    disabled={busy}
-                    onClick={() => setMovingId(idea.id)}
-                  >
-                    Move to goal
-                  </button>
-                  <button
-                    type="button"
-                    className="save-goal-add-link"
-                    disabled={busy}
-                    onClick={() => onRemove(idea.id)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                ) : (
+                  <div className="save-goal-idea-actions">
+                    <button
+                      type="button"
+                      className="save-goal-add-link"
+                      disabled={busy}
+                      onClick={() => setMovingId(idea.id)}
+                    >
+                      Move to goal
+                    </button>
+                    <button
+                      type="button"
+                      className="save-goal-add-link"
+                      disabled={busy}
+                      onClick={() => onRemove(idea.id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
-      {adding ? (
-        <div className="save-goal-create" style={{ marginTop: 8 }}>
-          <label className="field">
-            <span className="field-label">Name</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="AirPods, weekend bag…"
-              maxLength={80}
-              autoFocus
-              disabled={busy}
-            />
-          </label>
-          <label className="field">
-            <span className="field-label">Price</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="1"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="249"
-              disabled={busy}
-            />
-          </label>
-          <div className="save-goal-create-actions">
-            <PrimaryButton
-              onClick={submitAdd}
-              disabled={busy || !name.trim()}
-            >
-              Add idea
-            </PrimaryButton>
-            <SecondaryButton
-              onClick={() => {
-                setAdding(false);
-                setName("");
-                setPrice("");
-              }}
-              disabled={busy}
-            >
-              Cancel
-            </SecondaryButton>
+        {adding ? (
+          <div className="save-goal-create" style={{ marginTop: ideas.length ? 8 : 0 }}>
+            <label className="field">
+              <span className="field-label">Name</span>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="AirPods, weekend bag…"
+                maxLength={80}
+                autoFocus
+                disabled={busy}
+              />
+            </label>
+            <label className="field">
+              <span className="field-label">Price</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="1"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="249"
+                disabled={busy}
+              />
+            </label>
+            <div className="save-goal-create-actions">
+              <PrimaryButton
+                onClick={submitAdd}
+                disabled={busy || !name.trim()}
+              >
+                Add idea
+              </PrimaryButton>
+              <SecondaryButton
+                onClick={() => {
+                  setAdding(false);
+                  setName("");
+                  setPrice("");
+                }}
+                disabled={busy}
+              >
+                Cancel
+              </SecondaryButton>
+            </div>
           </div>
-        </div>
-      ) : (
-        <button
-          type="button"
-          className="btn ghost save-goal-ideas-add"
-          disabled={busy}
-          onClick={() => setAdding(true)}
-        >
-          + Add idea
-        </button>
-      )}
-    </div>
+        ) : (
+          <button
+            type="button"
+            className="btn ghost save-goal-ideas-add"
+            disabled={busy}
+            onClick={() => setAdding(true)}
+          >
+            + Add idea
+          </button>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -1578,23 +1578,36 @@ function SaveGoalsDetail() {
 
   const reserveAvailable = Math.max(0, reserve?.savedAmount ?? 0);
 
+  const ideasCard = (
+    <IdeasSection
+      namedGoals={namedGoals}
+      busy={busy}
+      onAdd={(input) => void addIdea(input)}
+      onRemove={(id) => void removeIdea(id)}
+      onMove={(input) => void moveIdea(input)}
+    />
+  );
+
   if (goals.length === 0 && !open) {
     return (
-      <section
-        className="home-card home-card-save-goals"
-        aria-label="Save towards something"
-      >
-        <div className="home-card-head">
-          <p className="home-card-kicker">Save goals</p>
-          <h2>Save towards something</h2>
-          <p className="tiny muted" style={{ margin: "4px 0 0" }}>
-            Manual adjustments only — daily inbound is paused.
-          </p>
-        </div>
-        <PrimaryButton onClick={() => setOpen(true)}>
-          Add a save goal
-        </PrimaryButton>
-      </section>
+      <>
+        <section
+          className="home-card home-card-save-goals"
+          aria-label="Save towards something"
+        >
+          <div className="home-card-head">
+            <p className="home-card-kicker">Save goals</p>
+            <h2>Save towards something</h2>
+            <p className="tiny muted" style={{ margin: "4px 0 0" }}>
+              Manual adjustments only — daily inbound is paused.
+            </p>
+          </div>
+          <PrimaryButton onClick={() => setOpen(true)}>
+            Add a save goal
+          </PrimaryButton>
+        </section>
+        {ideasCard}
+      </>
     );
   }
 
@@ -1603,6 +1616,7 @@ function SaveGoalsDetail() {
     : [];
 
   return (
+    <>
     <section
       className="home-card home-card-save-goals"
       aria-label="Save goals"
@@ -1781,14 +1795,6 @@ function SaveGoalsDetail() {
           ) : null}
         </div>
       ))}
-
-      <IdeasSection
-        namedGoals={namedGoals}
-        busy={busy}
-        onAdd={(input) => void addIdea(input)}
-        onRemove={(id) => void removeIdea(id)}
-        onMove={(input) => void moveIdea(input)}
-      />
 
       <ExpenseDayHistory
         busy={busy}
@@ -1976,6 +1982,8 @@ function SaveGoalsDetail() {
         </div>
       )}
     </section>
+    {ideasCard}
+    </>
   );
 }
 
