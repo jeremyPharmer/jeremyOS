@@ -33,7 +33,7 @@ Thin Home utility — mirror task-list interaction, not a shopping OS.
 
 ## Out of scope / later
 
-- **Google Home** / voice assistants / smart-speaker sync
+- **Google Home** / Assistant shopping-list sync → tracked as **[RB-045](./google-home-shopping-list-sync.md)** (Later / P2); do not expand this item
 - Recipe → grocery auto-add ([RB-019](./favorite-recipes.md) favorites are separate)
 - Shared household lists, categories/aisles, stores, prices, or receipt OCR
 - Push notifications or shopping-trip mode
@@ -44,7 +44,7 @@ Thin Home utility — mirror task-list interaction, not a shopping OS.
 - Home density: keep the card as thin as the task-list collapse pattern so it does not fight Save Goals / agenda / puzzle
 - UXUI owns Home card; Reese owns `db.json` shape + API if needed
 - Distinct from Save Goals ([RB-037](./save-goals.md) / [RB-041](./save-goals-reserve-hub.md)) — placement only; no fund ledger hooks
-- Google Home integration is explicitly **later** — do not block v1 on OAuth or device APIs
+- Google Home integration is explicitly **later** ([RB-045](./google-home-shopping-list-sync.md)) — do not block v1 on OAuth or device APIs
 
 ## Notes
 
@@ -52,4 +52,5 @@ Thin Home utility — mirror task-list interaction, not a shopping OS.
 - Status **In Progress** — eng implementing thin Home card + `groceryItems` persistence (RB-044).
 - **2026-10-18 polish:** Check-off matches tasks — click, fade, remove; do **not** retain checked rows.
 - **2026-10-19:** Dropped Remove button (touch was revealing it as a second step); whole row tap clears.
+- **2026-10-19:** Founder follow-up voice/Google Home → spun out as [RB-045](./google-home-shopping-list-sync.md) (Later / P2); RB-044 stays Home-card only.
 - Rank **20** among Near-term / Home surface work.

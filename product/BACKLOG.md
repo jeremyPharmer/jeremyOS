@@ -2,11 +2,11 @@
 
 Index of all product items. Canonical detail lives in `product/items/`.
 
-Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Nav label **Health** (was Journey — **RB-043**; supersedes RB-020/RB-012 Journey keep). Craving stats / Home craving CTA cut (**RB-020**); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done). **Task groups + calendar M/D** locked (**RB-026**). **Morning day-start briefing** Done (**RB-027**). **Journey/Health vitals BP+HR** Done (**RB-028**). **Evening close recap + world news** Done (**RB-029**). **Conversational calendar-first morning briefing** Done (**RB-030**). **Journey med adherence + drop vitals chart** Won't Do (**RB-031** — superseded by **RB-043**). **Daily briefing Open/Close redesign** Done (**RB-032**). **Track over time (task adherence on Health)** In Progress (**RB-033**). **Task analytics on Tasks page + motion polish** In Progress (**RB-036**). **Bills panel on Home** Done (**RB-034**). **Schroeder soccer panel on Home** In Progress (**RB-035**). **Gmail inbox centralization** Ready (**RB-002**). **Save Goals** In Progress (**RB-037**). **Save Goals Reserve hub** Done (**RB-041**). **Close edition = Open parity** Done (**RB-038**). **Open/Close thin redesign** Done (**RB-042**). **Health tab sleep primary** In Progress (**RB-043** — intake 2026-10-10; sleep 1–5 top; drop Conditions + med adherence; keep BP/HR). **Ignore missed journal days** In Progress (**RB-039**). **Journal Days before** In Progress (**RB-040**). **Grocery list on Home** Ready (**RB-044** — under Save Goals; collapsed like tasks; Google Home later).
+Product: **JeremyOS** (executive assistant / personal OS for Jeremy; formerly framed as ReBuild + trail). Historical IDs keep `RB-*`. **Rebrand, not rewrite** (RB-012). Nav label **Health** (was Journey — **RB-043**; supersedes RB-020/RB-012 Journey keep). Craving stats / Home craving CTA cut (**RB-020**); RB-009 Won't Do. **On Air replaced by 5×5 daily crossword** (RB-024: Start→attempt; banner `completed/attempts · success%` — lifetime rate, not fill); Entertainment parked (**RB-025**); podcasts off Home. **Calendar iCal + Google shipped** (**RB-023** Done). **Task groups + calendar M/D** locked (**RB-026**). **Morning day-start briefing** Done (**RB-027**). **Journey/Health vitals BP+HR** Done (**RB-028**). **Evening close recap + world news** Done (**RB-029**). **Conversational calendar-first morning briefing** Done (**RB-030**). **Journey med adherence + drop vitals chart** Won't Do (**RB-031** — superseded by **RB-043**). **Daily briefing Open/Close redesign** Done (**RB-032**). **Track over time (task adherence on Health)** In Progress (**RB-033**). **Task analytics on Tasks page + motion polish** In Progress (**RB-036**). **Bills panel on Home** Done (**RB-034**). **Schroeder soccer panel on Home** In Progress (**RB-035**). **Gmail inbox centralization** Ready (**RB-002**). **Save Goals** In Progress (**RB-037**). **Save Goals Reserve hub** Done (**RB-041**). **Close edition = Open parity** Done (**RB-038**). **Open/Close thin redesign** Done (**RB-042**). **Health tab sleep primary** In Progress (**RB-043** — intake 2026-10-10; sleep 1–5 top; drop Conditions + med adherence; keep BP/HR). **Ignore missed journal days** In Progress (**RB-039**). **Journal Days before** In Progress (**RB-040**). **Grocery list on Home** In Progress (**RB-044** — under Save Goals; collapsed like tasks). **Google Home shopping-list sync** Backlog Later (**RB-045** — Google → JeremyOS import; API spike first).
 
 **Ranking rule:** lower rank number = higher priority. Rank is the source of truth.
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 | Rank | ID | Item | Priority | Status | Effort | Target due | Milestone | File |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -50,16 +50,17 @@ Last updated: 2026-10-18
 | 38 | RB-008 | Segregated ReBuild account (feasibility) | P2 | Backlog | S | TBD | later | [items/segregated-rebuild-account-rails.md](./items/segregated-rebuild-account-rails.md) |
 | 39 | RB-004 | SMS integration | P2 | Backlog | M | TBD | later | [items/sms-integration.md](./items/sms-integration.md) |
 | 40 | RB-025 | Park Home Entertainment section | P2 | Backlog | XS | TBD | later | [items/park-home-entertainment.md](./items/park-home-entertainment.md) |
-| 41 | RB-007 | Accounts + trail onboarding (multi-user) | P0 | Done | XL | TBD | v1 | [items/account-creation-onboarding.md](./items/account-creation-onboarding.md) |
-| 42 | RB-020 | Drop craving stats + Home craving CTA | P0 | Done | XS | TBD | v1 | [items/drop-craving-stats-home-cta.md](./items/drop-craving-stats-home-cta.md) |
-| 43 | RB-023 | Calendar: iCal + work Google (ICS) | P1 | Done | M | TBD | v1.x | [items/calendar-ical-google.md](./items/calendar-ical-google.md) |
-| 44 | RB-009 | Recovery patterns (Journey) — craving analytics | P2 | Won't Do | M | TBD | later | [items/recovery-patterns-insights.md](./items/recovery-patterns-insights.md) |
+| 41 | RB-045 | Google Home shopping-list sync | P2 | Backlog | TBD | TBD | later | [items/google-home-shopping-list-sync.md](./items/google-home-shopping-list-sync.md) |
+| 42 | RB-007 | Accounts + trail onboarding (multi-user) | P0 | Done | XL | TBD | v1 | [items/account-creation-onboarding.md](./items/account-creation-onboarding.md) |
+| 43 | RB-020 | Drop craving stats + Home craving CTA | P0 | Done | XS | TBD | v1 | [items/drop-craving-stats-home-cta.md](./items/drop-craving-stats-home-cta.md) |
+| 44 | RB-023 | Calendar: iCal + work Google (ICS) | P1 | Done | M | TBD | v1.x | [items/calendar-ical-google.md](./items/calendar-ical-google.md) |
+| 45 | RB-009 | Recovery patterns (Journey) — craving analytics | P2 | Won't Do | M | TBD | later | [items/recovery-patterns-insights.md](./items/recovery-patterns-insights.md) |
 
 ## Status counts
 
 | Status | Count |
 | --- | --- |
-| Backlog | 11 |
+| Backlog | 12 |
 | Ready | 5 |
 | In Progress | 14 |
 | Blocked | 0 |
