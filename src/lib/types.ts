@@ -586,6 +586,15 @@ export type SaveGoalSpendEntry = {
   reserveAdjustId?: string;
 };
 
+/** Capture-first want on Save goals — name + price, attach to a goal later. */
+export type SaveGoalIdea = {
+  id: string;
+  name: string;
+  /** Target / sticker price */
+  price: number;
+  createdAt: string;
+};
+
 /** Grocery list line (RB-044). Distinct from dayProvisions / tasks. */
 export type GroceryItem = {
   id: string;
@@ -670,6 +679,8 @@ export type RebuildState = {
   saveGoalDays?: SaveGoalDay[];
   /** Running spend subtractions before Apply totals (Home saver ledger) */
   saveGoalSpendEntries?: SaveGoalSpendEntry[];
+  /** Capture-first wants with prices — attach to a Save Goal later */
+  saveGoalIdeas?: SaveGoalIdea[];
   /**
    * Per-day inbound override (YYYY-MM-DD → dollars). When set, replaces the
    * default monthly/days rate for that calendar day.

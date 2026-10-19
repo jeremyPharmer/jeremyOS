@@ -3076,6 +3076,64 @@ button.save-goal-rate.save-goal-inbound-edit {
   margin-top: 16px;
 }
 
+.save-goal-ideas {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.save-goal-ideas-hint {
+  margin: -4px 0 0;
+}
+
+.save-goal-ideas-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.save-goal-idea-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+  border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+}
+
+.save-goal-idea-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.save-goal-idea-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.save-goal-idea-name {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.save-goal-idea-actions,
+.save-goal-idea-move {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.save-goal-ideas-add {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
 .save-goal-ledger-heading {
   margin: 0 0 8px;
   font-size: 1.35rem;
