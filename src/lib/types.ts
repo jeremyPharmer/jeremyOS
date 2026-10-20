@@ -481,6 +481,8 @@ export type VitalsReading = {
   diastolic: number;
   /** bpm */
   heartRate: number;
+  /** Optional one-line note for this reading */
+  note?: string;
   loggedAt: string;
 };
 

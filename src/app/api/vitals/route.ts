@@ -46,6 +46,7 @@ export async function POST(req: Request) {
         systolic: body.systolic,
         diastolic: body.diastolic,
         heartRate: body.heartRate,
+        note: body.note,
       });
       if (!parsed.ok) {
         const err = new Error(parsed.error);

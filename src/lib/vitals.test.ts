@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { emptyState } from "./journey";
 import {
+  VITALS_NOTE_MAX,
   addVitalsReading,
   filledVitalsPointsInRange,
+  normalizeVitalsNote,
   parseVitalsInput,
   removeVitalsReading,
   vitalsTrendPointsInRange,
@@ -39,6 +41,34 @@ describe("parseVitalsInput", () => {
     });
     expect(r.ok).toBe(false);
   });
+
+  it("accepts an optional one-line note", () => {
+    const r = parseVitalsInput({
+      date: "2026-09-10",
+      period: "am",
+      systolic: 120,
+      diastolic: 80,
+      heartRate: 72,
+      note: "  after coffee  ",
+    });
+    expect(r).toEqual({
+      ok: true,
+      date: "2026-09-10",
+      period: "am",
+      systolic: 120,
+      diastolic: 80,
+      heartRate: 72,
+      note: "after coffee",
+    });
+  });
+});
+
+describe("normalizeVitalsNote", () => {
+  it("trims, collapses space, and clamps length", () => {
+    expect(normalizeVitalsNote("  hi   there  ")).toBe("hi there");
+    expect(normalizeVitalsNote("   ")).toBeUndefined();
+    expect(normalizeVitalsNote("x".repeat(100))?.length).toBe(VITALS_NOTE_MAX);
+  });
 });
 
 describe("add / remove vitals", () => {
@@ -50,17 +80,21 @@ describe("add / remove vitals", () => {
       systolic: 118,
       diastolic: 76,
       heartRate: 68,
+      note: "morning",
     });
     expect(state.vitals).toHaveLength(1);
+    expect(state.vitals![0]!.note).toBe("morning");
     state = addVitalsReading(state, {
       date: "2026-09-10",
       period: "am",
       systolic: 122,
       diastolic: 78,
       heartRate: 70,
+      note: "recheck",
     });
     expect(state.vitals).toHaveLength(1);
     expect(state.vitals![0]!.systolic).toBe(122);
+    expect(state.vitals![0]!.note).toBe("recheck");
     state = addVitalsReading(state, {
       date: "2026-09-10",
       period: "pm",

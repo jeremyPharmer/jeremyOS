@@ -13,6 +13,7 @@ import {
 } from "@/lib/trends";
 import type { RebuildState, VitalsPeriod } from "@/lib/types";
 import {
+  VITALS_NOTE_MAX,
   filledVitalsPointsInRange,
   formatVitalsReading,
   vitalsSorted,
@@ -328,6 +329,9 @@ function BloodPressureViz({
             Latest · {formatTrendDate(latest.date)} ·{" "}
             {latest.period.toUpperCase()} · {latest.heartRate} bpm
           </p>
+          {latest.note && (
+            <p className="health-bp-latest-note">{latest.note}</p>
+          )}
         </div>
       )}
 
@@ -566,6 +570,7 @@ function VitalsLogCard({ today }: { today: string }) {
   const [systolic, setSystolic] = useState("");
   const [diastolic, setDiastolic] = useState("");
   const [heartRate, setHeartRate] = useState("");
+  const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
@@ -584,10 +589,12 @@ function VitalsLogCard({ today }: { today: string }) {
         systolic: Number(systolic),
         diastolic: Number(diastolic),
         heartRate: Number(heartRate),
+        note: note.trim() || undefined,
       });
       setSystolic("");
       setDiastolic("");
       setHeartRate("");
+      setNote("");
       setOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save");
@@ -692,6 +699,17 @@ function VitalsLogCard({ today }: { today: string }) {
               />
             </label>
           </div>
+          <label className="field">
+            <span className="field-label">Note</span>
+            <input
+              type="text"
+              value={note}
+              maxLength={VITALS_NOTE_MAX}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Quick line about this reading"
+              autoComplete="off"
+            />
+          </label>
           {error && <p className="form-error">{error}</p>}
           <PrimaryButton onClick={save} disabled={busy || !canSave}>
             {busy ? "Saving…" : "Save reading"}
@@ -724,6 +742,9 @@ function VitalsLogCard({ today }: { today: string }) {
                       {formatTrendDate(r.date)} · {r.period.toUpperCase()}
                     </p>
                     <p className="vitals-recent-vals">{formatVitalsReading(r)}</p>
+                    {r.note && (
+                      <p className="vitals-recent-note">{r.note}</p>
+                    )}
                   </div>
                   <button
                     type="button"

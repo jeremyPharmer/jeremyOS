@@ -9519,6 +9519,14 @@ button.check-item-btn:disabled {
   font-size: 0.98rem;
 }
 
+.vitals-recent-note {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--muted);
+  font-style: italic;
+}
+
 .vitals-recent-del {
   flex-shrink: 0;
   border: none;
@@ -9602,6 +9610,14 @@ button.check-item-btn:disabled {
 .health-bp-latest-meta {
   margin: 6px 0 0;
   font-size: 0.88rem;
+}
+
+.health-bp-latest-note {
+  margin: 8px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  color: var(--text);
+  font-style: italic;
 }
 
 .health-bp-legend {

@@ -23,6 +23,17 @@ export const VITALS_METRICS: {
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** One-line note on a BP reading (Health). */
+export const VITALS_NOTE_MAX = 80;
+
+export function normalizeVitalsNote(raw: unknown): string | undefined {
+  const note = String(raw ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, VITALS_NOTE_MAX);
+  return note || undefined;
+}
+
 export function isVitalsPeriod(v: unknown): v is VitalsPeriod {
   return v === "am" || v === "pm";
 }
@@ -39,8 +50,17 @@ export function parseVitalsInput(raw: {
   systolic?: unknown;
   diastolic?: unknown;
   heartRate?: unknown;
+  note?: unknown;
 }):
-  | { ok: true; date: string; period: VitalsPeriod; systolic: number; diastolic: number; heartRate: number }
+  | {
+      ok: true;
+      date: string;
+      period: VitalsPeriod;
+      systolic: number;
+      diastolic: number;
+      heartRate: number;
+      note?: string;
+    }
   | { ok: false; error: string } {
   const date = String(raw.date ?? "").trim();
   if (!DATE_RE.test(date)) {
@@ -64,6 +84,7 @@ export function parseVitalsInput(raw: {
   if (systolic <= diastolic) {
     return { ok: false, error: "Systolic should be higher than diastolic" };
   }
+  const note = normalizeVitalsNote(raw.note);
   return {
     ok: true,
     date,
@@ -71,6 +92,7 @@ export function parseVitalsInput(raw: {
     systolic,
     diastolic,
     heartRate,
+    ...(note ? { note } : {}),
   };
 }
 
@@ -82,8 +104,10 @@ export function addVitalsReading(
     systolic: number;
     diastolic: number;
     heartRate: number;
+    note?: string;
   },
 ): RebuildState {
+  const note = normalizeVitalsNote(input.note);
   const reading: VitalsReading = {
     id: newId("vitals"),
     date: input.date,
@@ -91,6 +115,7 @@ export function addVitalsReading(
     systolic: input.systolic,
     diastolic: input.diastolic,
     heartRate: input.heartRate,
+    ...(note ? { note } : {}),
     loggedAt: new Date().toISOString(),
   };
   const prev = state.vitals ?? [];
