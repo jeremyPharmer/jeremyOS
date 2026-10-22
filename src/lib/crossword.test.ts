@@ -89,17 +89,16 @@ describe("mini crossword pack", () => {
 
     const tomorrow = puzzleForDate("2026-09-20");
     expect(tomorrow.id).not.toBe("inter-coast");
-    const isLadder =
-      tomorrow.rows[0]!.includes("#") || tomorrow.rows[4]!.includes("#");
-    expect(isLadder).toBe(true);
+    expect(() => assertPuzzleValid(tomorrow)).not.toThrow();
   });
 
-  it("keeps a long unique-answer rotation (no mid-cycle word repeats)", () => {
-    expect(MINI_CROSSWORDS.length).toBeGreaterThanOrEqual(50);
+  it("keeps a year-long unique-answer rotation (no mid-cycle word repeats)", () => {
+    expect(MINI_CROSSWORDS.length).toBeGreaterThanOrEqual(366);
     const seen = new Set<string>();
     let firstReuse: { day: number; word: string; id: string } | null = null;
-    for (let i = 0; i < MINI_CROSSWORDS.length; i++) {
-      const date = new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10);
+    // 2024 is a leap year — 366 calendar days without wrapping into the next year.
+    for (let i = 0; i < 366; i++) {
+      const date = new Date(Date.UTC(2024, 0, 1 + i)).toISOString().slice(0, 10);
       const p = puzzleForDate(date);
       for (const dir of ["across", "down"] as const) {
         for (const c of p[dir]) {
@@ -112,6 +111,41 @@ describe("mini crossword pack", () => {
       }
     }
     expect(firstReuse).toBeNull();
+  });
+
+  it("never repeats a clue within the same calendar year", () => {
+    expect(MINI_CROSSWORDS.length).toBeGreaterThanOrEqual(366);
+    const seen = new Map<string, string>();
+    let firstReuse: { date: string; clue: string; id: string } | null = null;
+    // Leap year so day-of-year covers the full 366-slot pack once.
+    for (let i = 0; i < 366; i++) {
+      const date = new Date(Date.UTC(2024, 0, 1 + i)).toISOString().slice(0, 10);
+      const p = puzzleForDate(date);
+      for (const c of [...p.across, ...p.down]) {
+        const key = c.clue.trim().toLowerCase();
+        if (seen.has(key) && !firstReuse) {
+          firstReuse = { date, clue: c.clue, id: p.id };
+        }
+        seen.set(key, `${date}:${p.id}`);
+      }
+    }
+    expect(firstReuse).toBeNull();
+    expect(seen.size).toBeGreaterThanOrEqual(366 * 5);
+  });
+
+  it("never reuses the same clue text across the pack", () => {
+    const seen = new Map<string, string>();
+    for (const p of MINI_CROSSWORDS) {
+      for (const c of [...p.across, ...p.down]) {
+        const key = c.clue.trim().toLowerCase();
+        const where = `${p.id}:${c.num}:${c.clue}`;
+        expect(seen.has(key), `duplicate clue "${c.clue}" at ${where} (also ${seen.get(key)})`).toBe(
+          false,
+        );
+        seen.set(key, where);
+      }
+    }
+    expect(seen.size).toBe(MINI_CROSSWORDS.length * 6);
   });
 
   it("never reuses the same answer word across the pack", () => {
