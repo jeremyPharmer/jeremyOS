@@ -1721,22 +1721,21 @@ function SaveGoalsDetail() {
                 >
                   Cancel
                 </SecondaryButton>
+                {!isReserveGoal(g) ? (
+                  <button
+                    type="button"
+                    className="btn danger-text"
+                    disabled={busy}
+                    onClick={() => {
+                      setDeleting(g);
+                      setReallocateTo("");
+                      setError("");
+                    }}
+                  >
+                    Delete goal
+                  </button>
+                ) : null}
               </div>
-              {!isReserveGoal(g) ? (
-                <button
-                  type="button"
-                  className="save-goal-add-link"
-                  style={{ marginTop: 10 }}
-                  disabled={busy}
-                  onClick={() => {
-                    setDeleting(g);
-                    setReallocateTo("");
-                    setError("");
-                  }}
-                >
-                  Delete
-                </button>
-              ) : null}
             </div>
           ) : null}
           {deleting?.id === g.id ? (
@@ -1774,15 +1773,18 @@ function SaveGoalsDetail() {
                 </p>
               ) : null}
               <div className="save-goal-create-actions">
-                <PrimaryButton
+                <button
+                  type="button"
+                  className="btn danger"
                   onClick={() => void confirmDelete()}
                   disabled={busy}
                 >
-                  {busy ? "Deleting…" : "Delete"}
-                </PrimaryButton>
+                  {busy ? "Deleting…" : `Delete ${deleting.name}`}
+                </button>
                 <SecondaryButton
                   onClick={() => {
                     setDeleting(null);
+                    setEditing(deleting);
                     setReallocateTo("");
                     setError("");
                   }}

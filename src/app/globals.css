@@ -3453,8 +3453,10 @@ button.save-goal-rate.save-goal-inbound-edit {
 
 .save-goal-create-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  flex-wrap: nowrap;
   gap: 8px;
+  width: 100%;
 }
 
 .save-goal-add-link {
@@ -9925,6 +9927,14 @@ html.sheet-open .top-nav {
   border-color: transparent;
   color: var(--danger);
   font-weight: 600;
+}
+
+.btn.danger {
+  width: 100%;
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+  color: var(--danger);
+  font-weight: 650;
 }
 
 .reward-pick-row {
