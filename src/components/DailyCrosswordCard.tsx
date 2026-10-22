@@ -398,7 +398,7 @@ export function DailyCrosswordCard() {
       : revealed
         ? "Answers revealed"
         : started
-          ? "Tap a square, then type"
+          ? "Shapes change day to day"
           : "One mini puzzle a day — shapes change";
 
   const clearLabel = "Clear";
