@@ -8,7 +8,9 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
-const srcPath = path.join(root, "src/lib/crossword.ts");
+const packPath = path.join(root, "src/lib/mini-crosswords.ts");
+const legacyPath = path.join(root, "src/lib/crossword.ts");
+const srcPath = fs.existsSync(packPath) ? packPath : legacyPath;
 const src = fs.readFileSync(srcPath, "utf8");
 
 function extractExisting(source) {
@@ -102,22 +104,37 @@ for (const c of [
 ])
   usedClues.add(c);
 
-const common = fs
-  .readFileSync("/tmp/common10k.txt", "utf8")
-  .split(/\n/)
-  .map((w) => w.trim().toLowerCase())
-  .filter(Boolean);
+function loadFreqWords() {
+  const path50 = "/tmp/en50k.txt";
+  if (fs.existsSync(path50)) {
+    return fs
+      .readFileSync(path50, "utf8")
+      .split(/\n/)
+      .map((line) => line.trim().split(/\s+/)[0]?.toLowerCase())
+      .filter((w) => w && /^[a-z]+$/.test(w));
+  }
+  return fs
+    .readFileSync("/tmp/common10k.txt", "utf8")
+    .split(/\n/)
+    .map((w) => w.trim().toLowerCase())
+    .filter(Boolean);
+}
+const common = loadFreqWords();
 const alpha = new Set(
   fs
     .readFileSync("/tmp/words_alpha.txt", "utf8")
     .split(/\n/)
-    .map((w) => w.trim().toLowerCase()),
+    .map((w) => w.trim().toLowerCase())
+    .filter(Boolean),
 );
 
 const BAN = new Set(
   `
 OPERA ITEM ITEMS IDEAL ALERT SPOT FARM FOLK SOAP AVERT XANAX
 NASA NATO FBI CIA IRS BMW HBO MTV ESPN CNN BBC HTML CSS DVD NBA NFL NHL MLB USDA
+INTER COAST RISKS INCUR TEAMS RATES
+SLUTS HORNY BONER FUCK PENIS SEXY SEXES RAPED SISSY KINKY RANDY STUD
+CUNT COCK TITS SHIT PISS ARSE ANUS WANK JIZZ DICK TWAT MURPH
 `.trim().split(/\s+/),
 );
 
@@ -138,9 +155,9 @@ function shuffle(arr) {
   return a;
 }
 
-// Prefer mid-frequency (harder than ultra-common), then broaden so we can fill a year.
-const mid = common.slice(400);
-const broad = common.slice(150);
+// Skip the most spoon-fed head of the frequency list; keep the rest recognizable.
+const mid = common.slice(500, 28000);
+const broad = common.slice(200, 35000);
 function poolFor(len, sources) {
   return shuffle([
     ...new Set(
@@ -153,21 +170,17 @@ function poolFor(len, sources) {
 }
 let list5 = poolFor(5, mid);
 let list4 = poolFor(4, [...mid, ...broad]);
-// Top up from broader common list + alpha if pools are too thin for 366 puzzles.
-const alpha5 = [];
-const alpha4 = [];
-for (const w of alpha) {
-  if (w.length === 5) alpha5.push(w);
-  else if (w.length === 4) alpha4.push(w);
+// Top up from a wider frequency band only (still not the obscure long-tail).
+if (list5.length < 2500) {
+  list5 = shuffle([...new Set([...list5, ...poolFor(5, broad)])]).slice(0, 4000);
 }
-if (list5.length < 2200) {
-  const extra = poolFor(5, [...broad, ...alpha5]);
-  list5 = shuffle([...new Set([...list5, ...extra])]).slice(0, 5000);
+if (list4.length < 1800) {
+  list4 = shuffle([...new Set([...list4, ...poolFor(4, common.slice(100, 40000))])]).slice(
+    0,
+    3500,
+  );
 }
-if (list4.length < 1600) {
-  const extra = poolFor(4, [...broad, ...alpha4]);
-  list4 = shuffle([...new Set([...list4, ...extra])]).slice(0, 4000);
-}
+console.log("freq pools", list5.length, list4.length);
 const set5 = new Set(list5);
 const set4 = new Set(list4);
 console.log("existing", existing.length, "pools", list5.length, list4.length);
@@ -531,7 +544,7 @@ function scrubDef(text, word) {
   if (t.length > 56) t = t.slice(0, 53).replace(/\s+\S*$/, "") + "…";
   if (t.length < 8) return null;
   if (
-    /surname|cricket|born |official|countable|intransitive|transitive|auxiliary|archaic|bodybuilding|networking|espionage|plural of|trademark/i.test(
+    /surname|cricket|born |official|countable|intransitive|transitive|auxiliary|archaic|bodybuilding|networking|espionage|plural of|trademark|sex|porn|penis|vagina|erect|promiscu|homosexual|effeminate|abuse|intercourse|allosexual|softcore|aroused/i.test(
       t,
     )
   )
