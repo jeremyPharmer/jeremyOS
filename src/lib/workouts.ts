@@ -268,28 +268,46 @@ export function knownExercises(
   );
 }
 
+function workoutRecencySort(a: WorkoutLog, b: WorkoutLog): number {
+  const byDate = b.date.localeCompare(a.date);
+  if (byDate !== 0) return byDate;
+  return b.createdAt.localeCompare(a.createdAt);
+}
+
 /**
  * Most recent logged session for a routine that includes set actuals.
- * Newest by date, then createdAt.
+ * Prefers routineId match; falls back to the same workout label (older logs
+ * sometimes omit routineId). Newest by date, then createdAt.
  */
 export function lastExerciseActualsForRoutine(
   workouts: WorkoutLog[] | undefined,
   routineId: string,
+  routineLabel?: string,
 ): WorkoutExerciseActual[] | undefined {
-  if (!routineId) return undefined;
-  const match = normalizeWorkouts(workouts)
+  const logs = normalizeWorkouts(workouts);
+  if (routineId) {
+    const byId = logs
+      .filter(
+        (w) =>
+          w.routineId === routineId &&
+          Array.isArray(w.exerciseActuals) &&
+          w.exerciseActuals.length > 0,
+      )
+      .sort(workoutRecencySort)[0];
+    if (byId?.exerciseActuals?.length) return byId.exerciseActuals;
+  }
+
+  const label = routineLabel?.trim().toLowerCase();
+  if (!label) return undefined;
+  const byLabel = logs
     .filter(
       (w) =>
-        w.routineId === routineId &&
+        w.label.trim().toLowerCase() === label &&
         Array.isArray(w.exerciseActuals) &&
         w.exerciseActuals.length > 0,
     )
-    .sort((a, b) => {
-      const byDate = b.date.localeCompare(a.date);
-      if (byDate !== 0) return byDate;
-      return b.createdAt.localeCompare(a.createdAt);
-    })[0];
-  return match?.exerciseActuals;
+    .sort(workoutRecencySort)[0];
+  return byLabel?.exerciseActuals;
 }
 
 function previousActualForExercise(
@@ -304,30 +322,51 @@ function previousActualForExercise(
   return previous.find((p) => p.name.trim().toLowerCase() === lower);
 }
 
+/** Most recent logged sets for an exercise name across all workouts. */
+export function lastExerciseActualByName(
+  workouts: WorkoutLog[] | undefined,
+  name: string,
+): WorkoutExerciseActual | undefined {
+  const lower = name.trim().toLowerCase();
+  if (!lower) return undefined;
+  for (const w of normalizeWorkouts(workouts).sort(workoutRecencySort)) {
+    const hit = (w.exerciseActuals ?? []).find(
+      (ex) => ex.name.trim().toLowerCase() === lower,
+    );
+    if (hit?.sets?.length) return hit;
+  }
+  return undefined;
+}
+
 /**
  * Seed actual rows from a routine plan.
- * Reps come from the plan; weights default from the last logged session
- * for that routine (matched by exercise id, then name).
+ * Retains the last performed reps/weights when known (routine session first,
+ * then same label, then latest log of that exercise name). Falls back to the
+ * plan's reps when no prior set exists.
  */
 export function blankActualsFromRoutine(
   routine: WorkoutRoutine,
   previousActuals?: WorkoutExerciseActual[] | undefined,
+  workouts?: WorkoutLog[] | undefined,
 ): WorkoutExerciseActual[] {
   return normalizeRoutine(routine).exercises.map((ex) => {
-    const prev = previousActualForExercise(
-      previousActuals,
-      ex.id,
-      ex.name,
-    );
+    const prev =
+      previousActualForExercise(previousActuals, ex.id, ex.name) ??
+      lastExerciseActualByName(workouts, ex.name);
     return {
       exerciseId: ex.id,
       name: ex.name,
       tracksWeight: ex.tracksWeight,
       repMode: ex.repMode ?? "reps",
       sets: Array.from({ length: ex.sets }, (_, setIndex) => {
-        const prevWeight = prev?.sets[setIndex]?.weight;
+        const prevSet = prev?.sets[setIndex];
+        const prevReps = prevSet?.reps;
+        const prevWeight = prevSet?.weight;
         return {
-          reps: ex.reps,
+          reps:
+            prevReps != null && Number.isFinite(prevReps) && prevReps >= 0
+              ? Math.min(99, Math.round(prevReps))
+              : ex.reps,
           weight:
             ex.tracksWeight &&
             prevWeight != null &&
