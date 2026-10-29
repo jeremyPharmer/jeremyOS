@@ -10,6 +10,7 @@ import {
   formatDurationMinSec,
   formatPacePerMile,
   knownExercises,
+  lastExerciseActualByName,
   lastExerciseActualsForRoutine,
   splitDurationSec,
   monthHistoryLabel,
@@ -347,8 +348,68 @@ describe("routines and actuals", () => {
     ];
     const actuals = blankActualsFromRoutine(routine, previous);
     expect(actuals[0].sets.map((s) => s.weight)).toEqual([135, 140, 145]);
-    expect(actuals[0].sets[0].reps).toBe(8);
+    expect(actuals[0].sets.map((s) => s.reps)).toEqual([8, 8, 6]);
     expect(actuals[1].sets[0].weight).toBeUndefined();
+    expect(actuals[1].sets[0].reps).toBe(12);
+  });
+
+  it("fills missing exercises from last log by name across workouts", () => {
+    const previous = [
+      {
+        exerciseId: "ex_1",
+        name: "Bench",
+        tracksWeight: true,
+        sets: [{ reps: 8, weight: 135 }],
+      },
+    ];
+    const logs: WorkoutLog[] = [
+      {
+        id: "other-day",
+        date: "2026-09-08",
+        label: "Pull focus",
+        type: "lift",
+        exerciseActuals: [
+          {
+            exerciseId: "rows",
+            name: "Push-ups",
+            tracksWeight: false,
+            sets: [{ reps: 15 }, { reps: 12 }],
+          },
+        ],
+        createdAt: "2026-09-08T12:00:00Z",
+      },
+    ];
+    const actuals = blankActualsFromRoutine(routine, previous, logs);
+    expect(actuals[0].sets[0].weight).toBe(135);
+    expect(actuals[1].sets[0].reps).toBe(15);
+    expect(actuals[1].sets[1].reps).toBe(12);
+    expect(lastExerciseActualByName(logs, "Push-ups")?.sets[0].reps).toBe(15);
+  });
+
+  it("falls back to workout label when routineId is missing on prior log", () => {
+    const logs: WorkoutLog[] = [
+      {
+        id: "legacy",
+        date: "2026-09-10",
+        label: "Upper",
+        type: "lift",
+        exerciseActuals: [
+          {
+            exerciseId: "ex_1",
+            name: "Bench",
+            tracksWeight: true,
+            sets: [
+              { reps: 8, weight: 155 },
+              { reps: 8, weight: 155 },
+              { reps: 6, weight: 160 },
+            ],
+          },
+        ],
+        createdAt: "2026-09-10T12:00:00Z",
+      },
+    ];
+    const last = lastExerciseActualsForRoutine(logs, "routine_1", "Upper");
+    expect(last?.[0].sets.map((s) => s.weight)).toEqual([155, 155, 160]);
   });
 
   it("matches previous weights by exercise name when ids differ", () => {

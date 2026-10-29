@@ -205,8 +205,16 @@ export function WorkoutLogForm({
       return;
     }
     const r = findRoutine(state.workoutRoutines ?? [], id);
-    const previous = lastExerciseActualsForRoutine(state.workouts ?? [], id);
-    setActuals(r ? blankActualsFromRoutine(r, previous) : []);
+    if (!r) {
+      setActuals([]);
+      return;
+    }
+    const previous = lastExerciseActualsForRoutine(
+      state.workouts ?? [],
+      id,
+      r.name,
+    );
+    setActuals(blankActualsFromRoutine(r, previous, state.workouts));
   }, [workout, state.workoutRoutines, state.workouts, editingId]);
 
   function resetFields() {
