@@ -140,7 +140,9 @@ function GoalProgressRow({
         <div className="save-goal-row-head">
           <h3 className="save-goal-name">{goal.name}</h3>
           {reserve ? (
-            <p className="save-goal-togo">
+            <p
+              className={`save-goal-togo${under ? " save-goal-under" : ""}`}
+            >
               {formatMoney(Math.abs(goal.savedAmount))}{" "}
               <span className="save-goal-togo-label">
                 {under ? "under" : "available"}
@@ -687,10 +689,7 @@ function LogExpensePanel({
   const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(spendDate);
   const canSubmit = dateOk && amountOk && Boolean(spendCategory);
   const showError = localError || error;
-  const reserveLabel =
-    reserveAvailable < 0
-      ? `From Reserve · ${formatMoney(Math.abs(reserveAvailable))} under`
-      : `From Reserve · ${formatMoney(reserveAvailable)} available`;
+  const reserveUnder = reserveAvailable < 0;
 
   return (
     <div className="save-goal-create">
@@ -718,8 +717,13 @@ function LogExpensePanel({
           disabled={busy}
         />
       </label>
-      <p className="tiny muted" style={{ margin: 0 }}>
-        {reserveLabel}
+      <p
+        className={`tiny${reserveUnder ? " save-goal-under" : " muted"}`}
+        style={{ margin: 0 }}
+      >
+        {reserveUnder
+          ? `From Reserve · ${formatMoney(Math.abs(reserveAvailable))} under`
+          : `From Reserve · ${formatMoney(reserveAvailable)} available`}
       </p>
       <div className="save-goal-spend-category">
         <label className="field">
