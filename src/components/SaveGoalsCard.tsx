@@ -141,8 +141,10 @@ function GoalProgressRow({
           <h3 className="save-goal-name">{goal.name}</h3>
           {reserve ? (
             <p className="save-goal-togo">
-              {formatMoney(Math.max(0, goal.savedAmount))}{" "}
-              <span className="save-goal-togo-label">available</span>
+              {formatMoney(Math.abs(goal.savedAmount))}{" "}
+              <span className="save-goal-togo-label">
+                {under ? "under" : "available"}
+              </span>
             </p>
           ) : (
             <p className="save-goal-togo">
@@ -669,14 +671,6 @@ function LogExpensePanel({
       setLocalError("Pick a category.");
       return;
     }
-    if (amount > reserveAvailable) {
-      setLocalError(
-        reserveAvailable <= 0
-          ? "Reserve is empty — add to Reserve first."
-          : `Only ${formatMoney(reserveAvailable)} available in Reserve.`,
-      );
-      return;
-    }
     const note =
       spendCategory === "other" ? otherNote.trim().slice(0, 80) : undefined;
     setLocalError("");
@@ -691,10 +685,12 @@ function LogExpensePanel({
   const amount = Number(entryAmount);
   const amountOk = Number.isFinite(amount) && amount > 0;
   const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(spendDate);
-  const overReserve = amountOk && amount > reserveAvailable;
-  const canSubmit =
-    dateOk && amountOk && Boolean(spendCategory) && !overReserve;
+  const canSubmit = dateOk && amountOk && Boolean(spendCategory);
   const showError = localError || error;
+  const reserveLabel =
+    reserveAvailable < 0
+      ? `From Reserve · ${formatMoney(Math.abs(reserveAvailable))} under`
+      : `From Reserve · ${formatMoney(reserveAvailable)} available`;
 
   return (
     <div className="save-goal-create">
@@ -723,7 +719,7 @@ function LogExpensePanel({
         />
       </label>
       <p className="tiny muted" style={{ margin: 0 }}>
-        From Reserve · {formatMoney(reserveAvailable)} available
+        {reserveLabel}
       </p>
       <div className="save-goal-spend-category">
         <label className="field">
@@ -762,13 +758,6 @@ function LogExpensePanel({
           </label>
         ) : null}
       </div>
-      {overReserve && !localError ? (
-        <p className="tiny" style={{ color: "var(--danger)" }}>
-          {reserveAvailable <= 0
-            ? "Reserve is empty — add to Reserve first."
-            : `Only ${formatMoney(reserveAvailable)} available in Reserve.`}
-        </p>
-      ) : null}
       {showError ? (
         <p className="tiny" style={{ color: "var(--danger)" }}>
           {showError}
@@ -802,7 +791,7 @@ function HomeSaveGoalsGlance() {
     () => goals.find((g) => isReserveGoal(g)) ?? null,
     [goals],
   );
-  const reserveAvailable = Math.max(0, reserve?.savedAmount ?? 0);
+  const reserveAvailable = reserve?.savedAmount ?? 0;
   const entries = useMemo(
     () =>
       today
@@ -1576,7 +1565,7 @@ function SaveGoalsDetail() {
     }
   }
 
-  const reserveAvailable = Math.max(0, reserve?.savedAmount ?? 0);
+  const reserveAvailable = reserve?.savedAmount ?? 0;
 
   const ideasCard = (
     <IdeasSection

@@ -684,6 +684,26 @@ describe("addSaveGoalSpend + applySaveGoalDayTotals", () => {
     expect(state.saveGoalSpendEntries ?? []).toHaveLength(0);
   });
 
+  it("allows Reserve to go negative when expense exceeds balance", () => {
+    let state = emptyState();
+    state = createSaveGoal(state, {
+      name: "City",
+      targetAmount: 2900,
+      createdOn: "2026-10-01",
+    });
+    state = creditSaveGoalReserve(state, {
+      date: "2026-10-01",
+      amount: 134.35,
+    });
+    state = addSaveGoalSpend(state, {
+      date: "2026-10-30",
+      amount: 276.55,
+      kind: "spend",
+      category: "gifts",
+    });
+    expect(findReserveGoal(state)!.savedAmount).toBeCloseTo(-142.2, 2);
+  });
+
   it("groups expenses by day newest-first", () => {
     let state = emptyState();
     state = createSaveGoal(state, {

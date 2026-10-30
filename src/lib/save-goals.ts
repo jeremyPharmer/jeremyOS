@@ -873,7 +873,8 @@ export function addSaveGoalSpend(
   let next = normalizeSaveGoals(state);
   let reserveAdjustId: string | undefined;
 
-  // Expenses always debit Reserve (holding tank). Adds stay entry-only.
+  // Expenses always debit Reserve (holding tank); balance may go negative.
+  // Adds stay entry-only.
   if (kind === "spend") {
     const reserve = findReserveGoal(next);
     if (!reserve) {
